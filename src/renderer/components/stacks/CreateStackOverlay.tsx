@@ -75,6 +75,9 @@ export default function CreateStackOverlay({ onClose, onCreated }: Props) {
   const [activeTab, setActiveTab] = useState<'compose' | 'env'>('compose')
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // the error sits below the editor: bring it into view when it appears (a refused App-Data location was easy to miss)
+  const errorRef = useRef<HTMLDivElement>(null)
+  useEffect(() => { if (error) errorRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }) }, [error])
   const confirm = useConfirm()
   // where its App-Data goes: the stack's own folder (today's default), a drive DCS knows, or a path typed here
   const [adMode, setAdMode] = useState<'stack' | 'drive' | 'custom'>('stack')
@@ -116,7 +119,7 @@ export default function CreateStackOverlay({ onClose, onCreated }: Props) {
     .replace(/^-|-$/g, '')
 
   // the App-Data path the stack is created with ('' = the stack's own folder)
-  const suggestedPath = adMount ? `${adMount.replace(/\/+$/, '')}/appdata/${sanitizedName || '<stack>'}` : ''
+  const suggestedPath = adMount ? `${adMount.replace(/\/+$/, '')}/.dcs/App-Data/${sanitizedName || '<stack>'}` : ''
   const appDataPath = adMode === 'stack' ? '' : (adMode === 'drive' && !adEdited ? suggestedPath : adPath.trim())
 
   // Handle create
@@ -340,7 +343,7 @@ export default function CreateStackOverlay({ onClose, onCreated }: Props) {
                 type="text"
                 value={adPath}
                 onChange={(e) => setAdPath(e.target.value)}
-                placeholder={`/mnt/disk2/appdata/${sanitizedName || '<stack>'}`}
+                placeholder={`/mnt/disk2/.dcs/App-Data/${sanitizedName || '<stack>'}`}
                 aria-label="The full path of its App-Data folder"
                 spellCheck={false}
                 className="mt-2 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono placeholder:text-slate-600 focus:outline-none focus:border-emerald-500/40"
@@ -348,7 +351,7 @@ export default function CreateStackOverlay({ onClose, onCreated }: Props) {
             )}
             {adMode !== 'stack' && (
               <p className="mt-2 text-[11px] text-slate-500">
-                DCS makes the folder (its parent must exist), backs it up with the stack, and never deletes it with the stack. While the drive is not mounted, the stack is not started.
+                DCS makes the folders on the drive, backs them up with the stack, and never deletes them with the stack. While the drive is not mounted, the stack is not started.
               </p>
             )}
           </div>
@@ -422,7 +425,7 @@ export default function CreateStackOverlay({ onClose, onCreated }: Props) {
 
           {/* Error display */}
           {error && (
-            <div role="alert" className="flex items-center gap-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 px-4 py-3 animate-fade-in">
+            <div ref={errorRef} role="alert" className="flex items-center gap-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 px-4 py-3 animate-fade-in">
               <AlertTriangle size={15} className="text-rose-400 shrink-0" />
               <p className="text-xs text-rose-300">{error}</p>
             </div>
