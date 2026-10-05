@@ -12,6 +12,7 @@ import { CopyButton } from '../common/CopyButton'
 import Hint from '../common/Hint'
 import { BTN_CARD_QUIET, BTN_ICON, BTN_ICON_SM, TONE_GHOST, TONE_GHOST_OK, TONE_GHOST_DANGER } from '../../lib/ui'
 import type { StackInfo } from '../../../shared/types'
+import AppDataLabel from './AppDataLabel'
 
 function formatRelativeTime(timestamp: number): string {
   const seconds = Math.floor((Date.now() - timestamp) / 1000)
@@ -286,7 +287,7 @@ export default function StackCard({ stack, isActionLoading, onAction, onSelect, 
         )}
 
         {/* Container count */}
-        <div className="flex items-center gap-2 mb-4">
+        <div className={`flex items-center gap-2 ${stack.placement !== 'vm' && stack.app_data ? 'mb-1.5' : 'mb-4'}`}>
           <Box className="w-3.5 h-3.5 text-slate-500" />
           <span className="text-xs text-slate-400">
             <span className={`font-semibold ${isRunning ? 'text-emerald-400' : 'text-slate-300'}`}>
@@ -309,6 +310,8 @@ export default function StackCard({ stack, isActionLoading, onAction, onSelect, 
             </span>
           )}
         </div>
+        {/* where its App-Data is (a hub stack: a VM's lives in the VM) */}
+        {stack.placement !== 'vm' && <AppDataLabel stack={stack.name} appData={stack.app_data} className="mb-4" />}
 
         {/* Action buttons (hidden in batch mode) */}
         {!batchMode && (

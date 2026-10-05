@@ -31,6 +31,7 @@ import {
   Moon,
 } from 'lucide-react'
 import type { StackDetail as StackDetailType, ContainerInfo, StackInfo, ProxmoxVmAction, StackAppDataStatus } from '../../../shared/types'
+import AppDataLabel from './AppDataLabel'
 import { fetchStack, fetchStackLogs, fetchStackCompose, cloneStack, renameStack, startContainer, stopContainer, restartContainer, proxmoxVmAction, pushStackFiles, pullStackFiles, fetchStackAppData, mountStackAppData, unmountStackAppData } from '../../api/endpoints'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { useToast } from '../common/Toast'
@@ -551,6 +552,9 @@ export default function StackDetail({ stackName, onBack, onAction, isActionLoadi
                 service{(detail?.services?.length ?? 0) !== 1 ? 's' : ''}
               </span>
             </div>
+
+            {/* where its App-Data is (a hub stack: a VM's App-Data is shown below, from the VM) */}
+            {!isVm && <AppDataLabel stack={stackName} appData={detail?.app_data ?? stack?.app_data} className="max-w-full" />}
           </div>
 
           {/* Action buttons: emerald starts, rose stops, the rest is neutral */}

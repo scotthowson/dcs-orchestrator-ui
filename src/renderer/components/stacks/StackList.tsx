@@ -308,7 +308,12 @@ export default function StackList({ onAction, onSelect, onRefresh, loading = fal
                     const vmStack = stacks.find((st) => st.name === showDeleteModal && st.placement === 'vm')
                     return vmStack
                       ? `This removes the stack's files from its VM${vmStack.member_name ? ` (${vmStack.member_name})` : ''}. The VM itself stays — remove it on the ${pageLabel('proxmox')} page when you no longer need it.`
-                      : 'This will permanently remove the stack directory and all its files.'
+                      : (() => {
+                        const own = stacks.find((st) => st.name === showDeleteModal)?.app_data
+                        return own?.external
+                          ? `This will permanently remove the stack directory and its files. Its App-Data at ${own.path} is on a drive of its own and is kept.`
+                          : 'This will permanently remove the stack directory and all its files.'
+                      })()
                   })()}
                 </p>
               </div>

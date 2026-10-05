@@ -187,6 +187,16 @@ export interface StackInfo {
   type?: string
   reachable?: boolean
   version?: string
+  /** where its App-Data is (4.0.32): the stack's folder, or a drive of its own */
+  app_data?: StackAppData
+}
+
+/** a stack's App-Data: `external` = on a drive of its own (an absolute APP_DATA_DIR in its .env); `ok` = that drive is there */
+export interface StackAppData {
+  path: string
+  external: boolean
+  ok: boolean
+  free_bytes: number | null
 }
 
 // GET /stacks/:name
@@ -200,6 +210,8 @@ export interface StackDetail {
   services: string[]
   containers: ContainerInfo[]
   images: StackImage[]
+  /** where its App-Data is (4.0.32) */
+  app_data?: StackAppData
 }
 
 export interface StackImage {
@@ -486,6 +498,8 @@ export interface StackCreateResponse {
   success: boolean
   name: string
   message: string
+  /** set when the stack keeps its App-Data on a drive of its own */
+  app_data?: { path: string; external: true }
 }
 
 // DELETE /stacks/:name
@@ -493,6 +507,8 @@ export interface StackDeleteResponse {
   success: boolean
   name: string
   message: string
+  /** its App-Data on a drive of its own, kept (never deleted with the stack) */
+  app_data_kept?: string
 }
 
 // POST /config
@@ -678,6 +694,10 @@ export interface DiskInfo {
   used: string
   available: string
   percent: string
+  fstype?: string
+  total_bytes?: number
+  used_bytes?: number
+  avail_bytes?: number
 }
 
 /** GET /domains — this server's domains: the primary (the hub's stacks) and the others, one Cloudflare token for all */

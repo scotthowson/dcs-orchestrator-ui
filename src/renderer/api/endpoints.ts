@@ -321,8 +321,9 @@ export function updateStack(name: string): Promise<StackUpdateResponse> {
 }
 
 /** POST /stacks — Create a new stack */
-export function createStack(name: string): Promise<StackCreateResponse> {
-  return apiClient.post<StackCreateResponse>('/stacks', { name })
+/** POST /stacks — a new stack; `app_data_dir` keeps its App-Data on a drive of its own (`app_data_adopt`: use files already there) */
+export function createStack(name: string, opts?: { app_data_dir?: string; app_data_adopt?: boolean }): Promise<StackCreateResponse> {
+  return apiClient.post<StackCreateResponse>('/stacks', { name, ...(opts ?? {}) })
 }
 
 /** POST /stacks/:name/delete — Delete a stack */

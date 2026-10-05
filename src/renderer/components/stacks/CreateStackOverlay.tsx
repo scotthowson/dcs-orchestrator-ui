@@ -13,8 +13,12 @@ import {
   Sparkles,
   FileCode2,
   FileText,
+  HardDrive,
 } from 'lucide-react'
-import { createStack, saveStackCompose, saveStackEnv } from '../../api/endpoints'
+import { createStack, saveStackCompose, saveStackEnv, fetchDisks } from '../../api/endpoints'
+import type { DiskInfo } from '../../../shared/types'
+import { fmtBytes } from '../storage/StorageEverywhere'
+import { useConfirm } from '../common/ConfirmDialog'
 import { useToast } from '../common/Toast'
 import Hint from '../common/Hint'
 import { useModalA11y } from '../../hooks/useModalA11y'
@@ -71,6 +75,21 @@ export default function CreateStackOverlay({ onClose, onCreated }: Props) {
   const [activeTab, setActiveTab] = useState<'compose' | 'env'>('compose')
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const confirm = useConfirm()
+  // where its App-Data goes: the stack's own folder (today's default), a drive DCS knows, or a path typed here
+  const [adMode, setAdMode] = useState<'stack' | 'drive' | 'custom'>('stack')
+  const [disks, setDisks] = useState<DiskInfo[] | null>(null)
+  const [adMount, setAdMount] = useState('')
+  const [adPath, setAdPath] = useState('')
+  const [adEdited, setAdEdited] = useState(false)
+  useEffect(() => {
+    if (adMode !== 'drive' || disks) return
+    fetchDisks().then((r) => {
+      const list = (r.disks ?? []).filter((d) => d.mount && d.mount !== '/')
+      setDisks(list)
+      if (!adMount && list.length) setAdMount([...list].sort((a, b) => (b.avail_bytes ?? 0) - (a.avail_bytes ?? 0))[0].mount)
+    }).catch(() => setDisks([]))
+  }, [adMode, disks, adMount])
 
   // Auto-focus name input on mount
   useEffect(() => {
@@ -96,6 +115,10 @@ export default function CreateStackOverlay({ onClose, onCreated }: Props) {
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '')
 
+  // the App-Data path the stack is created with ('' = the stack's own folder)
+  const suggestedPath = adMount ? `${adMount.replace(/\/+$/, '')}/appdata/${sanitizedName || '<stack>'}` : ''
+  const appDataPath = adMode === 'stack' ? '' : (adMode === 'drive' && !adEdited ? suggestedPath : adPath.trim())
+
   // Handle create
   const handleCreate = useCallback(async () => {
     if (!sanitizedName) return
@@ -103,8 +126,23 @@ export default function CreateStackOverlay({ onClose, onCreated }: Props) {
     setError(null)
 
     try {
-      // Step 1: Create the stack directory
-      const result = await createStack(sanitizedName)
+      // Step 1: Create the stack directory (its App-Data on a drive of its own when one was chosen; a folder that already
+      // holds files is used only once the person says so)
+      let result
+      try {
+        result = await createStack(sanitizedName, appDataPath ? { app_data_dir: appDataPath } : undefined)
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e)
+        if (appDataPath && /already holds files/.test(msg) && await confirm({
+          title: 'Use the files already there?',
+          message: `${appDataPath} already holds files. Use them as the App-Data of ${sanitizedName}?`,
+          confirmLabel: 'Use them',
+        })) {
+          result = await createStack(sanitizedName, { app_data_dir: appDataPath, app_data_adopt: true })
+        } else {
+          throw e
+        }
+      }
       if (!result.success) {
         setError(result.message || 'Failed to create stack')
         setCreating(false)
@@ -127,10 +165,13 @@ export default function CreateStackOverlay({ onClose, onCreated }: Props) {
         }
       }
 
-      // Step 3: Save env content if user modified it
+      // Step 3: Save env content if user modified it (the App-Data line the server wrote stays in it)
       if (envContent.trim() && envContent !== DEFAULT_ENV) {
         try {
-          const res = await saveStackEnv(sanitizedName, envContent)
+          const keep = result.app_data?.path && !/^\s*APP_DATA_DIR=/m.test(envContent)
+            ? `${envContent.replace(/\n*$/, '\n')}\n# This stack keeps its App-Data on a drive of its own (chosen when it was created)\nAPP_DATA_DIR="${result.app_data.path}"\n`
+            : envContent
+          const res = await saveStackEnv(sanitizedName, keep)
           if (!res.success) throw new Error(res.message || 'Save failed')
         } catch (err) {
           // Non-fatal
@@ -153,7 +194,7 @@ export default function CreateStackOverlay({ onClose, onCreated }: Props) {
     } finally {
       setCreating(false)
     }
-  }, [sanitizedName, composeContent, envContent, addToast, onCreated, onClose])
+  }, [sanitizedName, composeContent, envContent, addToast, onCreated, onClose, appDataPath, confirm])
 
   return createPortal(
     <div
@@ -238,6 +279,78 @@ export default function CreateStackOverlay({ onClose, onCreated }: Props) {
                 </p>
               )}
             </div>
+          </div>
+
+          {/* Where its App-Data goes */}
+          <div>
+            <p className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+              <HardDrive size={12} aria-hidden /> App-Data location
+            </p>
+            <SegmentedControl
+              size="xs"
+              fullWidth
+              value={adMode}
+              onChange={(v) => setAdMode(v as 'stack' | 'drive' | 'custom')}
+              aria-label="Where the stack's App-Data goes"
+              data={[
+                { value: 'stack', label: "In the stack's folder" },
+                { value: 'drive', label: 'On a drive' },
+                { value: 'custom', label: 'Custom path' },
+              ]}
+            />
+            {adMode === 'stack' && (
+              <p className="mt-2 text-[11px] text-slate-500">
+                <span className="font-mono text-slate-400">Stacks/{sanitizedName || '<stack>'}/App-Data</span>, next to its compose file — as every stack has it.
+              </p>
+            )}
+            {adMode === 'drive' && (
+              <div className="mt-2 space-y-2">
+                {disks === null ? (
+                  <p className="flex items-center gap-1.5 text-[11px] text-slate-500"><Loader2 size={11} className="animate-spin" aria-hidden /> Reading the drives…</p>
+                ) : disks.length === 0 ? (
+                  <p className="text-[11px] text-amber-300">No data drive is mounted besides the system disk: use a custom path, or mount the drive first.</p>
+                ) : (
+                  <select
+                    value={adMount}
+                    onChange={(e) => { setAdMount(e.target.value); setAdEdited(false) }}
+                    aria-label="The drive its App-Data goes on"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono focus:outline-none focus:border-emerald-500/40"
+                  >
+                    {disks.map((d) => (
+                      <option key={d.mount} value={d.mount}>
+                        {d.mount}{d.fstype ? ` (${d.fstype})` : ''} — {d.avail_bytes != null ? `${fmtBytes(d.avail_bytes)} free` : `${d.available} free`}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                {adMount && (
+                  <input
+                    type="text"
+                    value={adEdited ? adPath : suggestedPath}
+                    onChange={(e) => { setAdEdited(true); setAdPath(e.target.value) }}
+                    aria-label="The App-Data folder on that drive"
+                    spellCheck={false}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono focus:outline-none focus:border-emerald-500/40"
+                  />
+                )}
+              </div>
+            )}
+            {adMode === 'custom' && (
+              <input
+                type="text"
+                value={adPath}
+                onChange={(e) => setAdPath(e.target.value)}
+                placeholder={`/mnt/disk2/appdata/${sanitizedName || '<stack>'}`}
+                aria-label="The full path of its App-Data folder"
+                spellCheck={false}
+                className="mt-2 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono placeholder:text-slate-600 focus:outline-none focus:border-emerald-500/40"
+              />
+            )}
+            {adMode !== 'stack' && (
+              <p className="mt-2 text-[11px] text-slate-500">
+                DCS makes the folder (its parent must exist), backs it up with the stack, and never deletes it with the stack. While the drive is not mounted, the stack is not started.
+              </p>
+            )}
           </div>
 
           {/* Tab switcher: one choice */}
@@ -327,7 +440,7 @@ export default function CreateStackOverlay({ onClose, onCreated }: Props) {
             </button>
             <button
               onClick={handleCreate}
-              disabled={creating || !sanitizedName}
+              disabled={creating || !sanitizedName || (adMode !== 'stack' && !appDataPath.startsWith('/'))}
               className={`${BTN_SHEET_PRIMARY} flex-1 sm:flex-none`}
             >
               {creating ? (
