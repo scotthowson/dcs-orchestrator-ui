@@ -119,7 +119,7 @@ export default function CreateStackOverlay({ onClose, onCreated }: Props) {
     .replace(/^-|-$/g, '')
 
   // the App-Data path the stack is created with ('' = the stack's own folder)
-  const suggestedPath = adMount ? `${adMount.replace(/\/+$/, '')}/.dcs/App-Data/${sanitizedName || '<stack>'}` : ''
+  const suggestedPath = adMount ? `${adMount.replace(/\/+$/, '')}/.dcs/Stacks/${sanitizedName || '<stack>'}/App-Data` : ''
   const appDataPath = adMode === 'stack' ? '' : (adMode === 'drive' && !adEdited ? suggestedPath : adPath.trim())
 
   // Handle create
@@ -343,7 +343,7 @@ export default function CreateStackOverlay({ onClose, onCreated }: Props) {
                 type="text"
                 value={adPath}
                 onChange={(e) => setAdPath(e.target.value)}
-                placeholder={`/mnt/disk2/.dcs/App-Data/${sanitizedName || '<stack>'}`}
+                placeholder={`/mnt/disk2/.dcs/Stacks/${sanitizedName || '<stack>'}/App-Data`}
                 aria-label="The full path of its App-Data folder"
                 spellCheck={false}
                 className="mt-2 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono placeholder:text-slate-600 focus:outline-none focus:border-emerald-500/40"

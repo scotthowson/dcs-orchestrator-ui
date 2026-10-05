@@ -189,6 +189,19 @@ export interface StackInfo {
   version?: string
   /** where its App-Data is (4.0.32): the stack's folder, or a drive of its own */
   app_data?: StackAppData
+  /** every container of the stack, stopped ones too (4.0.33): stopped = total - running - sleeping */
+  total_containers?: number
+  /** its running containers' CPU and memory, percent of the machine (the stats cache) */
+  cpu_percent?: number | null
+  mem_percent?: number | null
+  /** its images with a newer version upstream (the last registry check) */
+  updates_available?: number
+  /** the TCP ports it publishes beyond localhost */
+  ports?: number[]
+  /** the addresses Traefik serves it on (https://host) */
+  links?: string[]
+  /** when it was last in a backup (ISO time), null when never since 4.0.33 */
+  last_backup?: string | null
 }
 
 /** a stack's App-Data: `external` = on a drive of its own (an absolute APP_DATA_DIR in its .env); `ok` = that drive is there */
@@ -1264,6 +1277,8 @@ export interface BackupConfigResponse {
   destination: string
   source: string
   retention_count: number
+  /** App-Data folders on drives a backup takes as parts of their own (4.0.33); ok: false while the drive is not there */
+  appdata_dirs?: { stack: string; path: string; ok: boolean }[]
 }
 
 export interface BackupTriggerResponse {

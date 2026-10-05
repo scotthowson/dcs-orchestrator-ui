@@ -10,13 +10,14 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Select, Switch } from '@mantine/core'
-import { CalendarClock, Loader2, Play } from 'lucide-react'
+import { CalendarClock, Loader2, Play, DownloadCloud } from 'lucide-react'
 import { useToast } from '../common/Toast'
+import { useConfirm } from '../common/ConfirmDialog'
 import Hint from '../common/Hint'
 import { pageLabel } from '../../constants/pageTitles'
 import { BTN_CARD_QUIET } from '../../lib/ui'
 import { CardIcon } from './updateBits'
-import { createSchedule, deleteSchedule, fetchSchedules, runSchedule, updateSchedule } from '../../api/endpoints'
+import { createSchedule, deleteSchedule, fetchSchedules, runSchedule, updateSchedule, updateAllImages } from '../../api/endpoints'
 import { scopeMember, type FleetScope, type ScopeMember } from '../../hooks/useFleetScope'
 import type { Schedule } from '../../../shared/types'
 
@@ -43,6 +44,7 @@ function ago(iso?: string | null): string {
 
 export default function AutoImageUpdates({ scope, members }: { scope: FleetScope; members: ScopeMember[] }) {
   const { addToast } = useToast()
+  const confirm = useConfirm()
   const [list, setList] = useState<Schedule[] | null>(null)
   const [silent, setSilent] = useState<string[]>([])   // servers that did not answer the schedule list
   const [error, setError] = useState('')
@@ -125,6 +127,17 @@ export default function AutoImageUpdates({ scope, members }: { scope: FleetScope
     if (busy || active.length === 0) return
     void applyAll('Image update started', async (t, ex) => { if (ex) await runSchedule(ex.id, t) })
   }
+  // every server the chips reach, schedule or not: each pulls what runs and recreates the containers on the old copy
+  const updateEverything = async () => {
+    if (busy) return
+    const ok = await confirm({
+      title: 'Update every image now?',
+      message: `${where.charAt(0).toUpperCase()}${where.slice(1)} pull${targets.length === 1 ? 's' : ''} the newer image of everything that runs and recreate${targets.length === 1 ? 's' : ''} the containers on the old copy, in the background. Apps restart briefly while their container is recreated.`,
+      confirmLabel: 'Update everything',
+    })
+    if (!ok) return
+    void applyAll('Updating every image in the background', async (t) => { await updateAllImages(t) })
+  }
 
   const where = scope === 'all' ? `the hub and its ${members.length} VM${members.length === 1 ? '' : 's'}` : scope === 'hub' ? 'the hub' : (members.find((m) => m.id === scope)?.name ?? scope)
   const sub = value === 'off'
@@ -168,6 +181,11 @@ export default function AutoImageUpdates({ scope, members }: { scope: FleetScope
             <Play size={12} /> Run now
           </button>
         )}
+        <Hint label={`Pull the newer image of everything that runs on ${where} and recreate the containers on the old copy, now — schedule or not. The result goes to your notification channels.`}>
+          <button type="button" onClick={() => { void updateEverything() }} disabled={busy} className={`${BTN_CARD_QUIET} text-emerald-300 hover:bg-emerald-500/10`}>
+            <DownloadCloud size={12} /> Update everything
+          </button>
+        </Hint>
         {silent.length > 0 && <span className="text-[10px] text-amber-300">Not answering: {silent.join(', ')}</span>}
       </div>
       <p className="text-[10px] text-slate-500 pl-12 leading-relaxed">

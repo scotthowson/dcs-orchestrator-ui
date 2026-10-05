@@ -726,7 +726,7 @@ export default function Backup() {
           {/* Config summary */}
           {configData && isConfigured && (
             <div className="mb-5">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className={`grid grid-cols-1 gap-3 ${(configData.appdata_dirs?.length ?? 0) > 0 ? 'sm:grid-cols-2 lg:grid-cols-4' : 'sm:grid-cols-3'}`}>
                 <div className="glass border border-white/5 rounded-lg p-3">
                   <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Destination</p>
                   <p className="mt-1 text-xs font-mono text-slate-300 truncate" title={configData.destination}>
@@ -745,6 +745,21 @@ export default function Backup() {
                     {configData.retention_count} backup{configData.retention_count !== 1 ? 's' : ''}
                   </p>
                 </div>
+                {/* App-Data on drives of their own: parts of their own in every backup */}
+                {(configData.appdata_dirs?.length ?? 0) > 0 && (
+                  <div className="glass border border-white/5 rounded-lg p-3 min-w-0">
+                    <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">App-Data on drives</p>
+                    <ul className="mt-1 space-y-0.5">
+                      {configData.appdata_dirs!.map((d) => (
+                        <li key={d.stack} className="text-xs font-mono truncate" title={d.ok ? `${d.stack}: ${d.path}` : `${d.path} is not there (drive not mounted?): a backup leaves it out until it is back`}>
+                          <span className="text-slate-400">{d.stack}</span>{' '}
+                          <span className={d.ok ? 'text-slate-300' : 'text-amber-300'}>{d.path}</span>
+                          {!d.ok && <span className="text-amber-300"> · not mounted</span>}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
               {hasFleet && scope === 'all' && (
                 <p className="mt-2 text-[11px] text-slate-500 flex items-start gap-1.5">

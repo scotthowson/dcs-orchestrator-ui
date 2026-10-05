@@ -9,6 +9,7 @@ import { useApi } from '../hooks/useApi'
 import { fetchImages, runImagePrune, deleteImage, deleteImageRef, searchImages, pullImage, checkImageRegistry, checkFleetImageRegistry } from '../api/endpoints'
 import { useFleetScope } from '../hooks/useFleetScope'
 import FleetScopeChips from '../components/fleet/FleetScopeChips'
+import AutoImageUpdates from '../components/updates/AutoImageUpdates'
 import { useToast } from '../components/common/Toast'
 import { useConfirm } from '../components/common/ConfirmDialog'
 import { useConnectionStore } from '../stores/connectionStore'
@@ -372,6 +373,9 @@ const Images: React.FC = () => {
         >
           {hasFleet && <FleetScopeChips scope={scope} members={scopeMembers} onChange={setScope} label="Images on" busy={loading && images.length > 0} />}
         </PageHeader>
+
+        {/* the same automatic image updates as the Updates page, on the servers the chips select (admins: they write schedules) */}
+        {isAdmin && <AutoImageUpdates scope={scope} members={scopeMembers} />}
 
         {/* ---- Section: the library, or a search of Docker Hub; a phone swipes it sideways ---- */}
         <div className="min-w-0 max-w-full self-start overflow-x-auto scrollbar-none">

@@ -5,6 +5,7 @@
 import {
   Play, Square, RotateCcw, Download, Loader2, Box,
   AlertTriangle, Tag, Pencil, Check, Shield, Trash2, Clock, Server,
+  Cpu, MemoryStick, ArrowUpCircle, Archive, ExternalLink, Globe,
 } from 'lucide-react'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { useStackStore } from '../../stores/stackStore'
@@ -13,6 +14,7 @@ import Hint from '../common/Hint'
 import { BTN_CARD_QUIET, BTN_ICON, BTN_ICON_SM, TONE_GHOST, TONE_GHOST_OK, TONE_GHOST_DANGER } from '../../lib/ui'
 import type { StackInfo } from '../../../shared/types'
 import AppDataLabel from './AppDataLabel'
+import { serverHostname, memberHost, portUrl } from '../../lib/hosts'
 
 function formatRelativeTime(timestamp: number): string {
   const seconds = Math.floor((Date.now() - timestamp) / 1000)
@@ -66,6 +68,17 @@ export default function StackCard({ stack, isActionLoading, onAction, onSelect, 
   const annotation = stackAnnotations[stack.name] ?? {}
   const hasPriority = annotation.priority && annotation.priority !== 'normal'
   const priorityCfg = annotation.priority ? priorityConfig[annotation.priority] : null
+  // counts: running, asleep on purpose (Sablier), and stopped — the rest of the stack's containers
+  const sleepingCount = stack.sleeping_containers ?? 0
+  const stoppedCount = Math.max(0, (stack.total_containers ?? stack.running_containers) - stack.running_containers - sleepingCount)
+  const vmHost = stack.placement === 'vm' ? memberHost(stack.member_url) : ''
+  // ways into the stack's apps: its Traefik addresses, then its published ports on the machine it runs on
+  const portHost = stack.placement === 'vm' ? vmHost : serverHostname()
+  const appLinks: { href: string; label: string; web: boolean }[] = [
+    ...(stack.links ?? []).map((href) => ({ href, label: href.replace(/^https?:\/\//, ''), web: true })),
+    ...(portHost ? (stack.ports ?? []).map((p) => ({ href: portUrl(portHost, p), label: `:${p}`, web: false })) : []),
+  ]
+  const lastBackupMs = stack.last_backup ? Date.parse(stack.last_backup) : NaN
 
   // emerald starts, rose stops, the rest is neutral (the colours the Proxmox page gives a stack's controls)
   const actionButtons: {
@@ -267,6 +280,13 @@ export default function StackCard({ stack, isActionLoading, onAction, onSelect, 
               VM{stack.vmid ? ` #${stack.vmid}` : ''}{stack.reachable === false ? ' · off' : ''}
             </span>
           )}
+          {vmHost && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-mono text-slate-400" title={`The VM's address: ${vmHost}`}>
+              <Globe size={10} className="text-violet-300/70" aria-hidden />
+              {vmHost}
+              <CopyButton text={vmHost} className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100" size={9} />
+            </span>
+          )}
           </div>
         </div>
 
@@ -287,19 +307,25 @@ export default function StackCard({ stack, isActionLoading, onAction, onSelect, 
         )}
 
         {/* Container count */}
-        <div className={`flex items-center gap-2 ${stack.placement !== 'vm' && stack.app_data ? 'mb-1.5' : 'mb-4'}`}>
+        <div className="flex items-center gap-2 mb-1.5">
           <Box className="w-3.5 h-3.5 text-slate-500" />
           <span className="text-xs text-slate-400">
             <span className={`font-semibold ${isRunning ? 'text-emerald-400' : 'text-slate-300'}`}>
               {stack.running_containers}
             </span>{' '}
-            {(stack.sleeping_containers ?? 0) > 0
+            {sleepingCount > 0 || stoppedCount > 0
               ? 'running'
               : <>container{stack.running_containers !== 1 ? 's' : ''} running</>}
-            {(stack.sleeping_containers ?? 0) > 0 && (
+            {sleepingCount > 0 && (
               <>
                 <span className="text-slate-600">{' · '}</span>
-                <span className="font-semibold text-indigo-300">{stack.sleeping_containers}</span> sleeping
+                <span className="font-semibold text-indigo-300">{sleepingCount}</span> sleeping
+              </>
+            )}
+            {stoppedCount > 0 && (
+              <>
+                <span className="text-slate-600">{' · '}</span>
+                <span className="font-semibold text-rose-400">{stoppedCount}</span> <span className="text-rose-300/80">stopped</span>
               </>
             )}
           </span>
@@ -310,8 +336,49 @@ export default function StackCard({ stack, isActionLoading, onAction, onSelect, 
             </span>
           )}
         </div>
-        {/* where its App-Data is (a hub stack: a VM's lives in the VM) */}
-        {stack.placement !== 'vm' && <AppDataLabel stack={stack.name} appData={stack.app_data} className="mb-4" />}
+        {/* where its App-Data is, with the free space of its disk (a VM's stack: in the VM, as the VM reports it) */}
+        <AppDataLabel stack={stack.name} appData={stack.app_data} className="mb-1.5" />
+
+        {/* load, images waiting for an update, the last backup */}
+        {(isRunning && (stack.cpu_percent != null || stack.mem_percent != null)) || (stack.updates_available ?? 0) > 0 || !Number.isNaN(lastBackupMs) ? (
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-slate-500 mb-1.5">
+            {isRunning && stack.cpu_percent != null && (
+              <span className="inline-flex items-center gap-1" title="CPU of its running containers (100% = one core)">
+                <Cpu size={10} aria-hidden /> <span className="font-mono text-slate-300">{stack.cpu_percent.toFixed(1)}%</span>
+              </span>
+            )}
+            {isRunning && stack.mem_percent != null && (
+              <span className="inline-flex items-center gap-1" title="Memory of its running containers, percent of the machine">
+                <MemoryStick size={10} aria-hidden /> <span className="font-mono text-slate-300">{stack.mem_percent.toFixed(1)}%</span>
+              </span>
+            )}
+            {(stack.updates_available ?? 0) > 0 && (
+              <span className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 bg-amber-500/10 text-amber-300 ring-1 ring-amber-500/20" title="Images of this stack with a newer version upstream (the last registry check)">
+                <ArrowUpCircle size={10} aria-hidden /> {stack.updates_available} update{stack.updates_available !== 1 ? 's' : ''}
+              </span>
+            )}
+            {!Number.isNaN(lastBackupMs) && (
+              <span className="inline-flex items-center gap-1" title={`Last backup: ${new Date(lastBackupMs).toLocaleString()}`}>
+                <Archive size={10} aria-hidden /> backed up {formatRelativeTime(lastBackupMs)}
+              </span>
+            )}
+          </div>
+        ) : null}
+
+        {/* open its apps */}
+        {appLinks.length > 0 && !batchMode && (
+          <div className="flex flex-wrap items-center gap-1 mb-1.5" onClick={(e) => e.stopPropagation()}>
+            {appLinks.slice(0, 4).map((l) => (
+              <a key={l.href} href={l.href} target="_blank" rel="noopener noreferrer" title={`Open ${l.href}`}
+                className="inline-flex items-center gap-1 max-w-[12rem] rounded-md px-1.5 py-0.5 text-[10px] font-mono bg-white/[0.04] border border-white/[0.06] text-slate-300 hover:bg-cyan-500/10 hover:text-cyan-200 hover:border-cyan-500/20 transition-colors no-underline">
+                <ExternalLink size={9} className="shrink-0" aria-hidden />
+                <span className="truncate">{l.label}</span>
+              </a>
+            ))}
+            {appLinks.length > 4 && <span className="text-[10px] text-slate-500">+{appLinks.length - 4}</span>}
+          </div>
+        )}
+        <div className="mb-2.5" />
 
         {/* Action buttons (hidden in batch mode) */}
         {!batchMode && (

@@ -902,6 +902,11 @@ export function runSchedule(id: string, member?: string | null): Promise<{ succe
   return apiClient.post<{ success: boolean; action: string; output: string }>(memberPath(member, `/schedules/${encodeURIComponent(id)}/run`), undefined, 120000)
 }
 
+/** POST /images/update-all (4.0.33) — update every image on a server now: its unattended image update, started in the background */
+export function updateAllImages(member?: string | null): Promise<{ success: boolean; started: boolean; message: string }> {
+  return apiClient.post<{ success: boolean; started: boolean; message: string }>(memberPath(member, '/images/update-all'), {}, 60000)
+}
+
 // ---------------------------------------------------------------------------
 // v3.1: Terminal, Image Delete, Container Rename, Stack Services, System Metrics
 // ---------------------------------------------------------------------------

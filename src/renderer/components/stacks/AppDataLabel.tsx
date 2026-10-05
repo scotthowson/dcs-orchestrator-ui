@@ -1,6 +1,6 @@
 // =============================================================================
-// AppDataLabel — where a stack's App-Data is: the stack's own folder, or a drive of its own (with its free space, and a
-// warning when that drive is not there). One line, for the stack card and the stack page.
+// AppDataLabel — where a stack's App-Data is: the stack's own folder, or a drive of its own, with the free space of the disk
+// it is on (and a warning when its drive is not there). One line, for the stack card and the stack page.
 // =============================================================================
 import { HardDrive, FolderOpen, AlertTriangle } from 'lucide-react'
 import type { StackAppData } from '../../../shared/types'
@@ -27,7 +27,7 @@ export default function AppDataLabel({ stack, appData, className = '' }: { stack
       <span className={`font-mono truncate min-w-0 ${missing ? '' : appData.external ? 'text-slate-300' : ''}`}>{shortPath(stack, appData)}</span>
       {missing
         ? <span className="shrink-0">· drive not mounted</span>
-        : appData.external && appData.free_bytes != null && <span className="shrink-0 text-slate-500">· {fmtBytes(appData.free_bytes)} free</span>}
+        : appData.free_bytes != null && <span className="shrink-0 text-slate-500">· {fmtBytes(appData.free_bytes)} free</span>}
     </div>
   )
 }

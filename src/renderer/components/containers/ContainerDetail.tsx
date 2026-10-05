@@ -19,7 +19,7 @@ import {
 } from '../../api/fleetScoped'
 import type { RowMember } from '../../../shared/fleetScoped'
 import VmCapsule from '../fleet/VmCapsule'
-import { apiClient } from '../../api/client'
+import { serverHostname } from '../../lib/hosts'
 import ContainerFileBrowser from './ContainerFileBrowser'
 import { CopyButton } from '../common/CopyButton'
 import { FloatingSaveBar } from '../common/FloatingSaveBar'
@@ -349,23 +349,6 @@ function parseMemoryToMB(memStr: string): number {
 }
 
 // Network color palette for badge variety
-/**
- * Host for links to a container's published ports. The desktop and Android
- * apps run from file:// or localhost, so the page's own host means nothing
- * there: the configured API server is the machine that publishes the port.
- */
-function serverHostname(): string {
-  try {
-    const base = apiClient.getBaseUrl()
-    if (base && !base.startsWith('/')) {
-      const h = new URL(base).hostname
-      if (h && h !== 'localhost' && h !== '127.0.0.1') return h
-    }
-  } catch { /* relative or malformed base URL: use the page host */ }
-  const host = window.location.hostname
-  return host && host !== 'localhost' ? host : (host || '127.0.0.1')
-}
-
 const NETWORK_COLORS = [
   { bg: 'bg-purple-500/10', text: 'text-purple-300', ring: 'ring-purple-500/20' },
   { bg: 'bg-cyan-500/10', text: 'text-cyan-300', ring: 'ring-cyan-500/20' },
@@ -607,10 +590,13 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
   useEffect(() => {
     mountedRef.current = true
     fetchStats()
+    // a second sample soon after the first: the history chart has its two points in seconds, not after the first 10 s tick
+    const quick = setTimeout(fetchStats, 2000)
     intervalRef.current = setInterval(fetchStats, 10000)
 
     return () => {
       mountedRef.current = false
+      clearTimeout(quick)
       if (intervalRef.current) clearInterval(intervalRef.current)
     }
   }, [fetchStats])
@@ -1161,9 +1147,9 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
         </div>
       </section>
 
-      {/* ---- 4A: Metrics History Graphs ---- */}
-      {chartData.length >= 2 && (
-        <section className="animate-fade-in">
+      {/* ---- 4A: Metrics History Graphs ---- the card is there from the start; the charts fill in as samples arrive */}
+      {(
+        <section>
           <SectionHeader icon={<Activity className="h-4 w-4 text-cyan-400" />} title="Metrics history" />
           <div className="bg-slate-900/60 backdrop-blur-md border border-white/5 rounded-xl p-5 mt-3">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -1174,6 +1160,11 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
                   <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">CPU usage (%)</span>
                 </div>
                 <div className="h-48">
+                  {chartData.length < 2 ? (
+                    <div className="h-full flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-white/[0.06] text-[11px] text-slate-500">
+                      {isRunning ? <><Loader2 size={14} className="animate-spin text-slate-500" />Collecting samples…</> : 'Samples are taken while the container runs'}
+                    </div>
+                  ) : (
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={chartData} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
                       <defs>
@@ -1220,6 +1211,7 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
                       />
                     </AreaChart>
                   </ResponsiveContainer>
+                  )}
                 </div>
               </div>
 
@@ -1230,6 +1222,11 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
                   <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Memory usage (MB)</span>
                 </div>
                 <div className="h-48">
+                  {chartData.length < 2 ? (
+                    <div className="h-full flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-white/[0.06] text-[11px] text-slate-500">
+                      {isRunning ? <><Loader2 size={14} className="animate-spin text-slate-500" />Collecting samples…</> : 'Samples are taken while the container runs'}
+                    </div>
+                  ) : (
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={chartData} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
                       <defs>
@@ -1276,6 +1273,7 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
                       />
                     </AreaChart>
                   </ResponsiveContainer>
+                  )}
                 </div>
               </div>
             </div>

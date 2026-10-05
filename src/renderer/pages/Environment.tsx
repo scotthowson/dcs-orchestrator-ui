@@ -66,6 +66,11 @@ type ViewMode = 'table' | 'raw'
 /** a column header of the variables table (static: the file's own order is the point) */
 const TH = 'px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-400'
 
+/** the settings of a .env file, without its comment lines */
+function envVarCount(vs?: { key: string }[]): number {
+  return (vs ?? []).filter((v) => v.key).length
+}
+
 function EnvTable({
   variables,
 }: {
@@ -82,7 +87,9 @@ function EnvTable({
     })
   }
 
-  if (variables.length === 0) {
+  // the table lists settings: the file's comment lines (the API sends them as rows without a key) stay in the editor view
+  const rows = variables.filter((v) => v.key)
+  if (rows.length === 0) {
     return <EmptyState compact title="No variables found" hint="Add KEY=value lines to this .env file and they appear here." />
   }
 
@@ -97,7 +104,7 @@ function EnvTable({
           </tr>
         </thead>
         <tbody className="divide-y divide-white/[0.03]">
-          {variables.map((v) => {
+          {rows.map((v) => {
             const sensitive = isSensitive(v.key)
             const isRevealed = revealed.has(v.key)
             const displayValue = sensitive && !isRevealed ? maskValue(v.value) : v.value
@@ -567,7 +574,7 @@ export default function Environment() {
               {/* Footer */}
               <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 border-t border-white/5">
                 <span className="text-[11px] text-slate-500 font-mono">
-                  {rootEnvData.variables.length} variable{rootEnvData.variables.length !== 1 ? 's' : ''}{whereLabel ? ` · root .env on ${whereLabel}` : ''}
+                  {envVarCount(rootEnvData.variables)} variable{envVarCount(rootEnvData.variables) !== 1 ? 's' : ''}{whereLabel ? ` · root .env on ${whereLabel}` : ''}
                 </span>
                 {rootHasChanges && (
                   <span className="flex items-center gap-1.5 text-[11px] text-amber-400">
@@ -669,7 +676,7 @@ export default function Environment() {
               {/* Footer */}
               <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 border-t border-white/5">
                 <span className="text-[11px] text-slate-500 font-mono">
-                  {stackEnvData?.variables.length ?? 0} variable{(stackEnvData?.variables.length ?? 0) !== 1 ? 's' : ''}
+                  {envVarCount(stackEnvData?.variables)} variable{envVarCount(stackEnvData?.variables) !== 1 ? 's' : ''}
                   {' '}&middot; {selectedStack}{whereLabel ? ` on ${whereLabel}` : ''}
                 </span>
                 {stackHasChanges && (
