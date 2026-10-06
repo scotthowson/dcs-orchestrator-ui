@@ -1,6 +1,7 @@
 import { ChevronRight, Home } from 'lucide-react'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { pageLabel } from '../../constants/pageTitles'
+import { sectionOf } from '../../constants/navSections'
 import type { PageId } from '../../../shared/types'
 
 export interface BreadcrumbSegment {
@@ -22,6 +23,11 @@ export default function Breadcrumbs({ segments }: BreadcrumbsProps) {
   ]
 
   if (currentPage !== 'dashboard') {
+    // the section the page lives in, when it has more than this one page and is not named like it (Stacks › Stacks)
+    const section = sectionOf(currentPage)
+    if (section && section.pages.length > 1 && section.label !== pageLabel(currentPage)) {
+      crumbs.push({ label: section.label, page: section.pages[0] })
+    }
     crumbs.push({ label: pageLabel(currentPage) })
   }
 

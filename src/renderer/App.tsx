@@ -60,6 +60,8 @@ import SetupWizard from './pages/SetupWizard'
 import KeyboardShortcutsPanel from './components/common/KeyboardShortcutsPanel'
 import { BackToTop } from './components/common/BackToTop'
 import { MobileNav } from './components/layout/MobileNav'
+import { SectionTabs } from './components/layout/SectionTabs'
+import { navSections, visiblePages, sectionTarget } from './constants/navSections'
 import { apiClient } from './api/client'
 import { sseClient } from './lib/sse'
 import { sanitizeCss } from './lib/cssSanitize'
@@ -67,6 +69,7 @@ import { useThemeStore, syncDocumentTheme, effectiveThemeNeedsDoc, THEME_POLL_MS
 import { hydrateUser, resetUserSync } from './lib/userSync'
 import { toggleMode, useResolvedMode } from './lib/colorMode'
 import type { PageId } from '../shared/types'
+import { ADMIN_ONLY_PAGES } from '../shared/types'
 import ModalOverlay from './components/common/ModalOverlay'
 
 const pageComponents: Record<PageId, React.ComponentType> = {
@@ -111,8 +114,7 @@ const pageComponents: Record<PageId, React.ComponentType> = {
   setup: SetupWizard as unknown as React.ComponentType,
 }
 
-// Page order for Ctrl+1-9 navigation
-const pageOrder: PageId[] = ['dashboard', 'stacks', 'containers', 'images', 'health', 'networks', 'volumes', 'uptime', 'bookmarks', 'activity', 'logs', 'system', 'diagnostics', 'terminal']
+// Ctrl+1…9 and Ctrl+0 open the sidebar's ten sections in order (navSections), each on the tab it was last on
 
 export default function App() {
   const { currentPage, loadSettings, setCurrentPage, theme, toggleSidebar, updateSetting, autoLockMinutes, customCSS } = useSettingsStore()
@@ -518,23 +520,18 @@ export default function App() {
     function handleKeyDown(e: KeyboardEvent) {
       if (!e.ctrlKey && !e.metaKey) return
       const digit = parseInt(e.key, 10)
-      if (digit >= 1 && digit <= 9) {
-        const page = pageOrder[digit - 1]
-        if (page) {
+      if (digit >= 0 && digit <= 9 && !e.shiftKey && !e.altKey) {
+        const section = navSections[digit === 0 ? 9 : digit - 1]
+        if (section) {
           e.preventDefault()
-          const current = useSettingsStore.getState().currentPage
-          current === page
-            ? setCurrentPage(page, { resetView: true })
-            : setCurrentPage(page)
+          const { currentPage: current, hiddenPages } = useSettingsStore.getState()
+          const shown = visiblePages(section, { isAdmin: useAuthStore.getState().userRole === 'admin', hidden: hiddenPages ?? [], adminOnly: ADMIN_ONLY_PAGES })
+          if (shown.includes(current as never)) setCurrentPage(current, { resetView: true })
+          else {
+            const to = sectionTarget(section, shown)
+            if (to) setCurrentPage(to)
+          }
         }
-      }
-      // Ctrl+0 → Settings (10th page)
-      if (e.key === '0') {
-        e.preventDefault()
-        const current = useSettingsStore.getState().currentPage
-        current === 'settings'
-          ? setCurrentPage('settings', { resetView: true })
-          : setCurrentPage('settings')
       }
       // Ctrl+B → Toggle sidebar
       if (e.key === 'b' || e.key === 'B') {
@@ -707,14 +704,18 @@ export default function App() {
 
           {/* Main content area */}
           <main ref={mainRef} className="flex-1 overflow-y-auto p-4 md:p-6 transition-all duration-300 scrollbar-thin overscroll-contain">
-            <div className={`max-w-[1600px] mx-auto transition-all duration-150 ${transitioning ? 'opacity-0 translate-y-0.5 scale-[0.998]' : 'opacity-100 translate-y-0 scale-100'}`}>
-              <ErrorBoundary
-                key={transitionPage}
-                fallbackMessage="This page encountered an error"
-                onNavigateHome={() => setCurrentPage('dashboard')}
-              >
-                <ActivePage />
-              </ErrorBoundary>
+            <div className="max-w-[1600px] mx-auto">
+              {/* the section's pages: outside the fade, so switching tabs never blinks the strip */}
+              <SectionTabs />
+              <div className={`transition-all duration-150 ${transitioning ? 'opacity-0 translate-y-0.5 scale-[0.998]' : 'opacity-100 translate-y-0 scale-100'}`}>
+                <ErrorBoundary
+                  key={transitionPage}
+                  fallbackMessage="This page encountered an error"
+                  onNavigateHome={() => setCurrentPage('dashboard')}
+                >
+                  <ActivePage />
+                </ErrorBoundary>
+              </div>
             </div>
             <BackToTop scrollRef={mainRef} />
           </main>

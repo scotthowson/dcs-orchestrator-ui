@@ -45,9 +45,11 @@ import NotesCard from './NotesCard'
 import PowerCard from './PowerCard'
 import BookmarksCard from './BookmarksCard'
 import ProxmoxCard from './ProxmoxCard'
+import NeedsYouCard from './NeedsYouCard'
 import ModalOverlay from '../common/ModalOverlay'
 
 const COMPONENT_MAP: Record<string, React.ComponentType<any>> = {
+  'needs-you': NeedsYouCard,
   'overview': OverviewCards, 'stack-grid': StackStatusGrid,
   'health-summary': HealthSummary, 'resource-chart': ResourceChart,
   'container-overview': ContainerOverview, 'server-info': ServerInfoComp,

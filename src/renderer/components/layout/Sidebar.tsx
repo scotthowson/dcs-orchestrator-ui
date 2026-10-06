@@ -1,221 +1,33 @@
 // =============================================================================
-// Sidebar — Collapsible navigation with glassmorphism, badges, health status
+// Sidebar — the ten sections (constants/navSections), glassmorphism, badges,
+// health status. A section opens on the tab it was last on; its pages are the
+// tab bar over the page (SectionTabs).
 // =============================================================================
 
-import { usePolling } from '../../hooks/usePolling'
-import { fetchStacks } from '../../api/endpoints'
-import { useFleetRole } from '../../hooks/useFleetRole'
-import { useFleetTotals } from '../../hooks/useFleetTotals'
-import React, { useEffect } from 'react'
-import {
-  HeartPulse,
-  ChevronsLeft,
-  ChevronsRight,
-  Container,
-  CheckCircle,
-  XCircle,
-  AlertTriangle,
-  Wifi,
-  WifiOff,
-} from 'lucide-react'
+import React from 'react'
+import { ChevronsLeft, ChevronsRight, Container } from 'lucide-react'
 import { useSettingsStore } from '../../stores/settingsStore'
-import { useSystemStore } from '../../stores/systemStore'
-import { useHealthStore } from '../../stores/healthStore'
 import { useConnectionStore } from '../../stores/connectionStore'
-import { useApiLink } from '../../hooks/useApiLink'
-import { useNotificationStore } from '../../stores/notificationStore'
-import { useAuthStore } from '../../stores/authStore'
 import { useNarrowWindow } from '../../hooks/useMobile'
+import { useNavSections } from '../../hooks/useNavSections'
+import { useNavBadges, sectionBadge, sectionStatusIcon, type NavBadge, type NavStatusIcon } from '../../hooks/useNavBadges'
+import { sectionTarget } from '../../constants/navSections'
 import { ServerSwitcher } from '../common/ServerSwitcher'
-import type { PageId } from '../../../shared/types'
-import { ADMIN_ONLY_PAGES } from '../../../shared/types'
-import { pageMeta } from '../../constants/pageTitles'
-
-export interface NavItem {
-  id: PageId
-  label: string
-  icon: React.ElementType
-  section?: 'main' | 'system'
-}
-
-/** a sidebar entry: where a page sits here; its name and icon are the page's own (constants/pageTitles) */
-const nav = (id: PageId, section: 'main' | 'system'): NavItem => ({ id, label: pageMeta[id].label, icon: pageMeta[id].icon, section })
-
-export const navItems: NavItem[] = [
-  // ── Core ──
-  nav('dashboard', 'main'),
-  nav('stacks', 'main'),
-  nav('containers', 'main'),
-  nav('images', 'main'),
-  nav('networks', 'main'),
-  nav('volumes', 'main'),
-  nav('health', 'main'),
-  nav('dns', 'main'),
-  nav('crowdsec', 'main'),
-  nav('proxmox', 'main'),
-  // ── Monitoring ──
-  nav('uptime', 'main'),
-  nav('trends', 'main'),
-  nav('topology', 'main'),
-  nav('updates', 'main'),
-  nav('activity', 'main'),
-  nav('event-feed', 'main'),
-  // ── Management ──
-  nav('templates', 'main'),
-  nav('secrets', 'main'),
-  nav('schedules', 'main'),
-  nav('bookmarks', 'main'),
-  nav('file-browser', 'main'),
-  nav('plugins', 'main'),
-  // ── System ──
-  nav('terminal', 'system'),
-  nav('logs', 'system'),
-  nav('environment', 'system'),
-  nav('diagnostics', 'system'),
-  nav('system', 'system'),
-  nav('maintenance', 'system'),
-  nav('disk-analysis', 'system'),
-  nav('backup', 'system'),
-  nav('cronjobs', 'system'),
-  nav('users', 'system'),
-  nav('notifications', 'system'),
-  nav('automations', 'system'),
-  nav('snapshots', 'system'),
-  nav('export', 'system'),
-  nav('config', 'system'),
-  nav('settings', 'system'),
-]
-
-/** the count beside a page's name; `second` is a count of another kind next to it (the stacks that live in VMs) */
-interface NavBadge { value: string; color: string; title?: string; second?: { value: string; color: string; title?: string } }
 
 export function Sidebar() {
-  // a hub: the badge counts the VMs (the merged stack list), not this server's own stacks
-  const { isHub } = useFleetRole()
-  const isConnectedForVms = useConnectionStore((st) => st.status === 'connected')
-  const vmList = usePolling(fetchStacks, 30000, { enabled: isConnectedForVms && isHub })
-  // a hub counts its VMs in every badge: containers, images, networks and volumes are its own plus theirs
-  const { totals: fleet } = useFleetTotals()
-  const vmStacks = vmList.data ? { total: vmList.data.stacks.filter((x) => x.placement === 'vm').length, up: vmList.data.stacks.filter((x) => x.placement === 'vm' && x.status === 'running').length } : null
-  const currentPage = useSettingsStore((s) => s.currentPage)
   const setCurrentPage = useSettingsStore((s) => s.setCurrentPage)
   const sidebarCollapsed = useSettingsStore((s) => s.sidebarCollapsed)
   const toggleSidebar = useSettingsStore((s) => s.toggleSidebar)
   const projectName = useSettingsStore((s) => s.projectName) || 'DCS Manager'
   const projectSubtitle = useSettingsStore((s) => s.projectSubtitle) || 'DCS Orchestrator'
-  const systemStatus = useSystemStore((s) => s.status)
-  const healthReport = useHealthStore((s) => s.report)
   const connectionStatus = useConnectionStore((s) => s.status)
-  const link = useApiLink()
-  const unreadNotifications = useNotificationStore((s) => s.getServerUnreadCount())
+  const { shown, current, currentPage } = useNavSections()
+  const { badges, statusIcons } = useNavBadges()
 
   // A narrow window shows the icon rail whatever the person chose, and gives the choice back when it widens
   // (nothing is written to the settings: the old code saved the collapse and the wide window inherited it)
   const narrow = useNarrowWindow()
   const collapsed = sidebarCollapsed || narrow
-  const userRole = useAuthStore((s) => s.userRole)
-  // Strict: only 'admin' gets full access (principle of least privilege)
-  const isAdmin = userRole === 'admin'
-
-  // Filter out admin-only pages for non-admin users
-  const visibleItems = navItems.filter((i) => !ADMIN_ONLY_PAGES.has(i.id) || isAdmin)
-  const mainItems = visibleItems.filter((i) => i.section === 'main')
-  const systemItems = visibleItems.filter((i) => i.section === 'system')
-
-  // Build badge data
-  const badges: Partial<Record<PageId, NavBadge>> = {}
-
-  if (systemStatus) {
-    const runningContainers = systemStatus.docker.containers.running + fleet.containersRunning
-    badges.containers = {
-      value: `${runningContainers}`,
-      color: runningContainers > 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-500/20 text-slate-400',
-    }
-    // green: the stacks that run on this server itself; violet: the ones that live in a VM of the fleet (a hub shows both)
-    badges.stacks = {
-      value: `${systemStatus.stacks.running}`,
-      color: systemStatus.stacks.running > 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-500/20 text-slate-400',
-      title: isHub ? `${systemStatus.stacks.running} running on this server` : undefined,
-      second: isHub && vmStacks !== null && vmStacks.total > 0
-        ? { value: `${vmStacks.total}`, color: vmStacks.up > 0 ? 'bg-violet-500/20 text-violet-300' : 'bg-slate-500/20 text-slate-400', title: `${vmStacks.total} in VMs, ${vmStacks.up} running` }
-        : undefined,
-    }
-    badges.images = {
-      value: `${systemStatus.docker.images + fleet.images}`,
-      color: 'bg-cyan-500/20 text-cyan-400',
-    }
-    badges.networks = {
-      value: `${systemStatus.docker.networks + fleet.networks}`,
-      color: 'bg-cyan-500/20 text-cyan-400',
-    }
-  }
-
-  if (healthReport && link.live) {
-    const { unhealthy } = healthReport.summary
-    if (unhealthy > 0) {
-      badges.health = {
-        value: `${unhealthy}`,
-        color: 'bg-rose-500/20 text-rose-400',
-      }
-    }
-  }
-
-  if (systemStatus) {
-    badges.volumes = {
-      value: `${systemStatus.docker.volumes + fleet.volumes}`,
-      color: 'bg-cyan-500/20 text-cyan-400',
-    }
-  }
-
-  if (unreadNotifications > 0) {
-    badges.notifications = {
-      value: `${unreadNotifications}`,
-      color: 'bg-rose-500/20 text-rose-400',
-    }
-    badges.activity = {
-      value: `${unreadNotifications}`,
-      color: 'bg-amber-500/20 text-amber-400',
-    }
-  }
-
-  const updatesAvailable = useSettingsStore((s) => s.updatesAvailable) ?? 0
-  if (updatesAvailable > 0) {
-    badges.updates = {
-      value: `${updatesAvailable}`,
-      color: 'bg-cyan-500/20 text-cyan-400',
-    }
-  }
-
-  // Health status icon for the health nav item
-  const healthStatus = healthReport?.status
-  const healthStatusIcon: Record<string, { icon: React.ElementType; color: string; title: string }> = {
-    healthy: { icon: CheckCircle, color: 'text-emerald-400', title: 'All systems healthy' },
-    degraded: { icon: AlertTriangle, color: 'text-amber-400', title: 'System degraded' },
-    critical: { icon: XCircle, color: 'text-rose-400', title: 'Critical issues' },
-  }
-
-  // Connection status icon for dashboard
-  const connIcon = link.live
-    ? { icon: Wifi, color: 'text-emerald-400', title: 'Connected' }
-    : link.state === 'trouble'
-      ? { icon: Wifi, color: 'text-amber-400 animate-pulse', title: 'The API is not answering' }
-      : link.state === 'reconnecting'
-        ? { icon: WifiOff, color: 'text-rose-400 animate-pulse', title: connectionStatus === 'connecting' ? 'Connecting...' : 'API reconnecting…' }
-        : { icon: WifiOff, color: 'text-rose-400', title: 'Not connected' }
-
-  // Build status icons map
-  const statusIcons: Partial<Record<PageId, { icon: React.ElementType; color: string; title: string }>> = {}
-
-  // Dashboard gets connection indicator
-  statusIcons.dashboard = connIcon
-
-  // Health gets health status indicator
-  if (!link.live) {
-    // the last verdict is history while the API does not answer
-    statusIcons.health = { icon: HeartPulse, color: link.state === 'trouble' ? 'text-amber-400 animate-pulse' : 'text-rose-400 animate-pulse', title: link.label }
-  } else if (healthStatus && healthStatusIcon[healthStatus]) {
-    statusIcons.health = healthStatusIcon[healthStatus]
-  }
 
   return (
     <aside
@@ -254,49 +66,29 @@ export function Sidebar() {
         </div>
       )}
 
-      {/* Navigation items */}
-      <nav className="flex-1 overflow-y-auto scrollbar-thin py-3 px-2">
-        {/* Main section */}
+      {/* Navigation: one entry per section */}
+      <nav aria-label="Sections" className="flex-1 overflow-y-auto scrollbar-thin py-3 px-2">
         <div className="space-y-0.5">
-          {mainItems.map((item) => (
-            <NavButton
-              key={item.id}
-              item={item}
-              isActive={currentPage === item.id}
-              collapsed={collapsed}
-              badge={badges[item.id]}
-              statusIcon={statusIcons[item.id]}
-              onClick={() => currentPage === item.id
-                ? setCurrentPage(item.id, { resetView: true })
-                : setCurrentPage(item.id)
-              }
-            />
-          ))}
-        </div>
-
-        {/* Divider */}
-        <div className={`my-3 mx-3 border-t border-white/[0.03] ${collapsed ? 'mx-1' : ''}`} />
-
-        {/* System section */}
-        {!collapsed && (
-          <p className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
-            System
-          </p>
-        )}
-        <div className="space-y-0.5">
-          {systemItems.map((item) => (
-            <NavButton
-              key={item.id}
-              item={item}
-              isActive={currentPage === item.id}
-              collapsed={collapsed}
-              statusIcon={statusIcons[item.id]}
-              onClick={() => currentPage === item.id
-                ? setCurrentPage(item.id, { resetView: true })
-                : setCurrentPage(item.id)
-              }
-            />
-          ))}
+          {shown.map(({ section, pages }) => {
+            const active = current?.section.id === section.id
+            return (
+              <NavButton
+                key={section.id}
+                label={section.label}
+                icon={section.icon}
+                isActive={active}
+                collapsed={collapsed}
+                badge={sectionBadge(section, pages, badges)}
+                statusIcon={sectionStatusIcon(pages, statusIcons)}
+                onClick={() => {
+                  // the section you are in: back to the top of the page you are on (as before)
+                  if (active) { setCurrentPage(currentPage, { resetView: true }); return }
+                  const to = sectionTarget(section, pages)
+                  if (to) setCurrentPage(to)
+                }}
+              />
+            )
+          })}
         </div>
       </nav>
 
@@ -327,31 +119,33 @@ export function Sidebar() {
 }
 
 // ---------------------------------------------------------------------------
-// NavButton — individual navigation item with optional badge
+// NavButton — one section with its badge and status mark
 // ---------------------------------------------------------------------------
 
 function NavButton({
-  item,
+  label,
+  icon: Icon,
   isActive,
   collapsed,
   badge,
   statusIcon,
   onClick,
 }: {
-  item: NavItem
+  label: string
+  icon: React.ElementType
   isActive: boolean
   collapsed: boolean
   badge?: NavBadge
-  statusIcon?: { icon: React.ElementType; color: string; title: string }
+  statusIcon?: NavStatusIcon
   onClick: () => void
 }) {
-  const Icon = item.icon
   const StatusIcon = statusIcon?.icon
 
   return (
     <button
       onClick={onClick}
-      title={collapsed ? item.label : undefined}
+      title={collapsed ? label : undefined}
+      aria-current={isActive ? 'page' : undefined}
       className={`
         group relative flex items-center gap-3 w-full
         rounded-lg px-3 py-2
@@ -389,7 +183,7 @@ function NavButton({
 
       {!collapsed && (
         <>
-          <span className="truncate whitespace-nowrap flex-1 text-left">{item.label}</span>
+          <span className="truncate whitespace-nowrap flex-1 text-left">{label}</span>
           {/* Status icon (health check / connection indicator) */}
           {StatusIcon && (
             <StatusIcon

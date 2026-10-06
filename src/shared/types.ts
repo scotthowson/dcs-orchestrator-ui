@@ -987,6 +987,8 @@ export interface AppSettings {
   /** the look: dark, light, or the device's preference (the header switch always sets dark or light) */
   theme: 'dark' | 'light' | 'system'
   sidebarCollapsed: boolean
+  /** pages this person took out of the sidebar and the tab bars (Settings → Sidebar & pages); the command palette and links still open them */
+  hiddenPages: PageId[]
   /** Custom labels for disk mount points — e.g., { "/mnt/plex": "Plex Drive" } */
   diskLabels: Record<string, string>
   /** Mount points to show on dashboard — empty means show all */

@@ -9,16 +9,16 @@
 // inside a sentence ("Open " + pageLabel('config')), so a rename is one edit here.
 //
 // A new page: add its id to PageId (shared/types.ts), an entry below, its
-// component to App.tsx, and its place in the sidebar (Sidebar.tsx) and the
-// phone menu (MobileNav.tsx).
+// component to App.tsx, and its section in constants/navSections.ts (the
+// sidebar, the tab strip, the phone menu and the palette follow from there).
 // =============================================================================
 
 import type { LucideIcon } from 'lucide-react'
 import {
-  LayoutDashboard, Layers, Box, HardDrive, HeartPulse, Clock, Network, Database, Bookmark, Zap, Wrench, FileCode,
+  LayoutDashboard, Layers, Box, HardDrive, HeartPulse, Clock, Network, Database, Bookmark, Zap, FileCode,
   Archive, ScrollText, Monitor, Shield, Users, Settings2, Cog, TerminalSquare, CalendarClock, TrendingUp,
   ArrowUpCircle, Bell, Camera, LayoutTemplate, Bot, Share2, FolderOpen, PieChart, KeyRound, Timer, Puzzle, Radio,
-  Download, Globe, Server, ShieldCheck, Sparkles,
+  Download, Globe, Server, ShieldCheck, Sparkles, Eraser,
 } from 'lucide-react'
 import type { PageId } from '../../shared/types'
 
@@ -44,7 +44,7 @@ export const pageMeta: Record<PageId, PageMeta> = {
   volumes: { label: 'Volumes', subtitle: 'Docker volumes and persistent data', icon: Database },
   bookmarks: { label: 'Bookmarks', subtitle: 'Pin your favorite pages, stacks and containers for quick access', icon: Bookmark },
   activity: { label: 'Activity', subtitle: 'Real-time Docker events across all resources', icon: Zap, aliases: ['Activity Timeline'] },
-  maintenance: { label: 'Maintenance', subtitle: 'Docker cleanup and system maintenance', icon: Wrench },
+  maintenance: { label: 'Cleanup', subtitle: 'Reclaim disk space: unused Docker data, old logs and caches', icon: Eraser, aliases: ['Maintenance', 'Docker cleanup'] },
   environment: { label: 'Environment', subtitle: 'The root and per-stack .env files', icon: FileCode, aliases: ['Environment Variables'] },
   backup: { label: 'Backup', subtitle: 'Create, manage and restore server backups', icon: Archive, aliases: ['Backup & Restore'] },
   logs: { label: 'Logs', subtitle: 'Framework logs with filtering and search', icon: ScrollText, aliases: ['Log Viewer'] },
