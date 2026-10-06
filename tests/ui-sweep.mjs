@@ -87,7 +87,7 @@ const OPENERS = {
   volumes: ['Batch select', 'Name', 'Size'],
   logs: ['Log statistics', 'Auto-scroll'],
   settings: ['User Profile', 'Server Connection', 'Appearance', 'Application Preferences', 'Keyboard Shortcuts', 'Disk Configuration', 'Notification Preferences', 'Alert Thresholds'],
-  activity: [/^SERVER AUDIT LOG/],
+  activity: ['Auto-scroll'],
   bookmarks: ['Add bookmark'],
   maintenance: ['Guide'],
   environment: ['Root .env', 'Stack .env', 'Editor'],
