@@ -10,7 +10,7 @@ import { ApiError, ApiNetworkError } from '../api/client'
 import {
   fetchEvents, fetchVersion,
   fetchDisks, fetchSystemInfo,
-  fetchStacks, fetchImageUpdates, fetchBackupStatus,
+  fetchStacks, fetchImageUpdates, fetchBackupStatus, fetchOsUpdates,
   fetchLogStats, fetchMaintenanceReport, fetchNotificationHistory,
   fetchAutomations, fetchSchedules, fetchMetricsTrends, crowdsecStatus,
 } from '../api/endpoints'
@@ -344,6 +344,12 @@ export default function Dashboard() {
     onError: onPollError,
   })
 
+  // --- Poll /system/os-updates?fleet=1 every 10 min (admins only): each server looks in the background, the answer is cheap ---
+  const osUpdatesPoll = usePolling(fetchOsUpdates, 600000, {
+    enabled: isConnected && isAdmin,
+    onError: onPollError,
+  })
+
   // --- Poll /logs/stats every 30s ---
   const logStatsPoll = usePolling(fetchLogStats, 30000, {
     enabled: isConnected,
@@ -440,7 +446,7 @@ export default function Dashboard() {
             cardConfig={dashLayout.cardConfig}
             onSaveCardConfig={dashLayout.saveCardConfig}
             cardProps={{
-              'needs-you': { stacks: stacksPoll.data?.stacks ?? null, stacksError: stacksPoll.error, images: imageUpdatesPoll.data ?? null, backup: backupStatusPoll.data ?? null, disks: disksPoll.data?.disks ?? null },
+              'needs-you': { stacks: stacksPoll.data?.stacks ?? null, stacksError: stacksPoll.error, images: imageUpdatesPoll.data ?? null, backup: backupStatusPoll.data ?? null, disks: disksPoll.data?.disks ?? null, osUpdates: osUpdatesPoll.data ?? null },
               'stack-controls': { stacks: stacksPoll.data?.stacks ?? null, error: stacksPoll.error, onRetry: stacksPoll.refresh, onRefresh: stacksPoll.refresh },
               'stack-grid': { stacks: stacksPoll.data?.stacks ?? null, error: stacksPoll.error, onRetry: stacksPoll.refresh },
               'resource-chart': { history: resourceHistoryRef.current },

@@ -24,6 +24,7 @@ import type {
   OsUpdateCheckResponse,
   OsUpdateApplyResponse,
   OsUpdateStatusResponse,
+  OsUpdatesInfo,
   MaintenanceResponse,
   MaintenanceReport,
   OrphanReport,
@@ -340,6 +341,11 @@ export function applyOsUpdatesScoped(member: string | null, terminalToken?: stri
     { confirm: 'true', ...(terminalToken ? { terminal_token: terminalToken } : {}), ...(password ? { password } : {}) },
     30000,
   )
+}
+
+/** the server's own look at its OS updates (no sign-in); refresh asks for a new one (admins; at most every five minutes) */
+export function fetchOsUpdatesScoped(member: string | null, refresh = false): Promise<OsUpdatesInfo> {
+  return apiClient.get<OsUpdatesInfo>(memberPath(member, `/system/os-updates${refresh ? '?refresh=1' : ''}`))
 }
 
 export function getOsUpdateStatusScoped(member: string | null): Promise<OsUpdateStatusResponse> {

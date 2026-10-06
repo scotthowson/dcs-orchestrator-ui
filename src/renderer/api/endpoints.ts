@@ -206,6 +206,7 @@ import type {
   OsUpdateCheckResponse,
   OsUpdateApplyResponse,
   OsUpdateStatusResponse,
+  OsUpdatesResponse,
   TotpSetupResponse,
   TotpVerifyResponse,
   TotpValidateResponse,
@@ -1921,6 +1922,11 @@ export function checkOsUpdates(terminalToken: string, password?: string): Promis
 /** POST /system/os-update/apply — Start OS package updates (background) */
 export function applyOsUpdates(terminalToken: string, password?: string): Promise<OsUpdateApplyResponse> {
   return apiClient.post<OsUpdateApplyResponse>('/system/os-update/apply', { terminal_token: terminalToken, confirm: 'true', ...(password ? { password } : {}) }, 30000)
+}
+
+/** GET /system/os-updates?fleet=1 — every server's own look at its OS updates (the hub first); refresh asks for a new look */
+export function fetchOsUpdates(refresh = false): Promise<OsUpdatesResponse> {
+  return apiClient.get<OsUpdatesResponse>(`/system/os-updates?fleet=1${refresh ? '&refresh=1' : ''}`)
 }
 
 /** GET /system/os-update/status — Poll background OS update status */

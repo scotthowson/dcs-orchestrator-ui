@@ -1674,6 +1674,52 @@ export interface OsUpdateCheckResponse {
   checked_as: string
 }
 
+/**
+ * GET /system/os-updates — the server's own unprivileged look at its OS updates (no sign-in, nothing installed): taken in
+ * the background at most every 6 h, sooner after packages changed or a restart. null means "cannot tell".
+ */
+export interface OsUpdatesInfo {
+  /** a package manager the look reads (apt, dnf, yum, pacman) */
+  supported: boolean
+  /** false when OS_UPDATES_CHECK=false on the server */
+  enabled: boolean
+  /** a look is running now */
+  checking: boolean
+  package_manager: string
+  os: string
+  hostname: string
+  /** when the last look finished (epoch seconds; 0 = none yet) */
+  checked_at: number
+  updates: number | null
+  security: number | null
+  security_packages: string[]
+  /** since when updates (security fixes) have been waiting without a break (epoch seconds; 0 = none waiting) */
+  pending_since: number
+  security_since: number
+  reboot_required: boolean | null
+  reboot_reason: string
+  reboot_packages: string[]
+  /** when the machine last started (epoch seconds) */
+  boot_time: number
+  kernel: string
+  auto_updates: {
+    enabled: boolean | null
+    /** dnf-automatic, unattended-upgrades, yum-cron or '' */
+    tool: string
+    /** installs updates itself (not only downloads or notifies) */
+    installs: boolean | null
+    security_only: boolean | null
+  }
+  /** the last look failed (the counts are those of the last one that worked) */
+  check_error: string
+  note: string
+  interval?: number
+}
+export interface OsUpdatesMember extends OsUpdatesInfo { id: string | null; name: string; vmid: number | null; reachable: boolean; error: string }
+/** GET /system/os-updates?fleet=1 on a hub: the hub's own, plus every member (the hub first, id null) */
+export interface OsUpdatesFleet extends OsUpdatesInfo { fleet: true; members: OsUpdatesMember[] }
+export type OsUpdatesResponse = OsUpdatesInfo | OsUpdatesFleet
+
 export interface OsUpdateApplyResponse {
   success: boolean
   status?: string

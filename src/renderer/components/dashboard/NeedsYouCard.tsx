@@ -2,8 +2,9 @@
 // NeedsYouCard — "Needs your attention": only what is broken or waiting on you,
 // each with the page that fixes it, worst first. Nothing to do → one calm line.
 // The rules are lib/needs.ts; this card draws them from what the Dashboard
-// already polls (stacks, image updates, backup status, disks) and the health
-// report, and asks the server nothing itself.
+// already polls (stacks, image updates, backup status, disks, each server's
+// look at its OS updates) and the health report, and asks the server nothing
+// itself.
 //
 // "Hide" puts an item away on this device until it changes (another stack
 // stops, the backup fails again): the key is what it is, the fingerprint what
@@ -20,7 +21,7 @@ import { useHealthStore } from '../../stores/healthStore'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { useConnectionStore } from '../../stores/connectionStore'
 import { pageLabel } from '../../constants/pageTitles'
-import type { BackupStatusResponse, DiskInfo, ImageCheckResponse, StackInfo } from '../../../shared/types'
+import type { BackupStatusResponse, DiskInfo, ImageCheckResponse, OsUpdatesResponse, StackInfo } from '../../../shared/types'
 import { collectNeeds, plural, type NeedItem } from '../../lib/needs'
 import { Card, CardLoading, CardOffline } from './cardShared'
 
@@ -37,9 +38,11 @@ interface Props {
   images: ImageCheckResponse | null
   backup: BackupStatusResponse | null
   disks: DiskInfo[] | null
+  /** OS updates and restarts, every server (polled for admins only: the System page that installs them is theirs) */
+  osUpdates?: OsUpdatesResponse | null
 }
 
-export default function NeedsYouCard({ stacks, stacksError, images, backup, disks }: Props) {
+export default function NeedsYouCard({ stacks, stacksError, images, backup, disks, osUpdates }: Props) {
   const health = useHealthStore((s) => s.report)
   // the DCS update count is what an admin's check found (kept on this device): no item for anyone else, who cannot install it
   const isAdmin = useAuthStore((s) => s.userRole) === 'admin'
@@ -68,7 +71,8 @@ export default function NeedsYouCard({ stacks, stacksError, images, backup, disk
     } finally { setFixing('') }
   }
 
-  const items = useMemo(() => collectNeeds({ stacks, health, images, backup, disks, dcsUpdates }), [stacks, health, images, backup, disks, dcsUpdates])
+  const os = isAdmin ? osUpdates ?? null : null
+  const items = useMemo(() => collectNeeds({ stacks, health, images, backup, disks, dcsUpdates, osUpdates: os }), [stacks, health, images, backup, disks, dcsUpdates, os])
   const shown = items.filter((i) => hidden[i.key] !== i.fingerprint)
   const hiddenNow = items.length - shown.length
 
@@ -110,7 +114,7 @@ export default function NeedsYouCard({ stacks, stacksError, images, backup, disk
           {shown.map((i) => (
             <li key={i.key} className="group flex items-stretch gap-3 px-1 py-2">
               <span className={`w-1 shrink-0 rounded-full ${i.severity === 'problem' ? 'bg-rose-500' : 'bg-amber-500'}`} aria-hidden />
-              <button type="button" onClick={() => setCurrentPage(i.page)} className="min-w-0 flex-1 text-left rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40">
+              <button type="button" onClick={() => setCurrentPage(i.page, i.payload)} className="min-w-0 flex-1 text-left rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40">
                 <span className="block text-[13px] font-medium text-slate-200 truncate">{i.title}</span>
                 {i.detail && <span className="block text-xs text-slate-500 truncate" title={i.detail}>{i.detail}</span>}
               </button>
@@ -125,7 +129,7 @@ export default function NeedsYouCard({ stacks, stacksError, images, backup, disk
                   className="h-7 w-7 rounded-md flex items-center justify-center text-slate-500 hover:text-slate-300 hover:bg-white/5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100 transition-opacity">
                   <EyeOff size={13} />
                 </button>
-                <button type="button" onClick={() => setCurrentPage(i.page)} className="h-7 px-2 rounded-md flex items-center gap-1 text-[11px] font-medium text-slate-400 hover:text-slate-200 hover:bg-white/5 whitespace-nowrap">
+                <button type="button" onClick={() => setCurrentPage(i.page, i.payload)} className="h-7 px-2 rounded-md flex items-center gap-1 text-[11px] font-medium text-slate-400 hover:text-slate-200 hover:bg-white/5 whitespace-nowrap">
                   {pageLabel(i.page)} <ChevronRight size={12} aria-hidden />
                 </button>
               </div>

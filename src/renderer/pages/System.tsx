@@ -23,12 +23,14 @@ import {
   EyeOff,
   Package,
   Shield,
+  ShieldAlert,
+  RotateCcw,
 } from 'lucide-react'
 import { Badge } from '@mantine/core'
 import { usePolling } from '../hooks/usePolling'
 import {
   fetchSystemInfoScoped, fetchSudoReadyScoped, runDockerPruneScoped, runImagePruneScoped,
-  terminalAuthScoped, checkOsUpdatesScoped, applyOsUpdatesScoped, getOsUpdateStatusScoped,
+  terminalAuthScoped, checkOsUpdatesScoped, applyOsUpdatesScoped, getOsUpdateStatusScoped, fetchOsUpdatesScoped,
 } from '../api/fleetScopedOps'
 import { useFleetScope } from '../hooks/useFleetScope'
 import FleetScopeChips from '../components/fleet/FleetScopeChips'
@@ -36,8 +38,11 @@ import VmCapsule from '../components/fleet/VmCapsule'
 import { useSystemStore } from '../stores/systemStore'
 import { useConnectionStore } from '../stores/connectionStore'
 import { useAuthStore } from '../stores/authStore'
+import { useSettingsStore } from '../stores/settingsStore'
 import { ApiError } from '../api/client'
-import type { SystemInfo, DockerDiskUsage, OsUpdateCheckResponse } from '../../shared/types'
+import type { SystemInfo, DockerDiskUsage, OsUpdateCheckResponse, OsUpdatesInfo } from '../../shared/types'
+import { ago } from '../components/fleet/fleetShared'
+import { plural } from '../lib/needs'
 import { DisconnectedBanner } from '../components/common/DisconnectedBanner'
 import { useToast } from '../components/common/Toast'
 import { useConfirm } from '../components/common/ConfirmDialog'
@@ -220,6 +225,87 @@ function MaintenancePanel({ member, whereLabel }: ScopedProps) {
 // OS package updates panel
 // ---------------------------------------------------------------------------
 
+/** what the automatic-updates setting means here, in a few words ('' when the server cannot tell) */
+function autoUpdatesLine(a: OsUpdatesInfo['auto_updates'] | undefined): string {
+  if (!a || a.enabled === null) return ''
+  if (!a.enabled) return 'Automatic updates are off'
+  const tool = a.tool ? ` (${a.tool})` : ''
+  if (a.installs === false) return `Automatic updates only download or notify${tool}`
+  return `Automatic ${a.security_only ? 'security ' : ''}updates are on${tool}`
+}
+
+/**
+ * The server's own look at its OS updates, no sign-in needed: what waits (and how much of it is security fixes), a
+ * restart that finishes installed updates, and whether the system updates itself. The server looks in the background
+ * every few hours; "Look again" asks for a new look now.
+ */
+function OsGlance({ member }: { member: string | null }) {
+  const isConnected = useConnectionStore((s) => s.status) === 'connected'
+  const fetchGlance = useCallback(() => fetchOsUpdatesScoped(member), [member])
+  const { data, refresh } = usePolling<OsUpdatesInfo>(fetchGlance, 20000, { enabled: isConnected })
+  const [asking, setAsking] = useState(false)
+  const lookAgain = async () => {
+    setAsking(true)
+    try { await fetchOsUpdatesScoped(member, true) } catch { /* the next poll says how it went */ }
+    finally { setAsking(false); refresh() }
+  }
+  if (!data || !data.supported || data.enabled === false) return null
+
+  const security = data.security ?? 0
+  const total = data.updates ?? 0
+  const others = Math.max(0, total - security)
+  const looking = data.checking || asking
+  // the server looks again at most every five minutes on request: the button says so instead of seeming to do nothing
+  const lookedJustNow = data.checked_at > 0 && Date.now() / 1000 - data.checked_at < 300
+  const auto = autoUpdatesLine(data.auto_updates)
+  let icon = <CheckCircle size={14} className="text-emerald-400 shrink-0" aria-hidden />
+  let line: string
+  if (!data.checked_at) {
+    icon = <Loader2 size={14} className="text-slate-500 shrink-0 animate-spin" aria-hidden />
+    line = 'Looking at the OS updates for the first time…'
+  } else if (data.updates === null) {
+    icon = <Package size={14} className="text-slate-500 shrink-0" aria-hidden />
+    line = data.note || 'Waiting updates can’t be counted here'
+  } else if (security > 0) {
+    icon = <ShieldAlert size={14} className="text-amber-400 shrink-0" aria-hidden />
+    line = `${plural(security, 'security update')} waiting${others ? `, and ${plural(others, 'other update')}` : ''}`
+  } else if (total > 0) {
+    icon = <Package size={14} className="text-cyan-400 shrink-0" aria-hidden />
+    line = `${plural(total, 'update')} waiting${data.security === 0 ? ', none of them security fixes' : ''}`
+  } else {
+    line = 'Up to date'
+  }
+
+  return (
+    <div className="mb-3 space-y-1.5 rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2.5">
+      <div className="flex items-center gap-2 min-w-0">
+        {icon}
+        <span className="text-sm font-medium text-slate-200 truncate">{line}</span>
+        {data.package_manager && <span className="text-[11px] text-slate-500 shrink-0">via {data.package_manager}</span>}
+      </div>
+      {data.reboot_required === true && (
+        <div className="flex items-start gap-2 text-xs text-amber-300">
+          <RotateCcw size={13} className="mt-0.5 shrink-0" aria-hidden />
+          <span>Restart needed to finish updates{data.reboot_reason ? `: ${data.reboot_reason}` : ''}{data.reboot_packages.length ? ` (${data.reboot_packages.slice(0, 4).join(', ')}${data.reboot_packages.length > 4 ? '…' : ''})` : ''}.</span>
+        </div>
+      )}
+      {security > 0 && data.security_packages.length > 0 && (
+        <p className="text-[11px] text-slate-500 font-mono truncate" title={data.security_packages.join(', ')}>{data.security_packages.join(', ')}</p>
+      )}
+      {data.check_error && <p className="text-[11px] text-amber-300/80">The last look didn’t work: {data.check_error}</p>}
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-slate-500">
+        <span>{data.checked_at ? `Looked ${ago(data.checked_at)}` : 'Not looked yet'}{looking && data.checked_at ? ' · looking again…' : ''}</span>
+        {auto && <span>· {auto}</span>}
+        <button type="button" onClick={() => void lookAgain()} disabled={looking || lookedJustNow}
+          title={lookedJustNow && !looking ? 'Looked less than five minutes ago' : undefined}
+          className="ml-auto inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-slate-400 hover:text-slate-200 hover:bg-white/5 disabled:opacity-50 transition-colors">
+          <RefreshCw size={11} className={looking ? 'animate-spin' : ''} aria-hidden /> Look again
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function OsUpdatesPanel({ member, whereLabel }: ScopedProps) {
   const isAdmin = useAuthStore((s) => s.userRole) === 'admin'
   const { addToast } = useToast()
@@ -370,6 +456,7 @@ function OsUpdatesPanel({ member, whereLabel }: ScopedProps) {
 
   return (
     <Panel icon={Download} title={whereLabel ? `OS package updates · ${whereLabel}` : 'OS package updates'}>
+      <OsGlance member={member} />
       {member && sudoReady === null ? (
         <div className="flex items-center gap-2 text-xs text-slate-500" role="status">
           <Loader2 size={13} className="animate-spin" aria-hidden />
@@ -557,6 +644,26 @@ export default function System() {
   const info = data
   const diskUsage: DockerDiskUsage[] = info?.docker_disk_usage ?? []
 
+  // "Needs your attention" opens the OS updates of one server: that server in scope, the panel in view
+  const navigationPayload = useSettingsStore((s) => s.navigationPayload)
+  const osRef = useRef<HTMLDivElement>(null)
+  const [focusOs, setFocusOs] = useState(0)
+  useEffect(() => {
+    if (!navigationPayload || navigationPayload.section !== 'os-updates') return
+    useSettingsStore.getState().consumeNavigationPayload()
+    const target = typeof navigationPayload.member === 'string' ? navigationPayload.member : 'hub'
+    if (target !== pageScope) setScope(target)
+    setFocusOs((n) => n + 1)
+  }, [navigationPayload, pageScope, setScope])
+  const infoShown = !!info
+  const diskShown = diskUsage.length > 0
+  useEffect(() => {
+    if (!focusOs) return
+    // after the panels above have their size (the system facts load first)
+    const t = window.setTimeout(() => osRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 250)
+    return () => window.clearTimeout(t)
+  }, [focusOs, member, infoShown, diskShown])
+
 
   return (
     <div className="space-y-4 md:space-y-5 animate-fade-in">
@@ -647,7 +754,9 @@ export default function System() {
       )}
 
       {/* OS package updates (a fresh panel per server: its own sign-in, its own results) */}
-      {isConnected && <OsUpdatesPanel key={`os-${member ?? 'hub'}`} member={member} whereLabel={whereLabel} />}
+      <div ref={osRef} id="os-updates" className="scroll-mt-20">
+        {isConnected && <OsUpdatesPanel key={`os-${member ?? 'hub'}`} member={member} whereLabel={whereLabel} />}
+      </div>
 
       {/* Maintenance */}
       {isConnected && <MaintenancePanel key={`maint-${member ?? 'hub'}`} member={member} whereLabel={whereLabel} />}
