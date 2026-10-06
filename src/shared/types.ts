@@ -1460,6 +1460,13 @@ export interface PowerStatus {
   ups?: string
   ok?: boolean
   error?: string
+  /** why there is no reading (ok false): no_usb (the kernel has no USB at all, Debian's cloud kernel), not_on_usb, serial_device,
+   *  restart_apcupsd (apcupsd COMMLOST), no_status (an answer without a UPS state), no_answer (nothing answered); null with a reading */
+  cause?: 'no_usb' | 'not_on_usb' | 'serial_device' | 'restart_apcupsd' | 'no_status' | 'no_answer' | string | null
+  /** whether the server's kernel can drive USB at all (false: a UPS on USB can never be read there) */
+  usb?: boolean
+  /** with usb false: whether the server is a virtual machine (null when unknown) */
+  vm?: boolean | null
   status?: string
   on_battery?: boolean
   low_battery?: boolean
