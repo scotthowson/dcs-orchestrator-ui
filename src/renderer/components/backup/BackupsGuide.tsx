@@ -3,11 +3,11 @@
 // the data, a config snapshot only settings, a recovery bundle the whole install
 // encrypted), what each holds and what a restore of each does, as the server's
 // code does it (.scripts/api-server.sh: _backup_build, _backup_restore_run,
-// _snapshot_take, handle_snapshot_restore).
+// _snapshot_take, handle_snapshot_restore, _recovery_restore, handle_backup_upload).
 // =============================================================================
 
 import { useState } from 'react'
-import { Archive, BookOpen, Boxes, Camera, ChevronDown, ChevronRight, Compass, RotateCcw, RotateCw, SlidersHorizontal, X } from 'lucide-react'
+import { Archive, ArrowDownUp, BookOpen, Boxes, Camera, ChevronDown, ChevronRight, Compass, LifeBuoy, RotateCcw, RotateCw, SlidersHorizontal, X } from 'lucide-react'
 import Hint from '../common/Hint'
 import { pageLabel } from '../../constants/pageTitles'
 import { BTN_ICON_SM, TONE_GHOST } from '../../lib/ui'
@@ -109,7 +109,9 @@ What happens:
 • The stacks it holds are stopped
 • Their folders, App-Data and volumes as they
   are now are set aside in .data/pre-restore
-  (the newest two restores are kept)
+  (a drive's App-Data beside itself, as
+  <path>.before-restore-<time>); the newest
+  two of each are kept, older ones removed
 • The archive's copy goes in their place,
   owners as they were
 • A full backup also puts the install's state
@@ -126,6 +128,60 @@ refuses to write where a drive is not mounted.
 
 Tip: make a fresh backup before restoring an
 older one, so you can go back.`,
+  },
+  {
+    title: 'Downloading and uploading a backup',
+    icon: ArrowDownUp,
+    content: `Download (on each archive) saves the archive
+itself in the browser, streamed from the
+server's disk: a backup of many gigabytes is
+never held in the page. On a hub a VM's
+archive streams from the VM through the hub.
+The shield beside a checked archive saves its
+.sha256: sha256sum -c checks the copy.
+
+Upload a backup puts an archive you kept
+elsewhere into BACKUP_DEST_DIR of the server
+the page shows (a VM's through the hub). It is
+listed only once it reads back whole as a DCS
+backup; junk, a cut-short file or a tar.gz
+that is not a DCS backup is refused with the
+reason, and nothing of it stays.
+
+• At most 128 MB (API_MAX_UPLOAD_SIZE): copy a
+  larger archive into BACKUP_DEST_DIR by hand
+• A renamed file ("… (1).tar.gz") gets a
+  backup's name from when it was made
+• The same archive twice is stored once
+• It counts toward BACKUP_RETENTION_COUNT by
+  when it was made: restore it before newer
+  backups push it out`,
+  },
+  {
+    title: 'Restoring a recovery bundle',
+    icon: LifeBuoy,
+    content: `On a new machine: the setup wizard's Admin
+step, "Restore a recovery bundle". On a running
+server: the Recovery bundle card, Restore.
+
+What happens:
+• The configuration as it is now is kept as a
+  snapshot (.snapshots/pre-restore-<time>)
+• The stacks whose App-Data the bundle brings
+  back are stopped (the ones that run)
+• Their App-Data as it is now is set aside
+  whole: .data/pre-restore/<time>/appdata, or
+  beside a drive's App-Data as
+  <path>.before-restore-<time>; old and new
+  files never mix, and it can be put back
+• The bundle's copy goes in its place, owners
+  and modes as they were
+• The stacks that ran start again; one that
+  was stopped stays stopped
+
+The answer, and "Last restore" on the card,
+say what was stopped and started, where the
+old App-Data went and what could not be done.`,
   },
   {
     title: 'Restoring a snapshot',
@@ -202,10 +258,9 @@ copy is made where the stack lives:
 • Each VM has its own BACKUP_DEST_DIR and
   retention: pick its chip to see them
 
-The hub cannot carry a VM's file to your
-browser: it stays on that VM's disk (copy it
-over ssh, or download it on that VM's own
-dashboard). A recovery bundle belongs to one
+A VM's archive downloads through the hub, and
+Upload a backup on a VM's chip puts one into
+that VM. A recovery bundle belongs to one
 server: the hub's is made here, a VM's on its
 own dashboard.`,
   },

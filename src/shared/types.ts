@@ -1477,6 +1477,33 @@ export interface RecoveryListResponse {
   passphrase_set: boolean
   stacks: string[]
   bundles: RecoveryBundleEntry[]
+  /** the last bundle restore on this server (kept: its answer may never have reached a browser whose proxy it stopped) */
+  last_restore?: RecoveryLastRestore | null
+}
+
+/** an App-Data folder a bundle restore set aside before it wrote the bundle's copy (part: "", "Traefik" or "Authelia") */
+export interface RecoverySetAside {
+  stack: string
+  part: string
+  path: string
+  kept_in: string
+}
+
+export interface RecoveryLastRestore {
+  ok: boolean
+  error: string | null
+  file: string
+  finished_at: string
+  stacks: number
+  users: number
+  app_data: string[]
+  warnings: string[]
+  stopped: string[]
+  started: string[]
+  set_aside: RecoverySetAside[]
+  kept_before: string | null
+  pruned: string[]
+  restart_scheduled: boolean
 }
 
 export interface RecoveryBundleResponse {
@@ -1504,8 +1531,61 @@ export interface RecoveryRestoreResponse {
   app_data?: string[]
   /** what did not come back: a drive folder that is not there, App-Data that could not be written */
   warnings?: string[]
+  /** the stacks whose App-Data it brought back that were running: stopped first, started again after */
+  stopped?: string[]
+  started?: string[]
+  /** where the App-Data that was there went (.data/pre-restore/<time>/appdata/…, or <path>.before-restore-<time>) */
+  set_aside?: RecoverySetAside[]
+  kept_before?: string | null
+  /** older copies kept from before a restore that were removed (BACKUP_PRE_RESTORE_KEEP) */
+  pruned?: string[]
   restart_scheduled: boolean
   restart: SystemRestartInfo
+  message: string
+}
+
+// POST /backups/download-link — a one-time link the browser downloads an archive with
+export interface BackupDownloadLinkResponse {
+  success: boolean
+  /** a path on the API: /backups/{file}/download?ticket=…, or on a hub /fleet/members/{id}/backups/{file}/download?ticket=… */
+  url: string
+  expires_in: number
+  member: string | null
+  filename: string
+  size: number
+  size_human: string
+  sha256: string | null
+  /** the .sha256 file's text ("<sha256>  <file>\n"), null for an archive without one */
+  checksum_file: string | null
+}
+
+// GET /backups/{file}/checksum
+export interface BackupChecksumResponse {
+  filename: string
+  size: number
+  size_human: string
+  sha256: string | null
+  checksum_file: string | null
+}
+
+// POST /backups/upload (and POST /fleet/members/{id}/backups/upload)
+export interface BackupUploadResponse {
+  success: boolean
+  filename: string
+  size: number
+  size_human: string
+  sha256: string
+  kind: 'full' | 'stack'
+  stack: string
+  created_at: string
+  /** stored under another name than the file had (a browser's "… (1)", a name of one's own) */
+  renamed: boolean
+  /** the same archive was already there: nothing was stored twice */
+  duplicate: boolean
+  verified: boolean
+  parts: number
+  complete: boolean
+  warnings: string[]
   message: string
 }
 

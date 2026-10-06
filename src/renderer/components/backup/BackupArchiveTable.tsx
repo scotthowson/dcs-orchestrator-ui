@@ -1,22 +1,30 @@
 // =============================================================================
 // BackupArchiveTable — the Backups view of "Saved copies": every archive with its
-// badges (one stack's, incomplete, checked), Verify, and Restore behind a typed
-// RESTORE. On a hub a restore always acts on the server that keeps the file.
+// badges (one stack's, incomplete, checked), Download (the browser saves the
+// archive itself, streamed; a VM's streams through the hub), its .sha256, Verify,
+// and Restore behind a typed RESTORE. On a hub a restore always acts on the server
+// that keeps the file.
 // =============================================================================
 
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { Badge } from '@mantine/core'
-import { Archive, Clock, Info, RotateCcw, ShieldCheck } from 'lucide-react'
+import { Archive, Clock, Download, Loader2, RotateCcw, ShieldCheck } from 'lucide-react'
 import Hint from '../common/Hint'
 import { EmptyState } from '../common/PageState'
 import { useToast } from '../common/Toast'
 import VmCapsule from '../fleet/VmCapsule'
 import TypedConfirmDialog from './TypedConfirmDialog'
 import { BTN_CARD, TONE_DANGER, TONE_QUIET } from '../../lib/ui'
-import { restoreBackupScoped, verifyBackupScoped } from '../../api/fleetScopedOps'
+import { backupChecksumScoped, backupDownloadLink, openBackupDownload, restoreBackupScoped, verifyBackupScoped } from '../../api/fleetScopedOps'
+import { useAuthStore } from '../../stores/authStore'
 import { formatTimestamp, rowKey } from './format'
 import type { ScopeMember } from '../../hooks/useFleetScope'
 import type { FleetBackupEntry } from '../../../shared/fleetScopedOps'
+import type { BackupDownloadLinkResponse } from '../../../shared/types'
+
+/** a one-time link asked for before the click (pointer over the button, or focus on it): used within a minute */
+interface PendingLink { at: number; link: BackupDownloadLinkResponse | null; promise: Promise<BackupDownloadLinkResponse> }
+const LINK_FRESH_MS = 60_000
 
 /** a column header of the archives table */
 const TH = 'px-5 py-3 text-xs font-semibold uppercase tracking-wider text-slate-400'
@@ -39,7 +47,67 @@ export default function BackupArchiveTable({
   onRestored: () => void
 }) {
   const { addToast } = useToast()
+  const isAdmin = useAuthStore((s) => s.userRole) === 'admin'
   const [verifying, setVerifying] = useState('')
+  const [downloading, setDownloading] = useState('')
+
+  /** the archive's own server: a fleet row says so, a single server's list is the scope's */
+  const ownerOf = useCallback((b: FleetBackupEntry) => (b.member !== undefined ? b.member : scopeMember) ?? null, [scopeMember])
+
+  // The link is asked for as the pointer comes over the button (or it takes the focus), so the click itself starts the
+  // download: a browser holds back a second download that starts after an await, as an "automatic" one
+  const pending = useRef(new Map<string, PendingLink>())
+  const prefetch = useCallback((backup: FleetBackupEntry) => {
+    const key = rowKey(backup)
+    const p = pending.current.get(key)
+    if (p && Date.now() - p.at < LINK_FRESH_MS) return
+    const entry: PendingLink = { at: Date.now(), link: null, promise: backupDownloadLink(ownerOf(backup), backup.filename) }
+    entry.promise.then((l) => { entry.link = l }, () => { if (pending.current.get(key) === entry) pending.current.delete(key) })
+    pending.current.set(key, entry)
+  }, [ownerOf])
+
+  /** the browser saves the archive itself (a one-time link: nothing of it is held in this page) */
+  const download = useCallback(async (backup: FleetBackupEntry) => {
+    const key = rowKey(backup)
+    const ready = pending.current.get(key)
+    pending.current.delete(key)
+    setDownloading(key)
+    try {
+      let link: BackupDownloadLinkResponse
+      if (ready?.link && Date.now() - ready.at < LINK_FRESH_MS) {
+        link = ready.link
+        openBackupDownload(link)
+      } else {
+        link = await (ready && Date.now() - ready.at < LINK_FRESH_MS ? ready.promise : backupDownloadLink(ownerOf(backup), backup.filename))
+        openBackupDownload(link)
+      }
+      addToast({
+        type: 'success',
+        duration: 9000,
+        message: `Downloading ${backup.filename} (${link.size_human})${link.member ? ` from ${backup.member_name ?? memberName} through the hub` : ''}${link.sha256 ? `. SHA-256 ${link.sha256}` : ''}`,
+      })
+    } catch (e) {
+      addToast({ type: 'error', message: `The download could not start: ${e instanceof Error ? e.message : String(e)}`, duration: 7000 })
+    } finally { setDownloading('') }
+  }, [addToast, ownerOf, memberName])
+
+  /** its .sha256 beside the download, to check the copy with sha256sum -c */
+  const saveChecksum = useCallback(async (backup: FleetBackupEntry) => {
+    try {
+      const c = await backupChecksumScoped(ownerOf(backup), backup.filename)
+      if (!c.checksum_file) { addToast({ type: 'warning', message: `${backup.filename} has no .sha256` }); return }
+      const url = URL.createObjectURL(new Blob([c.checksum_file], { type: 'text/plain' }))
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${backup.filename}.sha256`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      addToast({ type: 'error', message: `Could not read its checksum: ${e instanceof Error ? e.message : String(e)}` })
+    }
+  }, [addToast, ownerOf])
   const [restoreTarget, setRestoreTarget] = useState<FleetBackupEntry | null>(null)
   const [restoring, setRestoring] = useState(false)
 
@@ -124,15 +192,16 @@ export default function BackupArchiveTable({
                       {backup.member !== undefined && <VmCapsule member={backup.member} name={backup.member_name} vmid={backup.vmid} size="xs" onClick={() => onPickServer(backup.member ?? 'hub')} />}
                       {backup.kind === 'stack' && backup.stack && <Badge component="span" color="slate" title="A backup of one stack">{backup.stack}</Badge>}
                       {backup.complete === false && <Badge component="span" color="amber" title="Something could not be read when it was made: the status above (or its manifest) says what">incomplete</Badge>}
-                      {backup.verified && <span className="inline-flex items-center text-emerald-400/80" title="Read back to the end when it was made; a checksum (.sha256) is beside it"><ShieldCheck size={12} aria-label="checked" /></span>}
+                      {backup.verified && (isAdmin ? (
+                        <Hint label="Checked when it was made: save its .sha256, to check a download with sha256sum -c">
+                          <button type="button" onClick={() => saveChecksum(backup)} aria-label={`Save the .sha256 of ${backup.filename}`} className="inline-flex items-center rounded p-0.5 text-emerald-400/80 hover:text-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40">
+                            <ShieldCheck size={12} aria-hidden />
+                          </button>
+                        </Hint>
+                      ) : <span className="inline-flex items-center text-emerald-400/80" title="Read back to the end when it was made; a checksum (.sha256) is beside it"><ShieldCheck size={12} aria-label="checked" /></span>)}
                     </div>
                     {/* on a phone the size and the date ride under the name */}
                     <p className="sm:hidden mt-1 text-[11px] text-slate-500">{backup.size} · {formatTimestamp(backup.timestamp)}</p>
-                    {onVm && (
-                      <p className="mt-1 text-[10px] text-slate-500 flex items-center gap-1" title="The hub's proxy carries JSON, not files: copy the archive over ssh from that VM's BACKUP_DEST_DIR">
-                        <Info size={10} aria-hidden /> stays on the VM&apos;s disk
-                      </p>
-                    )}
                   </td>
                   <td className="px-5 py-3 hidden sm:table-cell whitespace-nowrap">
                     <span className="text-xs text-slate-400">{backup.size}</span>
@@ -145,6 +214,24 @@ export default function BackupArchiveTable({
                   </td>
                   <td className="px-4 sm:px-5 py-3 text-right whitespace-nowrap">
                     <div className="inline-flex items-center gap-2">
+                      {isAdmin && (
+                        <Hint label={onVm ? `Download it from ${backup.member_name ?? memberName}, through the hub` : 'Download the archive (the browser saves it, streamed)'}>
+                          <span className="inline-flex">
+                            <button
+                              type="button"
+                              disabled={downloading === key}
+                              onPointerEnter={() => prefetch(backup)}
+                              onFocus={() => prefetch(backup)}
+                              onClick={() => download(backup)}
+                              aria-label={`Download ${backup.filename}`}
+                              className={`${BTN_CARD} ${TONE_QUIET}`}
+                            >
+                              {downloading === key ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
+                              <span className="hidden sm:inline">Download</span>
+                            </button>
+                          </span>
+                        </Hint>
+                      )}
                       <Hint label="Read it to the end against its checksum and its list of parts, without restoring anything">
                         <span className="inline-flex">
                           <button

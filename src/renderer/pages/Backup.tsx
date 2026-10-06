@@ -3,7 +3,8 @@
 // kept apart: a backup has the data (stacks, App-Data, volumes, the install's state;
 // minutes), a config snapshot only settings and stack files (seconds). Then the
 // status of the running backup, "Make a copy" (everything, one stack, a snapshot, a
-// recovery bundle), and "Saved copies" with a Backups | Snapshots switch.
+// recovery bundle), and "Saved copies" with a Backups | Snapshots switch, where an
+// archive downloads and an archive kept elsewhere is uploaded.
 // On a hub: Everywhere lists every server's copies, a stack is backed up where it
 // lives (the hub or its VM), a restore acts on the server that keeps the file.
 // The old Snapshots page opens here on the Snapshots view ({ view: 'snapshots' }).
@@ -41,6 +42,8 @@ import BackupStatusPanel from '../components/backup/BackupStatusPanel'
 import MakeCopy from '../components/backup/MakeCopy'
 import BackupArchiveTable from '../components/backup/BackupArchiveTable'
 import SnapshotList from '../components/backup/SnapshotList'
+import UploadBackup from '../components/backup/UploadBackup'
+import { useAuthStore } from '../stores/authStore'
 import type { BackupStatusResponse, BackupConfigResponse, BackupTriggerResponse, FleetListMember, SnapshotListResponse } from '../../shared/types'
 import type { FleetBackupListResponse, BackupStackChoice, MemberOutcome } from '../../shared/fleetScopedOps'
 
@@ -67,6 +70,7 @@ export default function Backup() {
   const { addToast } = useToast()
   const confirm = useConfirm()
   const { scope, setScope, member: scopeMember, memberName, members: scopeMembers, hasFleet } = useFleetScope()
+  const isAdmin = useAuthStore((s) => s.userRole) === 'admin'
 
   const [showGuide, setShowGuide] = useState(false)
   const [triggerLoading, setTriggerLoading] = useState(false)
@@ -323,6 +327,14 @@ export default function Backup() {
           </div>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2 min-w-0">
             {listMembers && <FleetNote members={listMembers} />}
+            {view === 'backups' && isAdmin && (
+              // an upload goes to the server the page shows: on Everywhere the hub
+              <UploadBackup
+                member={scopeMember}
+                serverLabel={scopeMember ? `the VM ${memberName}` : hasFleet ? 'the hub' : 'this server'}
+                onUploaded={refreshBackups}
+              />
+            )}
             <SegmentedControl
               aria-label="Kind of saved copy"
               size="xs"

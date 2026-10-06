@@ -1,7 +1,10 @@
 // =============================================================================
 // RecoveryBundleCard — one encrypted archive that rebuilds this install
 // anywhere: make it, download it, keep the passphrase in the secret store,
-// restore one, upload one from another box.
+// restore one, upload one from another box. A restore stops the stacks whose
+// App-Data the bundle brings back, sets their App-Data aside, restores it and
+// starts them again; the card says what it stopped and where the old data went
+// (also after a reload: the server keeps the last restore's result).
 // =============================================================================
 
 import { useCallback, useRef, useState } from 'react'
@@ -16,7 +19,19 @@ import { pageLabel } from '../../constants/pageTitles'
 import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD_QUIET, BTN_ICON_SM, TONE_OK, TONE_DANGER, TONE_GHOST, TONE_GHOST_DANGER } from '../../lib/ui'
 import { apiClient } from '../../api/client'
 import { fetchRecovery, createRecoveryBundle, restoreRecoveryBundle, uploadRecoveryBundle, setSecret } from '../../api/endpoints'
-import type { RecoveryBundleEntry } from '../../../shared/types'
+import type { RecoveryBundleEntry, RecoveryLastRestore } from '../../../shared/types'
+
+/** what a bundle restore did beyond the configuration, in a few words a person reads */
+function restoreFacts(r: Pick<RecoveryLastRestore, 'stopped' | 'started' | 'set_aside' | 'kept_before' | 'pruned'>): string[] {
+  const out: string[] = []
+  const stopped = r.stopped ?? []
+  const started = r.started ?? []
+  if (stopped.length) out.push(`Stopped ${stopped.join(', ')} for it; started again: ${started.length ? started.join(', ') : 'none'}`)
+  const aside = r.set_aside ?? []
+  if (aside.length) out.push(`The App-Data that was there is kept: ${aside.map((a) => `${a.stack}${a.part ? `/${a.part}` : ''} in ${a.kept_in}`).join('; ')}`)
+  if ((r.pruned ?? []).length) out.push(`Older copies from before a restore removed: ${r.pruned.length}`)
+  return out
+}
 
 /** the fields of this card: one look, one focus ring */
 const FIELD = 'h-[34px] px-3 rounded-lg text-xs bg-white/5 border border-white/10 text-slate-200 placeholder-slate-500 transition-colors focus:outline-none focus-visible:border-emerald-500/40 focus-visible:ring-2 focus-visible:ring-emerald-500/40'
@@ -104,22 +119,25 @@ export default function RecoveryBundleCard() {
 
   const restore = useCallback(async () => {
     if (!restoreTarget || busy) return
-    if (!(await confirm({ title: 'Restore this bundle?', message: `Restore ${restoreTarget.file}?\n\nThe configuration on this server is replaced (a pre-restore snapshot is kept under .snapshots). App-Data the bundle holds is written over the App-Data here, which that snapshot does not keep. Running containers are not touched: stop the stacks whose App-Data it holds first, and start the stacks afterwards.`, confirmLabel: 'Restore', danger: true }))) return
+    if (!(await confirm({ title: 'Restore this bundle?', message: `Restore ${restoreTarget.file}?\n\nThe configuration on this server is replaced (a pre-restore snapshot is kept under .snapshots). The stacks whose App-Data the bundle holds are stopped; their App-Data as it is now is set aside whole (in .data/pre-restore, or beside a drive's App-Data as <path>.before-restore-<time>), so nothing old and new is mixed and it can be put back; then the bundle's copy goes in its place and the stacks that ran start again.`, confirmLabel: 'Restore', danger: true }))) return
     setBusy('restore')
     try {
       const res = await restoreRecoveryBundle(restoreTarget.file, restorePass, true)
       setResult(res.message)
+      refetch()
       // what did not come back (a drive folder that is not there, App-Data it could not write) is said, not hidden
       addToast({ type: (res.warnings?.length ?? 0) > 0 ? 'warning' : 'success', message: res.message, duration: (res.warnings?.length ?? 0) > 0 ? 15000 : 8000 })
       setRestoreTarget(null)
       setRestorePass('')
       if (res.restart_scheduled) setTimeout(() => window.location.reload(), 8000)
     } catch (err) {
-      addToast({ type: 'error', message: err instanceof Error ? err.message : 'The restore failed' })
+      // a dropped connection (its proxy can be one of the stacks it stops) does not stop the restore: the card shows its result once it is in
+      addToast({ type: 'error', duration: 12000, message: `${err instanceof Error ? err.message : 'The restore failed'}. If the connection dropped, the restore still runs to the end: its result shows under "Last restore" here` })
+      refetch()
     } finally {
       setBusy(null)
     }
-  }, [restoreTarget, restorePass, busy, addToast, confirm])
+  }, [restoreTarget, restorePass, busy, addToast, confirm, refetch])
 
   if (!isAdmin) return null
 
@@ -239,9 +257,22 @@ export default function RecoveryBundleCard() {
           </div>
         </div>
 
+        {data?.last_restore && (
+          <div role="status" className={`rounded-lg border px-3 py-2.5 space-y-1 ${data.last_restore.ok && data.last_restore.warnings.length === 0 ? 'border-white/5 bg-white/[0.02]' : 'border-amber-500/20 bg-amber-500/[0.05]'}`}>
+            <p className="text-[10px] text-slate-500 uppercase tracking-wider">Last restore</p>
+            <p className="text-xs text-slate-300">
+              <span className="font-mono">{data.last_restore.file}</span>
+              {data.last_restore.finished_at ? ` · ${new Date(data.last_restore.finished_at).toLocaleString()}` : ''}
+              {data.last_restore.ok ? ` · ${data.last_restore.stacks} stacks, ${data.last_restore.users} accounts${data.last_restore.app_data.length ? `, App-Data of ${data.last_restore.app_data.join(', ')}` : ''}` : ` · refused: ${data.last_restore.error ?? 'it failed'}`}
+            </p>
+            {data.last_restore.ok && restoreFacts(data.last_restore).map((f) => <p key={f} className="text-[11px] text-slate-400 break-words">{f}</p>)}
+            {data.last_restore.warnings.map((w) => <p key={w} className="text-[11px] text-amber-300 break-words">Not done: {w}</p>)}
+          </div>
+        )}
+
         {restoreTarget && (
           <div className="rounded-lg border border-rose-500/20 bg-rose-500/[0.05] p-4 space-y-3 animate-fade-in">
-            <p className="text-xs text-rose-200">Restore <span className="font-mono">{restoreTarget.file}</span> on this server. Settings, accounts, secrets and stack files are replaced (a pre-restore snapshot is kept); App-Data the bundle holds is written over this server&apos;s (not kept); running containers are not touched.</p>
+            <p className="text-xs text-rose-200">Restore <span className="font-mono">{restoreTarget.file}</span> on this server. Settings, accounts, secrets and stack files are replaced (a pre-restore snapshot is kept). The stacks whose App-Data it holds are stopped, their App-Data is set aside whole (.data/pre-restore, or <span className="font-mono">&lt;path&gt;.before-restore-&lt;time&gt;</span> on a drive) and replaced by the bundle&apos;s, and the ones that ran start again.</p>
             <div className="flex flex-col sm:flex-row gap-3">
               <input
                 type="password"

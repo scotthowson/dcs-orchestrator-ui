@@ -32,6 +32,9 @@ import type {
   MemberTerminalStatus,
   MemberTerminalExecResponse,
   BackupVerifyResponse,
+  BackupDownloadLinkResponse,
+  BackupChecksumResponse,
+  BackupUploadResponse,
 } from '../../shared/types'
 import type {
   FleetTarget,
@@ -167,6 +170,62 @@ export function restoreBackupScoped(member: string | null, filename: string, sta
 /** POST /backups/verify — read a backup to the end against its checksum and manifest, without restoring it */
 export function verifyBackupScoped(member: string | null, filename: string): Promise<BackupVerifyResponse> {
   return apiClient.post<BackupVerifyResponse>(memberPath(member, '/backups/verify'), { filename }, 300000)
+}
+
+/** GET /backups/{file}/checksum — an archive's size and SHA-256 (a VM's through the hub's JSON proxy) */
+export function backupChecksumScoped(member: string | null, filename: string): Promise<BackupChecksumResponse> {
+  return apiClient.get<BackupChecksumResponse>(memberPath(member, `/backups/${encodeURIComponent(filename)}/checksum`))
+}
+
+/** POST /backups/download-link — a one-time link for the archive; always asked of the hub (a VM's archive streams through it) */
+export function backupDownloadLink(member: string | null, filename: string): Promise<BackupDownloadLinkResponse> {
+  return apiClient.post<BackupDownloadLinkResponse>('/backups/download-link', member ? { filename, member } : { filename }, 60000)
+}
+
+/**
+ * the browser saves the archive itself, streamed from the server's disk (never held in the page). Called in the click
+ * itself when the link is already at hand: a download the browser starts after an await has lost the click, and a
+ * second one is then held back as an "automatic download".
+ */
+export function openBackupDownload(link: BackupDownloadLinkResponse): void {
+  const a = document.createElement('a')
+  a.href = `${apiClient.getBaseUrl()}${link.url}`
+  a.download = link.filename
+  a.rel = 'noopener'
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+}
+
+/** the most a server takes in one upload: the worker pool's front passes 128 MB on, API_MAX_UPLOAD_SIZE can only lower it */
+export const BACKUP_UPLOAD_MAX_BYTES = 128 * 1024 * 1024
+
+/**
+ * POST /backups/upload — the archive itself as the body (no base64), on a hub into a VM through the hub
+ * (POST /fleet/members/{id}/backups/upload). The server lists it only once it reads back whole as a DCS backup and
+ * answers why when it does not; onProgress gets the share sent (0 to 1).
+ */
+export function uploadBackupScoped(member: string | null, file: File, onProgress?: (share: number) => void): Promise<BackupUploadResponse> {
+  const path = member ? `/fleet/members/${encodeURIComponent(member)}/backups/upload` : '/backups/upload'
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    xhr.open('POST', `${apiClient.getBaseUrl()}${path}?filename=${encodeURIComponent(file.name)}`)
+    const token = apiClient.getAuthToken()
+    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`)
+    xhr.setRequestHeader('Content-Type', 'application/octet-stream')
+    xhr.timeout = 30 * 60 * 1000
+    if (onProgress) xhr.upload.onprogress = (e) => { if (e.lengthComputable) onProgress(e.loaded / e.total) }
+    xhr.onload = () => {
+      let body: (Partial<BackupUploadResponse> & { message?: string }) | null = null
+      try { body = JSON.parse(xhr.responseText) } catch { body = null }
+      if (xhr.status >= 200 && xhr.status < 300 && body?.success) { resolve(body as BackupUploadResponse); return }
+      if (xhr.status === 413) { reject(new Error(body?.message || 'The archive is larger than the server takes (API_MAX_UPLOAD_SIZE)')); return }
+      reject(new Error(body?.message || `The upload failed (HTTP ${xhr.status})`))
+    }
+    xhr.onerror = () => reject(new Error('The connection broke during the upload (a proxy in front of the API may refuse a body this large)'))
+    xhr.ontimeout = () => reject(new Error('The upload took longer than 30 minutes and was given up'))
+    xhr.send(file)
+  })
 }
 
 // ---------------------------------------------------------------------------
