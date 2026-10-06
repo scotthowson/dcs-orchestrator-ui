@@ -165,7 +165,7 @@ export default function AutoImageUpdates({ scope, members }: { scope: FleetScope
           data={[
             { value: 'off', label: 'Off' },
             ...PRESETS.map((p) => ({ value: p.id, label: p.label })),
-            ...(value === 'custom' ? [{ value: 'custom', label: `A custom time (see ${pageLabel('schedules')})`, disabled: true }] : []),
+            ...(value === 'custom' ? [{ value: 'custom', label: `A custom time (see ${pageLabel('automations')})`, disabled: true }] : []),
             ...(value === 'mixed' ? [{ value: 'mixed', label: 'Different on some servers', disabled: true }] : []),
           ]}
         />
