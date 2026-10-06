@@ -50,7 +50,7 @@ export const pageMeta: Record<PageId, PageMeta> = {
   logs: { label: 'Logs', subtitle: 'Framework logs with filtering and search', icon: ScrollText, aliases: ['Log Viewer'] },
   system: { label: 'System', subtitle: 'Server resources, Docker runtime and maintenance tools', icon: Monitor, aliases: ['System Info', 'System Information'] },
   diagnostics: { label: 'Diagnostics', subtitle: 'System health, resource use and alerts in depth', icon: Shield },
-  users: { label: 'Users', subtitle: 'Registered users and invite codes', icon: Users, aliases: ['User Management'] },
+  users: { label: 'Users', subtitle: 'Registered users, invite codes and the sign-in to your apps', icon: Users, aliases: ['User Management'] },
   config: { label: 'Config', subtitle: 'Environment variables, feature flags and server settings', icon: Settings2, aliases: ['Server Config', 'Server Configuration'] },
   settings: { label: 'Settings', subtitle: 'Connection, appearance, preferences and more', icon: Cog },
   terminal: { label: 'Terminal', subtitle: 'Run commands on the server', icon: TerminalSquare },

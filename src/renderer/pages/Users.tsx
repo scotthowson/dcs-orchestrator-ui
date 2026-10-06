@@ -1,5 +1,6 @@
 // =============================================================================
-// Users — the accounts that can sign in, invite codes, and the sessions open now
+// Users — the accounts that can sign in, invite codes, the sessions open now,
+// and the sign-in to the apps behind Authelia (its second step)
 // =============================================================================
 
 import { useState, useEffect, useCallback } from 'react'
@@ -20,6 +21,7 @@ import {
   Bot,
   LogOut,
   Trash2,
+  Fingerprint,
 } from 'lucide-react'
 import { useConnectionStore } from '../stores/connectionStore'
 import { useAuthStore } from '../stores/authStore'
@@ -35,6 +37,7 @@ import {
 } from '../api/endpoints'
 import type { ApiUser, InviteCode, SessionInfo as SessionEntry } from '../../shared/types'
 import { LoadingState, EmptyState } from '../components/common/PageState'
+import AppSignInCard from '../components/users/AppSignInCard'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -682,6 +685,15 @@ export default function Users() {
           </div>
         </section>
       </div>
+
+      {/* ── Sign-in to your apps: Authelia's second step ── */}
+      <section className="glass rounded-xl border border-white/5 p-5 space-y-4" aria-labelledby="app-sign-in-title">
+        <div className="flex items-center gap-2">
+          <Fingerprint className="h-4 w-4 text-emerald-400" aria-hidden />
+          <h2 id="app-sign-in-title" className="text-sm font-semibold text-slate-200">Sign-in to your apps (Authelia)</h2>
+        </div>
+        <AppSignInCard />
+      </section>
     </div>
   )
 }
