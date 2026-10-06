@@ -56,7 +56,9 @@ export default function RecoveryBundleCard() {
       }
       const res = await createRecoveryBundle({ passphrase: passphrase || undefined, include_app_data: Array.from(appData), copy_remote: true })
       setResult(res.message)
-      addToast({ type: 'success', message: `Bundle written (${res.size_human})` })
+      addToast((res.warnings?.length ?? 0) > 0
+        ? { type: 'warning', message: `Bundle written (${res.size_human}), but not everything is in it: ${res.warnings!.join('; ')}`, duration: 12000 }
+        : { type: 'success', message: `Bundle written (${res.size_human})` })
       setPassphrase('')
       refetch()
     } catch (err) {
@@ -102,12 +104,13 @@ export default function RecoveryBundleCard() {
 
   const restore = useCallback(async () => {
     if (!restoreTarget || busy) return
-    if (!(await confirm({ title: 'Restore this bundle?', message: `Restore ${restoreTarget.file}?\n\nThe configuration on this server is replaced (a pre-restore snapshot is kept under .snapshots). Running containers are not touched; start the stacks afterwards.`, confirmLabel: 'Restore', danger: true }))) return
+    if (!(await confirm({ title: 'Restore this bundle?', message: `Restore ${restoreTarget.file}?\n\nThe configuration on this server is replaced (a pre-restore snapshot is kept under .snapshots). App-Data the bundle holds is written over the App-Data here, which that snapshot does not keep. Running containers are not touched: stop the stacks whose App-Data it holds first, and start the stacks afterwards.`, confirmLabel: 'Restore', danger: true }))) return
     setBusy('restore')
     try {
       const res = await restoreRecoveryBundle(restoreTarget.file, restorePass, true)
       setResult(res.message)
-      addToast({ type: 'success', message: res.message, duration: 8000 })
+      // what did not come back (a drive folder that is not there, App-Data it could not write) is said, not hidden
+      addToast({ type: (res.warnings?.length ?? 0) > 0 ? 'warning' : 'success', message: res.message, duration: (res.warnings?.length ?? 0) > 0 ? 15000 : 8000 })
       setRestoreTarget(null)
       setRestorePass('')
       if (res.restart_scheduled) setTimeout(() => window.location.reload(), 8000)
@@ -238,7 +241,7 @@ export default function RecoveryBundleCard() {
 
         {restoreTarget && (
           <div className="rounded-lg border border-rose-500/20 bg-rose-500/[0.05] p-4 space-y-3 animate-fade-in">
-            <p className="text-xs text-rose-200">Restore <span className="font-mono">{restoreTarget.file}</span> on this server. Settings, accounts, secrets and stack files are replaced (a pre-restore snapshot is kept); running containers are not touched.</p>
+            <p className="text-xs text-rose-200">Restore <span className="font-mono">{restoreTarget.file}</span> on this server. Settings, accounts, secrets and stack files are replaced (a pre-restore snapshot is kept); App-Data the bundle holds is written over this server&apos;s (not kept); running containers are not touched.</p>
             <div className="flex flex-col sm:flex-row gap-3">
               <input
                 type="password"

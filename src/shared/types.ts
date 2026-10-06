@@ -1261,7 +1261,16 @@ export interface BackupListResponse {
 export interface BackupStatusResponse {
   status: 'idle' | 'running' | 'error' | 'restoring'
   last_backup?: { filename: string; size: string; timestamp: string } | null
-  last_restore?: { filename: string; timestamp: string } | null
+  /** the last restore: what came back, and what could not (a drive folder that is not there, a file it could not write) */
+  last_restore?: {
+    filename: string
+    timestamp: string
+    stacks?: string[]
+    volumes?: string[]
+    appdata?: string[]
+    warnings?: string[]
+    legacy?: boolean
+  } | null
   progress?: string | null
   percent?: number
   stage?: string
@@ -1472,6 +1481,8 @@ export interface RecoveryBundleResponse {
   size_human: string
   stacks: number
   app_data: string[]
+  /** what could not be read into the bundle (Traefik or Authelia data) */
+  warnings?: string[]
   remote_copied: boolean
   note: string
   message: string
@@ -1483,6 +1494,10 @@ export interface RecoveryRestoreResponse {
   stacks: number
   users: number
   initialized?: boolean
+  /** the App-Data written back ("stack", or "stack/Traefik") */
+  app_data?: string[]
+  /** what did not come back: a drive folder that is not there, App-Data that could not be written */
+  warnings?: string[]
   restart_scheduled: boolean
   restart: SystemRestartInfo
   message: string

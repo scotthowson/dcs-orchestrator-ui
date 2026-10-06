@@ -116,18 +116,21 @@ const BACKUP_GUIDE_SECTIONS = [
   {
     title: 'What gets backed up',
     icon: Archive,
-    content: `Full backups capture your entire DCS directory:
+    content: `A full backup holds everything a stack needs:
 
-• docker-compose.yml    All stack compose files
-• .env files            Stack and root environment configs
-• .config/              DCS framework configuration
-• .api-auth/            User accounts and settings
-• .templates/           Custom service templates
-• .plugins/             Installed plugins
+• Every stack's folder  compose file, .env and
+                        its App-Data (container data)
+• App-Data on a drive   a stack whose App-Data is on
+                        a drive of its own, as a part
+                        that goes back to that path
+• Named volumes         each stack's Docker volumes
+• The install's state   root .env, accounts, rules,
+                        secrets, schedules, templates
 
-Backups do NOT include Docker volumes or
-container data — only configuration files.
-Use Docker volume snapshots for data backup.`,
+Running containers are paused while their stack
+is read, so a database is copied at one instant.
+Every archive is read back to the end and gets a
+checksum (.sha256) before it is listed.`,
   },
   {
     title: 'Configuration',
@@ -152,10 +155,10 @@ Common choices:
 1. Select the stack from the dropdown
 2. Click "Back up stack"
 
-This creates a smaller archive containing only
-that stack's compose file, .env, and related
-configuration. Useful for quick saves before
-making changes to a specific stack.`,
+This creates a smaller archive with that stack's
+folder, its App-Data (on a drive too) and its
+named volumes, without the install's settings.
+Useful before changing one stack.`,
   },
   {
     title: 'Backups in a Proxmox fleet',
@@ -188,11 +191,18 @@ browser: a VM's file stays on that VM's disk
 1. Find the backup in the archives table
 2. Click "Restore" on the desired backup
 3. Type RESTORE to confirm
-4. Wait for the restore to complete
+4. Wait: the status card shows the restore,
+   then what came back and what did not
 
-IMPORTANT: Restoring overwrites current
-configuration files. It does NOT automatically
-restart stacks — do this manually after restore.
+The stacks it holds are stopped, their folders,
+App-Data and volumes go back to the archive's
+state, and they start again. What was there is
+set aside first (.data/pre-restore).
+
+On a new machine with App-Data on a drive: mount
+the drive and make the empty App-Data folder the
+stack had, then restore; the backup refuses to
+write where a drive is not mounted.
 
 Tip: Create a fresh backup before restoring
 an older one, so you can roll back if needed.`,
@@ -483,7 +493,7 @@ export default function Backup() {
           </div>
           <div className="p-5 space-y-3">
             <p className="text-sm text-slate-400 mb-4">
-              Backups create compressed archives of your DCS configuration. Use them to protect against accidental changes or migrate to a new server.
+              Backups create checked archives of your stacks, their App-Data and volumes, and DCS&apos;s own settings. Use them to undo a change, or to move to a new server (put the archive in that server&apos;s BACKUP_DEST_DIR and restore it there).
             </p>
             {BACKUP_GUIDE_SECTIONS.map((section, i) => {
               const isExpanded = expandedGuide === i
@@ -570,6 +580,31 @@ export default function Backup() {
                   </div>
                 ) : (
                   <p className="mt-2 text-sm text-slate-500">No backups recorded yet</p>
+                )}
+                {/* the last restore: what came back, and what did not (it finishes in the background, after the toast) */}
+                {statusData?.last_restore && (
+                  <div className="mt-3 space-y-1">
+                    <p className="text-sm text-slate-300">
+                      Last restore:{' '}
+                      <span className="font-mono text-xs text-slate-400 break-all">{statusData.last_restore.filename}</span>
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {[
+                        statusData.last_restore.stacks ? `${statusData.last_restore.stacks.length} stack${statusData.last_restore.stacks.length === 1 ? '' : 's'}` : null,
+                        statusData.last_restore.volumes?.length ? `${statusData.last_restore.volumes.length} volume${statusData.last_restore.volumes.length === 1 ? '' : 's'}` : null,
+                        statusData.last_restore.appdata?.length ? `App-Data on a drive: ${statusData.last_restore.appdata.join(', ')}` : null,
+                        formatDateString(statusData.last_restore.timestamp),
+                      ].filter(Boolean).join(' · ')}
+                    </p>
+                    {(statusData.last_restore.warnings?.length ?? 0) > 0 && (
+                      <div role="alert" className="mt-1 rounded-lg bg-amber-500/10 border border-amber-500/20 p-3">
+                        <p className="text-xs font-medium text-amber-300 flex items-center gap-1.5"><AlertTriangle size={12} aria-hidden /> Not everything came back</p>
+                        <ul className="mt-1.5 space-y-1 text-xs text-amber-200/90 max-h-40 overflow-y-auto">
+                          {statusData.last_restore.warnings!.slice(0, 50).map((w, i) => <li key={i} className="break-words">{w}</li>)}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
