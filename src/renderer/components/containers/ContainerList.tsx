@@ -15,6 +15,8 @@ import { useToast } from '../common/Toast'
 import { EmptyState } from '../common/PageState'
 import FleetScopeChips from '../fleet/FleetScopeChips'
 import VmCapsule from '../fleet/VmCapsule'
+import { AsleepCount } from '../common/StateChip'
+import { containerState, countStates, statesLine, ASLEEP_HINT } from '../../lib/containerState'
 import PageHeader from '../common/PageHeader'
 import SortableTh from '../common/SortableTh'
 import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, TONE_QUIET } from '../../lib/ui'
@@ -25,6 +27,7 @@ import {
   CircleCheck,
   CircleX,
   CirclePause,
+  Moon,
   Loader2,
   CheckSquare,
   Square as SquareIcon,
@@ -115,7 +118,7 @@ const ContainerList: React.FC<ContainerListProps> = ({
   const [onDemandFor, setOnDemandFor] = useState<ContainerInfo | null>(null)
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState<SortConfig>({ key: 'name', direction: 'asc' })
-  const [filter, setFilter] = useState<'all' | 'running' | 'stopped' | 'paused'>('all')
+  const [filter, setFilter] = useState<'all' | 'running' | 'asleep' | 'stopped' | 'paused'>('all')
 
   // Batch selection state (rows by key: two servers may each run a container of the same name)
   const [batchMode, setBatchMode] = useState(false)
@@ -203,8 +206,12 @@ const ContainerList: React.FC<ContainerListProps> = ({
     let result = containers
     if (filter === 'running') {
       result = result.filter((c) => c.state.toLowerCase() === 'running')
+    } else if (filter === 'asleep') {
+      // on demand, asleep on purpose: Sablier wakes them on the first request
+      result = result.filter((c) => containerState(c) === 'asleep')
     } else if (filter === 'stopped') {
-      result = result.filter((c) => ['exited', 'dead', 'stopped'].includes(c.state.toLowerCase()))
+      // stopped for real (an on-demand one that cannot wake, Sablier not running, too); asleep is not stopped
+      result = result.filter((c) => { const k = containerState(c); return k === 'stopped' || k === 'stuck' || k === 'created' })
     } else if (filter === 'paused') {
       result = result.filter((c) => c.state.toLowerCase() === 'paused')
     }
@@ -256,7 +263,9 @@ const ContainerList: React.FC<ContainerListProps> = ({
 
   // Summary counts (the whole scope: everywhere adds up across servers)
   const runningCount = containers.filter((c) => c.state.toLowerCase() === 'running').length
-  const stoppedCount = containers.filter((c) => ['exited', 'dead'].includes(c.state.toLowerCase())).length
+  const stateCounts = countStates(containers)
+  const asleepCount = stateCounts.asleep
+  const stoppedCount = containers.filter((c) => { const k = containerState(c); return k === 'stopped' || k === 'stuck' || k === 'created' }).length
   const pausedCount = containers.filter((c) => c.state.toLowerCase() === 'paused').length
 
   const favSet = new Set(favorites)
@@ -289,6 +298,7 @@ const ContainerList: React.FC<ContainerListProps> = ({
           {scopeMember && <VmCapsule member={scopeMember} name={memberName} vmid={members.find((m) => m.id === scopeMember)?.vmid} />}
           <span className="text-sm text-slate-400">
             <span className="text-emerald-400 font-semibold">{runningCount} running</span>
+            {asleepCount > 0 && <><span className="mx-1.5 text-slate-500">&middot;</span><AsleepCount n={asleepCount} /></>}
             <span className="mx-1.5 text-slate-500">&middot;</span>
             <span>{containers.length} total</span>
           </span>
@@ -382,20 +392,22 @@ const ContainerList: React.FC<ContainerListProps> = ({
       )}
 
       {/* ---- Summary cards ---- */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <SummaryCard icon={<Box className="h-4 w-4 text-cyan-400" />} label="Total" value={containers.length} color="cyan" />
+      {/* asleep on demand has its own calm card (only when there is one): it is not counted as stopped */}
+      <div className={`grid grid-cols-2 ${asleepCount > 0 ? 'md:grid-cols-5' : 'md:grid-cols-4'} gap-3`}>
+        <SummaryCard icon={<Box className="h-4 w-4 text-cyan-400" />} label="Total" value={containers.length} color="cyan" className={asleepCount > 0 ? 'col-span-2 md:col-span-1' : ''} />
         <SummaryCard icon={<CircleCheck className="h-4 w-4 text-emerald-400" />} label="Running" value={runningCount} color="emerald" />
-        <SummaryCard icon={<CircleX className="h-4 w-4 text-rose-400" />} label="Stopped" value={stoppedCount} color="rose" />
+        {asleepCount > 0 && <SummaryCard icon={<Moon className="h-4 w-4 text-indigo-300" />} label="Asleep" value={asleepCount} color="indigo" title={`${ASLEEP_HINT}. Not a problem.`} />}
+        <SummaryCard icon={<CircleX className={`h-4 w-4 ${stoppedCount > 0 ? 'text-rose-400' : 'text-slate-500'}`} />} label="Stopped" value={stoppedCount} color={stoppedCount > 0 ? 'rose' : 'slate'} />
         <SummaryCard icon={<CirclePause className="h-4 w-4 text-amber-400" />} label="Paused" value={pausedCount} color="amber" />
       </div>
 
       {/* ---- Filter tabs ---- */}
       <div className="flex items-center gap-1 overflow-x-auto scrollbar-none bg-white/[0.03] border border-white/[0.05] rounded-xl p-1">
-        {(['all', 'running', 'stopped', 'paused'] as const).map((filterVal) => {
-          const labelMap = { all: 'All', running: 'Running', stopped: 'Stopped', paused: 'Paused' }
-          const countMap = { all: containers.length, running: runningCount, stopped: stoppedCount, paused: pausedCount }
-          const colorMap = { all: 'text-cyan-400', running: 'text-emerald-400', stopped: 'text-rose-400', paused: 'text-amber-400' }
-          const activeBgMap = { all: 'bg-cyan-500/15', running: 'bg-emerald-500/15', stopped: 'bg-rose-500/15', paused: 'bg-amber-500/15' }
+        {(['all', 'running', 'asleep', 'stopped', 'paused'] as const).filter((f) => f !== 'asleep' || asleepCount > 0 || filter === 'asleep').map((filterVal) => {
+          const labelMap = { all: 'All', running: 'Running', asleep: 'Asleep', stopped: 'Stopped', paused: 'Paused' }
+          const countMap = { all: containers.length, running: runningCount, asleep: asleepCount, stopped: stoppedCount, paused: pausedCount }
+          const colorMap = { all: 'text-cyan-400', running: 'text-emerald-400', asleep: 'text-indigo-300', stopped: 'text-rose-400', paused: 'text-amber-400' }
+          const activeBgMap = { all: 'bg-cyan-500/15', running: 'bg-emerald-500/15', asleep: 'bg-indigo-500/15', stopped: 'bg-rose-500/15', paused: 'bg-amber-500/15' }
           return (
             <button
               key={filterVal}
@@ -463,7 +475,7 @@ const ContainerList: React.FC<ContainerListProps> = ({
                   <div className="flex items-center gap-2 px-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
                     <span className={`w-1.5 h-1.5 rounded-full ${g.key === 'hub' ? 'bg-emerald-400' : 'bg-amber-300'}`} />
                     {g.header}
-                    <span className="text-slate-600 normal-case tracking-normal">{g.rows.filter((c) => c.state === 'running').length}/{g.rows.length} running</span>
+                    <span className="text-slate-600 normal-case tracking-normal" title={statesLine(countStates(g.rows))}>{statesLine(countStates(g.rows), { noun: false })} · {g.rows.length} in all</span>
                   </div>
                 )}
                 {g.rows.map((container) => (
@@ -552,7 +564,7 @@ const ContainerList: React.FC<ContainerListProps> = ({
                         <span className="inline-flex items-center gap-2">
                           <span className={`w-1.5 h-1.5 rounded-full ${g.key === 'hub' ? 'bg-emerald-400' : 'bg-amber-300'}`} />
                           {g.header}
-                          <span className="text-slate-600 normal-case tracking-normal">{g.rows.filter((c) => c.state === 'running').length}/{g.rows.length} running</span>
+                          <span className="text-slate-600 normal-case tracking-normal" title={statesLine(countStates(g.rows))}>{statesLine(countStates(g.rows), { noun: false })} · {g.rows.length} in all</span>
                         </span>
                       </td>
                     </tr>
@@ -591,7 +603,9 @@ interface SummaryCardProps {
   icon: React.ReactNode
   label: string
   value: number
-  color: 'emerald' | 'cyan' | 'rose' | 'amber'
+  color: 'emerald' | 'cyan' | 'rose' | 'amber' | 'indigo' | 'slate'
+  title?: string
+  className?: string
 }
 
 const GLOW_MAP: Record<string, string> = {
@@ -601,8 +615,8 @@ const GLOW_MAP: Record<string, string> = {
   amber: 'glow-amber',
 }
 
-const SummaryCard: React.FC<SummaryCardProps> = ({ icon, label, value, color }) => (
-  <div className={`glass-subtle p-3 md:p-4 flex items-center gap-3 ${GLOW_MAP[color] ?? ''}`}>
+const SummaryCard: React.FC<SummaryCardProps> = ({ icon, label, value, color, title, className = '' }) => (
+  <div className={`glass-subtle p-3 md:p-4 flex items-center gap-3 ${GLOW_MAP[color] ?? ''} ${className}`} title={title}>
     <div className="flex-shrink-0">{icon}</div>
     <div>
       <p className="text-[10px] md:text-xs text-slate-500 uppercase tracking-wide">{label}</p>

@@ -9,20 +9,12 @@ import { useConnectionStore } from '../../stores/connectionStore'
 import { useContainerStore } from '../../stores/containerStore'
 import type { ContainerInfo } from '../../../shared/types'
 import { Card, CardBody, CardEmpty, CardLoading, CardOffline } from './cardShared'
+import { StateDot, AsleepCount } from '../common/StateChip'
+import { containerState, countStates, fineCount, isAsleep, statesLine, STATE_META } from '../../lib/containerState'
 
 // ---------------------------------------------------------------------------
 // Status helpers
 // ---------------------------------------------------------------------------
-
-function statusDot(state: string): string {
-  switch (state) {
-    case 'running': return 'bg-emerald-400'
-    case 'exited': return 'bg-slate-500'
-    case 'paused': return 'bg-amber-400'
-    case 'restarting': return 'bg-amber-400 animate-pulse'
-    default: return 'bg-rose-400'
-  }
-}
 
 function healthBadge(health: string): string {
   switch (health) {
@@ -44,31 +36,32 @@ function formatUptime(seconds: number): string {
 // The donut: running is fine, paused needs a look, stopped is off (neutral)
 // ---------------------------------------------------------------------------
 
+// asleep on demand is its own calm slice (indigo): Sablier stopped it on purpose and wakes it on the first request
 const STATUS_COLORS = {
   running: '#10b981',  // emerald-500
+  asleep: STATE_META.asleep.color,
   stopped: '#64748b',  // slate-500
-  paused: '#f59e0b',   // amber-500
-  other: '#94a3b8',    // slate-400
+  problem: '#f59e0b',  // amber-500: unhealthy, restarting, can't wake
 }
 
 function StatusDonut({ containers }: { containers: ContainerInfo[] }) {
-  const running = containers.filter((c) => c.state === 'running').length
-  const stopped = containers.filter((c) => c.state === 'exited').length
-  const paused = containers.filter((c) => c.state === 'paused').length
-  const other = containers.length - running - stopped - paused
+  const n = countStates(containers)
+  const running = n.running
+  const stopped = n.stopped
+  const problem = n.unhealthy + n.restarting + n.stuck
 
   const data = [
     { name: 'Running', value: running, color: STATUS_COLORS.running },
+    { name: 'Asleep', value: n.asleep, color: STATUS_COLORS.asleep },
+    { name: 'Needs a look', value: problem, color: STATUS_COLORS.problem },
     { name: 'Stopped', value: stopped, color: STATUS_COLORS.stopped },
-    { name: 'Paused', value: paused, color: STATUS_COLORS.paused },
-    { name: 'Other', value: other, color: STATUS_COLORS.other },
   ].filter((d) => d.value > 0)
 
   // If no containers, show a single grey ring
   if (data.length === 0) data.push({ name: 'None', value: 1, color: '#1e293b' })
 
   return (
-    <div className="relative h-20 w-20 shrink-0" role="img" aria-label={`${containers.length} containers: ${running} running, ${stopped} stopped, ${paused} paused`}>
+    <div className="relative h-20 w-20 shrink-0" role="img" aria-label={`${containers.length} containers: ${statesLine(n, { noun: false })}`}>
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie
@@ -116,17 +109,19 @@ export default function ContainerOverview({ containers }: { containers: Containe
     )
   }
 
+  // running first, then asleep on demand (fine), then the rest
+  const rank = (c: ContainerInfo) => { const k = containerState(c); return k === 'running' || k === 'starting' ? 0 : k === 'asleep' ? 1 : 2 }
+  const sorted = [...containers].sort((a, b) => rank(a) - rank(b))
+  const n = countStates(containers)
   const running = containers.filter((c) => c.state === 'running')
-  const stopped = containers.filter((c) => c.state !== 'running')
-  const sorted = [...running, ...stopped]
-  const exited = containers.filter((c) => c.state === 'exited').length
+  const exited = n.stopped
   const paused = containers.filter((c) => c.state === 'paused').length
 
   return (
     <Card
       card="container-overview"
       open="containers"
-      meta={<><span className="text-emerald-400 font-medium">{running.length}</span><span className="text-slate-600 mx-0.5">/</span>{containers.length}</>}
+      meta={<span title={statesLine(n)}><span className="text-emerald-400 font-medium">{fineCount(n) + n.unhealthy}</span><span className="text-slate-600 mx-0.5">/</span>{containers.length}</span>}
     >
       <CardBody>
         <div className="flex items-center gap-4 mb-3 pb-3 border-b border-white/5">
@@ -136,6 +131,11 @@ export default function ContainerOverview({ containers }: { containers: Containe
               <div className="flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-emerald-400" aria-hidden />
                 <span className="text-slate-400">{running.length} running</span>
+              </div>
+            )}
+            {n.asleep + n.stuck > 0 && (
+              <div className="flex items-center gap-1.5">
+                <AsleepCount n={n.asleep} stuck={n.stuck} />
               </div>
             )}
             {exited > 0 && (
@@ -159,11 +159,12 @@ export default function ContainerOverview({ containers }: { containers: Containe
               key={`${container.member ?? ''}|${container.name}`}
               className="flex items-center gap-2.5 py-2 px-2 rounded-lg hover:bg-white/[0.03] transition-colors group"
             >
-              <span className={`h-2 w-2 rounded-full ${statusDot(container.state)} shrink-0`} aria-hidden />
+              <StateDot state={containerState(container)} />
               <span className="flex-1 text-xs font-mono text-slate-300 truncate group-hover:text-white transition-colors" title={container.name}>
                 {container.name}
               </span>
-              {container.health && container.health !== 'none' && container.health !== '' && (
+              {isAsleep(container) && <span className={`text-[10px] ${STATE_META[containerState(container)].text}`} title={STATE_META[containerState(container)].hint}>{STATE_META[containerState(container)].label}</span>}
+              {container.health && container.health !== 'none' && container.health !== '' && !isAsleep(container) && (
                 <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${healthBadge(container.health)}`}>{container.health}</span>
               )}
               {container.state === 'running' && container.uptime_seconds > 0 && (

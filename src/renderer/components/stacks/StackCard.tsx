@@ -5,7 +5,7 @@
 import {
   Play, Square, RotateCcw, Download, Loader2, Box,
   AlertTriangle, Tag, Pencil, Check, Shield, Trash2, Clock, Server,
-  Cpu, MemoryStick, ArrowUpCircle, Archive, ExternalLink, Globe,
+  Cpu, MemoryStick, ArrowUpCircle, Archive, ExternalLink, Globe, Moon,
 } from 'lucide-react'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { useStackStore } from '../../stores/stackStore'
@@ -14,6 +14,8 @@ import Hint from '../common/Hint'
 import { BTN_CARD_QUIET, BTN_ICON, BTN_ICON_SM, TONE_GHOST, TONE_GHOST_OK, TONE_GHOST_DANGER } from '../../lib/ui'
 import type { StackInfo } from '../../../shared/types'
 import AppDataLabel from './AppDataLabel'
+import { AsleepCount } from '../common/StateChip'
+import { STACK_META } from '../../lib/containerState'
 import { serverHostname, memberHost, portUrl } from '../../lib/hosts'
 
 function formatRelativeTime(timestamp: number): string {
@@ -62,6 +64,7 @@ const priorityConfig = {
 export default function StackCard({ stack, isActionLoading, onAction, onSelect, onEdit, onMoveToVm, onDelete, batchMode, isSelected, onToggleSelect, matchedContainers, isAdmin = false }: Props) {
   const isRunning = stack.status === 'running'
   const isAsleep = !isRunning && !!stack.sleeping   // Sablier keeps every container of it asleep on purpose
+  const cantWake = isAsleep && stack.sablier_up === false   // ...but Sablier is not running: nothing can wake it
   const lastActionTimestamps = useStackStore((s) => s.lastActionTimestamps)
   const lastAction = lastActionTimestamps[stack.name]
   const stackAnnotations = useSettingsStore((s) => s.stackAnnotations) ?? {}
@@ -91,7 +94,7 @@ export default function StackCard({ stack, isActionLoading, onAction, onSelect, 
     {
       action: 'start',
       icon: Play,
-      label: isRunning ? 'Reload' : 'Start',
+      label: isRunning ? 'Reload' : isAsleep ? 'Wake now' : 'Start',
       tone: TONE_GHOST_OK,
     },
     {
@@ -260,18 +263,19 @@ export default function StackCard({ stack, isActionLoading, onAction, onSelect, 
                 ${
                   isRunning
                     ? 'bg-emerald-500/15 text-emerald-400 ring-1 ring-emerald-500/25'
+                    : cantWake
+                      ? 'bg-amber-500/15 text-amber-400 ring-1 ring-amber-500/25'
                     : isAsleep
                       ? 'bg-indigo-500/15 text-indigo-300 ring-1 ring-indigo-500/25'
                       : 'bg-slate-500/15 text-slate-400 ring-1 ring-slate-500/25'
                 }
               `}
+              title={cantWake ? STACK_META.stuck.hint : isAsleep ? STACK_META.asleep.hint : undefined}
             >
-              <span
-                className={`w-1.5 h-1.5 rounded-full ${
-                  isRunning ? 'bg-emerald-400 animate-pulse' : isAsleep ? 'bg-indigo-400' : 'bg-slate-500'
-                }`}
-              />
-              {isRunning ? 'Running' : isAsleep ? 'Sleeping' : 'Stopped'}
+              {isAsleep
+                ? <Moon size={11} aria-hidden className="shrink-0" />
+                : <span className={`w-1.5 h-1.5 rounded-full ${isRunning ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />}
+              {isRunning ? 'Running' : cantWake ? STACK_META.stuck.label : isAsleep ? STACK_META.asleep.label : 'Stopped'}
             </span>
           </div>
           {stack.placement === 'vm' && (
@@ -319,7 +323,9 @@ export default function StackCard({ stack, isActionLoading, onAction, onSelect, 
             {sleepingCount > 0 && (
               <>
                 <span className="text-slate-600">{' · '}</span>
-                <span className="font-semibold text-indigo-300">{sleepingCount}</span> sleeping
+                {stack.sablier_up === false
+                  ? <AsleepCount stuck={sleepingCount} n={0} className="font-semibold" />
+                  : <AsleepCount n={sleepingCount} className="font-semibold" />}
               </>
             )}
             {stoppedCount > 0 && (

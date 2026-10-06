@@ -197,7 +197,8 @@ export default function Dashboard() {
   // Push health metric separately
   React.useEffect(() => {
     if (!healthReport) return
-    const total = healthReport.summary.total || 1
+    // asleep on demand stays out: it is not unhealthy, it waits for its first request
+    const total = (healthReport.summary.total - (healthReport.summary.sleeping ?? 0)) || 1
     const healthPct = Math.round((healthReport.summary.healthy / total) * 100)
     pushMetrics({ health: healthPct })
   }, [healthReport, pushMetrics])
@@ -245,7 +246,7 @@ export default function Dashboard() {
           addNotification({
             type: current === 'critical' ? 'error' : 'warning',
             title: current === 'critical' ? 'System health critical' : 'System health degraded',
-            message: `${healthReport.summary.unhealthy} of ${healthReport.summary.total} containers unhealthy`,
+            message: `${healthReport.summary.unhealthy} of ${healthReport.summary.total - (healthReport.summary.sleeping ?? 0)} running containers unhealthy`,
             persist: true,
             action: { label: `View ${pageLabel('health')}`, page: 'health' },
           })
@@ -253,7 +254,7 @@ export default function Dashboard() {
           addNotification({
             type: 'success',
             title: 'System health restored',
-            message: `All ${healthReport.summary.total} containers are healthy`,
+            message: `All ${healthReport.summary.total - (healthReport.summary.sleeping ?? 0)} containers are healthy${healthReport.summary.sleeping ? ` (${healthReport.summary.sleeping} asleep on demand)` : ''}`,
             persist: true,
             action: { label: `View ${pageLabel('health')}`, page: 'health' },
           })

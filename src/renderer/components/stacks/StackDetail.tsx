@@ -41,6 +41,8 @@ import Hint from '../common/Hint'
 import ModalOverlay from '../common/ModalOverlay'
 import { ComposeViewer } from './ComposeViewer'
 import { pageLabel } from '../../constants/pageTitles'
+import { StateChip, AsleepCount } from '../common/StateChip'
+import { containerState, countStates, isAsleep, stackState, STACK_META } from '../../lib/containerState'
 import {
   BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD, BTN_CARD_QUIET, BTN_ICON_SM, BTN_SHEET_QUIET, BTN_SHEET_PRIMARY,
   TONE_QUIET, TONE_OK, TONE_DANGER, TONE_GHOST, TONE_GHOST_OK, TONE_GHOST_DANGER,
@@ -327,6 +329,9 @@ export default function StackDetail({ stackName, onBack, onAction, isActionLoadi
   }, [logs, activeTab])
 
   const isRunning = detail?.status === 'running'
+  // the stack as a whole: running, partly down, asleep on demand (fine), can't wake, or stopped
+  const stackCounts = countStates(detail?.containers)
+  const stackKey = detail ? stackState({ ...detail, total_containers: detail.containers?.length }) : 'stopped'
 
   // stop, restart and update ask first; starting does not
   const askThen = async (action: 'stop' | 'restart' | 'update') => {
@@ -512,21 +517,21 @@ export default function StackDetail({ stackName, onBack, onAction, isActionLoadi
           <div className="flex items-center flex-wrap gap-x-4 gap-y-2">
             {/* Status badge */}
             <span
+              title={STACK_META[stackKey].hint}
               className={`
                 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium
                 ${
-                  isRunning
-                    ? 'bg-emerald-500/15 text-emerald-400 ring-1 ring-emerald-500/25'
+                  stackKey === 'running' ? 'bg-emerald-500/15 text-emerald-400 ring-1 ring-emerald-500/25'
+                    : stackKey === 'asleep' ? 'bg-indigo-500/15 text-indigo-300 ring-1 ring-indigo-500/25'
+                    : stackKey === 'partial' || stackKey === 'stuck' ? 'bg-amber-500/15 text-amber-400 ring-1 ring-amber-500/25'
                     : 'bg-slate-500/15 text-slate-400 ring-1 ring-slate-500/25'
                 }
               `}
             >
-              <span
-                className={`w-1.5 h-1.5 rounded-full ${
-                  isRunning ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'
-                }`}
-              />
-              {isRunning ? 'Running' : 'Stopped'}
+              {stackKey === 'asleep' || stackKey === 'stuck'
+                ? <Moon size={11} aria-hidden className="shrink-0" />
+                : <span className={`w-1.5 h-1.5 rounded-full ${STACK_META[stackKey].dot} ${stackKey === 'running' ? 'animate-pulse' : ''}`} />}
+              {STACK_META[stackKey].label}
             </span>
 
             {/* Container count */}
@@ -536,8 +541,9 @@ export default function StackDetail({ stackName, onBack, onAction, isActionLoadi
                 <span className="font-semibold text-slate-200">
                   {detail?.running_containers ?? 0}
                 </span>{' '}
-                {(detail?.sleeping_containers ?? 0) > 0
-                  ? <>running<span className="text-slate-600">{' · '}</span><span className="font-semibold text-indigo-300">{detail?.sleeping_containers}</span> sleeping</>
+                {stackCounts.asleep + stackCounts.stuck > 0 || stackCounts.stopped > 0
+                  ? <>running{stackCounts.asleep + stackCounts.stuck > 0 && <><span className="text-slate-600">{' · '}</span><AsleepCount n={stackCounts.asleep} stuck={stackCounts.stuck} className="font-semibold" /></>}
+                      {stackCounts.stopped > 0 && <><span className="text-slate-600">{' · '}</span><span className="font-semibold text-rose-400">{stackCounts.stopped}</span> stopped</>}</>
                   : <>container{(detail?.running_containers ?? 0) !== 1 ? 's' : ''}</>}
               </span>
             </div>
@@ -795,7 +801,7 @@ function ContainersTable({ containers, onContainerClick, member = null, isAdmin 
                       <span className="inline-flex items-center gap-0.5 ml-2 align-middle">
                         {busy.startsWith(`${c.name}:`) ? <Loader2 className="w-3 h-3 animate-spin text-cyan-400" aria-label="Working" /> : (
                           <>
-                            {!running && <Hint label="Start"><button type="button" aria-label={`Start ${c.name}`} onClick={(e) => quick(e, c.name, 'start')} className={`${BTN_ICON_SM} ${TONE_GHOST_OK}`}><Play size={12} /></button></Hint>}
+                            {!running && <Hint label={isAsleep(c) ? 'Wake it now (Sablier puts it back to sleep when idle)' : 'Start'}><button type="button" aria-label={`${isAsleep(c) ? 'Wake' : 'Start'} ${c.name}`} onClick={(e) => quick(e, c.name, 'start')} className={`${BTN_ICON_SM} ${TONE_GHOST_OK}`}><Play size={12} /></button></Hint>}
                             {running && <Hint label="Restart"><button type="button" aria-label={`Restart ${c.name}`} onClick={(e) => quick(e, c.name, 'restart')} className={`${BTN_ICON_SM} ${TONE_GHOST}`}><RotateCcw size={12} /></button></Hint>}
                             {running && <Hint label="Stop"><button type="button" aria-label={`Stop ${c.name}`} onClick={(e) => quick(e, c.name, 'stop')} className={`${BTN_ICON_SM} ${TONE_GHOST_DANGER}`}><Square size={12} /></button></Hint>}
                           </>
@@ -804,13 +810,9 @@ function ContainersTable({ containers, onContainerClick, member = null, isAdmin 
                     )}
                   </td>
                   <td className="px-3 py-3 whitespace-nowrap">
-                    {c.on_demand && !running ? (
+                    {isAsleep(c) ? (
                       // asleep on purpose: Sablier starts it on the first request
-                      <span className="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full text-xs font-medium leading-none whitespace-nowrap ring-1 bg-indigo-500/10 text-indigo-300 ring-indigo-500/20" title="Stopped on purpose: Sablier starts it on the first request">
-                        <Moon size={11} aria-hidden className="shrink-0" />
-                        sleeping
-                        <span className="text-[10px] font-normal text-indigo-300/80">· on demand</span>
-                      </span>
+                      <StateChip state={containerState(c)} />
                     ) : (
                       <span className={`inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full text-xs font-medium leading-none whitespace-nowrap ${stateBadge(c.state)}`}>
                         {c.state}

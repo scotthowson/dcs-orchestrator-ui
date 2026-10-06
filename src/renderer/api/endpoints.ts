@@ -1869,9 +1869,9 @@ export function fetchPower(): Promise<PowerStatus> {
   return apiClient.get<PowerStatus>('/power')
 }
 
-/** POST /sablier/repair — Recreate on-demand containers a prune removed (created, not started) */
-export function repairOnDemand(): Promise<{ success: boolean; recreated: string[]; failed: string[]; message: string }> {
-  return apiClient.post<{ success: boolean; recreated: string[]; failed: string[]; message: string }>('/sablier/repair', {}, 120000)
+/** POST /sablier/repair — Recreate on-demand containers a prune removed (created, not started); in a VM of the fleet with member */
+export function repairOnDemand(member?: string | null): Promise<{ success: boolean; recreated: string[]; failed: string[]; message: string }> {
+  return apiClient.post<{ success: boolean; recreated: string[]; failed: string[]; message: string }>(memberPath(member, '/sablier/repair'), {}, 120000)
 }
 
 /** POST /power/sample — Read the UPS right now */

@@ -62,12 +62,21 @@ make_install() {
     } >> "$dir/.env"
     # the stacks the fake Docker daemon reports containers for: the hub runs two itself, the member (VM 100) one
     if [[ "$role" == hub ]]; then
-        mkdir -p "$dir/Stacks/networking-security" "$dir/Stacks/monitoring-management"
-        printf 'services:\n  traefik:\n    image: traefik:v3.1\n    container_name: traefik\n    ports: ["80:80", "443:443"]\n  whoami:\n    image: traefik/whoami\n    container_name: whoami\n' > "$dir/Stacks/networking-security/docker-compose.yml"
+        mkdir -p "$dir/Stacks/networking-security" "$dir/Stacks/monitoring-management" "$dir/Stacks/development-tools"
+        printf 'services:\n  traefik:\n    image: traefik:v3.1\n    container_name: traefik\n    ports: ["80:80", "443:443"]\n  whoami:\n    image: traefik/whoami\n    container_name: whoami\n  sablier:\n    image: acouvreur/sablier:1.6.1\n    container_name: Sablier\n' > "$dir/Stacks/networking-security/docker-compose.yml"
+        # a stack that starts on demand (all of it asleep): Traefik's route asks Sablier to wake it-tools on the first request
+        printf 'services:\n  it-tools:\n    image: corentinth/it-tools:latest\n    container_name: it-tools\n    ports: ["8380:80"]\n' > "$dir/Stacks/development-tools/docker-compose.yml"
+        mkdir -p "$dir/Stacks/networking-security/App-Data/Traefik/custom_routes"
+        printf 'http:\n  routers:\n    it-tools:\n      rule: "Host(`tools.lab.test`)"\n      service: it-tools\n      middlewares:\n        - it-tools-sablier\n  services:\n    it-tools:\n      loadBalancer:\n        servers:\n          - url: "http://it-tools:80"\n  middlewares:\n    it-tools-sablier:\n      plugin:\n        sablier:\n          names: it-tools\n          sablierUrl: http://Sablier:10000\n          sessionDuration: 30m\n' > "$dir/Stacks/networking-security/App-Data/Traefik/custom_routes/it-tools.yml"
         printf 'services:\n  dashdot:\n    image: mauricenino/dashdot:latest\n    container_name: dashdot\n    ports: ["3001:3001"]\n  redis:\n    image: redis:alpine\n    container_name: redis\n  uptime-kuma:\n    image: louislam/uptime-kuma:1\n    container_name: uptime-kuma\n' > "$dir/Stacks/monitoring-management/docker-compose.yml"
     elif [[ "$role" == member ]]; then
         mkdir -p "$dir/Stacks/media-services"
-        printf 'services:\n  jellyfin:\n    image: jellyfin/jellyfin:10.9.11\n    container_name: jellyfin\n    ports: ["8096:8096"]\n  radarr:\n    image: lscr.io/linuxserver/radarr:latest\n    container_name: radarr\n    ports: ["7878:7878"]\n  sonarr:\n    image: lscr.io/linuxserver/sonarr:latest\n    container_name: sonarr\n    ports: ["8989:8989"]\n' > "$dir/Stacks/media-services/docker-compose.yml"
+        printf 'services:\n  jellyfin:\n    image: jellyfin/jellyfin:10.9.11\n    container_name: jellyfin\n    ports: ["8096:8096"]\n  radarr:\n    image: lscr.io/linuxserver/radarr:latest\n    container_name: radarr\n    ports: ["7878:7878"]\n  sonarr:\n    image: lscr.io/linuxserver/sonarr:latest\n    container_name: sonarr\n    ports: ["8989:8989"]\n  bazarr:\n    image: lscr.io/linuxserver/bazarr:latest\n    container_name: bazarr\n    ports: ["6767:6767"]\n' > "$dir/Stacks/media-services/docker-compose.yml"
+        # bazarr starts on demand in the VM: the route the VM offers the hub carries its Sablier block (.data/routes, the
+        # feed the hub's Traefik reads; a VM that joined finds it there by itself, the lab's linked one is told so)
+        printf 'TRAEFIK_FEED_ENABLED=true\n' >> "$dir/.env"
+        mkdir -p "$dir/.data/routes"
+        printf 'http:\n  routers:\n    bazarr:\n      rule: "Host(`bazarr.lab.test`)"\n      service: bazarr\n      middlewares:\n        - bazarr-sablier\n  services:\n    bazarr:\n      loadBalancer:\n        servers:\n          - url: "http://bazarr:6767"\n  middlewares:\n    bazarr-sablier:\n      plugin:\n        sablier:\n          names: bazarr\n          sablierUrl: http://Sablier:10000\n          sessionDuration: 30m\n' > "$dir/.data/routes/bazarr.yml"
     fi
 }
 

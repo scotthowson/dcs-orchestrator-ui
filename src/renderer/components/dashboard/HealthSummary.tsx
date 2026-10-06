@@ -17,6 +17,8 @@ import VmCapsule from '../fleet/VmCapsule'
 import Hint from '../common/Hint'
 import type { HealthContainer, HealthScoreResponse } from '../../../shared/types'
 import { Card, CardBody, CardError, CardOffline, pctTone, TONE_TEXT, type CardTone } from './cardShared'
+import { StateDot } from '../common/StateChip'
+import { containerState, countStates, fineCount, isAsleep, statesLine, STATE_META } from '../../lib/containerState'
 
 // ---------------------------------------------------------------------------
 // Score gauge colors: a grade is a scale from fine to a problem
@@ -130,34 +132,32 @@ function SummaryBar({ healthy, unhealthy, stopped, sleeping = 0 }: { healthy: nu
         {healthyPct > 0 && <div className="bg-emerald-500 transition-all duration-700" style={{ width: `${healthyPct}%` }} title={`${healthy} healthy`} />}
         {unhealthyPct > 0 && <div className="bg-rose-500 transition-all duration-700" style={{ width: `${unhealthyPct}%` }} title={`${unhealthy} unhealthy`} />}
         {stoppedPct > 0 && <div className="bg-slate-600 transition-all duration-700" style={{ width: `${stoppedPct}%` }} title={`${stopped} stopped`} />}
-        {sleepingPct > 0 && <div className="bg-indigo-400/70 transition-all duration-700" style={{ width: `${sleepingPct}%` }} title={`${sleeping} sleeping`} />}
+        {sleepingPct > 0 && <div className="bg-indigo-400/70 transition-all duration-700" style={{ width: `${sleepingPct}%` }} title={`${sleeping} asleep (on demand)`} />}
       </div>
       <div className="mt-1.5 flex items-center gap-3 text-[11px]">
         <span className="flex items-center gap-1"><span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden /><span className="text-slate-500">{healthy} healthy</span></span>
         {unhealthy > 0 && <span className="flex items-center gap-1"><span className="inline-block h-1.5 w-1.5 rounded-full bg-rose-500" aria-hidden /><span className="text-slate-500">{unhealthy} unhealthy</span></span>}
         {stopped > 0 && <span className="flex items-center gap-1"><span className="inline-block h-1.5 w-1.5 rounded-full bg-slate-600" aria-hidden /><span className="text-slate-500">{stopped} stopped</span></span>}
-        {sleeping > 0 && <span className="flex items-center gap-1"><span className="inline-block h-1.5 w-1.5 rounded-full bg-indigo-400" aria-hidden /><span className="text-slate-500">{sleeping} sleeping</span></span>}
+        {sleeping > 0 && <span className="flex items-center gap-1"><span className="inline-block h-1.5 w-1.5 rounded-full bg-indigo-400" aria-hidden /><span className="text-slate-500">{sleeping} asleep</span></span>}
       </div>
     </div>
   )
 }
 
 function ContainerRow({ container }: { container: HealthContainer }) {
-  const isRunning = container.state === 'running'
-  const isSleeping = !!container.on_demand && !isRunning
-  const isUnhealthy = container.health === 'unhealthy' && !isSleeping
-  const dotColor = isSleeping ? 'bg-indigo-400' : isUnhealthy ? 'bg-rose-400' : isRunning ? 'bg-emerald-400' : 'bg-slate-500'
+  const key = containerState(container)
+  const isSleeping = isAsleep(container)
 
   return (
     <div className="flex items-center justify-between py-1 px-0.5 group">
       <div className="flex items-center gap-1.5 min-w-0">
-        <span className={`inline-block h-1.5 w-1.5 rounded-full ${dotColor} shrink-0`} aria-hidden />
+        <StateDot state={key} size={6} />
         <span className="text-[11px] text-slate-300 font-mono truncate">{container.name}</span>
         {container.member !== undefined && <VmCapsule member={container.member} name={container.member_name} vmid={container.vmid} size="xs" />}
       </div>
       <div className="flex items-center gap-1.5 shrink-0 ml-2">
         {isSleeping ? (
-          <span className="rounded px-1 py-0.5 text-[10px] font-medium bg-indigo-500/10 text-indigo-300" title="Stopped on purpose: Sablier starts it on the first request">on demand</span>
+          <span className={`rounded px-1 py-0.5 text-[10px] font-medium ${STATE_META[key].bg} ${STATE_META[key].text}`} title={STATE_META[key].hint}>on demand</span>
         ) : container.health && container.health !== 'none' && container.health !== 'sleeping' && (
           <span className={`rounded px-1 py-0.5 text-[10px] font-medium ${
             container.health === 'healthy' ? 'bg-emerald-500/10 text-emerald-400'
@@ -168,7 +168,7 @@ function ContainerRow({ container }: { container: HealthContainer }) {
           </span>
         )}
         <span className="text-[10px] text-slate-500">
-          {isSleeping ? 'sleeping' : container.state}
+          {isSleeping ? STATE_META[key].label : container.state}
         </span>
       </div>
     </div>
@@ -257,7 +257,9 @@ export default function HealthSummary() {
   const grade = scoreData?.grade ?? getGrade(score)
   const factors = scoreData?.factors
   const containers = report.containers ?? []
-  const runningCount = containers.filter((c) => c.state === 'running').length
+  // asleep on demand is up (the first request wakes it): x/y counts it, the line says it apart
+  const stateCounts = countStates(containers)
+  const runningCount = fineCount(stateCounts) + stateCounts.unhealthy
   const cardTone: CardTone | undefined = link.live ? config.tone : (link.state === 'trouble' ? 'attention' : 'problem')
 
   return (
@@ -320,7 +322,7 @@ export default function HealthSummary() {
           <div className="mt-3 pt-3 border-t border-white/5 flex flex-col flex-1 min-h-[9rem]">
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Containers</span>
-              <span className="text-[10px] text-slate-500 tabular-nums">{runningCount}/{containers.length} running</span>
+              <span className="text-[10px] text-slate-500 tabular-nums" title={statesLine(stateCounts)}>{runningCount}/{containers.length} up{stateCounts.asleep > 0 ? ` · ${stateCounts.asleep} asleep` : ''}</span>
             </div>
             <div className="overflow-y-auto scrollbar-none space-y-0.5 flex-1 min-h-0">
               {containers

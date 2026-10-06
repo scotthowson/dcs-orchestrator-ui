@@ -18,13 +18,15 @@ const overviewShared = sharedFetch(fetchFleetOverview, 10000)
 export interface FleetTotals {
   containersRunning: number
   containersTotal: number
+  /** on demand and asleep (fine: Sablier wakes them on the first request) */
+  containersSleeping: number
   stacks: number
   images: number
   networks: number
   volumes: number
 }
 
-const NONE: FleetTotals = { containersRunning: 0, containersTotal: 0, stacks: 0, images: 0, networks: 0, volumes: 0 }
+const NONE: FleetTotals = { containersRunning: 0, containersTotal: 0, containersSleeping: 0, stacks: 0, images: 0, networks: 0, volumes: 0 }
 
 export function useFleetTotals(): { isHub: boolean; totals: FleetTotals; overview: FleetOverview | null } {
   const { isHub } = useFleetRole()
@@ -39,6 +41,7 @@ export function useFleetTotals(): { isHub: boolean; totals: FleetTotals; overvie
     totals: {
       containersRunning: t.containers_running ?? 0,
       containersTotal: t.containers_total ?? 0,
+      containersSleeping: t.containers_sleeping ?? 0,
       stacks: t.stacks ?? 0,
       images: t.images ?? 0,
       networks: t.networks ?? 0,

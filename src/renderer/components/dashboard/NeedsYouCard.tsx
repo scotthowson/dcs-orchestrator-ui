@@ -12,7 +12,10 @@
 
 import { useMemo, useState } from 'react'
 import { Badge } from '@mantine/core'
-import { CheckCircle2, ChevronRight, EyeOff } from 'lucide-react'
+import { CheckCircle2, ChevronRight, EyeOff, Loader2, Wrench } from 'lucide-react'
+import { useAuthStore } from '../../stores/authStore'
+import { useToast } from '../common/Toast'
+import { repairOnDemand, startContainer } from '../../api/endpoints'
 import { useHealthStore } from '../../stores/healthStore'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { useConnectionStore } from '../../stores/connectionStore'
@@ -42,6 +45,26 @@ export default function NeedsYouCard({ stacks, stacksError, images, backup, disk
   const setCurrentPage = useSettingsStore((s) => s.setCurrentPage)
   const isConnected = useConnectionStore((s) => s.status === 'connected')
   const [hidden, setHidden] = useState(loadHidden)
+  const isAdmin = useAuthStore((s) => s.userRole) === 'admin'
+  const { addToast } = useToast()
+  const [fixing, setFixing] = useState('')
+  // the one-click fixes: recreate on-demand containers a prune removed, or bring Sablier back so what sleeps can wake
+  // (in a VM both go through its own /sablier/repair, which starts its Sablier only behind the firewall rule)
+  const runFix = async (i: NeedItem) => {
+    if (!i.fix || fixing) return
+    setFixing(i.key)
+    try {
+      if (i.fix.kind === 'sablier-start' && !i.fix.member) {
+        await startContainer('Sablier')
+        addToast({ type: 'success', message: 'Sablier is starting: what is asleep can wake again' })
+      } else {
+        const res = await repairOnDemand(i.fix.member)
+        addToast({ type: res.success ? 'success' : 'warning', message: res.message, duration: 8000 })
+      }
+    } catch (err) {
+      addToast({ type: 'error', message: err instanceof Error ? err.message : `${i.fix.label} failed` })
+    } finally { setFixing('') }
+  }
 
   const items = useMemo(() => collectNeeds({ stacks, health, images, backup, disks, dcsUpdates }), [stacks, health, images, backup, disks, dcsUpdates])
   const shown = items.filter((i) => hidden[i.key] !== i.fingerprint)
@@ -74,7 +97,7 @@ export default function NeedsYouCard({ stacks, stacksError, images, backup, disk
           <div className="min-w-0">
             <p className="text-sm font-medium text-slate-200">Nothing needs you right now</p>
             <p className="text-xs text-slate-500 truncate">
-              {stacks ? `${plural(stacks.filter((s) => s.status === 'running').length, 'stack')} running` : 'Stacks running'}
+              {stacks ? `${plural(stacks.filter((s) => s.status === 'running').length, 'stack')} running${stacks.some((s) => s.status !== 'running' && s.sleeping) ? ` · ${stacks.filter((s) => s.status !== 'running' && s.sleeping).length} asleep on demand` : ''}` : 'Stacks running'}
               {backup?.last_backup ? ' · backups OK' : ''}
               {hiddenNow > 0 && <> · <button type="button" className="underline underline-offset-2 hover:text-slate-300" onClick={() => saveHidden({})}>{hiddenNow} hidden</button></>}
             </p>
@@ -90,6 +113,12 @@ export default function NeedsYouCard({ stacks, stacksError, images, backup, disk
                 {i.detail && <span className="block text-xs text-slate-500 truncate" title={i.detail}>{i.detail}</span>}
               </button>
               <div className="flex shrink-0 items-center gap-1">
+                {i.fix && isAdmin && (
+                  <button type="button" onClick={() => runFix(i)} disabled={!!fixing}
+                    className="h-7 px-2 rounded-md flex items-center gap-1 text-[11px] font-semibold text-indigo-200 bg-indigo-500/15 hover:bg-indigo-500/25 disabled:opacity-50 whitespace-nowrap transition-colors">
+                    {fixing === i.key ? <Loader2 size={12} className="animate-spin" aria-hidden /> : <Wrench size={12} aria-hidden />} {i.fix.label}
+                  </button>
+                )}
                 <button type="button" onClick={() => hide(i)} aria-label={`Hide “${i.title}” until it changes`} title="Hide until it changes"
                   className="h-7 w-7 rounded-md flex items-center justify-center text-slate-500 hover:text-slate-300 hover:bg-white/5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100 transition-opacity">
                   <EyeOff size={13} />

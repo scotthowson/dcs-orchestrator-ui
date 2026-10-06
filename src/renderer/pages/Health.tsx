@@ -24,6 +24,7 @@ import {
   Layers,
   Gauge,
   ArrowUp,
+  Moon,
 } from 'lucide-react'
 import { Badge, SegmentedControl, Tooltip } from '@mantine/core'
 import { usePolling } from '../hooks/usePolling'
@@ -38,6 +39,8 @@ import { useSettingsStore } from '../stores/settingsStore'
 import type { HealthReport, HealthContainer, ContainerInfo, SystemMetricsResponse, HealthScoreResponse, EventsResponse, EventEntry } from '../../shared/types'
 import { useApiLink, sinceText, type ApiLinkState } from '../hooks/useApiLink'
 import { OnDemandMissingBanner } from '../components/common/OnDemandMissingBanner'
+import { StateChip, StateDot } from '../components/common/StateChip'
+import { containerState, isAsleep, ASLEEP_HINT } from '../lib/containerState'
 import { DisconnectedBanner } from '../components/common/DisconnectedBanner'
 import PageHeader from '../components/common/PageHeader'
 import SortableTh from '../components/common/SortableTh'
@@ -104,35 +107,22 @@ const linkConfig: Record<Exclude<ApiLinkState, 'live'>, StatusLook> = {
 // starting or restarting needs a look, stopped is neutral, "on demand" is Sablier's indigo
 // ---------------------------------------------------------------------------
 
-const ON_DEMAND_HINT = 'Stopped on purpose: Sablier starts it on the first request'
+const ON_DEMAND_HINT = ASLEEP_HINT
 
 function healthBadge(health: string): React.ReactNode {
   const h = health.toLowerCase()
   if (h === 'healthy') return <Badge component="span" color="emerald">Healthy</Badge>
   if (h === 'unhealthy') return <Badge component="span" color="rose">Unhealthy</Badge>
   if (h === 'starting') return <Badge component="span" color="amber">Starting</Badge>
-  if (h === 'sleeping') {
-    return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-500/15 px-2 py-0.5 text-[10px] font-medium text-indigo-300" title={ON_DEMAND_HINT}>
-        <span className="h-1.5 w-1.5 rounded-full bg-indigo-400" aria-hidden />
-        Sleeping
-      </span>
-    )
-  }
+  if (h === 'sleeping') return <StateChip state="asleep" size="xs" onDemandTag={false} />
   return <Badge component="span" color="slate">{health || 'N/A'}</Badge>
 }
 
-function stateBadge(state: string, onDemand?: boolean): React.ReactNode {
+function stateBadge(state: string, onDemand?: boolean, sablierUp?: boolean | null): React.ReactNode {
   const s = state.toLowerCase()
   if (s === 'running') return <Badge component="span" color="emerald">Running</Badge>
-  if ((s === 'exited' || s === 'stopped' || s === 'created') && onDemand) {
-    return (
-      <span className="inline-flex shrink-0 whitespace-nowrap items-center gap-1.5 rounded-full bg-indigo-500/15 px-2 py-0.5 text-[10px] font-medium text-indigo-300" title={ON_DEMAND_HINT}>
-        <span className="h-1.5 w-1.5 rounded-full bg-indigo-400" aria-hidden />
-        On demand
-      </span>
-    )
-  }
+  // asleep on demand: the same chip on every page (indigo moon; amber when Sablier is not there to wake it)
+  if (onDemand && s !== 'restarting' && s !== 'paused') return <StateChip state={containerState({ state, on_demand: true, sablier_up: sablierUp })} size="xs" />
   if (s === 'exited' || s === 'stopped') return <Badge component="span" color="slate">Stopped</Badge>
   if (s === 'restarting') return <Badge component="span" color="amber">Restarting</Badge>
   if (s === 'paused') return <Badge component="span" color="amber">Paused</Badge>
@@ -557,7 +547,7 @@ export default function Health() {
         <div className="flex gap-1.5 overflow-x-auto scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0 sm:overflow-visible sm:flex-wrap">
           {report.members.map((mb) => {
             const dot = !mb.reachable ? 'bg-slate-600' : mb.status === 'critical' ? 'bg-rose-400' : mb.status === 'degraded' ? 'bg-amber-400' : 'bg-emerald-400'
-            const label = !mb.reachable ? 'not answering' : mb.summary ? `${mb.summary.healthy}/${mb.summary.total} healthy${mb.summary.unhealthy ? ` · ${mb.summary.unhealthy} unhealthy` : ''}${mb.summary.stopped ? ` · ${mb.summary.stopped} stopped` : ''}` : mb.status
+            const label = !mb.reachable ? 'not answering' : mb.summary ? `${mb.summary.healthy}/${mb.summary.total - (mb.summary.sleeping ?? 0)} healthy${mb.summary.sleeping ? ` · ${mb.summary.sleeping} asleep` : ''}${mb.summary.unhealthy ? ` · ${mb.summary.unhealthy} unhealthy` : ''}${mb.summary.stopped ? ` · ${mb.summary.stopped} stopped` : ''}` : mb.status
             return (
               <button
                 key={mb.id ?? 'hub'}
@@ -646,8 +636,8 @@ export default function Health() {
           <StatTile icon={HeartPulse} label="Healthy" value={summary.healthy} tone={tileTone(summary.healthy, 'ok')} />
           <StatTile icon={XCircle} label="Unhealthy" value={summary.unhealthy} tone={tileTone(summary.unhealthy, 'problem')} />
           <StatTile icon={Activity} label="Running" value={summary.total - summary.stopped - (summary.sleeping ?? 0)} sub={`avg uptime ${formatAverageUptime(avgUptimeSec)}`} tone="ok" />
-          <StatTile icon={Box} label="Stopped" value={summary.stopped} sub={summary.sleeping ? `+${summary.sleeping} on demand, asleep` : undefined} />
-          <StatTile icon={Layers} label="Stacks" value={`${stackCounts.running}/${stackCounts.total}`} tone={stackCounts.running === stackCounts.total ? 'ok' : 'attention'} />
+          <StatTile icon={Box} label="Stopped" value={summary.stopped} sub={summary.sleeping ? `+${summary.sleeping} asleep on demand (fine)` : undefined} />
+          <StatTile icon={Layers} label="Stacks" value={`${stackCounts.running + stackCounts.sleeping}/${stackCounts.total + stackCounts.sleeping}`} sub={stackCounts.sleeping ? `${stackCounts.sleeping} asleep on demand` : undefined} tone={stackCounts.running === stackCounts.total ? 'ok' : 'attention'} />
           <StatTile icon={RotateCcw} label="Restarting" value={restartingCount} tone={tileTone(restartingCount, 'attention')} />
           <StatTile icon={RefreshCw} label="Total restarts" value={totalRestarts} tone={totalRestarts > 10 ? 'attention' : 'neutral'} />
           <StatTile
@@ -750,13 +740,13 @@ export default function Health() {
               {healthyPct > 0 && <div className="bg-emerald-500 transition-all duration-500" style={{ width: `${healthyPct}%` }} title={`Healthy: ${summary.healthy}`} />}
               {unhealthyPct > 0 && <div className="bg-rose-500 transition-all duration-500" style={{ width: `${unhealthyPct}%` }} title={`Unhealthy: ${summary.unhealthy}`} />}
               {stoppedPct > 0 && <div className="bg-slate-600 transition-all duration-500" style={{ width: `${stoppedPct}%` }} title={`Stopped: ${summary.stopped}`} />}
-              {sleepingPct > 0 && <div className="bg-indigo-400/70 transition-all duration-500" style={{ width: `${sleepingPct}%` }} title={`Sleeping: ${summary.sleeping}`} />}
+              {sleepingPct > 0 && <div className="bg-indigo-400/70 transition-all duration-500" style={{ width: `${sleepingPct}%` }} title={`Asleep on demand: ${summary.sleeping}`} />}
             </div>
             <div className="flex flex-wrap items-center gap-3 md:gap-6 mt-3 text-[11px] md:text-xs text-slate-400">
               <span className="flex items-center gap-1.5"><span className="h-2 w-2 md:h-2.5 md:w-2.5 rounded-full bg-emerald-500" aria-hidden /> Healthy ({summary.healthy})</span>
               <span className="flex items-center gap-1.5"><span className="h-2 w-2 md:h-2.5 md:w-2.5 rounded-full bg-rose-500" aria-hidden /> Unhealthy ({summary.unhealthy})</span>
               <span className="flex items-center gap-1.5"><span className="h-2 w-2 md:h-2.5 md:w-2.5 rounded-full bg-slate-600" aria-hidden /> Stopped ({summary.stopped})</span>
-              {!!summary.sleeping && <span className="flex items-center gap-1.5" title={ON_DEMAND_HINT}><span className="h-2 w-2 md:h-2.5 md:w-2.5 rounded-full bg-indigo-400" aria-hidden /> Sleeping ({summary.sleeping})</span>}
+              {!!summary.sleeping && <span className="flex items-center gap-1.5" title={ON_DEMAND_HINT}><Moon className="h-2.5 w-2.5 md:h-3 md:w-3 text-indigo-300" aria-hidden /> Asleep ({summary.sleeping})</span>}
             </div>
           </Panel>
         )}
@@ -843,7 +833,7 @@ export default function Health() {
                         <span className="text-slate-500">:{c.image.split(':').pop()}</span>
                       )}
                     </td>
-                    <td className="px-3 py-3">{stateBadge(c.state, c.on_demand)}</td>
+                    <td className="px-3 py-3">{stateBadge(c.state, c.on_demand, c.sablier_up)}</td>
                     <td className="px-3 py-3">{healthBadge(c.health)}</td>
                     <td className="px-3 py-3 text-xs text-slate-400">
                       <span className="inline-flex items-center gap-1">
@@ -887,16 +877,16 @@ export default function Health() {
                     className="w-full flex items-center justify-between gap-2 min-h-8"
                   >
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className={`h-2 w-2 rounded-full shrink-0 ${
+                      {isAsleep(c) ? <StateDot state={containerState(c)} /> : <span className={`h-2 w-2 rounded-full shrink-0 ${
                         c.health.toLowerCase() === 'healthy' ? 'bg-emerald-400'
                         : c.health.toLowerCase() === 'unhealthy' ? 'bg-rose-400'
                         : c.state.toLowerCase() === 'running' ? 'bg-emerald-400/60'
                         : 'bg-slate-500'
-                      }`} aria-hidden />
+                      }`} aria-hidden />}
                       <span className="font-mono text-xs text-slate-200 truncate">{c.name}</span>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      {stateBadge(c.state, c.on_demand)}
+                      {stateBadge(c.state, c.on_demand, c.sablier_up)}
                       {isExpanded ? <ChevronUp size={14} className="text-slate-500" aria-hidden /> : <ChevronDown size={14} className="text-slate-500" aria-hidden />}
                     </div>
                   </button>

@@ -11,6 +11,7 @@ import {
   Wrench, RefreshCw, Loader2, Trash2, RotateCcw, AlertTriangle,
   CheckCircle2, Box, Image, HardDrive, Network, FileText, Scissors,
   BookOpen, ChevronRight, ChevronDown, X, Search, Boxes,
+  Moon,
 } from 'lucide-react'
 import { usePolling } from '../hooks/usePolling'
 import {
@@ -505,7 +506,9 @@ export default function Maintenance() {
                 <p className="text-xl md:text-2xl font-bold text-slate-100 tabular-nums">{report.containers.total}</p>
                 <div className="flex items-center gap-2 mt-1.5">
                   <Badge component="span" color="emerald" leftSection={dot('bg-emerald-400')} title="Running">{report.containers.running}</Badge>
-                  <Badge component="span" color="rose" leftSection={dot('bg-rose-400')} title="Stopped">{report.containers.stopped}</Badge>
+                  {/* asleep on demand is not stopped: Sablier stopped them on purpose, and a prune leaves them alone */}
+                  {(report.containers.sleeping ?? 0) > 0 && <Badge component="span" color="indigo" leftSection={<Moon size={9} aria-hidden />} title="Asleep on demand (Sablier wakes them on the first request; a prune leaves them alone)">{report.containers.sleeping}</Badge>}
+                  <Badge component="span" color={report.containers.stopped - (report.containers.sleeping ?? 0) > 0 ? 'rose' : 'slate'} leftSection={dot(report.containers.stopped - (report.containers.sleeping ?? 0) > 0 ? 'bg-rose-400' : 'bg-slate-500')} title="Stopped">{Math.max(0, report.containers.stopped - (report.containers.sleeping ?? 0))}</Badge>
                 </div>
               </div>
 

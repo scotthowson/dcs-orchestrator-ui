@@ -32,6 +32,7 @@ import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_SHEET, BTN_SHEET_QUIET, BTN_SHEET_D
 import { CARD, FOCUS_RING } from '../lib/pageKit'
 import { useSettingsStore, DEFAULT_SETTINGS } from '../stores/settingsStore'
 import { useAuthStore } from '../stores/authStore'
+import { containerState, isAsleep, STATE_META } from '../lib/containerState'
 import type {
   ServerStatus, HealthReport, ContainerInfo, ImageInfo,
   NetworkInfo, EventEntry, SystemInfo, HealthScoreResponse,
@@ -247,12 +248,13 @@ function ContainerHealthMatrix({ containers }: { containers: ContainerInfo[] }) 
           const state = c.state?.toLowerCase() ?? ''
           const health = c.health?.toLowerCase() ?? ''
           let bg = 'bg-slate-600/40' // stopped
-          if (state === 'running') {
+          if (isAsleep(c)) bg = containerState(c) === 'stuck' ? 'bg-amber-500/80' : 'bg-indigo-400/70' // asleep on demand
+          else if (state === 'running') {
             if (health === 'healthy') bg = 'bg-emerald-500'
             else if (health === 'unhealthy') bg = 'bg-rose-500'
             else bg = 'bg-amber-500/80' // starting / no healthcheck
           }
-          const what = `${c.name}: ${state || 'unknown'}${health ? ` / ${health}` : ''}${c.member ? ` (VM ${c.member_name || c.member})` : ''}`
+          const what = `${c.name}: ${isAsleep(c) ? `${STATE_META[containerState(c)].label} (on demand)` : state || 'unknown'}${health && !isAsleep(c) ? ` / ${health}` : ''}${c.member ? ` (VM ${c.member_name || c.member})` : ''}`
 
           return (
             <Hint key={`${c.member ?? ''}|${c.name}`} label={what}>
@@ -272,6 +274,7 @@ function ContainerHealthMatrix({ containers }: { containers: ContainerInfo[] }) 
           { label: 'Starting', color: 'bg-amber-500/80' },
           { label: 'Unhealthy', color: 'bg-rose-500' },
           { label: 'Stopped', color: 'bg-slate-600/40' },
+          ...(containers.some((c) => isAsleep(c)) ? [{ label: 'Asleep (on demand)', color: 'bg-indigo-400/70' }] : []),
         ].map(({ label: l, color }) => (
           <div key={l} className="flex items-center gap-1.5">
             <div className={`w-2.5 h-2.5 rounded-sm ${color}`} aria-hidden />
@@ -1321,8 +1324,9 @@ export default function Diagnostics() {
 
   const containerRunPct = useMemo(() => {
     if (!status?.docker) return 0
-    const { running, total } = status.docker.containers
-    return total > 0 ? (running / total) * 100 : 0
+    // asleep on demand is up: Sablier stopped it on purpose and the first request wakes it
+    const { running, total, sleeping = 0 } = status.docker.containers
+    return total > 0 ? ((running + sleeping) / total) * 100 : 0
   }, [status])
 
   const imageHealthPct = useMemo(() => {
@@ -1339,9 +1343,10 @@ export default function Diagnostics() {
 
     // 1. Container health ratio (weight: 35)
     if (health) {
-      const { total, healthy } = health.summary
-      if (total > 0) {
-        score -= (1 - (healthy / total)) * 35
+      // the asleep ones stay out (as in the server's own score): they are fine, not unhealthy
+      const { total, healthy, sleeping = 0 } = health.summary
+      if (total - sleeping > 0) {
+        score -= (1 - (healthy / (total - sleeping))) * 35
       }
       factors++
     }

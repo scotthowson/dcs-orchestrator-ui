@@ -4,6 +4,7 @@
 
 import { useFleetRole } from '../../hooks/useFleetRole'
 import { useFleetTotals } from '../../hooks/useFleetTotals'
+import { useStackCounts } from '../../hooks/useStackCounts'
 import { usePolling } from '../../hooks/usePolling'
 import { fetchStacks } from '../../api/endpoints'
 import React, { useEffect, useRef, useState } from 'react'
@@ -263,7 +264,10 @@ export default function OverviewCards() {
   const fleetStacks = usePolling(fetchStacks, 30000, { enabled: isConnectedFleet && isHub })
   const { totals: fleet } = useFleetTotals()
   const vmStacks = isHub ? (fleetStacks.data?.stacks ?? []).filter((s) => s.placement === 'vm') : []
-  const runningStacks = (status?.stacks.running ?? 0) + vmStacks.filter((s) => s.status === 'running').length
+  // a stack asleep on demand is fine (the first request wakes it): it counts with the running ones
+  const stackCounts = useStackCounts('all')
+  const asleepStacks = stackCounts.loaded ? stackCounts.sleeping : 0
+  const runningStacks = (status?.stacks.running ?? 0) + vmStacks.filter((s) => s.status === 'running').length + asleepStacks
   const totalStacks = (status?.stacks.total ?? 0) + vmStacks.length
   const stackTrend: CardProps['trend'] =
     totalStacks === 0 ? 'stable' : runningStacks === totalStacks ? 'up' : 'down'
@@ -273,7 +277,10 @@ export default function OverviewCards() {
   const fleetTotal = fleet.containersTotal
   const runningContainers = (status?.docker.containers.running ?? 0) + fleetRunning
   const totalContainers = (status?.docker.containers.total ?? 0) + fleetTotal
-  const stoppedContainers = (status?.docker.containers.stopped ?? 0) + Math.max(0, fleetTotal - fleetRunning)
+  // asleep on demand is not stopped: Sablier stopped it on purpose and wakes it on the first request
+  const asleepContainers = (status?.docker.containers.sleeping ?? 0) + fleet.containersSleeping
+  const stoppedContainers = Math.max(0, (status?.docker.containers.stopped ?? 0) - (status?.docker.containers.sleeping ?? 0))
+    + Math.max(0, fleetTotal - fleetRunning - fleet.containersSleeping)
   const containerTrend: CardProps['trend'] =
     stoppedContainers > 0 ? 'down' : runningContainers > 0 ? 'up' : 'stable'
 
@@ -320,7 +327,7 @@ export default function OverviewCards() {
             <AnimatedCounter value={totalStacks} />
           </span>
         }
-        subtitle={`${runningStacks} running`}
+        subtitle={asleepStacks > 0 ? `${runningStacks - asleepStacks} running · ${asleepStacks} asleep` : `${runningStacks} running`}
         accentColor={runningStacks === totalStacks && totalStacks > 0 ? 'emerald' : 'amber'}
         trend={stackTrend}
         loading={statusLoading}
@@ -332,7 +339,7 @@ export default function OverviewCards() {
         icon={<Box className="h-5 w-5" />}
         label="Running containers"
         value={runningContainers}
-        subtitle={`${totalContainers} total, ${stoppedContainers} stopped`}
+        subtitle={`${totalContainers} total${asleepContainers > 0 ? `, ${asleepContainers} asleep` : ''}, ${stoppedContainers} stopped`}
         accentColor={stoppedContainers > 0 ? 'amber' : 'emerald'}
         trend={containerTrend}
         loading={statusLoading}

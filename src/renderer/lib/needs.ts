@@ -6,6 +6,7 @@
 
 import { pageLabel } from '../constants/pageTitles'
 import type { BackupStatusResponse, DiskInfo, HealthReport, ImageCheckResponse, PageId, StackInfo } from '../../shared/types'
+import { containerState, isAsleep } from './containerState'
 
 export type Severity = 'problem' | 'attention'
 
@@ -17,6 +18,8 @@ export interface NeedItem {
   page: PageId
   /** what makes it a new item when it changes: a hidden item comes back when this differs */
   fingerprint: string
+  /** a one-click fix the card offers an admin (the server it runs on: null = this one) */
+  fix?: { kind: 'sablier-repair' | 'sablier-start'; label: string; member: string | null }
 }
 
 const BACKUP_STALE_DAYS = 7
@@ -85,7 +88,31 @@ export function collectNeeds(input: {
   }
 
   if (health && health.docker?.reachable !== false) {
-    const sick = health.containers.filter((c) => c.health === 'unhealthy').map((c) => c.member_name ? `${c.name} (${c.member_name})` : c.name)
+    // on demand, asleep, and no Sablier to wake it: the first request finds nothing — one line per server
+    const stuck = new Map<string, { member: string | null; names: string[] }>()
+    for (const c of health.containers.filter((x) => containerState(x) === 'stuck')) {
+      const where = c.member_name && c.member ? c.member_name : ''
+      const e = stuck.get(where) ?? { member: c.member ?? null, names: [] }
+      e.names.push(c.name); stuck.set(where, e)
+    }
+    for (const [where, e] of stuck) {
+      out.push({ key: `sablier-down-${e.member ?? 'here'}`, severity: 'problem',
+        title: `On demand, but Sablier is not running${where ? ` in ${where}` : ''}`,
+        detail: `${names(e.names)} ${e.names.length === 1 ? 'is' : 'are'} asleep and nothing can wake ${e.names.length === 1 ? 'it' : 'them'} until Sablier starts.`,
+        page: 'containers', fingerprint: [...e.names].sort().join(','), fix: { kind: 'sablier-start', label: 'Start Sablier', member: e.member } })
+    }
+    // on-demand containers a prune removed: Traefik routes to them, but there is nothing to wake
+    const gone: { member: string | null; where: string; missing: string[] }[] = []
+    if (health.summary.on_demand_missing?.length) gone.push({ member: null, where: '', missing: health.summary.on_demand_missing })
+    for (const m of health.summary.on_demand_missing_members ?? []) if (m.missing.length) gone.push({ member: m.id, where: m.name, missing: m.missing })
+    for (const g of gone) {
+      out.push({ key: `on-demand-missing-${g.member ?? 'here'}`, severity: 'problem',
+        title: `${g.missing.length === 1 ? 'An on-demand container is gone' : `${g.missing.length} on-demand containers are gone`}${g.where ? ` in ${g.where}` : ''}`,
+        detail: `${names(g.missing)}: recreate ${g.missing.length === 1 ? 'it' : 'them'} (stopped, ready for the first request).`,
+        page: 'containers', fingerprint: [...g.missing].sort().join(','), fix: { kind: 'sablier-repair', label: 'Recreate', member: g.member } })
+    }
+
+    const sick = health.containers.filter((c) => c.health === 'unhealthy' && !isAsleep(c)).map((c) => c.member_name ? `${c.name} (${c.member_name})` : c.name)
     if (sick.length) {
       out.push({ key: 'unhealthy', severity: 'problem', title: sick.length === 1 ? `${sick[0]} is unhealthy` : `${plural(sick.length, 'container')} are unhealthy`, detail: sick.length > 1 ? names(sick) : 'Its health check is failing.', page: 'health', fingerprint: [...sick].sort().join(',') })
     }

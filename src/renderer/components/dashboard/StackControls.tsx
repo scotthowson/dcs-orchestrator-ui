@@ -16,6 +16,8 @@ import Hint from '../common/Hint'
 import { BTN_ICON_SM, TONE_GHOST, TONE_GHOST_DANGER, TONE_GHOST_OK } from '../../lib/ui'
 import { activityOutcome, opGerund, startedInBackground, waitForStackActivity, type StackOp } from '../../lib/stackActivity'
 import { Card, CardBody, CardEmpty, CardError, CardLoading } from './cardShared'
+import { StackDot } from '../common/StateChip'
+import { stackIsFine, stackLine, stackLineTone, stackState, STACK_META } from '../../lib/containerState'
 
 type Op = StackOp
 
@@ -59,10 +61,11 @@ export default function StackControls({ stacks, error, onRetry, onRefresh }: {
     }
   }, [busy, addToast, onRefresh, refreshContainers, confirm])
 
-  const running = stacks?.filter((s) => s.status === 'running').length ?? 0
+  // up: running, or asleep on demand (the first request wakes it)
+  const running = stacks?.filter((s) => stackIsFine(s)).length ?? 0
 
   return (
-    <Card card="stack-controls" meta={stacks ? `${running}/${stacks.length} running` : undefined} open="stacks" clickable={false}>
+    <Card card="stack-controls" meta={stacks ? `${running}/${stacks.length} up` : undefined} open="stacks" clickable={false}>
       {error && !stacks ? (
         <CardError title="Could not load the stacks" error={error} onRetry={onRetry} />
       ) : stacks === null ? (
@@ -77,15 +80,15 @@ export default function StackControls({ stacks, error, onRetry, onRefresh }: {
             const spin = (op: Op, icon: React.ReactNode) => (b(op) ? <Loader2 size={13} className="animate-spin" /> : icon)
             return (
               <div key={`${s.member ?? ''}|${s.name}`} className="group flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-white/[0.03] transition-colors">
-                <span className={`h-2 w-2 rounded-full shrink-0 ${isRunning ? 'bg-emerald-400' : 'bg-slate-600'}`} aria-hidden />
+                <StackDot stack={s} size={8} />
                 <button type="button" onClick={() => setCurrentPage('stacks', { highlight: s.name })} className="flex-1 min-w-0 text-left" title={`Open ${s.name}`}>
                   <span className="block text-xs font-medium text-slate-200 truncate font-mono">{s.name}</span>
-                  <span className="block text-[10px] text-slate-500">{isRunning ? `${s.running_containers} running` : 'stopped'}</span>
+                  <span className={`block text-[10px] ${stackLineTone(s)}`} title={STACK_META[stackState(s)].hint}>{stackLine(s)}</span>
                 </button>
                 {isAdmin ? (
                   <div className="flex items-center gap-0.5">
                     {!isRunning && (
-                      <Hint label="Start"><button type="button" aria-label={`Start ${s.name}`} onClick={() => run(s.name, 'start')} disabled={!!busy} className={`${BTN_ICON_SM} ${TONE_GHOST_OK}`}>{spin('start', <Play size={13} />)}</button></Hint>
+                      <Hint label={stackState(s) === 'asleep' ? 'Wake it now (Sablier puts it back to sleep when idle)' : 'Start'}><button type="button" aria-label={`${stackState(s) === 'asleep' ? 'Wake' : 'Start'} ${s.name}`} onClick={() => run(s.name, 'start')} disabled={!!busy} className={`${BTN_ICON_SM} ${TONE_GHOST_OK}`}>{spin('start', <Play size={13} />)}</button></Hint>
                     )}
                     {isRunning && (
                       <>

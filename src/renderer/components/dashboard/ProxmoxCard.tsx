@@ -59,7 +59,7 @@ export default function ProxmoxCard() {
           {overview.data && overview.data.totals.members > 0 && (
             <button type="button" onClick={() => setCurrentPage('proxmox')} className="w-full rounded-xl bg-violet-500/[0.06] border border-violet-500/15 px-3 py-2 text-[11px] text-left flex items-center gap-2 hover:bg-violet-500/10 transition-colors">
               <Satellite size={11} className="text-violet-400 shrink-0" aria-hidden />
-              <span className="text-slate-300 truncate">Fleet: {overview.data.totals.reachable}/{overview.data.totals.members} members answering · {overview.data.totals.stacks} stack{overview.data.totals.stacks === 1 ? '' : 's'} · {overview.data.totals.containers_running}/{overview.data.totals.containers_total} containers</span>
+              <span className="text-slate-300 truncate">Fleet: {overview.data.totals.reachable}/{overview.data.totals.members} members answering · {overview.data.totals.stacks} stack{overview.data.totals.stacks === 1 ? '' : 's'} · {overview.data.totals.containers_running + (overview.data.totals.containers_sleeping ?? 0)}/{overview.data.totals.containers_total} containers up{overview.data.totals.containers_sleeping ? ` (${overview.data.totals.containers_sleeping} asleep)` : ''}</span>
             </button>
           )}
           {fleet.data?.role === 'member' && fleet.data.hub && (

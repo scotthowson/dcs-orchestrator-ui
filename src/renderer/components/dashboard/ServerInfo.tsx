@@ -10,6 +10,7 @@ import {
 import { useSystemStore } from '../../stores/systemStore'
 import { useConnectionStore } from '../../stores/connectionStore'
 import { useFleetScope } from '../../hooks/useFleetScope'
+import { useStackCounts } from '../../hooks/useStackCounts'
 import { Card, CardBody, CardError, CardLoading, CardOffline, loadTone, pctTone, TONE_TEXT, type Tone } from './cardShared'
 
 /** a value is plain text; it takes a colour only when it means something (needs attention, a problem) */
@@ -35,6 +36,8 @@ export default function ServerInfo() {
   const version = useSystemStore((s) => s.version)
   const system = useSystemStore((s) => s.system)
   const connectionStatus = useConnectionStore((s) => s.status)
+  // the stacks of this server asleep on demand: fine, they count with the running ones
+  const hereStacks = useStackCounts('hub')
 
   if (!status && error) return <Card card="server-info"><CardError title="Could not load the server details" error={error} onRetry={() => window.dispatchEvent(new Event('app-refresh'))} /></Card>
   if (!status && connectionStatus === 'connected') return <Card card="server-info"><CardLoading label="Loading the server details…" rows={7} /></Card>
@@ -49,7 +52,10 @@ export default function ServerInfo() {
   const dockerVersion = version?.docker_version?.replace('Docker version ', '').split(',')[0] ?? '--'
   const composeVersion = version?.compose_version?.replace(/Docker Compose version\s*/i, '').split(' ')[0] ?? '--'
   const apiVersion = version?.api_version ?? '--'
-  const stacksAll = status.stacks.running === status.stacks.total
+  const stacksAsleep = hereStacks.loaded ? hereStacks.sleeping : 0
+  const stacksAll = status.stacks.running + stacksAsleep >= status.stacks.total
+  const cAsleep = status.docker.containers.sleeping ?? 0
+  const cStopped = Math.max(0, status.docker.containers.stopped - cAsleep)
 
   return (
     <Card card="server-info">
@@ -77,13 +83,13 @@ export default function ServerInfo() {
         <InfoRow
           icon={<Layers size={12} />}
           label={hasFleet ? 'Stacks here' : 'Stacks'}
-          value={`${status.stacks.running} / ${status.stacks.total} running`}
+          value={`${status.stacks.running + stacksAsleep} / ${status.stacks.total} up${stacksAsleep ? ` (${stacksAsleep} asleep)` : ''}`}
           tone={stacksAll ? 'neutral' : 'attention'}
         />
         <InfoRow
           icon={<Box size={12} />}
           label={hasFleet ? 'Containers here' : 'Containers'}
-          value={`${status.docker.containers.running} running, ${status.docker.containers.stopped} stopped`}
+          value={`${status.docker.containers.running} running${cAsleep ? `, ${cAsleep} asleep` : ''}, ${cStopped} stopped`}
         />
         <InfoRow icon={<Activity size={12} />} label={hasFleet ? 'Images here' : 'Images'} value={`${status.docker.images} images`} />
         <InfoRow icon={<Network size={12} />} label="Networks" value={`${status.docker.networks} networks, ${status.docker.volumes} volumes`} />
