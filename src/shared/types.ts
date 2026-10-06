@@ -1628,7 +1628,7 @@ export const ADMIN_ONLY_PAGES: ReadonlySet<PageId> = new Set([
   'backup',
   'cronjobs',
   'users',
-  'automations',
+  // not 'automations': it is the Automation page now, and its timed rules (the former Schedules) are readable by everyone
   'snapshots',
   'export',
   'dns',

@@ -19,8 +19,35 @@ export type SectionId =
   | 'dashboard' | 'stacks' | 'fleet' | 'docker' | 'monitoring'
   | 'security' | 'maintenance' | 'automation' | 'tools' | 'settings'
 
-/** the pages the sidebar reaches (the setup wizard is a screen of its own) */
-export type NavPageId = Exclude<PageId, 'setup'>
+/**
+ * Pages that became a view of another page (4.0.31: Uptime is Health's "Last 30 min", Live Events is a tab of
+ * Activity, Schedules and Cron Jobs are Automation, Snapshots are a view of Backups). Their ids stay valid: opening
+ * one opens the page it moved into, on its view (PAGE_ALIASES), so links, bookmarks, cards and saved pages still work.
+ */
+export type AliasPageId = 'uptime' | 'event-feed' | 'schedules' | 'cronjobs' | 'snapshots'
+
+/** the pages the sidebar reaches (the setup wizard is a screen of its own; an alias opens the page it moved into) */
+export type NavPageId = Exclude<PageId, 'setup' | AliasPageId>
+
+/** where each moved page lives now, and the navigation payload that opens its view there (the page reads it with consumeNavigationPayload) */
+export const PAGE_ALIASES: Record<AliasPageId, { to: NavPageId; payload: Record<string, unknown> }> = {
+  uptime: { to: 'health', payload: { view: 'timeline' } },
+  'event-feed': { to: 'activity', payload: { tab: 'live' } },
+  schedules: { to: 'automations', payload: { tab: 'rules', kind: 'timed' } },
+  cronjobs: { to: 'automations', payload: { tab: 'cron' } },
+  snapshots: { to: 'backup', payload: { view: 'snapshots' } },
+}
+
+export function isAliasPage(page: PageId): page is AliasPageId {
+  return Object.prototype.hasOwnProperty.call(PAGE_ALIASES, page)
+}
+
+/** the page to show for an id, and the payload to open it with (a payload given by the caller wins over the alias's) */
+export function resolvePage(page: PageId, payload?: Record<string, unknown> | null): { page: PageId; payload: Record<string, unknown> | null } {
+  if (!isAliasPage(page)) return { page, payload: payload ?? null }
+  const a = PAGE_ALIASES[page]
+  return { page: a.to, payload: { ...a.payload, ...(payload ?? {}) } }
+}
 
 /** where each page lives; the order here is the order of the tabs */
 const SECTION_OF = {
@@ -40,11 +67,9 @@ const SECTION_OF = {
   'disk-analysis': 'docker',
 
   health: 'monitoring',
-  uptime: 'monitoring',
   trends: 'monitoring',
   diagnostics: 'monitoring',
   activity: 'monitoring',
-  'event-feed': 'monitoring',
   logs: 'monitoring',
 
   crowdsec: 'security',
@@ -54,12 +79,9 @@ const SECTION_OF = {
 
   updates: 'maintenance',
   backup: 'maintenance',
-  snapshots: 'maintenance',
   export: 'maintenance',
   maintenance: 'maintenance',
 
-  schedules: 'automation',
-  cronjobs: 'automation',
   automations: 'automation',
 
   terminal: 'tools',
@@ -90,8 +112,8 @@ const SECTION_META: { id: SectionId; label: string; icon: LucideIcon; hint: stri
   { id: 'docker', label: 'Docker', icon: Boxes, hint: 'Containers, images, volumes, networks and disk use' },
   { id: 'monitoring', label: 'Monitoring', icon: Activity, hint: 'Health, uptime, history, events and logs' },
   { id: 'security', label: 'Security', icon: ShieldCheck, hint: 'CrowdSec, domains and routes, secrets and users' },
-  { id: 'maintenance', label: 'Maintenance', icon: Wrench, hint: 'Updates, backups, snapshots, exports and cleanup' },
-  { id: 'automation', label: 'Automation', icon: Timer, hint: 'Schedules, cron jobs and automation rules' },
+  { id: 'maintenance', label: 'Maintenance', icon: Wrench, hint: 'Updates, backups and snapshots, exports and cleanup' },
+  { id: 'automation', label: 'Automation', icon: Timer, hint: 'Timed and conditional rules, and the server crontab' },
   { id: 'tools', label: 'Tools', icon: TerminalSquare, hint: 'Terminal, file browser, bookmarks and plugins' },
   { id: 'settings', label: 'Settings', icon: Cog, hint: 'This dashboard, notifications and the server' },
 ]
@@ -103,9 +125,10 @@ export const navSections: NavSection[] = SECTION_META.map((s) => ({
 
 const byId = new Map(navSections.map((s) => [s.id, s]))
 
-/** the section a page lives in (undefined for the setup wizard) */
+/** the section a page lives in (an alias: the section of the page it moved into; undefined for the setup wizard) */
 export function sectionOf(page: PageId): NavSection | undefined {
-  return page === 'setup' ? undefined : byId.get(SECTION_OF[page])
+  const p = isAliasPage(page) ? PAGE_ALIASES[page].to : page
+  return p === 'setup' ? undefined : byId.get(SECTION_OF[p])
 }
 
 export function sectionById(id: SectionId): NavSection {
@@ -133,7 +156,7 @@ const lastTab = new Map<SectionId, NavPageId>()
 
 export function rememberTab(page: PageId): void {
   const s = sectionOf(page)
-  if (s) lastTab.set(s.id, page as NavPageId)
+  if (s && !isAliasPage(page)) lastTab.set(s.id, page as NavPageId)
 }
 
 /** where clicking a section goes: the tab it was last on while that is still shown, else its first shown tab */

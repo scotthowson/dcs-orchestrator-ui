@@ -4,7 +4,7 @@ import { AppSettings, PageId, ADMIN_ONLY_PAGES } from '../../shared/types'
 // inside function bodies (never at module evaluation time).
 import { useAuthStore } from './authStore'
 import { getDefaultServerUrl } from '../lib/env'
-import { rememberTab } from '../constants/navSections'
+import { rememberTab, resolvePage } from '../constants/navSections'
 
 /** the theme choice, persisted with the other settings */
 export interface ThemeSettings {
@@ -108,7 +108,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   currentPage: 'dashboard',
   navigationPayload: null,
 
-  setCurrentPage: (page, payload) => {
+  setCurrentPage: (requested, requestedPayload) => {
+    // a page that moved into another (Uptime → Health's "Last 30 min", …) opens there, on its view
+    const { page, payload } = resolvePage(requested, requestedPayload)
     // Navigation guard: block non-admin users from admin-only pages
     if (ADMIN_ONLY_PAGES.has(page)) {
       const role = useAuthStore.getState().userRole
@@ -145,10 +147,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
   loadSettings: async () => {
     const stored = await loadPersistedSettings()
-    const lastPage = (stored as Record<string, unknown>).lastPage as PageId | undefined
+    let lastPage = (stored as Record<string, unknown>).lastPage as PageId | undefined
     // Don't restore admin-only pages for non-admin users
     let restoredPage: PageId | undefined
     if (lastPage && !TRANSIENT_PAGES.has(lastPage)) {
+      lastPage = resolvePage(lastPage).page
       if (ADMIN_ONLY_PAGES.has(lastPage)) {
         try {
           const role = useAuthStore.getState().userRole
