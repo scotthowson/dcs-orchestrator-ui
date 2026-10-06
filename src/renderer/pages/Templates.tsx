@@ -3332,12 +3332,14 @@ export default function Templates() {
     return () => { alive = false }
   }, [isConnected, deployMember])
 
-  // F3: Fetch deploy history + F6: containers
+  // F3: Fetch deploy history + F6: containers (the deploy history is an admin's to read: the server refuses it to anyone else)
   const refreshHistory = useCallback(async () => {
     setHistoryLoading(true)
     try {
       const [histRes, ctrRes] = await Promise.all([
-        fetchDeployHistory().catch(() => ({ history: [], total: 0 } as DeployHistoryResponse)),
+        isAdmin
+          ? fetchDeployHistory().catch(() => ({ history: [], total: 0 } as DeployHistoryResponse))
+          : Promise.resolve({ history: [], total: 0 } as DeployHistoryResponse),
         fetchContainers().catch(() => ({ containers: [], total: 0 })),
       ])
       setHistoryData(histRes.history)
@@ -3345,7 +3347,7 @@ export default function Templates() {
     } finally {
       setHistoryLoading(false)
     }
-  }, [])
+  }, [isAdmin])
 
   useEffect(() => {
     if (!isConnected) return
@@ -3774,18 +3776,21 @@ export default function Templates() {
               </button>
             </Hint>
           )}
-          <Hint label="What was deployed, and undeploy it again">
-            <button
-              type="button"
-              aria-label="History"
-              aria-pressed={showHistory}
-              onClick={() => { setShowHistory((prev) => !prev); if (!showHistory) refreshHistory() }}
-              className={`${BTN_TOOLBAR} ${showHistory ? 'bg-cyan-500/15 border border-cyan-500/25 text-cyan-400 hover:bg-cyan-500/25' : TONE_QUIET}`}
-            >
-              <History size={14} />
-              <span className="hidden sm:inline">History</span>
-            </button>
-          </Hint>
+          {/* the deploy history is an admin call on the API too */}
+          {isAdmin && (
+            <Hint label="What was deployed, and undeploy it again">
+              <button
+                type="button"
+                aria-label="History"
+                aria-pressed={showHistory}
+                onClick={() => { setShowHistory((prev) => !prev); if (!showHistory) refreshHistory() }}
+                className={`${BTN_TOOLBAR} ${showHistory ? 'bg-cyan-500/15 border border-cyan-500/25 text-cyan-400 hover:bg-cyan-500/25' : TONE_QUIET}`}
+              >
+                <History size={14} />
+                <span className="hidden sm:inline">History</span>
+              </button>
+            </Hint>
+          )}
           <button type="button" aria-label="Refresh" onClick={refresh} disabled={loading} className={BTN_TOOLBAR_QUIET}>
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
             <span className="hidden sm:inline">Refresh</span>
