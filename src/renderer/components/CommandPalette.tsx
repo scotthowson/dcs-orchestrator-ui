@@ -500,7 +500,7 @@ export function CommandPalette() {
         type: 'action',
         keywords: ['audit', 'log', 'history', 'security', 'changes'],
         onSelect: () => {
-          setCurrentPage('activity')
+          setCurrentPage('activity', { tab: 'audit' })
           setOpen(false)
         },
       })

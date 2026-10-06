@@ -1,565 +1,118 @@
 // =============================================================================
-// Activity — the Docker events of the server (or of the VMs), newest first on a
-// timeline grouped by day, filtered by type or name; and, folded away below,
-// the server's audit log.
+// Activity — everything that happened on the server (or the VMs), in three tabs
+// under one set of scope chips:
+//   Timeline     the Docker events, newest first, grouped by day, filtered by
+//                type or name (polls /events while the tab shows)
+//   Live stream  the server's live event stream as it arrives (was Live Events;
+//                the page id event-feed opens this tab)
+//   Audit log    who did what (admins only; polls /audit while the tab shows)
+// A navigation payload { tab } picks the tab; the last one is remembered per device.
 // =============================================================================
 
-import React, { useState, useMemo, useCallback, useEffect } from 'react'
-import { SegmentedControl, Badge } from '@mantine/core'
-import {
-  Play, Square, Plus, Trash2, RefreshCw, Download,
-  Box, Network, HardDrive, Database,
-  Clock, Filter, Search, Activity as ActivityIcon,
-  Zap, WifiOff, Server, X,
-  ChevronDown, FileText, Shield, Rocket, Power,
-  HeartPulse, Archive, ListFilter, AlertTriangle,
-} from 'lucide-react'
+import { useState, useCallback, useEffect, useRef, type KeyboardEvent } from 'react'
+import { Badge } from '@mantine/core'
+import { RefreshCw, History, Radio, FileText, type LucideIcon } from 'lucide-react'
 import { usePolling } from '../hooks/usePolling'
-import { fetchEvents, fetchAuditLog } from '../api/endpoints'
+import { fetchEvents } from '../api/endpoints'
 import { useFleetScope } from '../hooks/useFleetScope'
 import FleetScopeChips from '../components/fleet/FleetScopeChips'
 import VmCapsule from '../components/fleet/VmCapsule'
 import { useConnectionStore } from '../stores/connectionStore'
 import { useAuthStore } from '../stores/authStore'
-import { DisconnectedBanner } from '../components/common/DisconnectedBanner'
-import { LoadingState, EmptyState } from '../components/common/PageState'
-import PageHeader from '../components/common/PageHeader'
-import Hint from '../components/common/Hint'
+import { useSettingsStore } from '../stores/settingsStore'
 import { useLogStore } from '../stores/logStore'
-import { useToast } from '../components/common/Toast'
-import { BTN_TOOLBAR_QUIET, BTN_TOOLBAR, BTN_ICON_SM, TONE_OK, TONE_GHOST } from '../lib/ui'
-import { CARD, CARD_HOVER, SEARCH_FIELD, FOCUS_RING } from '../lib/pageKit'
-import type { EventEntry, EventsResponse, AuditEntry } from '../../shared/types'
+import { DisconnectedBanner } from '../components/common/DisconnectedBanner'
+import PageHeader from '../components/common/PageHeader'
+import Timeline from '../components/activity/Timeline'
+import LiveStream, { useSseConnected } from '../components/activity/LiveStream'
+import AuditLog, { useAuditLog } from '../components/activity/AuditLog'
+import { BTN_TOOLBAR_QUIET } from '../lib/ui'
+import { FOCUS_RING } from '../lib/pageKit'
+import type { EventsResponse } from '../../shared/types'
 
-// ---------------------------------------------------------------------------
-// Constants & helpers
-// ---------------------------------------------------------------------------
+type ActivityTab = 'timeline' | 'live' | 'audit'
 
-type FilterType = 'all' | 'container' | 'network' | 'volume' | 'image' | 'error'
-
-const FILTER_TABS: { key: FilterType; label: string; icon: React.ReactNode }[] = [
-  { key: 'all', label: 'All', icon: <ActivityIcon size={13} /> },
-  { key: 'container', label: 'Containers', icon: <Box size={13} /> },
-  { key: 'network', label: 'Networks', icon: <Network size={13} /> },
-  { key: 'volume', label: 'Volumes', icon: <HardDrive size={13} /> },
-  { key: 'image', label: 'Images', icon: <Database size={13} /> },
-  { key: 'error', label: 'Errors', icon: <AlertTriangle size={13} /> },
+const TABS: { id: ActivityTab; label: string; icon: LucideIcon; adminOnly?: boolean }[] = [
+  { id: 'timeline', label: 'Timeline', icon: History },
+  { id: 'live', label: 'Live stream', icon: Radio },
+  { id: 'audit', label: 'Audit log', icon: FileText, adminOnly: true },
 ]
 
-/** Events that mean something went wrong: crashes, kills, out-of-memory, failed health checks */
-function isErrorEvent(e: EventEntry): boolean {
-  const a = e.action.toLowerCase()
-  if (a.startsWith('exec_')) return false
-  return a === 'die' || a === 'oom' || a === 'kill' || a.startsWith('health_status: unhealthy') || a.includes('unhealthy')
+const TAB_KEY = 'dcs-activity-tab'
+const isTab = (v: unknown): v is ActivityTab => v === 'timeline' || v === 'live' || v === 'audit'
+function loadTab(): ActivityTab {
+  try { const v = localStorage.getItem(TAB_KEY); return isTab(v) ? v : 'timeline' } catch { return 'timeline' }
 }
-
-/** A key that stays the same for the same event across polls, so cards never remount */
-function eventKey(e: EventEntry): string {
-  return `${e.timestamp}|${e.type}|${e.action}|${e.name}`
-}
-
-/** Icon for each event action */
-function actionIcon(action: string): React.ReactNode {
-  switch (action) {
-    case 'start':
-      return <Play size={14} />
-    case 'stop':
-    case 'kill':
-    case 'die':
-      return <Square size={14} />
-    case 'create':
-      return <Plus size={14} />
-    case 'destroy':
-    case 'remove':
-      return <Trash2 size={14} />
-    case 'restart':
-      return <RefreshCw size={14} />
-    case 'pull':
-      return <Download size={14} />
-    default:
-      return <Zap size={14} />
-  }
-}
-
-/** Color config per action */
-function actionColors(action: string): {
-  dot: string
-  icon: string
-  bg: string
-  border: string
-  glow: string
-} {
-  switch (action) {
-    case 'start':
-    case 'create':
-      return {
-        dot: 'bg-emerald-400',
-        icon: 'text-emerald-400',
-        bg: 'bg-emerald-500/10',
-        border: 'border-emerald-500/20',
-        glow: 'shadow-[0_0_8px_rgba(52,211,153,0.3)]',
-      }
-    case 'stop':
-    case 'kill':
-    case 'die':
-    case 'destroy':
-    case 'remove':
-      return {
-        dot: 'bg-rose-400',
-        icon: 'text-rose-400',
-        bg: 'bg-rose-500/10',
-        border: 'border-rose-500/20',
-        glow: 'shadow-[0_0_8px_rgba(251,113,133,0.3)]',
-      }
-    case 'restart':
-      return {
-        dot: 'bg-amber-400',
-        icon: 'text-amber-400',
-        bg: 'bg-amber-500/10',
-        border: 'border-amber-500/20',
-        glow: 'shadow-[0_0_8px_rgba(251,191,36,0.3)]',
-      }
-    case 'pull':
-    case 'connect':
-    case 'attach':
-      return {
-        dot: 'bg-cyan-400',
-        icon: 'text-cyan-400',
-        bg: 'bg-cyan-500/10',
-        border: 'border-cyan-500/20',
-        glow: 'shadow-[0_0_8px_rgba(34,211,238,0.3)]',
-      }
-    default:
-      return {
-        dot: 'bg-slate-400',
-        icon: 'text-slate-400',
-        bg: 'bg-slate-500/10',
-        border: 'border-slate-500/20',
-        glow: 'shadow-[0_0_8px_rgba(148,163,184,0.2)]',
-      }
-  }
-}
-
-/** Type badge: what kind of thing it happened to — a plain slate label, the action next to it carries the colour */
-function typeBadge(type: string): { label: string; icon: React.ReactNode } {
-  switch (type) {
-    case 'container':
-      return { label: 'container', icon: <Box size={10} aria-hidden /> }
-    case 'network':
-      return { label: 'network', icon: <Network size={10} aria-hidden /> }
-    case 'volume':
-      return { label: 'volume', icon: <HardDrive size={10} aria-hidden /> }
-    case 'image':
-      return { label: 'image', icon: <Database size={10} aria-hidden /> }
-    default:
-      return { label: type, icon: <Zap size={10} aria-hidden /> }
-  }
-}
-
-/** Relative time string */
-function relativeTime(ts: number): string {
-  const now = Date.now() / 1000
-  const diff = now - ts
-  if (diff < 5) return 'just now'
-  if (diff < 60) return `${Math.floor(diff)}s ago`
-  if (diff < 3600) {
-    const mins = Math.floor(diff / 60)
-    return `${mins} min${mins !== 1 ? 's' : ''} ago`
-  }
-  if (diff < 86400) {
-    const hours = Math.floor(diff / 3600)
-    return `${hours} hour${hours !== 1 ? 's' : ''} ago`
-  }
-  const days = Math.floor(diff / 86400)
-  return `${days} day${days !== 1 ? 's' : ''} ago`
-}
-
-/** Absolute timestamp string */
-function absoluteTime(ts: number): string {
-  const d = new Date(ts * 1000)
-  return d.toLocaleString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  })
-}
-
-/** Day grouping key */
-function dayGroup(ts: number): 'Today' | 'Yesterday' | 'Older' {
-  const now = new Date()
-  const eventDate = new Date(ts * 1000)
-
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
-  const yesterdayStart = todayStart - 86400000
-  const eventMs = eventDate.getTime()
-
-  if (eventMs >= todayStart) return 'Today'
-  if (eventMs >= yesterdayStart) return 'Yesterday'
-  return 'Older'
-}
-
-// ---------------------------------------------------------------------------
-// Disconnected empty state
-// ---------------------------------------------------------------------------
-
-function DisconnectedState() {
-  const connectionStatus = useConnectionStore((s) => s.status)
-  const connect = useConnectionStore((s) => s.connect)
-  const isConnecting = connectionStatus === 'connecting'
-
-  return (
-    <EmptyState
-      icon={isConnecting ? <RefreshCw size={32} className="animate-spin text-emerald-500/60" /> : <WifiOff size={32} />}
-      title={isConnecting ? 'Connecting…' : 'No activity data'}
-      hint={isConnecting
-        ? 'Establishing the connection to the API server…'
-        : 'Connect to your Docker API server to see the activity timeline.'}
-      action={!isConnecting ? (
-        <button type="button" onClick={() => connect()} className={`${BTN_TOOLBAR} ${TONE_OK} ${FOCUS_RING}`}>
-          <Server size={14} />
-          Connect
-        </button>
-      ) : undefined}
-    />
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Stats bar
-// ---------------------------------------------------------------------------
-
-function StatsBar({ events }: { events: EventEntry[] }) {
-  const counts = useMemo(() => {
-    const c = { container: 0, network: 0, volume: 0, image: 0, other: 0, error: 0 }
-    for (const e of events) {
-      if (e.type in c) (c as Record<string, number>)[e.type]++
-      else c.other++
-      if (isErrorEvent(e)) c.error++
-    }
-    return c
-  }, [events])
-
-  // counts are information (cyan); errors are the one that can be a problem (rose, or slate at zero)
-  const stats = [
-    { label: 'Total', value: events.length, color: 'text-slate-100', iconColor: 'text-cyan-400', icon: <ActivityIcon size={14} aria-hidden /> },
-    { label: 'Containers', value: counts.container, color: 'text-slate-100', iconColor: 'text-cyan-400', icon: <Box size={14} aria-hidden /> },
-    { label: 'Networks', value: counts.network, color: 'text-slate-100', iconColor: 'text-cyan-400', icon: <Network size={14} aria-hidden /> },
-    { label: 'Volumes', value: counts.volume, color: 'text-slate-100', iconColor: 'text-cyan-400', icon: <HardDrive size={14} aria-hidden /> },
-    { label: 'Images', value: counts.image, color: 'text-slate-100', iconColor: 'text-cyan-400', icon: <Database size={14} aria-hidden /> },
-    { label: 'Errors', value: counts.error, color: counts.error ? 'text-rose-400' : 'text-slate-400', iconColor: counts.error ? 'text-rose-400' : 'text-slate-500', icon: <AlertTriangle size={14} aria-hidden /> },
-  ]
-
-  return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
-      {stats.map((stat) => (
-        <div
-          key={stat.label}
-          className={`${CARD_HOVER} px-4 py-3 flex items-center gap-3`}
-        >
-          <div className={`${stat.iconColor} opacity-70`}>{stat.icon}</div>
-          <div className="min-w-0">
-            <div className={`text-lg font-bold tabular-nums ${stat.color}`}>{stat.value}</div>
-            <div className="text-[10px] uppercase tracking-wider text-slate-500 font-medium">{stat.label}</div>
-          </div>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Timeline card
-// ---------------------------------------------------------------------------
-
-const TimelineCard = React.memo(function TimelineCard({ event, index, fresh }: { event: EventEntry; index: number; fresh: boolean }) {
-  const colors = actionColors(event.action)
-  const badge = typeBadge(event.type)
-
-  return (
-    <div
-      className={`relative pl-10 pb-8 last:pb-0 group ${fresh ? 'animate-fade-in' : ''}`}
-      style={fresh ? { animationDelay: `${Math.min(index * 40, 400)}ms` } : undefined}
-    >
-      {/* Vertical connector line (hidden on last) */}
-      <div className="absolute left-[11px] top-6 bottom-0 w-px bg-gradient-to-b from-white/[0.08] to-transparent group-last:hidden" aria-hidden />
-
-      {/* Timeline dot */}
-      <div className="absolute left-0 top-1 z-10" aria-hidden>
-        <div className={`
-          w-[23px] h-[23px] rounded-full border-2 border-slate-900
-          flex items-center justify-center
-          ${colors.bg} ${colors.glow}
-          transition-transform duration-300 group-hover:scale-110
-        `}>
-          <div className={`w-2.5 h-2.5 rounded-full ${colors.dot}`} />
-        </div>
-      </div>
-
-      {/* Card */}
-      <div className={`${CARD_HOVER} p-4 group-hover:translate-x-0.5 transition-transform duration-300`}>
-        <div className="flex items-start justify-between gap-3">
-          {/* Left content */}
-          <div className="flex items-start gap-3 min-w-0 flex-1">
-            {/* Action icon */}
-            <div className={`
-              flex-shrink-0 w-8 h-8 rounded-lg
-              ${colors.bg} ${colors.border} border
-              flex items-center justify-center
-              ${colors.icon}
-            `} aria-hidden>
-              {actionIcon(event.action)}
-            </div>
-
-            <div className="min-w-0 flex-1">
-              {/* Action + type row */}
-              <div className="flex items-center gap-2 flex-wrap mb-1">
-                <span className={`
-                  inline-flex items-center rounded-md border px-2 py-0.5
-                  text-[11px] font-semibold uppercase tracking-wide
-                  ${colors.bg} ${colors.border} ${colors.icon}
-                `}>
-                  {event.action}
-                </span>
-                <Badge color="slate" leftSection={badge.icon}>{badge.label}</Badge>
-              </div>
-
-              {/* Resource name */}
-              <p className="text-sm font-semibold text-slate-200 truncate group-hover:text-white transition-colors">
-                {event.name}
-              </p>
-            </div>
-          </div>
-
-          {/* Right: time */}
-          <div className="flex-shrink-0 text-right">
-            <div className="text-xs font-medium text-slate-400 tabular-nums">
-              {relativeTime(event.timestamp)}
-            </div>
-            <div className="text-[11px] text-slate-500 tabular-nums mt-0.5">
-              {absoluteTime(event.timestamp)}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-})
-
-// ---------------------------------------------------------------------------
-// Day group header
-// ---------------------------------------------------------------------------
-
-function DayHeader({ label, count, collapsed, onToggle }: { label: string; count: number; collapsed: boolean; onToggle: () => void }) {
-  return (
-    <div className="relative pl-10 pb-4 pt-2">
-      {/* Dot on the timeline */}
-      <div className="absolute left-[7px] top-3 z-10" aria-hidden>
-        <div className="w-[9px] h-[9px] rounded-full bg-gradient-to-br from-emerald-400 to-cyan-400 ring-2 ring-slate-950" />
-      </div>
-
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-expanded={!collapsed}
-        className={`group/day flex items-center gap-3 w-full min-h-8 text-left rounded-lg ${FOCUS_RING}`}
-        title={collapsed ? `Show ${label.toLowerCase()}` : `Hide ${label.toLowerCase()}`}
-      >
-        <span className="text-xs font-bold uppercase tracking-widest text-slate-400 group-hover/day:text-slate-200 transition-colors">
-          {label}
-        </span>
-        <span className="text-[11px] font-medium text-slate-500 tabular-nums">{count}</span>
-        <div className="flex-1 h-px bg-gradient-to-r from-white/[0.06] to-transparent" aria-hidden />
-        <ChevronDown
-          size={14}
-          aria-hidden
-          className={`text-slate-500 group-hover/day:text-slate-300 transition-transform duration-200 ${collapsed ? '-rotate-90' : ''}`}
-        />
-      </button>
-    </div>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Empty events state (connected but no events)
-// ---------------------------------------------------------------------------
-
-function EmptyEvents({ filtered, onClear }: { filtered: boolean; onClear: () => void }) {
-  return filtered ? (
-    <EmptyState
-      icon={<Clock size={30} />}
-      title="No events match"
-      hint="Pick another type, or clear the search."
-      action={<button type="button" onClick={onClear} className={`${BTN_TOOLBAR_QUIET} ${FOCUS_RING}`}><X size={14} /> Show all events</button>}
-    />
-  ) : (
-    <EmptyState
-      icon={<Clock size={30} />}
-      title="No events yet"
-      hint="Docker events will appear here as activity occurs."
-    />
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Activity page
-// ---------------------------------------------------------------------------
+function saveTab(t: ActivityTab) { try { localStorage.setItem(TAB_KEY, t) } catch { /* storage unavailable */ } }
 
 export default function Activity() {
-  const connectionStatus = useConnectionStore((s) => s.status)
-  const isConnected = connectionStatus === 'connected'
-  // GET /audit is admin-only: a user's page never asks for it (it answered 403, a toast every poll)
+  const isConnected = useConnectionStore((s) => s.status === 'connected')
+  // GET /audit is admin-only: a user never sees the tab, and their page never asks for it
   const isAdmin = useAuthStore((s) => s.userRole) === 'admin'
   const reportPollSuccess = useConnectionStore((s) => s.reportPollSuccess)
   const reportPollFailure = useConnectionStore((s) => s.reportPollFailure)
+  const { scope, setScope, member: scopeMember, memberName, members: scopeMembers, hasFleet } = useFleetScope()
+  const showMember = useCallback((m: string | null) => setScope(m ?? 'hub'), [setScope])
 
+  // ---- Tab: remembered per device, chosen by a payload ({ tab }), the audit log only for an admin ----
+  const [chosen, setChosen] = useState<ActivityTab>(loadTab)
+  const tab: ActivityTab = chosen === 'audit' && !isAdmin ? 'timeline' : chosen
+  const selectTab = useCallback((t: ActivityTab) => { setChosen(t); saveTab(t) }, [])
+
+  const navigationPayload = useSettingsStore((s) => s.navigationPayload)
+  useEffect(() => {
+    const p = useSettingsStore.getState().navigationPayload
+    if (!p || !isTab(p.tab)) return
+    if (p.tab !== 'audit' || useAuthStore.getState().userRole === 'admin') selectTab(p.tab)
+    useSettingsStore.getState().consumeNavigationPayload()
+  }, [navigationPayload, selectTab])
+
+  // a tab is mounted the first time it is shown and then kept behind the others, so its filters and
+  // what the live stream caught survive a look at another tab
+  const [visited, setVisited] = useState<Set<ActivityTab>>(() => new Set([tab]))
+  useEffect(() => {
+    setVisited((v) => (v.has(tab) ? v : new Set(v).add(tab)))
+  }, [tab])
+
+  // ---- Timeline: /events every 3 s (6 s everywhere), only while its tab shows ----
+  // (the store is what the dashboard's Recent events card reads; the dashboard polls it itself too)
   const setEvents = useLogStore((s) => s.setEvents)
   const events = useLogStore((s) => s.events)
-
-  const [activeFilter, setActiveFilter] = useState<FilterType>('all')
-  const [searchQuery, setSearchQuery] = useState('')
-  const [collapsedDays, setCollapsedDays] = useState<Set<string>>(() => new Set())
-  const toggleDay = useCallback((label: string) => {
-    setCollapsedDays((prev) => { const next = new Set(prev); if (next.has(label)) next.delete(label); else next.add(label); return next })
-  }, [])
-  // Cards seen before never animate again: new events slide in, the rest stay put
-  const seenKeys = React.useRef<Set<string>>(new Set())
-  const firstPaint = React.useRef(true)
-
-  // Poll /events every 3s
-  const onPollSuccess = useCallback(() => {
-    reportPollSuccess()
-  }, [reportPollSuccess])
-
-  const onPollError = useCallback(() => {
-    reportPollFailure()
-  }, [reportPollFailure])
-
-  const { scope, setScope, member: scopeMember, memberName, members: scopeMembers, hasFleet } = useFleetScope()
   const fetchScopedEvents = useCallback(() => fetchEvents(scope), [scope])
   const eventsPoll = usePolling<EventsResponse>(fetchScopedEvents, scope === 'all' ? 6000 : 3000, {
-    enabled: isConnected,
-    onError: onPollError,
+    enabled: isConnected && tab === 'timeline',
+    onError: reportPollFailure,
   })
-
-  React.useEffect(() => {
+  useEffect(() => {
     if (eventsPoll.data) {
       setEvents(eventsPoll.data.events)
-      onPollSuccess()
+      reportPollSuccess()
     }
-  }, [eventsPoll.data, setEvents, onPollSuccess])
+  }, [eventsPoll.data, setEvents, reportPollSuccess])
 
-  // After the first paint, only events that were not on screen before animate in
-  useEffect(() => {
-    if (events.length > 0 && firstPaint.current) {
-      const t = setTimeout(() => { firstPaint.current = false }, 800)
-      return () => clearTimeout(t)
-    }
-  }, [events.length])
+  // ---- Audit log: every 15 s while its tab shows ----
+  const audit = useAuditLog(isConnected && isAdmin && tab === 'audit', scope)
 
-  // Filter events
-  const filteredEvents = useMemo(() => {
-    let result = [...events]
+  // ---- Live stream: is the stream open (checked while its tab shows) ----
+  const sseConnected = useSseConnected(tab === 'live')
 
-    // Type filter
-    if (activeFilter === 'error') {
-      result = result.filter(isErrorEvent)
-    } else if (activeFilter !== 'all') {
-      result = result.filter((e) => e.type === activeFilter)
-    }
-
-    // Search filter
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase()
-      result = result.filter(
-        (e) =>
-          e.name.toLowerCase().includes(q) ||
-          e.action.toLowerCase().includes(q) ||
-          e.type.toLowerCase().includes(q),
-      )
-    }
-
-    // Sort by timestamp descending (newest first)
-    result.sort((a, b) => b.timestamp - a.timestamp)
-
-    return result
-  }, [events, activeFilter, searchQuery])
-
-  // Group events by day
-  const groupedEvents = useMemo(() => {
-    const groups: { label: string; events: EventEntry[] }[] = []
-    let currentGroup: string | null = null
-
-    for (const event of filteredEvents) {
-      const group = dayGroup(event.timestamp)
-      if (group !== currentGroup) {
-        groups.push({ label: group, events: [] })
-        currentGroup = group
-      }
-      groups[groups.length - 1].events.push(event)
-    }
-
-    return groups
-  }, [filteredEvents])
-
-  // ---- Audit log state ----
-  const { addToast } = useToast()
-  const [auditExpanded, setAuditExpanded] = useState(false)
-  const [auditEntries, setAuditEntries] = useState<AuditEntry[]>([])
-  const [auditLoading, setAuditLoading] = useState(false)
-  const [auditFilter, setAuditFilter] = useState('')
-  const [auditActionFilter, setAuditActionFilter] = useState<string>('all')
-
-  // Fetch audit log when expanded
-  useEffect(() => {
-    if (!auditExpanded || !isConnected || !isAdmin) return
-    let cancelled = false
-    const load = async () => {
-      setAuditLoading(true)
-      try {
-        const res = await fetchAuditLog({ limit: 200 }, scope)
-        if (!cancelled) setAuditEntries(res.entries)
-      } catch {
-        if (!cancelled) addToast({ type: 'error', message: 'Failed to load audit log' })
-      } finally {
-        if (!cancelled) setAuditLoading(false)
-      }
-    }
-    load()
-    const interval = setInterval(load, 15000)
-    return () => { cancelled = true; clearInterval(interval) }
-  }, [auditExpanded, isConnected, isAdmin, addToast, scope])
-
-  // Audit action types for filter
-  const auditActions = useMemo(() => {
-    const actions = new Set(auditEntries.map((e) => e.action))
-    return ['all', ...Array.from(actions).sort()]
-  }, [auditEntries])
-
-  // Filtered audit entries
-  const filteredAuditEntries = useMemo(() => {
-    let result = [...auditEntries]
-    if (auditActionFilter !== 'all') {
-      result = result.filter((e) => e.action === auditActionFilter)
-    }
-    if (auditFilter.trim()) {
-      const q = auditFilter.toLowerCase()
-      result = result.filter(
-        (e) =>
-          e.action.toLowerCase().includes(q) ||
-          e.detail.toLowerCase().includes(q) ||
-          e.timestamp.toLowerCase().includes(q),
-      )
-    }
-    return result
-  }, [auditEntries, auditActionFilter, auditFilter])
-
-  // Determine UI state
-  const hasNoData = events.length === 0
-  const showDisconnected = !isConnected && hasNoData
+  const refresh = tab === 'timeline' ? eventsPoll.refresh : tab === 'audit' ? audit.refresh : null
+  const refreshing = tab === 'timeline' ? eventsPoll.loading : tab === 'audit' ? audit.loading : false
+  const live = tab === 'live' ? sseConnected : isConnected
   const scopeVmid = scopeMembers.find((m) => m.id === scopeMember)?.vmid
-  const filtering = activeFilter !== 'all' || searchQuery.trim().length > 0
+
+  // ---- Tabs: arrow keys move between them (the WAI-ARIA tabs pattern) ----
+  const shownTabs = TABS.filter((t) => !t.adminOnly || isAdmin)
+  const tabRefs = useRef<Partial<Record<ActivityTab, HTMLButtonElement | null>>>({})
+  const onTabKey = (e: KeyboardEvent<HTMLDivElement>) => {
+    const i = shownTabs.findIndex((t) => t.id === tab)
+    const next = e.key === 'ArrowRight' ? i + 1 : e.key === 'ArrowLeft' ? i - 1 : e.key === 'Home' ? 0 : e.key === 'End' ? shownTabs.length - 1 : null
+    if (next === null) return
+    e.preventDefault()
+    const t = shownTabs[(next + shownTabs.length) % shownTabs.length].id
+    selectTab(t)
+    tabRefs.current[t]?.focus()
+  }
 
   return (
     <div className="space-y-4 md:space-y-5">
@@ -568,7 +121,7 @@ export default function Activity() {
         page="activity"
         badge={<>
           {scopeMember && <VmCapsule member={scopeMember} name={memberName} vmid={scopeVmid} />}
-          {isConnected && (
+          {live ? (
             <Badge
               color="emerald"
               leftSection={
@@ -578,325 +131,76 @@ export default function Activity() {
                 </span>
               }
             >
-              Streaming
+              Live
             </Badge>
-          )}
+          ) : tab === 'live' && isConnected ? (
+            <Badge color="rose" leftSection={<span className="w-1.5 h-1.5 rounded-full bg-rose-400" aria-hidden />}>
+              Stream down
+            </Badge>
+          ) : null}
         </>}
-        actions={isConnected ? (
-          <button type="button" onClick={eventsPoll.refresh} disabled={eventsPoll.loading} className={`${BTN_TOOLBAR_QUIET} ${FOCUS_RING}`}>
-            <RefreshCw size={14} className={eventsPoll.loading ? 'animate-spin' : ''} />
+        actions={isConnected && refresh ? (
+          <button type="button" onClick={refresh} disabled={refreshing} className={`${BTN_TOOLBAR_QUIET} ${FOCUS_RING}`}>
+            <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
             Refresh
           </button>
         ) : undefined}
       >
-        {hasFleet && <FleetScopeChips scope={scope} members={scopeMembers} onChange={setScope} label="Show" busy={eventsPoll.loading && !hasNoData} />}
+        {hasFleet && <FleetScopeChips scope={scope} members={scopeMembers} onChange={setScope} label="Show" busy={tab === 'timeline' && eventsPoll.loading && events.length > 0} />}
       </PageHeader>
 
-      {showDisconnected ? (
-        <DisconnectedState />
-      ) : (
-        <>
-          {/* Stats bar */}
-          <StatsBar events={events} />
+      {/* ---- Tabs (a phone swipes them sideways if they do not fit) ---- */}
+      <div className="min-w-0 max-w-full overflow-x-auto scrollbar-none border-b border-white/[0.06]">
+        <div role="tablist" aria-label="Activity views" onKeyDown={onTabKey} className="flex w-max min-w-full items-end gap-1">
+          {shownTabs.map(({ id, label, icon: Icon, adminOnly }) => {
+            const selected = id === tab
+            return (
+              <button
+                key={id}
+                ref={(el) => { tabRefs.current[id] = el }}
+                type="button"
+                role="tab"
+                id={`activity-tab-${id}`}
+                aria-selected={selected}
+                aria-controls={`activity-panel-${id}`}
+                tabIndex={selected ? 0 : -1}
+                onClick={() => selectTab(id)}
+                className={`-mb-px flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-3 py-2.5 text-[13px] font-medium transition-colors rounded-t-lg ${FOCUS_RING} ${
+                  selected ? 'accent-text border-current' : 'border-transparent text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <Icon size={15} aria-hidden className={selected ? 'accent-text' : 'text-slate-500'} />
+                {label}
+                {adminOnly && <span aria-hidden className="hidden sm:inline text-[10px] font-normal uppercase tracking-wider text-slate-500">admin</span>}
+              </button>
+            )
+          })}
+        </div>
+      </div>
 
-          {/* Filters row */}
-          <div className="flex items-center gap-3 flex-wrap animate-fade-in">
-            {/* Type filter: one choice (the dashboard's segmented control); a phone swipes it sideways */}
-            <div className="min-w-0 max-w-full overflow-x-auto scrollbar-none">
-              <SegmentedControl
-                aria-label="Type of event"
-                value={activeFilter}
-                onChange={(v) => setActiveFilter(v as FilterType)}
-                data={FILTER_TABS.map((tab) => ({ value: tab.key, label: <span className="flex items-center gap-1.5">{tab.icon}{tab.label}</span> }))}
-              />
-            </div>
-
-            {/* Search */}
-            <div className="relative flex-1 min-w-[12rem] max-w-xs">
-              <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" aria-hidden />
-              <input
-                type="text"
-                aria-label="Filter events by name"
-                placeholder="Filter by name…"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className={SEARCH_FIELD}
-              />
-              {searchQuery && (
-                <Hint label="Clear the search">
-                  <button
-                    type="button"
-                    aria-label="Clear the search"
-                    onClick={() => setSearchQuery('')}
-                    className={`${BTN_ICON_SM} ${TONE_GHOST} ${FOCUS_RING} absolute right-1.5 top-1/2 -translate-y-1/2`}
-                  >
-                    <X size={14} />
-                  </button>
-                </Hint>
-              )}
-            </div>
-
-            {/* Result count */}
-            <div className="flex items-center gap-1.5 text-xs text-slate-500 ml-auto" role="status">
-              <Filter size={13} aria-hidden />
-              <span>
-                {filteredEvents.length === events.length
-                  ? `${events.length} events`
-                  : `${filteredEvents.length} of ${events.length}`
-                }
-              </span>
-            </div>
-          </div>
-
-          {/* Timeline */}
-          {filteredEvents.length === 0 ? (
-            <EmptyEvents filtered={filtering && events.length > 0} onClear={() => { setActiveFilter('all'); setSearchQuery('') }} />
-          ) : (
-            <div className="relative animate-fade-in">
-              {/* Main timeline line (gradient) */}
-              <div
-                className="absolute left-[11px] top-0 bottom-0 w-px"
-                style={{
-                  background: 'linear-gradient(to bottom, rgba(52,211,153,0.3), rgba(34,211,238,0.15), transparent)',
-                }}
-                aria-hidden
-              />
-
-              {/* Grouped events */}
-              <div className="relative">
-                {groupedEvents.map((group) => {
-                  const collapsed = collapsedDays.has(group.label)
-                  const dupes = new Map<string, number>()
-                  return (
-                    <div key={group.label}>
-                      <DayHeader label={group.label} count={group.events.length} collapsed={collapsed} onToggle={() => toggleDay(group.label)} />
-                      {!collapsed && group.events.map((event, idx) => {
-                        const base = eventKey(event)
-                        const n = (dupes.get(base) ?? 0) + 1
-                        dupes.set(base, n)
-                        const key = n > 1 ? `${base}#${n}` : base
-                        const fresh = !firstPaint.current && !seenKeys.current.has(key)
-                        seenKeys.current.add(key)
-                        return <TimelineCard key={key} event={event} index={idx} fresh={fresh} />
-                      })}
-                    </div>
-                  )
-                })}
-              </div>
-
-              {/* Bottom fade */}
-              <div className="h-8 bg-gradient-to-t from-slate-950 to-transparent pointer-events-none" aria-hidden />
-            </div>
-          )}
-
-          {/* ── Audit log section (collapsible; admins only, GET /audit answers 403 to a user) ── */}
-          {isAdmin && <div className="animate-fade-in">
-            <button
-              type="button"
-              onClick={() => setAuditExpanded(!auditExpanded)}
-              aria-expanded={auditExpanded}
-              className={`flex items-center gap-2 w-full min-h-9 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 hover:text-slate-300 transition-colors mb-2 rounded-lg ${FOCUS_RING}`}
-            >
-              <FileText size={13} aria-hidden />
-              Server audit log
-              {auditEntries.length > 0 && (
-                <span className="text-[11px] font-normal normal-case text-slate-500">
-                  ({auditEntries.length} {auditEntries.length === 1 ? 'entry' : 'entries'})
-                </span>
-              )}
-              <ChevronDown
-                size={14}
-                aria-hidden
-                className={`ml-auto transition-transform duration-200 ${auditExpanded ? 'rotate-180' : ''}`}
-              />
-            </button>
-
-            {auditExpanded && (
-              <div className="space-y-3 animate-fade-in">
-                {/* Filter row */}
-                <div className="flex items-center gap-3 flex-wrap">
-                  {/* Action type filter */}
-                  <div className="relative flex items-center gap-1.5">
-                    <ListFilter size={13} className="text-slate-500" aria-hidden />
-                    <div className="relative">
-                      <select aria-label="Filter by action"
-                        value={auditActionFilter}
-                        onChange={(e) => setAuditActionFilter(e.target.value)}
-                        className="rounded-lg h-9 pl-3 pr-8 text-xs bg-white/5 border border-white/10 text-slate-300 focus:outline-none focus:border-emerald-500/40 focus:ring-1 focus:ring-emerald-500/30 transition-colors appearance-none cursor-pointer"
-                      >
-                        {auditActions.map((a) => (
-                          <option key={a} value={a} className="bg-slate-900 text-slate-200">
-                            {a === 'all' ? 'All actions' : a}
-                          </option>
-                        ))}
-                      </select>
-                      <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" aria-hidden />
-                    </div>
-                  </div>
-
-                  {/* Search */}
-                  <div className="relative flex-1 min-w-[12rem] max-w-xs">
-                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" aria-hidden />
-                    <input
-                      type="text"
-                      aria-label="Search the audit log"
-                      placeholder="Search the audit log…"
-                      value={auditFilter}
-                      onChange={(e) => setAuditFilter(e.target.value)}
-                      className="w-full rounded-lg h-9 pl-9 pr-9 text-xs text-slate-200 placeholder-slate-500 bg-white/5 border border-white/10 focus:outline-none focus:ring-1 focus:ring-emerald-500/30 focus:border-emerald-500/30 transition-colors"
-                    />
-                    {auditFilter && (
-                      <Hint label="Clear the filter">
-                        <button
-                          type="button"
-                          aria-label="Clear the filter"
-                          onClick={() => setAuditFilter('')}
-                          className={`${BTN_ICON_SM} ${TONE_GHOST} ${FOCUS_RING} absolute right-1 top-1/2 -translate-y-1/2`}
-                        >
-                          <X size={12} />
-                        </button>
-                      </Hint>
-                    )}
-                  </div>
-
-                  {/* Result count */}
-                  <span className="text-[11px] text-slate-500 ml-auto" role="status">
-                    {filteredAuditEntries.length} of {auditEntries.length}
-                  </span>
-                </div>
-
-                {/* Loading */}
-                {auditLoading && auditEntries.length === 0 && (
-                  <LoadingState compact label="Loading the audit log…" />
-                )}
-
-                {/* Empty state */}
-                {!auditLoading && auditEntries.length === 0 && (
-                  <div className={CARD}>
-                    <EmptyState compact icon={<FileText size={22} />} title="No audit entries found" hint="Sign-ins, deploys, stack changes and configuration updates are written here." />
-                  </div>
-                )}
-
-                {/* Audit timeline */}
-                {filteredAuditEntries.length > 0 && (
-                  <div className="relative">
-                    {/* Timeline line */}
-                    <div
-                      className="absolute left-[11px] top-0 bottom-0 w-px"
-                      style={{ background: 'linear-gradient(to bottom, rgba(139,92,246,0.3), rgba(34,211,238,0.15), transparent)' }}
-                      aria-hidden
-                    />
-
-                    <div className="relative space-y-0">
-                      {filteredAuditEntries.map((entry, idx) => {
-                        const colors = auditActionStyle(entry.action)
-                        return (
-                          <div
-                            key={`${entry.timestamp}-${idx}`}
-                            className="relative pl-10 pb-4 group animate-fade-in"
-                            style={{ animationDelay: `${Math.min(idx * 30, 400)}ms` }}
-                          >
-                            {/* Connector line */}
-                            <div className="absolute left-[11px] top-5 bottom-0 w-px bg-gradient-to-b from-white/[0.06] to-transparent group-last:hidden" aria-hidden />
-
-                            {/* Dot */}
-                            <div className="absolute left-0 top-1 z-10" aria-hidden>
-                              <div className={`w-[23px] h-[23px] rounded-full border-2 border-slate-900 flex items-center justify-center ${colors.bg} transition-transform duration-300 group-hover:scale-110`}>
-                                <div className={`w-2.5 h-2.5 rounded-full ${colors.dot}`} />
-                              </div>
-                            </div>
-
-                            {/* Card */}
-                            <div className={`${CARD_HOVER} p-3.5 group-hover:translate-x-0.5 transition-transform duration-300`}>
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="flex items-start gap-2.5 min-w-0 flex-1">
-                                  <div className={`flex-shrink-0 w-7 h-7 rounded-lg ${colors.bg} border ${colors.border} flex items-center justify-center ${colors.text}`} aria-hidden>
-                                    {auditActionIcon(entry.action)}
-                                  </div>
-                                  <div className="min-w-0 flex-1">
-                                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                      <span className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${colors.bg} ${colors.border} ${colors.text}`}>
-                                        {entry.action}
-                                      </span>
-                                      {entry.member !== undefined && <VmCapsule member={entry.member} name={entry.member_name} vmid={entry.vmid} size="xs" onClick={() => setScope(entry.member ?? 'hub')} />}
-                                    </div>
-                                    <p className="text-xs text-slate-400 leading-relaxed break-words">
-                                      {entry.detail}
-                                    </p>
-                                  </div>
-                                </div>
-                                <div className="flex-shrink-0 text-right">
-                                  <div className="text-[11px] text-slate-500 tabular-nums whitespace-nowrap">
-                                    {formatAuditTimestamp(entry.timestamp)}
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-
-                    {/* Bottom fade */}
-                    <div className="h-6 bg-gradient-to-t from-slate-950 to-transparent pointer-events-none" aria-hidden />
-                  </div>
-                )}
-              </div>
-            )}
-          </div>}
-        </>
+      {/* ---- Panels: each mounted when first shown, then kept (hidden) ---- */}
+      {visited.has('timeline') && (
+        <div role="tabpanel" id="activity-panel-timeline" aria-labelledby="activity-tab-timeline" hidden={tab !== 'timeline'}>
+          <Timeline events={events} isConnected={isConnected} />
+        </div>
+      )}
+      {visited.has('live') && (
+        <div role="tabpanel" id="activity-panel-live" aria-labelledby="activity-tab-live" hidden={tab !== 'live'}>
+          <LiveStream
+            active={tab === 'live'}
+            scope={scope}
+            members={scopeMembers}
+            memberName={memberName}
+            sseConnected={sseConnected}
+            onScope={showMember}
+          />
+        </div>
+      )}
+      {isAdmin && visited.has('audit') && (
+        <div role="tabpanel" id="activity-panel-audit" aria-labelledby="activity-tab-audit" hidden={tab !== 'audit'}>
+          <AuditLog entries={audit.entries} loading={audit.loading} isConnected={isConnected} onScope={showMember} />
+        </div>
       )}
     </div>
   )
-}
-
-// ---------------------------------------------------------------------------
-// Audit log helpers
-// ---------------------------------------------------------------------------
-
-function auditActionIcon(action: string): React.ReactNode {
-  switch (action) {
-    case 'deploy': return <Rocket size={12} />
-    case 'undeploy': return <Trash2 size={12} />
-    case 'stack_start': return <Play size={12} />
-    case 'stack_stop': return <Power size={12} />
-    case 'health_change': return <HeartPulse size={12} />
-    case 'backup_complete': return <Archive size={12} />
-    case 'config_update': return <RefreshCw size={12} />
-    default: return <Shield size={12} />
-  }
-}
-
-function auditActionStyle(action: string): { dot: string; bg: string; border: string; text: string } {
-  switch (action) {
-    case 'deploy':
-    case 'stack_start':
-      return { dot: 'bg-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', text: 'text-emerald-400' }
-    case 'undeploy':
-    case 'stack_stop':
-      return { dot: 'bg-rose-400', bg: 'bg-rose-500/10', border: 'border-rose-500/20', text: 'text-rose-400' }
-    case 'health_change':
-      return { dot: 'bg-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20', text: 'text-amber-400' }
-    case 'backup_complete':
-      return { dot: 'bg-cyan-400', bg: 'bg-cyan-500/10', border: 'border-cyan-500/20', text: 'text-cyan-400' }
-    case 'config_update':
-      return { dot: 'bg-violet-400', bg: 'bg-violet-500/10', border: 'border-violet-500/20', text: 'text-violet-400' }
-    default:
-      return { dot: 'bg-slate-400', bg: 'bg-slate-500/10', border: 'border-slate-500/20', text: 'text-slate-400' }
-  }
-}
-
-function formatAuditTimestamp(ts: string): string {
-  try {
-    const d = new Date(ts)
-    return d.toLocaleString(undefined, {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    })
-  } catch {
-    return ts
-  }
 }
