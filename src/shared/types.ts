@@ -4131,6 +4131,47 @@ export interface WebTerminalStatus {
   requirements: { traefik_domain: boolean; authelia: boolean; ssh_keygen: boolean }
   ready: boolean; template: string; service: string; default_stack: string
 }
+/** The second step at sign-in to the apps behind Authelia: off = a password alone, all = every app, apps = the apps named */
+export type AutheliaStepMode = 'off' | 'all' | 'apps'
+/** An app behind Authelia that can ask for the second step: its name under the domain (dash), its address, its route */
+export interface AutheliaStepChoice { name: string; host: string; service: string; where: string }
+/** GET /authelia/second-step */
+export interface AutheliaSecondStep {
+  mode: AutheliaStepMode
+  /** the apps that ask for it when mode is "apps", as names under the domain */
+  apps: string[]
+  domain: string | null
+  /** https://auth.<domain>, where a person signs in and registers a device */
+  sign_in_url: string | null
+  /** Authelia is deployed here; its configuration was found */
+  authelia: boolean
+  config_found: boolean
+  /** what Authelia's configuration says now (managed: false when it has no rule DCS manages) */
+  live: { managed: boolean; mode?: AutheliaStepMode; apps?: string[]; other_rules?: number } | null
+  /** the configuration says what the setting says (null when there is nothing to compare) */
+  in_sync: boolean | null
+  /** Authelia writes its messages (the verification codes) to a file on the server instead of sending e-mail */
+  file_notifier: boolean
+  choices: AutheliaStepChoice[]
+}
+/** POST /authelia/second-step */
+export interface AutheliaSecondStepResult {
+  success: boolean; mode: AutheliaStepMode; apps: string[]; applied: boolean; restarted: boolean; backup: string | null; message: string
+}
+/** GET /authelia/verification-code — the last message of Authelia's file notifier (admin) */
+export interface AutheliaVerificationCode {
+  file_notifier: boolean
+  found: boolean
+  message?: string
+  subject?: string
+  recipient?: string
+  code?: string | null
+  /** epoch seconds */
+  sent_at?: number | null
+  age_seconds?: number | null
+  /** sent in the last five minutes, the time a code lasts */
+  fresh?: boolean
+}
 /** One step of sharing or removing a host folder (GET /fleet/members/:id/folders?op=1) */
 export interface HostFolderStep { id: string; label: string; state: 'pending' | 'running' | 'done' | 'failed' | 'skipped'; detail: string }
 /** The steps under way for a VM's host folders, or the last ones */

@@ -188,7 +188,7 @@ export function CommandPalette() {
       notifications: 'Alerts, notifications, webhooks',
       automations: 'Timed and condition rules, schedules, the server crontab',
       diagnostics: 'Diagnostics, troubleshoot, debug, inspect',
-      users: 'User management, accounts, permissions',
+      users: 'User management, accounts, permissions, two-step sign-in to your apps (Authelia)',
       export: 'Export data, download reports, backup configs',
     }
     const pageKeywords: Partial<Record<PageId, string[]>> = {
@@ -221,7 +221,7 @@ export function CommandPalette() {
       notifications: ['notification', 'alert', 'webhook', 'notify', 'bell'],
       automations: ['automation', 'trigger', 'workflow', 'bot', 'rule', 'schedule', 'timer', 'cron', 'crontab', 'periodic', 'job'],
       diagnostics: ['diagnostic', 'troubleshoot', 'debug', 'inspect', 'doctor'],
-      users: ['user', 'account', 'permission', 'role', 'invite'],
+      users: ['user', 'account', 'permission', 'role', 'invite', 'authelia', 'two-factor', '2fa', 'authenticator', 'passkey', 'totp', 'sign-in'],
       export: ['export', 'download', 'report', 'backup', 'json'],
     }
 

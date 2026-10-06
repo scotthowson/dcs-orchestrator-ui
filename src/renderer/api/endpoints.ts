@@ -41,7 +41,7 @@ import type {
   TraefikFeedTokenResponse,
   FleetStatus, FleetMembersResponse, FleetMember, FleetMemberResponse, FleetOverview, FleetDiscoverResponse,
   FleetJoinTokensResponse, FleetJoinTokenResponse, FleetMemberTestResponse, FleetJoinHubResponse, FleetLeaveResponse,
-  FleetMemberSyncResponse, StackPushResponse, StackPullResponse, StackAppDataStatus, MemberFolders, HostFolderOperation, DashboardFeedStatus, WebTerminalStatus, ApiKeyInfo, ApiKeyCreated, SshAccess, SshKeyCreated,
+  FleetMemberSyncResponse, StackPushResponse, StackPullResponse, StackAppDataStatus, MemberFolders, HostFolderOperation, DashboardFeedStatus, WebTerminalStatus, AutheliaSecondStep, AutheliaSecondStepResult, AutheliaVerificationCode, ApiKeyInfo, ApiKeyCreated, SshAccess, SshKeyCreated,
   ProxmoxCapabilities, ProxmoxStorageResponse, FleetProvisionDefaults, FleetProvisionRequest, FleetMoveCheck, FleetProvisionResponse, FleetJob, FleetJobsResponse,
   SystemInfo,
   NetworkListResponse,
@@ -2256,6 +2256,14 @@ export function setWebTerminalEmbed(origins: string[]): Promise<{ success: boole
 export function setWebTerminalTheme(theme: Record<string, string>, font_size: number): Promise<{ success: boolean; message: string }> {
   return apiClient.post('/terminal/web/theme', { theme, font_size }, 60000)
 }
+/** GET /authelia/second-step — the second step at sign-in to the apps behind Authelia: the setting, what Authelia says now, the apps to choose from */
+export function fetchAutheliaSecondStep(): Promise<AutheliaSecondStep> { return apiClient.get<AutheliaSecondStep>('/authelia/second-step') }
+/** POST /authelia/second-step — set it (written into Authelia's rules; Authelia restarts to read them) (admin) */
+export function setAutheliaSecondStep(mode: AutheliaSecondStep['mode'], apps: string[] = []): Promise<AutheliaSecondStepResult> {
+  return apiClient.post<AutheliaSecondStepResult>('/authelia/second-step', mode === 'apps' ? { mode, apps } : { mode }, 30000)
+}
+/** GET /authelia/verification-code — the one-time code Authelia last wrote to its file on the server (admin) */
+export function fetchAutheliaVerificationCode(): Promise<AutheliaVerificationCode> { return apiClient.get<AutheliaVerificationCode>('/authelia/verification-code') }
 /** POST /feed/token — Switch the dashboard feed on with a new token; the token is answered once (admin) */
 export function createDashboardFeedToken(): Promise<{ success: boolean; token: string; message: string }> { return apiClient.post('/feed/token', {}) }
 /** DELETE /feed/token — Switch the dashboard feed off (admin) */
