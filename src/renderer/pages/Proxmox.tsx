@@ -1250,8 +1250,10 @@ export default function Proxmox() {
     })
   }, [all, query, show, memberByVm])
 
-  const refreshAll = () => { status.refresh(); nodes.refresh(); vms.refresh(); tasks.refresh(); fleet.refresh(); overview.refresh(); scan.refresh(); localStacks.refresh(); jobs.refresh() }
-  const refreshFleet = () => { fleet.refresh(); overview.refresh(); scan.refresh(); jobs.refresh(); vms.refresh() }
+  // the scan and the builds are an admin's to read (the server refuses them to anyone else): a refresh asks for them only then
+  const refreshAdminReads = () => { if (isAdmin) { scan.refresh(); jobs.refresh() } }
+  const refreshAll = () => { status.refresh(); nodes.refresh(); vms.refresh(); tasks.refresh(); fleet.refresh(); overview.refresh(); localStacks.refresh(); refreshAdminReads() }
+  const refreshFleet = () => { fleet.refresh(); overview.refresh(); refreshAdminReads(); vms.refresh() }
   const s = status.data
   const pveUrl = s?.url ?? ''
   // the guest whose details sheet is open, kept fresh from the list

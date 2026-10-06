@@ -52,9 +52,10 @@ export default function Stacks() {
   const { isHub: hubMode } = useFleetRole()
   const [showNewVm, setShowNewVm] = useState(false)
   const [moveStack, setMoveStack] = useState<string | null>(null)   // a hub stack on its way into a VM
-  const jobs = usePolling(fetchFleetJobs, 5000, { enabled: isConnected && hubMode })
-  const provDefaults = usePolling(fetchFleetProvisionDefaults, 60000, { enabled: isConnected && hubMode })
-  const caps = usePolling(fetchProxmoxCapabilities, 60000, { enabled: isConnected && hubMode })
+  // building VMs is an admin's: the server refuses these reads to anyone else (and the controls that use them are an admin's)
+  const jobs = usePolling(fetchFleetJobs, 5000, { enabled: isConnected && hubMode && isAdmin })
+  const provDefaults = usePolling(fetchFleetProvisionDefaults, 60000, { enabled: isConnected && hubMode && isAdmin })
+  const caps = usePolling(fetchProxmoxCapabilities, 60000, { enabled: isConnected && hubMode && isAdmin })
   const navigationPayload = useSettingsStore((s) => s.navigationPayload)
   const { addToast } = useToast()
 

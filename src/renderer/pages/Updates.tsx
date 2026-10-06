@@ -249,8 +249,9 @@ export default function Updates() {
 
   // ---- The fleet: a hub keeps its VMs on its own DCS version ----
   const { isHub } = useFleetRole()
-  const { data: fvData, refresh: refreshFleetVersions } = usePolling<FleetVersions>(fetchFleetVersions, 60000, { enabled: isConnected && isHub })
-  const fv = isHub ? fvData : null
+  const { data: fvData, refresh: refreshFleetVersions } = usePolling<FleetVersions>(fetchFleetVersions, 60000, { enabled: isConnected && isHub && isAdmin })
+  // the VMs' versions are an admin's to read (the server refuses them to anyone else)
+  const fv = isHub && isAdmin ? fvData : null
   const fleetMembers = useMemo(() => fv?.members ?? [], [fv])
   const [fleetUpdating, setFleetUpdating] = useState(false)
   // with the hub's own update: bring the VMs along (the server queues the round for after its restart)
@@ -362,7 +363,7 @@ export default function Updates() {
   }, [ingestCheck])
 
   const handleCheckSystemUpdate = useCallback(async () => {
-    if (sysChecking) return
+    if (sysChecking || !isAdmin) return
     setSysChecking(true)
     try {
       const result = await checkSystemUpdate()
@@ -384,7 +385,7 @@ export default function Updates() {
     } finally {
       setSysChecking(false)
     }
-  }, [sysChecking, addToast, ingestCheck])
+  }, [sysChecking, isAdmin, addToast, ingestCheck])
 
   const handleApplySystemUpdate = useCallback(async () => {
     if (sysApplying || !sysUpdate?.available) return
@@ -502,10 +503,10 @@ export default function Updates() {
   const conflicts = sysUpdate?.local_changes?.conflicts ?? []
   const userEdits = sysUpdate?.local_changes?.user.length ?? 0
 
-  // Auto-check for system + UI updates on mount
+  // Auto-check for system + UI updates on mount (the release check is an admin's; anyone reads the versions)
   useEffect(() => {
     if (isConnected && !sysUpdate && !sysChecking) {
-      checkSystemUpdate().then(ingestCheck).catch((e) => setSysCheckError(e instanceof Error ? e.message : 'The check failed'))
+      if (isAdmin) checkSystemUpdate().then(ingestCheck).catch((e) => setSysCheckError(e instanceof Error ? e.message : 'The check failed'))
       fetchVersion().then(setApiVersionInfo).catch(() => {})
     }
   }, [isConnected]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -518,12 +519,12 @@ export default function Updates() {
 
   // Periodic auto-check
   useEffect(() => {
-    if (!isConnected || !autoCheckUpdates || autoCheckUpdates <= 0) return
+    if (!isConnected || !isAdmin || !autoCheckUpdates || autoCheckUpdates <= 0) return
     const timer = setInterval(() => {
       checkSystemUpdate().then(ingestCheck).catch((e) => setSysCheckError(e instanceof Error ? e.message : 'The check failed'))
     }, autoCheckUpdates)
     return () => clearInterval(timer)
-  }, [isConnected, autoCheckUpdates, ingestCheck])
+  }, [isConnected, isAdmin, autoCheckUpdates, ingestCheck])
 
   // ---- Image update state ----
   const [registryChecking, setRegistryChecking] = useState(false)
@@ -770,14 +771,17 @@ export default function Updates() {
                 Last checked {formatRelativeTime(lastChecked)}
               </span>
             )}
-            <button type="button" onClick={handleCheckSystemUpdate} disabled={sysChecking} className={BTN_TOOLBAR_QUIET}>
-              {sysChecking ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
-              Check for updates
-            </button>
+            {isAdmin && (
+              <button type="button" onClick={handleCheckSystemUpdate} disabled={sysChecking} className={BTN_TOOLBAR_QUIET}>
+                {sysChecking ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                Check for updates
+              </button>
+            )}
           </>}
         />
 
-        {/* Auto-check settings */}
+        {/* Auto-check settings (the release check is an admin's: the server answers it to no one else) */}
+        {isAdmin && (
         <div className="flex flex-wrap items-center gap-3 mt-4 p-3 rounded-xl bg-white/[0.03] border border-white/[0.03]">
           <div className="flex-1 min-w-[12rem]">
             <label htmlFor="auto-check-updates" className="block text-xs font-medium text-slate-300">Auto-check for updates</label>
@@ -795,6 +799,7 @@ export default function Updates() {
             <option value={604800000}>Every week</option>
           </select>
         </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 mt-5">
           {/* DCS framework */}
@@ -1042,6 +1047,21 @@ export default function Updates() {
                     </div>
                   </div>
                 )}
+              </div>
+            ) : !isAdmin ? (
+              <div className="space-y-3">
+                <Fact label="Installed"><span className="text-xs font-mono text-slate-300">{apiVersionInfo?.framework_version || '—'}</span></Fact>
+                {apiVersionInfo && (
+                  <>
+                    <Fact label="API version"><span className="text-xs font-mono text-slate-300">{apiVersionInfo.api_version}</span></Fact>
+                    <Fact label="Docker"><span className="text-xs font-mono text-slate-300">{apiVersionInfo.docker_version}</span></Fact>
+                    <Fact label="Compose"><span className="text-xs font-mono text-slate-300">{apiVersionInfo.compose_version}</span></Fact>
+                  </>
+                )}
+                <p className="text-[10px] text-slate-500 flex items-start gap-1.5">
+                  <Shield size={11} className="shrink-0 mt-px" />
+                  <span>Admins check for and apply DCS updates.</span>
+                </p>
               </div>
             ) : sysCheckError ? (
               <div className="space-y-3">

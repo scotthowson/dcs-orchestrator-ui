@@ -341,7 +341,8 @@ export function ComposeViewer({ stackName, content, onClose, isAdmin = false }: 
 
   // ---- Load .env when tab switches ----
   useEffect(() => {
-    if (activeTab === 'env' && envContent === null && !envLoading) {
+    // a stack's .env is an admin's to read (the server refuses it to anyone else)
+    if (isAdmin && activeTab === 'env' && envContent === null && !envLoading) {
       setEnvLoading(true)
       setEnvError(null)
       fetchStackEnv(stackName)
@@ -357,7 +358,7 @@ export function ComposeViewer({ stackName, content, onClose, isAdmin = false }: 
         })
         .finally(() => setEnvLoading(false))
     }
-  }, [activeTab, stackName, envContent, envLoading])
+  }, [isAdmin, activeTab, stackName, envContent, envLoading])
 
   // ---- Initialize edit content when entering edit mode ----
   useEffect(() => {
@@ -1068,16 +1069,20 @@ export function ComposeViewer({ stackName, content, onClose, isAdmin = false }: 
             </div>
           </div>
 
-          {/* Tabs: one choice */}
-          <SegmentedControl
-            aria-label="File"
-            value={activeTab}
-            onChange={(v) => switchTab(v as 'compose' | 'env')}
-            data={[
-              { value: 'compose', label: <span className="flex items-center gap-1.5"><FileCode2 size={12} aria-hidden />Compose<CountBadge errors={composeCounts.errors} warnings={composeCounts.warnings} /></span> },
-              { value: 'env', label: <span className="flex items-center gap-1.5"><FileText size={12} aria-hidden />.env<CountBadge errors={envCounts.errors} warnings={envCounts.warnings} /></span> },
-            ]}
-          />
+          {/* Tabs: one choice (the .env holds the stack's secrets: only an admin may read it) */}
+          {isAdmin ? (
+            <SegmentedControl
+              aria-label="File"
+              value={activeTab}
+              onChange={(v) => switchTab(v as 'compose' | 'env')}
+              data={[
+                { value: 'compose', label: <span className="flex items-center gap-1.5"><FileCode2 size={12} aria-hidden />Compose<CountBadge errors={composeCounts.errors} warnings={composeCounts.warnings} /></span> },
+                { value: 'env', label: <span className="flex items-center gap-1.5"><FileText size={12} aria-hidden />.env<CountBadge errors={envCounts.errors} warnings={envCounts.warnings} /></span> },
+              ]}
+            />
+          ) : (
+            <p className="text-[11px] text-slate-500">Admins can open the stack&apos;s .env</p>
+          )}
 
           <div className="flex flex-wrap items-center gap-1.5 shrink-0">
             {/* ---- Compose tab buttons ---- */}
