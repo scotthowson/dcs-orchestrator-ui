@@ -1,6 +1,8 @@
 // =============================================================================
 // MobileNav — the phone shell's navigation: a bottom bar with the four pages
-// you reach for most, and a "More" sheet listing everything else in groups.
+// you reach for most, and a "More" sheet listing every page under the sidebar's
+// sections (constants/navSections). A section's other pages are also the tab
+// strip over the page (SectionTabs).
 // Shown under 768 px only; the sidebar takes over above that.
 // =============================================================================
 
@@ -8,12 +10,10 @@ import React, { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Menu, X, Search } from 'lucide-react'
 import { useSettingsStore } from '../../stores/settingsStore'
-import { useAuthStore } from '../../stores/authStore'
 import { useHealthStore } from '../../stores/healthStore'
 import { useApiLink } from '../../hooks/useApiLink'
-import { navItems } from './Sidebar'
 import { pageMeta } from '../../constants/pageTitles'
-import { ADMIN_ONLY_PAGES } from '../../../shared/types'
+import { useNavSections } from '../../hooks/useNavSections'
 import type { PageId } from '../../../shared/types'
 import ModalOverlay from '../common/ModalOverlay'
 
@@ -21,24 +21,17 @@ import ModalOverlay from '../common/ModalOverlay'
 const PRIMARY: { id: PageId; label: string; icon: React.ElementType }[] = (['dashboard', 'stacks', 'containers', 'health'] as const)
   .map((id) => ({ id, label: pageMeta[id].label, icon: pageMeta[id].icon }))
 
-const GROUPS: { label: string; ids: PageId[] }[] = [
-  { label: 'Core', ids: ['images', 'networks', 'volumes', 'dns', 'crowdsec', 'templates'] },
-  { label: 'Watch', ids: ['proxmox', 'uptime', 'trends', 'topology', 'updates', 'activity', 'event-feed', 'notifications'] },
-  { label: 'Manage', ids: ['secrets', 'schedules', 'automations', 'bookmarks', 'file-browser', 'plugins', 'backup', 'snapshots'] },
-  { label: 'System', ids: ['terminal', 'logs', 'environment', 'diagnostics', 'system', 'maintenance', 'disk-analysis', 'cronjobs', 'users', 'export', 'config', 'settings'] },
-]
-
 export function MobileNav() {
   const currentPage = useSettingsStore((s) => s.currentPage)
   const setCurrentPage = useSettingsStore((s) => s.setCurrentPage)
-  const userRole = useAuthStore((s) => s.userRole)
   const unhealthyReported = useHealthStore((s) => s.report?.summary?.unhealthy ?? 0)
   const link = useApiLink()
   // an old count is not a fact while the API does not answer
   const unhealthy = link.live ? unhealthyReported : 0
   const [moreOpen, setMoreOpen] = useState(false)
-  const isAdmin = userRole === 'admin'
-  const byId = new Map(navItems.map((n) => [n.id, n]))
+  // every section with its shown pages; the four on the bar are not listed again
+  const { shown } = useNavSections()
+  const onBar = new Set<PageId>(PRIMARY.map((p) => p.id))
   const onPrimary = PRIMARY.some((p) => p.id === currentPage)
 
   useEffect(() => {
@@ -89,7 +82,7 @@ export function MobileNav() {
             <span className={`flex items-center justify-center w-12 h-7 rounded-full ${!onPrimary || moreOpen ? 'accent-bg-subtle' : ''}`}>
               <Menu size={22} strokeWidth={!onPrimary ? 2.4 : 2} />
             </span>
-            <span className="text-[11px] font-medium leading-none">{onPrimary ? 'More' : (byId.get(currentPage)?.label ?? 'More')}</span>
+            <span className="text-[11px] font-medium leading-none">{onPrimary ? 'More' : (pageMeta[currentPage]?.label ?? 'More')}</span>
           </button>
         </div>
       </nav>
@@ -119,25 +112,28 @@ export function MobileNav() {
               </div>
             </div>
             <div className="overflow-y-auto px-4 pb-4 space-y-4 overscroll-contain">
-              {GROUPS.map((g) => {
-                const items = g.ids.map((id) => byId.get(id)).filter((n): n is NonNullable<typeof n> => !!n && (!ADMIN_ONLY_PAGES.has(n.id) || isAdmin))
+              {shown.map(({ section, pages }) => {
+                const items = pages.filter((id) => !onBar.has(id))
                 if (!items.length) return null
                 return (
-                  <section key={g.label}>
-                    <h3 className="px-1 mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{g.label}</h3>
+                  <section key={section.id}>
+                    <h3 className="px-1 mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                      <section.icon size={12} aria-hidden />{section.label}
+                    </h3>
                     <div className="grid grid-cols-2 gap-2">
-                      {items.map((n) => {
-                        const Icon = n.icon
-                        const active = currentPage === n.id
+                      {items.map((id) => {
+                        const Icon = pageMeta[id].icon
+                        const active = currentPage === id
                         return (
                           <button
-                            key={n.id}
+                            key={id}
                             type="button"
-                            onClick={() => go(n.id)}
+                            onClick={() => go(id)}
+                            aria-current={active ? 'page' : undefined}
                             className={`flex items-center gap-3 px-3.5 h-[52px] rounded-2xl border text-left transition-colors ${active ? 'accent-bg-subtle accent-border accent-text' : 'bg-white/[0.03] border-white/5 text-slate-200 active:bg-white/10'}`}
                           >
                             <Icon size={20} className={active ? 'accent-text' : 'text-slate-400'} />
-                            <span className="text-[15px] font-medium truncate">{n.label}</span>
+                            <span className="text-[15px] font-medium truncate">{pageMeta[id].label}</span>
                           </button>
                         )
                       })}

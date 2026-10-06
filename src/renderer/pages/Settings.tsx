@@ -12,7 +12,7 @@ import {
   Camera, Save, Key, AlertTriangle, XCircle, Plus, FolderPlus,
   Download, Upload, Bell, BellOff, Clock, LockKeyhole,
   Server, Copy, EyeOff, HeartPulse, Wifi, WifiOff, Loader2,
-  Star, CheckCircle, ChevronDown,
+  Star, CheckCircle, ChevronDown, PanelLeft,
 } from 'lucide-react'
 import { isMobile as isMobileDevice } from '../hooks/useMobile'
 import ConnectionForm from '../components/settings/ConnectionForm'
@@ -31,6 +31,8 @@ import { useNotificationStore } from '../stores/notificationStore'
 import PageHeader from '../components/common/PageHeader'
 import Hint from '../components/common/Hint'
 import { pageLabel } from '../constants/pageTitles'
+import { navSections } from '../constants/navSections'
+import SidebarPagesPanel from '../components/settings/SidebarPagesPanel'
 import {
   BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD, BTN_CARD_QUIET, BTN_ICON_SM,
   TONE_OK, TONE_DANGER, TONE_GHOST, TONE_GHOST_OK, TONE_GHOST_DANGER,
@@ -1040,15 +1042,14 @@ function AppearanceSettings() {
 // ---------------------------------------------------------------------------
 
 /** the pages Ctrl+1 … Ctrl+9 open, in the order App.tsx binds them (Ctrl+0 opens Settings) */
-const NUMBERED_PAGES: PageId[] = ['dashboard', 'stacks', 'containers', 'images', 'health', 'networks', 'volumes', 'uptime', 'bookmarks']
 
 function KeyboardShortcuts() {
   const shortcutGroups = [
     {
       group: 'Navigation',
       shortcuts: [
-        ...NUMBERED_PAGES.map((id, i) => ({ keys: `Ctrl + ${i + 1}`, description: pageLabel(id) })),
-        { keys: 'Ctrl + 0', description: pageLabel('settings') },
+        // the sidebar's sections in order: Ctrl + 1 … 9, then 0 for the tenth
+        ...navSections.map((sec, i) => ({ keys: `Ctrl + ${(i + 1) % 10}`, description: sec.label })),
         { keys: 'Ctrl + T', description: pageLabel('terminal') },
       ],
     },
@@ -2572,6 +2573,14 @@ export default function Settings() {
           fullWidth
         >
           <AppearanceSettings />
+        </SectionCard>
+
+        <SectionCard
+          icon={<PanelLeft size={16} className="accent-text" />}
+          title="Sidebar & pages"
+          fullWidth
+        >
+          <SidebarPagesPanel />
         </SectionCard>
 
         {/* Row 3: App Preferences (full-width) */}

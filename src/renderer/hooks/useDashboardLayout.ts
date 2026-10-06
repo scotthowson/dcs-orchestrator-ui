@@ -311,9 +311,26 @@ export function useDashboardLayout() {
     })
   }, [])
 
+  /**
+   * Show a card at the very top, full width, and move every visible card down by its height:
+   * the layout keeps its own shape, only one row taller. Saved at once (it is a choice, not an edit),
+   * with `config` for that card in the same save.
+   */
+  const placeOnTop = useCallback((id: string, config?: unknown): Promise<boolean> => {
+    const current = layoutRef.current
+    const card = current.cards.find((c) => c.id === id)
+    if (!card) return Promise.resolve(false)
+    const h = card.h > 0 ? card.h : (getCardEntry(id)?.defaultH ?? 4)
+    const cards = current.cards.map((c) => c.id === id
+      ? { ...c, visible: true, x: 0, y: 0, w: GRID_COLS, h }
+      : c.visible ? { ...c, y: c.y + h } : c)
+    return persistLayout({ ...current, cards, ...(config === undefined ? {} : { config: { ...(current.config || {}), [id]: config } }) })
+  }, [persistLayout])
+
   return {
     layout,
     visibleCards,
+    placeOnTop,
     allCards,
     editMode,
     saving,

@@ -3,7 +3,7 @@
 // =============================================================================
 
 import React, { useRef, useEffect } from 'react'
-import { WifiOff, Wifi, Loader2, Server, RefreshCw, Settings2 } from 'lucide-react'
+import { WifiOff, Wifi, Loader2, Server, RefreshCw, Settings2, BellRing } from 'lucide-react'
 import { Badge } from '@mantine/core'
 import { usePolling } from '../hooks/usePolling'
 import { ApiError, ApiNetworkError } from '../api/client'
@@ -413,6 +413,7 @@ export default function Dashboard() {
         <DisconnectedHero />
       ) : (
         <>
+          {!dashLayout.editMode && <NeedsYouOffer layout={dashLayout} />}
           <DashboardGrid
             cards={dashLayout.allCards}
             editMode={dashLayout.editMode}
@@ -433,6 +434,7 @@ export default function Dashboard() {
             cardConfig={dashLayout.cardConfig}
             onSaveCardConfig={dashLayout.saveCardConfig}
             cardProps={{
+              'needs-you': { stacks: stacksPoll.data?.stacks ?? null, stacksError: stacksPoll.error, images: imageUpdatesPoll.data ?? null, backup: backupStatusPoll.data ?? null, disks: disksPoll.data?.disks ?? null },
               'stack-controls': { stacks: stacksPoll.data?.stacks ?? null, error: stacksPoll.error, onRetry: stacksPoll.refresh, onRefresh: stacksPoll.refresh },
               'stack-grid': { stacks: stacksPoll.data?.stacks ?? null, error: stacksPoll.error, onRetry: stacksPoll.refresh },
               'resource-chart': { history: resourceHistoryRef.current },
@@ -450,6 +452,32 @@ export default function Dashboard() {
           />
         </>
       )}
+    </div>
+  )
+}
+
+/**
+ * A dashboard saved before "Needs your attention" existed gets it hidden, like every new card. This asks once,
+ * above the grid: put it on top (the rest of the layout moves down, unchanged) or leave it in the card picker.
+ * The answer is kept with the layout, so the other devices don't ask again.
+ */
+function NeedsYouOffer({ layout }: { layout: ReturnType<typeof useDashboardLayout> }) {
+  const card = layout.allCards.find((c) => c.id === 'needs-you')
+  const answered = (layout.cardConfig as Record<string, { offer?: string } | undefined>)['needs-you']?.offer
+  if (!card || card.visible || answered) return null
+  return (
+    <div className="glass-card flex flex-wrap items-center gap-3 px-4 py-3 border-emerald-500/20 animate-fade-in">
+      <BellRing size={18} className="shrink-0 accent-text" aria-hidden />
+      <div className="min-w-0 flex-1 basis-60">
+        <p className="text-sm font-medium text-slate-200">New card: Needs your attention</p>
+        <p className="text-xs text-slate-400">It lists only what&apos;s broken or waiting on you, each with the page that fixes it. Your cards stay as they are; they move down one row.</p>
+      </div>
+      <div className="flex items-center gap-2">
+        <button type="button" className={BTN_TOOLBAR_QUIET} onClick={() => void layout.saveCardConfig('needs-you', { offer: 'declined' })}>Not now</button>
+        <button type="button" className="px-3 py-2 rounded-lg text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-500 transition-colors" onClick={() => void layout.placeOnTop('needs-you', { offer: 'added' })}>
+          Add it to the top
+        </button>
+      </div>
     </div>
   )
 }

@@ -4,6 +4,7 @@ import { AppSettings, PageId, ADMIN_ONLY_PAGES } from '../../shared/types'
 // inside function bodies (never at module evaluation time).
 import { useAuthStore } from './authStore'
 import { getDefaultServerUrl } from '../lib/env'
+import { rememberTab } from '../constants/navSections'
 
 /** the theme choice, persisted with the other settings */
 export interface ThemeSettings {
@@ -26,6 +27,7 @@ export const DEFAULT_SETTINGS: PersistedSettings = {
   // until the person picks one, the look follows the device (prefers-color-scheme)
   theme: 'system',
   sidebarCollapsed: false,
+  hiddenPages: [],
   diskLabels: {},
   pinnedDisks: [],
   customDisks: [],
@@ -111,6 +113,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       }
     }
     set({ currentPage: page, navigationPayload: payload ?? null })
+    rememberTab(page)
     // Persist last page so F5/refresh restores it (skip transient pages)
     if (!TRANSIENT_PAGES.has(page)) {
       persistSetting('lastPage', page)
@@ -166,5 +169,6 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       settingsLoaded: true,
       ...(restoredPage ? { currentPage: restoredPage } : {}),
     })
+    if (restoredPage) rememberTab(restoredPage)
   },
 }))

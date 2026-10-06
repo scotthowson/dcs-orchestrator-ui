@@ -28,6 +28,7 @@ import { useContainerStore } from '../stores/containerStore'
 import type { PageId, TemplateInfo, ProxmoxVm, FleetMember } from '../../shared/types'
 import { ADMIN_ONLY_PAGES } from '../../shared/types'
 import ModalOverlay from './common/ModalOverlay'
+import { navPages, sectionOf } from '../constants/navSections'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -231,7 +232,8 @@ export function CommandPalette() {
       export: ['export', 'download', 'report', 'backup', 'json'],
     }
 
-    const allPages: PageId[] = ['dashboard', 'stacks', 'containers', 'images', 'health', 'networks', 'volumes', 'uptime', 'bookmarks', 'activity', 'event-feed', 'topology', 'file-browser', 'templates', 'updates', 'trends', 'secrets', 'schedules', 'plugins', 'terminal', 'cronjobs', 'disk-analysis', 'maintenance', 'environment', 'backup', 'export', 'notifications', 'automations', 'snapshots', 'logs', 'system', 'diagnostics', 'users', 'config', 'settings', 'dns', 'crowdsec', 'proxmox']
+    // every page the sidebar reaches, in its order
+    const allPages: PageId[] = navPages
     // Filter out admin-only pages for non-admin users
     const pages = allPages.filter((p) => !ADMIN_ONLY_PAGES.has(p) || isAdmin)
     for (const page of pages) {
@@ -239,7 +241,8 @@ export function CommandPalette() {
       items.push({
         id: `nav-${page}`,
         label: `Go to ${meta.label}`,
-        description: pageDescriptions[page] ?? 'Navigate',
+        // where it lives in the sidebar, so the new home of a page is learnt by using the palette
+        description: [sectionOf(page)?.pages.length !== 1 ? sectionOf(page)?.label : undefined, pageDescriptions[page] ?? 'Navigate'].filter(Boolean).join(' · '),
         icon: <meta.icon size={16} />,
         type: 'page',
         // the names the page went by stay findable

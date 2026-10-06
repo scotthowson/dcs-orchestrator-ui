@@ -79,6 +79,7 @@ Connect to and switch between multiple DCS servers from a single app.
 
 Live overview with configurable polling intervals.
 
+- **Needs your attention** — only what is broken or waiting on you (a stack with stopped containers, an unhealthy container, a VM that doesn't answer, a missing App-Data drive, a failed or old backup, a nearly full disk, image and DCS updates), worst first, each with the page that fixes it; hide an item until it changes. A dashboard arranged before the card existed is asked once whether to add it on top
 - **Overview cards** — container counts, stack status, health summary
 - **Health score gauge** — weighted 0–100 scoring with A–F grades (stacks, resources, images, uptime factors)
 - **Resource charts** — real-time memory and load visualization (Recharts)
@@ -301,6 +302,25 @@ Traefik elsewhere: switch it on, copy the snippet the panel shows into that Trae
 
 ## Navigation
 
+### Sidebar sections
+
+The sidebar has ten sections; each opens on a strip of its pages, and returns to the one you were last on.
+
+| Section | Pages |
+|---------|-------|
+| Dashboard | your cards |
+| Stacks | Stacks · Templates · Environment |
+| Fleet | Proxmox · Topology |
+| Docker | Containers · Images · Volumes · Networks · Disk Analysis |
+| Monitoring | Health · Uptime · Trends · Diagnostics · Activity · Live Events · Logs |
+| Security | CrowdSec · DNS & Routes · Secrets · Users |
+| Maintenance | Updates · Backup · Snapshots · Export · Cleanup |
+| Automation | Schedules · Cron Jobs · Automations |
+| Tools | Terminal · File Browser · Bookmarks · Plugins |
+| Settings | Settings · Notifications · Config · System |
+
+Settings → **Sidebar & pages** hides the sections and pages you don't use (on that device); a hidden page still opens from the command palette, a link or a notification.
+
 ### Command Palette
 
 `Ctrl+K` / `Cmd+K` — global spotlight search across all pages, stacks, containers, and dynamic actions.
@@ -313,8 +333,8 @@ Traefik elsewhere: switch it on, copy the snippet the panel shows into that Trae
 
 | Shortcut | Action |
 |----------|--------|
-| `Ctrl+1`–`9` | Navigate to page by position |
-| `Ctrl+0` | Settings |
+| `Ctrl+1`–`9` | Open a sidebar section by its place (Dashboard, Stacks, Fleet, …) |
+| `Ctrl+0` | Settings (the tenth section) |
 | `Ctrl+K` | Command palette |
 | `Ctrl+B` | Toggle sidebar |
 | `Ctrl+D` | Toggle dark/light theme |

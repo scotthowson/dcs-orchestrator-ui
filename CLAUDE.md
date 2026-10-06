@@ -46,15 +46,17 @@ The main process bundles to CJS (`dist/main/index.cjs`) via esbuild. The rendere
 
 ### Navigation / Page Routing
 
-There is no React Router. Navigation is a `currentPage: PageId` state in `settingsStore`. App.tsx maps `PageId` to components via `pageComponents` record. Pages transition with a 150ms opacity fade. Keyboard shortcuts `Ctrl+1-9` map to `pageOrder` array indices.
+There is no React Router. Navigation is a `currentPage: PageId` state in `settingsStore`. App.tsx maps `PageId` to components via `pageComponents` record. Pages transition with a 150ms opacity fade.
+
+The sidebar has ten **sections** (`src/renderer/constants/navSections.ts`: Dashboard, Stacks, Fleet, Docker, Monitoring, Security, Maintenance, Automation, Tools, Settings); every page lives in exactly one, and a section's pages are the tab strip over the page (`components/layout/SectionTabs.tsx`). A page keeps its own `PageId`, so anything that opens a page by id still works. The sidebar, the strip, the phone's More sheet, the command palette and `Ctrl+1…9, 0` (the sections in order) all read `navSections`. A person can hide sections and pages in Settings → Sidebar & pages (`hiddenPages`, kept per device); a hidden page still opens from the palette or a link.
 
 **To add a new page:**
 1. Add to `PageId` union in `src/shared/types.ts`
 2. Name it once in `pageMeta` in `src/renderer/constants/pageTitles.ts` (label, icon, a one-line subtitle, the names it went by as `aliases`). The sidebar, the phone menu, the breadcrumb, the top bar on a phone, the command palette, the quick-action picker, the browser tab and the page's own heading (`<PageHeader page="…" />`) all read that entry; where a sentence names a page, write `pageLabel('id')`, never the words
 3. Create `src/renderer/pages/YourPage.tsx` (default export)
-4. Import and add to `pageComponents` + `pageOrder` in `App.tsx`
-5. Give it a place in the sidebar (`nav('id', 'main' | 'system')` in `navItems`, `Sidebar.tsx`) and a group in `MobileNav.tsx`
-6. Add its id to `allPages` and its search words to `pageDescriptions` / `pageKeywords` in `CommandPalette.tsx`
+4. Import and add to `pageComponents` in `App.tsx`
+5. Give it a section: one line in `SECTION_OF` in `src/renderer/constants/navSections.ts` (TypeScript refuses a page without one; the order there is the tab order)
+6. Add its search words to `pageDescriptions` / `pageKeywords` in `CommandPalette.tsx`
 
 ### State Management (Zustand)
 
