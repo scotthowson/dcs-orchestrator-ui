@@ -1,5 +1,5 @@
 appId: com.dcs.skeleton-ui
-productName: DCS Manager
+productName: DCS Orchestrator
 directories:
   output: release
   buildResources: build
@@ -17,7 +17,7 @@ linux:
   synopsis: DCS Orchestrator dashboard
   description: Desktop dashboard for DCS Orchestrator servers, with live monitoring, stack management, health checks, and more.
   desktop:
-    Name: DCS Manager
+    Name: DCS Orchestrator
     Comment: DCS Orchestrator dashboard
     Categories: Development;System;
 deb:

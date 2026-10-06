@@ -374,7 +374,7 @@ export default function Updates() {
       } else if (result.available) {
         addToast({ type: 'info', message: `DCS ${result.latest_version || result.latest_name || ''} is available (${result.commits_behind} commit${result.commits_behind !== 1 ? 's' : ''})` })
       } else if (result.ui_update?.available) {
-        addToast({ type: 'info', message: 'A DCS Manager update is available' })
+        addToast({ type: 'info', message: 'A dashboard update is available' })
       } else {
         addToast({ type: 'success', message: 'Everything is up to date' })
       }
@@ -1073,7 +1073,7 @@ export default function Updates() {
             <div className="flex items-center gap-3 mb-4">
               <CardIcon><Monitor size={16} /></CardIcon>
               <div>
-                <h3 className="text-sm font-semibold text-slate-200">DCS Manager</h3>
+                <h3 className="text-sm font-semibold text-slate-200">Dashboard</h3>
                 <p className="text-[10px] text-slate-500">This dashboard</p>
               </div>
             </div>
@@ -1095,13 +1095,13 @@ export default function Updates() {
                   type="button"
                   onClick={async () => {
                     setUiUpdating(true)
-                    addToast({ type: 'info', message: 'Updating DCS Manager…', duration: 3000 })
+                    addToast({ type: 'info', message: 'Updating the dashboard…', duration: 3000 })
                     try {
                       await applyUiUpdate()
-                      addToast({ type: 'success', message: 'DCS Manager updated — reconnecting…', duration: 5000 })
+                      addToast({ type: 'success', message: 'Dashboard updated — reconnecting…', duration: 5000 })
                       setTimeout(() => window.location.reload(), 8000)
                     } catch (err) {
-                      addToast({ type: 'error', message: err instanceof Error ? err.message : 'The DCS Manager update failed' })
+                      addToast({ type: 'error', message: err instanceof Error ? err.message : 'The dashboard update failed' })
                     }
                     setUiUpdating(false)
                   }}
@@ -1109,7 +1109,7 @@ export default function Updates() {
                   className={`${BTN_SHEET_PRIMARY} w-full`}
                 >
                   {uiUpdating ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
-                  {uiUpdating ? 'Updating…' : 'Update DCS Manager'}
+                  {uiUpdating ? 'Updating…' : 'Update the dashboard'}
                 </button>
               </div>
             )}

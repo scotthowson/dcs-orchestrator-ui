@@ -623,7 +623,7 @@ views.dcs = async (ctx, force = false) => {
     { name: 'Docker', value: `${String(v.docker_version || '').replace(/^Docker version /, '').replace(/,.*$/, '') || '?'} · ${String(v.compose_version || '').replace(/^Docker Compose version /, '').replace(/[+-].*$/, '') || '?'}`, inline: true },
     upd?.restart_method ? { name: 'Restart', value: `${upd.restart_method}${upd.api_pid ? ` · pid ${upd.api_pid}` : ''}`, inline: true } : null,
     apiUp != null ? { name: 'API up', value: since(apiUp), inline: true } : null,
-    upd?.ui_update?.available ? { name: 'Dashboard', value: `⬆️ a newer DCS Manager image is available${upd.ui_update.latest ? ` (${upd.ui_update.latest})` : ''}`, inline: false } : null,
+    upd?.ui_update?.available ? { name: 'Dashboard', value: `⬆️ a newer dashboard image is available${upd.ui_update.latest ? ` (${upd.ui_update.latest})` : ''}`, inline: false } : null,
     upd?.has_local_changes ? { name: 'Local edits', value: `${(upd.local_changes?.framework || []).length ? `framework files edited: ${upd.local_changes.framework.slice(0, 5).map(code).join(' ')}` : 'user files only'}`, inline: false } : null,
   ]
   if (upd?.available && upd.release_notes) fields.push({ name: `What's new in ${upd.latest_name || upd.latest_version}`, value: truncate(upd.release_notes.replace(/^#+\s*/gm, '').trim(), 900), inline: false })

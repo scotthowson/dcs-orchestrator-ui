@@ -37,8 +37,9 @@ export const DEFAULT_SETTINGS: PersistedSettings = {
   autoCheckUpdates: 0, // 0 = off, or interval in ms (3600000 = hourly, 86400000 = daily)
   updatesAvailable: 0, // number of available DCS framework updates
   notificationsEnabled: true,
-  projectName: 'DCS Manager',
-  projectSubtitle: 'DCS Orchestrator',
+  projectName: 'DCS Orchestrator',
+  // '' = the server's name (useBrand)
+  projectSubtitle: '',
   connectionProfiles: [],
   customCSS: '',
   rememberUsername: true,
@@ -93,6 +94,10 @@ async function loadPersistedSettings(): Promise<Partial<PersistedSettings>> {
     return {}
   }
 }
+
+/** the app name and subtitle earlier versions shipped as defaults (a saved one of these is not a choice) */
+export const OLD_DEFAULT_NAMES = ['', 'DCS Manager', 'Docker Compose Skeleton', 'Docker Compose Skeleton UI']
+export const OLD_DEFAULT_SUBTITLES = ['', 'DCS Orchestrator', 'Docker Compose Skeleton']
 
 /** pages a refresh never returns to */
 const TRANSIENT_PAGES: ReadonlySet<string> = new Set(['setup', 'login'])
@@ -158,13 +163,17 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     // a mode this build does not know (a hand-edited file, an old build's typo) means "follow the device"
     const mode = (stored as Record<string, unknown>).theme
     const theme = mode === 'dark' || mode === 'light' || mode === 'system' ? mode : DEFAULT_SETTINGS.theme
-    // the subtitle every install saved before the product had its name: the new default replaces it
+    // the name and subtitle earlier versions saved as their defaults are today's defaults: the app is called
+    // DCS Orchestrator, and the line under it is the server's name unless someone wrote their own
+    const savedName = (stored as Record<string, unknown>).projectName
+    const projectName = typeof savedName === 'string' && !OLD_DEFAULT_NAMES.includes(savedName) ? savedName : DEFAULT_SETTINGS.projectName
     const savedSubtitle = (stored as Record<string, unknown>).projectSubtitle
-    const projectSubtitle = savedSubtitle === 'Docker Compose Skeleton' ? DEFAULT_SETTINGS.projectSubtitle : savedSubtitle
+    const projectSubtitle = typeof savedSubtitle === 'string' && !OLD_DEFAULT_SUBTITLES.includes(savedSubtitle) ? savedSubtitle : DEFAULT_SETTINGS.projectSubtitle
     set({
       ...DEFAULT_SETTINGS,
       ...stored,
-      ...(typeof projectSubtitle === 'string' ? { projectSubtitle } : {}),
+      projectName,
+      projectSubtitle,
       theme,
       settingsLoaded: true,
       ...(restoredPage ? { currentPage: restoredPage } : {}),

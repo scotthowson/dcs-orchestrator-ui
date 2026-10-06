@@ -401,8 +401,9 @@ export default function SetupWizard({ onComplete }: WizardProps) {
   const [prefTheme, setPrefTheme] = useState<'dark' | 'light' | 'system'>(() => useSettingsStore.getState().theme)
   const [prefSessionMinutes, setPrefSessionMinutes] = useState(240)
   const [prefAutoLock, setPrefAutoLock] = useState(0)
-  const [prefAppName, setPrefAppName] = useState('DCS Manager')
-  const [prefAppSubtitle, setPrefAppSubtitle] = useState('DCS Orchestrator')
+  const [prefAppName, setPrefAppName] = useState('DCS Orchestrator')
+  // '' = the server's name
+  const [prefAppSubtitle, setPrefAppSubtitle] = useState('')
 
   // Pre-flight validation
   const [alreadyConfigured, setAlreadyConfigured] = useState(false)
@@ -2336,7 +2337,7 @@ export default function SetupWizard({ onComplete }: WizardProps) {
                           type="text"
                           value={prefAppName}
                           onChange={(e) => setPrefAppName(e.target.value)}
-                          placeholder="DCS Manager"
+                          placeholder="DCS Orchestrator"
                           className={W_INPUT}
                         />
                       </div>
@@ -2346,7 +2347,7 @@ export default function SetupWizard({ onComplete }: WizardProps) {
                           type="text"
                           value={prefAppSubtitle}
                           onChange={(e) => setPrefAppSubtitle(e.target.value)}
-                          placeholder="DCS Orchestrator"
+                          placeholder="The server's name"
                           className={W_INPUT}
                         />
                       </div>
@@ -2745,7 +2746,7 @@ export default function SetupWizard({ onComplete }: WizardProps) {
                 )}
 
                 {/* Dashboard Preferences (only if non-default) */}
-                {(prefTheme !== 'system' || prefSessionMinutes !== 240 || prefAutoLock !== 0 || prefAppName !== 'DCS Manager' || prefAppSubtitle !== 'DCS Orchestrator') && (
+                {(prefTheme !== 'system' || prefSessionMinutes !== 240 || prefAutoLock !== 0 || prefAppName !== 'DCS Orchestrator' || prefAppSubtitle !== '') && (
                   <div className="bg-slate-800/40 border border-white/5 rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-3">
                       <Palette size={14} className="text-cyan-400" />
@@ -2770,13 +2771,13 @@ export default function SetupWizard({ onComplete }: WizardProps) {
                           <span className="text-[10px] font-mono text-slate-300 truncate ml-2">{prefAutoLock}min</span>
                         </div>
                       )}
-                      {prefAppName !== 'DCS Manager' && (
+                      {prefAppName !== 'DCS Orchestrator' && (
                         <div className="flex items-center justify-between py-1 px-2 rounded bg-white/[0.03]">
                           <span className="text-[10px] text-slate-500 shrink-0">App name</span>
                           <span className="text-[10px] font-mono text-slate-300 truncate ml-2">{prefAppName}</span>
                         </div>
                       )}
-                      {prefAppSubtitle !== 'DCS Orchestrator' && (
+                      {prefAppSubtitle !== '' && (
                         <div className="flex items-center justify-between py-1 px-2 rounded bg-white/[0.03]">
                           <span className="text-[10px] text-slate-500 shrink-0">Subtitle</span>
                           <span className="text-[10px] font-mono text-slate-300 truncate ml-2">{prefAppSubtitle}</span>

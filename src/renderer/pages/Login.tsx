@@ -2,7 +2,7 @@
 // Login — the sign-in screen: connect to a server, sign in (with a 2FA code
 // when the account has one), register with an invite code, or create the first
 // admin. Shown before anyone is signed in, so it has no page header: it is the
-// product's front door (DCS Manager, the dashboard of DCS Orchestrator).
+// product's front door (the dashboard of DCS Orchestrator).
 // =============================================================================
 
 import { useState, useEffect, useRef, useCallback } from 'react'
@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 import { useSettingsStore } from '../stores/settingsStore'
+import { useBrand } from '../hooks/useBrand'
 import { useConnectionStore } from '../stores/connectionStore'
 import { useServerStore } from '../stores/serverStore'
 import { authRegister, authLogin, authSetup, authVerify, fetchSetupStatus, totpValidate } from '../api/endpoints'
@@ -37,8 +38,7 @@ export default function Login() {
     hasAccount, loading, error,
     register, login, clearError, setApiToken, setUserRole,
   } = useAuthStore()
-  const projectName = useSettingsStore((s) => s.projectName) || 'DCS Manager'
-  const projectSubtitle = useSettingsStore((s) => s.projectSubtitle) || 'DCS Orchestrator'
+  const { name: projectName, subtitle: projectSubtitle } = useBrand()
   const lastUsername = useSettingsStore((s) => s.lastUsername)
   const sessionDurationMinutes = useSettingsStore((s) => s.sessionDurationMinutes)
   const setCurrentPage = useSettingsStore((s) => s.setCurrentPage)
@@ -569,9 +569,11 @@ export default function Login() {
           <h1 className="text-2xl font-bold text-slate-100 tracking-tight">
             {projectName}
           </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            {projectSubtitle}
-          </p>
+          {projectSubtitle && (
+            <p className="text-sm text-slate-500 mt-1">
+              {projectSubtitle}
+            </p>
+          )}
         </div>
 
         {/* Form card */}

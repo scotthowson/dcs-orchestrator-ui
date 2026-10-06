@@ -56,8 +56,8 @@
   <circle cx="230" cy="130" r="80" fill="none" stroke="url(#accent)" stroke-width="7"/>
   <g transform="translate(230 130) scale(0.44)"><path d="M-64 6 L-14 56 L78 -46" fill="none" stroke="url(#accent)" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/></g></g>
   <g font-family="Inter, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" fill="#f8fafc">
-    <text x="560" y="196" font-size="96" font-weight="800" letter-spacing="-3">DCS Manager</text>
-    <text x="562" y="262" font-size="34" font-weight="500" fill="#cbd5e1">The dashboard for DCS Orchestrator</text>
+    <text x="560" y="196" font-size="96" font-weight="800" letter-spacing="-3">Dashboard</text>
+    <text x="562" y="262" font-size="34" font-weight="500" fill="#cbd5e1">DCS Orchestrator, in your browser and app</text>
   </g>
   <g transform="translate(562 300)" font-family="'JetBrains Mono', 'Fira Mono', Menlo, Consolas, monospace" font-size="24"><rect x="0" y="0" width="124" height="52" rx="26" fill="#0b1220" stroke="url(#accent)" stroke-width="2"/><text x="24" y="34" fill="#a7f3d0">stacks</text><rect x="140" y="0" width="163" height="52" rx="26" fill="#0b1220" stroke="url(#accent)" stroke-width="2"/><text x="164" y="34" fill="#a7f3d0">templates</text><rect x="319" y="0" width="124" height="52" rx="26" fill="#0b1220" stroke="url(#accent)" stroke-width="2"/><text x="343" y="34" fill="#a7f3d0">health</text><rect x="459" y="0" width="150" height="52" rx="26" fill="#0b1220" stroke="url(#accent)" stroke-width="2"/><text x="483" y="34" fill="#a7f3d0">topology</text></g>
   <g transform="translate(562 386)" font-family="Inter, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="22" fill="#64748b"><text x="0" y="0">Desktop, web and mobile · stacks, templates, health, everything.</text></g>

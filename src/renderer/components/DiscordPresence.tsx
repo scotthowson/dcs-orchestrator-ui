@@ -43,7 +43,7 @@ export default function DiscordPresence() {
         details: isConnected ? `Managing ${server}` : `Reconnecting to ${server}`,
         state: isConnected ? parts.join(' · ') : 'Waiting for the API',
         largeImageKey: 'dcs',
-        largeImageText: `DCS Manager ${BUILD_VERSION}`,
+        largeImageText: `DCS Orchestrator ${BUILD_VERSION}`,
         smallImageKey: !isConnected ? 'warning' : unhealthy > 0 ? 'warning' : 'healthy',
         smallImageText: !isConnected ? 'Disconnected' : unhealthy > 0 ? `${unhealthy} container${unhealthy === 1 ? '' : 's'} unhealthy` : 'Everything healthy',
         startTimestamp: startedAt.current,

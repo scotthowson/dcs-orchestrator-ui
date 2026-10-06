@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli'
 
 const config: CapacitorConfig = {
   appId: 'com.dcs.manager',
-  appName: 'DCS Manager',
+  appName: 'DCS Orchestrator',
   webDir: 'dist/renderer',
   server: {
     androidScheme: 'http',

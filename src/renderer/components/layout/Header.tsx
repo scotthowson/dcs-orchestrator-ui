@@ -165,7 +165,7 @@ function WhatsNewModal({ onClose }: { onClose: () => void }) {
 
         {/* Footer */}
         <div className="px-6 py-3 border-t border-white/5 flex items-center justify-between shrink-0">
-          <p className="text-[10px] text-slate-500">DCS Manager v{BUILD_VERSION}</p>
+          <p className="text-[10px] text-slate-500">DCS Orchestrator · dashboard v{BUILD_VERSION}</p>
           <button
             onClick={onClose}
             className="px-4 py-1.5 rounded-lg text-xs font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/25 transition-all press"

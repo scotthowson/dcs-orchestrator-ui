@@ -398,7 +398,7 @@ export default function Config() {
     NTFY_TOPIC: d.ntfy_topic ?? '',
     NTFY_PRIORITY: d.ntfy_priority ?? 'default',
     DISCORD_WEBHOOK_URL: '',
-    DISCORD_WEBHOOK_NAME: d.discord_webhook_name ?? 'DCS Manager',
+    DISCORD_WEBHOOK_NAME: d.discord_webhook_name ?? 'DCS Orchestrator',
     PROXMOX_URL: d.proxmox_url ?? '',
     PROXMOX_TOKEN_ID: d.proxmox_token_id ?? '',
     PROXMOX_TOKEN_SECRET: '',
@@ -899,9 +899,9 @@ export default function Config() {
               label="Discord name"
               description="The name the Discord posts appear with"
               configKey="DISCORD_WEBHOOK_NAME"
-              value={String(edits.DISCORD_WEBHOOK_NAME ?? cfg.discord_webhook_name ?? 'DCS Manager')}
+              value={String(edits.DISCORD_WEBHOOK_NAME ?? cfg.discord_webhook_name ?? 'DCS Orchestrator')}
               onChange={handleStringChange}
-              placeholder="DCS Manager"
+              placeholder="DCS Orchestrator"
             />
             <TextRow
               label="Discord avatar"
@@ -1126,7 +1126,7 @@ function getOriginalValue(data: ServerConfig, key: string): string | boolean | n
     API_IP_WHITELIST: data.api_ip_whitelist ?? '',
     NTFY_URL: data.ntfy_url ?? '',
     NTFY_TOPIC: data.ntfy_topic ?? '',
-    DISCORD_WEBHOOK_NAME: data.discord_webhook_name ?? 'DCS Manager',
+    DISCORD_WEBHOOK_NAME: data.discord_webhook_name ?? 'DCS Orchestrator',
     PROXMOX_URL: data.proxmox_url ?? '',
     PROXMOX_TOKEN_ID: data.proxmox_token_id ?? '',
     PROXMOX_TOKEN_SECRET: '',

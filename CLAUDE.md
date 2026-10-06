@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-DCS Manager is the dashboard of [DCS Orchestrator](https://github.com/scotthowson/dcs-orchestrator) (formerly Docker Compose Skeleton): a premium Electron desktop application that also builds as a web app (the `DCS-UI` container) and an Android app (Capacitor). It connects to the DCS REST API (default `http://127.0.0.1:9876`) and provides live monitoring, stack management, container control, and full server administration through a dark glassmorphism design system.
+This is the dashboard of [DCS Orchestrator](https://github.com/scotthowson/dcs-orchestrator) (formerly Docker Compose Skeleton): a premium Electron desktop application that also builds as a web app (the `DCS-UI` container) and an Android app (Capacitor). It connects to the DCS REST API (default `http://127.0.0.1:9876`) and provides live monitoring, stack management, container control, and full server administration through a dark glassmorphism design system.
 
 **Stack:** Electron 33 + React 18 + Vite 6 + Tailwind CSS 3 + Zustand 5 + TypeScript 5 (+ [Mantine](https://mantine.dev) 8 for a few components, see below)
 
@@ -26,7 +26,7 @@ There is no unit-test suite and no linter. The checks are `npm run typecheck`, `
 ### Process Model (Electron)
 
 ```
-Main Process (src/main/index.ts; its first import, userData.ts, names the data folder "DCS Manager" and carries an older "Docker Compose Skeleton UI" folder over once)
+Main Process (src/main/index.ts; its first import, userData.ts, names the data folder "DCS Orchestrator" and carries an older "DCS Manager" or "Docker Compose Skeleton UI" folder over once)
   ├── BrowserWindow with contextIsolation: true
   ├── electron-store for persistent settings (IPC bridge)
   ├── CORS proxy via session.webRequest (allows localhost API calls)

@@ -60,6 +60,8 @@ export interface APIVersion {
 export interface ServerStatus {
   timestamp: string
   hostname: string
+  /** SERVER_NAME from the server's .env, '' when unset (4.0.35): the sidebar shows it under the app name */
+  server_name?: string
   uptime_seconds: number
   docker: {
     containers: {

@@ -39,10 +39,10 @@ const SESSION_STARTED = Date.now()
 
 /** Shown from the moment Discord accepts the connection until the app reports its facts */
 const DEFAULT_PAYLOAD: PresencePayload = {
-  details: 'DCS Manager',
+  details: 'DCS Orchestrator',
   state: 'Opening the dashboard…',
   largeImageKey: 'dcs',
-  largeImageText: 'DCS Manager',
+  largeImageText: 'DCS Orchestrator',
   startTimestamp: SESSION_STARTED,
   buttons: [{ label: 'Get DCS', url: 'https://github.com/scotthowson/dcs-orchestrator' }],
 }

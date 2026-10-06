@@ -1,7 +1,7 @@
 // =============================================================================
 // The folder Electron keeps a person's settings, sign-in and cache in is named after the app.
 // It is named here, on purpose, not left to what the packaging tool derives from the package:
-// the dashboard is DCS Manager, and a folder of the earlier names ("Docker Compose Skeleton UI",
+// the app is DCS Orchestrator, and a folder of the earlier names ("DCS Manager", "Docker Compose Skeleton UI",
 // or the package name in a development run) is carried over once, so nobody signs in again.
 //
 // This module must be the FIRST import of the main process: electron-store opens its file in
@@ -12,8 +12,8 @@ import { app } from 'electron'
 import path from 'path'
 import { migrateUserData } from './userDataMigration'
 
-const NAME = 'DCS Manager'
-const EARLIER_NAMES = ['Docker Compose Skeleton UI', 'docker-compose-skeleton-ui']
+const NAME = 'DCS Orchestrator'
+const EARLIER_NAMES = ['DCS Manager', 'Docker Compose Skeleton UI', 'docker-compose-skeleton-ui']
 
 app.setName(NAME)
 const appData = app.getPath('appData')

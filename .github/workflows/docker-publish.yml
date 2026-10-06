@@ -36,7 +36,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v6
         with:
-          # The dashboard image keeps its old name beside the new one for one release: GHCR does not redirect the package of a renamed
+          # The dashboard image keeps its old name beside the new one for a few releases (4.0.31 moves installs to the new one): GHCR does not redirect the package of a renamed
           # repository, and installs made before 4.0 pull ghcr.io/scotthowson/docker-compose-skeleton-ui. (Before the rename both lines are one image.)
           images: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}

@@ -389,10 +389,10 @@ function DiscordPresenceSettings() {
           </button>
         </div>
         <p className="text-[11px] text-slate-500 mt-2">
-          Not showing up? In Discord open User Settings → Activity Privacy and turn on “Share your detected activities with others” and “Display current activity as a status message”. Your own profile (click your avatar) shows it as “Playing DCS Manager”.
+          Not showing up? In Discord open User Settings → Activity Privacy and turn on “Share your detected activities with others” and “Display current activity as a status message”. Your own profile (click your avatar) shows it as “Playing DCS Orchestrator” (the name of your Discord application).
         </p>
         <p className="text-[11px] text-slate-500 mt-2 leading-relaxed">
-          Create an application at <span className="font-mono">discord.com/developers/applications</span> named “DCS Manager”, copy its Application ID here, and under Rich Presence → Art Assets upload three images named <span className="font-mono">dcs</span> (the big icon), <span className="font-mono">healthy</span> and <span className="font-mono">warning</span> (the small badge).
+          Create an application at <span className="font-mono">discord.com/developers/applications</span> named “DCS Orchestrator”, copy its Application ID here, and under Rich Presence → Art Assets upload three images named <span className="font-mono">dcs</span> (the big icon), <span className="font-mono">healthy</span> and <span className="font-mono">warning</span> (the small badge).
         </p>
         {status?.error && <p className="text-[11px] text-amber-400 mt-1">{status.error}</p>}
         <p className="text-[11px] text-slate-500 mt-2">

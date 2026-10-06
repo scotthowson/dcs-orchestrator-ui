@@ -1,13 +1,13 @@
-# DCS Manager — Privacy Policy
+# DCS Orchestrator — Privacy Policy
 
-_Last updated: 30 September 2026_
+_Last updated: 5 October 2026_
 
-DCS Manager is the desktop, web and mobile client for DCS Orchestrator (DCS, formerly Docker Compose
-Skeleton), a self-hosted tool that manages Docker Compose stacks on a server you run yourself. This policy explains what
+This policy covers the DCS Orchestrator dashboard: its desktop, web and mobile apps (called DCS Manager
+before 4.0.31). DCS Orchestrator (DCS, formerly Docker Compose Skeleton) is a self-hosted tool that manages Docker Compose stacks on a server you run yourself. This policy explains what
 the software does with data. The short version: **everything stays between your device and your
 own server, and nothing is sent to the author.**
 
-## What DCS Manager processes
+## What the dashboard processes
 
 - **Your server's data.** The app talks to the DCS API on a server you chose (a URL you entered).
   It reads and changes what you ask it to: containers, stacks, images, logs, settings. That data
@@ -17,7 +17,7 @@ own server, and nothing is sent to the author.**
 - **Preferences.** Layouts, colours, profile details and other settings are stored on your device
   (and, if you enable it, on your own server).
 
-## What DCS Manager does not do
+## What the dashboard does not do
 
 - It has **no telemetry, analytics, crash reporting or advertising**.
 - It does **not** send any data to the author, to a third-party service, or to a cloud.
@@ -47,7 +47,7 @@ app's storage, or removing the data on your server. The author holds no copy.
 
 ## Children
 
-DCS Manager is a system administration tool and is not directed at children.
+DCS Orchestrator is a system administration tool and is not directed at children.
 
 ## Changes
 

@@ -57,7 +57,7 @@ export default function UpdateBanner() {
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold text-slate-100">
-            DCS Manager {next.version ? `v${next.version} ` : ''}is ready
+            A new dashboard {next.version ? `(v${next.version}) ` : ''}is ready
           </p>
           <p className="text-[11px] text-slate-400">Reload to switch this tab to the new build. Nothing running is affected.</p>
         </div>

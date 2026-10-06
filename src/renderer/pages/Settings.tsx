@@ -33,6 +33,8 @@ import Hint from '../components/common/Hint'
 import { pageLabel } from '../constants/pageTitles'
 import { navSections } from '../constants/navSections'
 import SidebarPagesPanel from '../components/settings/SidebarPagesPanel'
+import { DEFAULT_APP_NAME } from '../hooks/useBrand'
+import { OLD_DEFAULT_SUBTITLES } from '../stores/settingsStore'
 import {
   BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD, BTN_CARD_QUIET, BTN_ICON_SM,
   TONE_OK, TONE_DANGER, TONE_GHOST, TONE_GHOST_OK, TONE_GHOST_DANGER,
@@ -804,15 +806,14 @@ function DiskLabelManager() {
 // Appearance Settings
 // ---------------------------------------------------------------------------
 
-/** the subtitle a server or a dashboard shows until someone writes their own (servers older than 4.0 send the first) */
-const DEFAULT_SUBTITLES = ['Docker Compose Skeleton', 'DCS Orchestrator']
 
 function AppearanceSettings() {
   // the mode: dark, light, or the device's preference (the header switch always sets dark or light)
   const theme = useSettingsStore((s) => s.theme)
   const systemMode = useSystemMode()
-  const projectName = useSettingsStore((s) => s.projectName) || 'DCS Manager'
-  const projectSubtitle = useSettingsStore((s) => s.projectSubtitle) || 'DCS Orchestrator'
+  const projectName = useSettingsStore((s) => s.projectName) || DEFAULT_APP_NAME
+  // '' = the server's name (useBrand)
+  const projectSubtitle = useSettingsStore((s) => s.projectSubtitle) || ''
   const updateSetting = useSettingsStore((s) => s.updateSetting)
 
   // Background image is per-user (stored in profile, not settingsStore)
@@ -822,20 +823,16 @@ function AppearanceSettings() {
   const [nameInput, setNameInput] = useState(projectName)
   const [subtitleInput, setSubtitleInput] = useState(projectSubtitle)
 
-  // Sync branding from server on mount (survives browser data clears)
+  // A subtitle written on another device comes back from the server (it survives browser data clears). The server's
+  // own name is not the app's name: that one stays a choice on this device.
   const isConnected = useConnectionStore((s) => s.status === 'connected')
   useEffect(() => {
     if (!isConnected) return
     let cancelled = false
     fetchConfig().then((cfg) => {
       if (cancelled) return
-      const sn = (cfg as unknown as Record<string, unknown>).server_name as string | undefined
       const ss = (cfg as unknown as Record<string, unknown>).server_subtitle as string | undefined
-      if (sn && sn !== 'Docker Server' && projectName === 'DCS Manager') {
-        updateSetting('projectName', sn)
-        setNameInput(sn)
-      }
-      if (ss && !DEFAULT_SUBTITLES.includes(ss) && DEFAULT_SUBTITLES.includes(projectSubtitle)) {
+      if (ss && !OLD_DEFAULT_SUBTITLES.includes(ss) && !projectSubtitle) {
         updateSetting('projectSubtitle', ss)
         setSubtitleInput(ss)
       }
@@ -847,8 +844,8 @@ function AppearanceSettings() {
   const brandingDirty = nameInput !== projectName || subtitleInput !== projectSubtitle || bgInput.trim() !== backgroundImage
 
   const handleSaveAppearance = useCallback(async () => {
-    const name = nameInput.trim() || 'DCS Manager'
-    const subtitle = subtitleInput.trim() || 'DCS Orchestrator'
+    const name = nameInput.trim() || DEFAULT_APP_NAME
+    const subtitle = subtitleInput.trim()
     // Save branding locally
     updateSetting('projectName', name)
     updateSetting('projectSubtitle', subtitle)
@@ -861,7 +858,8 @@ function AppearanceSettings() {
     // was a 403 swallowed here), so only an admin writes it; everyone else keeps the name on this device
     const isConn = useConnectionStore.getState().status === 'connected'
     if (isConn && useAuthStore.getState().userRole === 'admin') {
-      updateConfig({ SERVER_NAME: name, SERVER_SUBTITLE: subtitle }).catch(() => {})
+      // only the subtitle: SERVER_NAME is the server's own name (notifications, Discord, the fleet), not this app's
+      updateConfig({ SERVER_SUBTITLE: subtitle }).catch(() => {})
     }
   }, [nameInput, subtitleInput, bgInput, updateSetting])
 
@@ -904,7 +902,7 @@ function AppearanceSettings() {
           <h3 className={SUBHEAD}>Branding</h3>
         </div>
         <p className="text-[11px] text-slate-500 mb-3">
-          Customize the app name shown in the sidebar and on the sign-in screen.
+          The name in the sidebar and on the sign-in screen, and the line under it. Leave the line empty to show the server&apos;s name.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
@@ -914,7 +912,7 @@ function AppearanceSettings() {
               type="text"
               value={nameInput}
               onChange={(e) => setNameInput(e.target.value)}
-              placeholder="DCS Manager"
+              placeholder={DEFAULT_APP_NAME}
               className={INPUT}
             />
           </div>
@@ -925,7 +923,7 @@ function AppearanceSettings() {
               type="text"
               value={subtitleInput}
               onChange={(e) => setSubtitleInput(e.target.value)}
-              placeholder="DCS Orchestrator"
+              placeholder="The server's name"
               className={INPUT}
             />
           </div>
@@ -2269,7 +2267,7 @@ function SettingsExportImport() {
         const parsed = JSON.parse(ev.target?.result as string)
         // this export and the one the dashboard made before 4.0.1 (dcs-ui-settings)
         if (!parsed || (parsed._type !== 'dcs-settings-export' && parsed._format !== 'dcs-ui-settings')) {
-          setImportError('This is not a settings file exported from DCS Manager.')
+          setImportError('This is not a settings file exported from DCS Orchestrator.')
           return
         }
         const settings: Record<string, unknown> = {}

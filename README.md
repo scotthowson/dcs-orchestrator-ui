@@ -3,7 +3,7 @@
   <a href="https://github.com/scotthowson/dcs-orchestrator-ui/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/scotthowson/dcs-orchestrator-ui/ci.yml?style=flat-square&label=CI&logo=githubactions&logoColor=white" alt="CI status" /></a>
   <a href="https://github.com/scotthowson/dcs-orchestrator-ui/actions/workflows/build.yml"><img src="https://img.shields.io/github/actions/workflow/status/scotthowson/dcs-orchestrator-ui/build.yml?style=flat-square&label=apps&logo=githubactions&logoColor=white" alt="Desktop and Android build status" /></a>
   <a href="https://github.com/scotthowson/dcs-orchestrator-ui/actions/workflows/docker-publish.yml"><img src="https://img.shields.io/github/actions/workflow/status/scotthowson/dcs-orchestrator-ui/docker-publish.yml?style=flat-square&label=image&logo=githubactions&logoColor=white" alt="Docker image build status" /></a>
-  <a href="https://github.com/users/scotthowson/packages/container/package/docker-compose-skeleton-ui"><img src="https://img.shields.io/badge/ghcr.io-docker--compose--skeleton--ui-2496ED?style=flat-square&logo=docker&logoColor=white" alt="Docker image on GHCR" /></a>
+  <a href="https://github.com/users/scotthowson/packages/container/package/dcs-orchestrator-ui"><img src="https://img.shields.io/badge/ghcr.io-dcs--orchestrator--ui-2496ED?style=flat-square&logo=docker&logoColor=white" alt="Docker image on GHCR" /></a>
   <a href="https://github.com/scotthowson/dcs-orchestrator-ui/commits/v2.0.0"><img src="https://img.shields.io/github/last-commit/scotthowson/dcs-orchestrator-ui/v2.0.0?style=flat-square&color=64748b" alt="Last commit" /></a>
 </p>
 
@@ -495,4 +495,4 @@ MIT
 
 ## Terms and privacy
 
-DCS Manager runs against your own server and sends nothing to the author. The [Terms of Service](TERMS.md) and [Privacy Policy](PRIVACY.md) spell it out; the Discord Rich Presence feature links to both.
+The dashboard runs against your own server and sends nothing to the author. The [Terms of Service](TERMS.md) and [Privacy Policy](PRIVACY.md) spell it out; the Discord Rich Presence feature links to both.

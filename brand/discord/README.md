@@ -5,7 +5,7 @@ compose stack on deep slate, emerald for what runs, cyan for the network.
 
 | File | Use | Where it goes |
 | --- | --- | --- |
-| `app-icon.png` | The DCS Manager application (Rich Presence) and the author icon on every embed | Developer portal → application → General Information → App Icon |
+| `app-icon.png` | The DCS Orchestrator application (Rich Presence) and the author icon on every embed | Developer portal → application → General Information → App Icon |
 | `bot-avatar.png` | The bot: the stack with a slash-command badge | Developer portal → Bot → Avatar |
 | `bot-banner.png` | Profile banner (1360×480) | Developer portal → Bot → Banner |
 | `webhook-avatar.png` | Notification posts: the stack with a bell | Used automatically (`DISCORD_WEBHOOK_AVATAR` overrides); also fine as the webhook's avatar in Discord |
@@ -24,7 +24,7 @@ profiles) and two GitHub social previews (1280×640):
 | `banner-commands.png` | The DCS-Commands bot profile (Developer portal → Bot → Banner); same art as `bot-banner.png` |
 | `banner-alerts.png` | A bot or app that carries the notification webhook's identity, or the channel's pinned welcome post |
 | `banner-crowdsec.png` | The CrowdSec alerts channel's welcome post, or a CrowdSec-branded app |
-| `banner-manager.png` | The DCS Manager application (Rich Presence app profile) |
+| `banner-manager.png` | The DCS Orchestrator application (Rich Presence app profile) |
 | `banner-dcs.png` | Anywhere DCS itself is presented: README headers, forum posts, a server banner |
 | `social-aio.png`, `social-ui.png` | GitHub → repository Settings → Social preview, for the framework and the dashboard |
 

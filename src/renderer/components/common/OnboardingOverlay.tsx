@@ -32,7 +32,7 @@ const webMode = isWebMode()
 const steps: StepDef[] = [
   {
     icon: <Container size={40} strokeWidth={1.5} />,
-    title: 'Welcome to DCS Manager',
+    title: 'Welcome to DCS Orchestrator',
     description: webMode
       ? 'Your web-based control center for DCS Orchestrator. Monitor, deploy, and control your entire container infrastructure from one elegant interface.'
       : 'Your premium desktop companion for managing DCS Orchestrator servers. Monitor, deploy, and control your entire container infrastructure from one elegant interface.',
@@ -69,7 +69,7 @@ const steps: StepDef[] = [
     icon: <Sparkles size={40} strokeWidth={1.5} />,
     title: "You're ready",
     description:
-      'Explore the full suite of tools at your fingertips. From network visualization to automated maintenance, DCS Manager has you covered.',
+      'Explore the full suite of tools at your fingertips. From network visualization to automated maintenance, DCS Orchestrator has you covered.',
     details: [
       'Health checks, logs viewer, real-time compose linter, and system diagnostics',
       'Scheduled backups, cron job management, and a plugin ecosystem',

@@ -13,13 +13,13 @@ import { useNavSections } from '../../hooks/useNavSections'
 import { useNavBadges, sectionBadge, sectionStatusIcon, type NavBadge, type NavStatusIcon } from '../../hooks/useNavBadges'
 import { sectionTarget } from '../../constants/navSections'
 import { ServerSwitcher } from '../common/ServerSwitcher'
+import { useBrand } from '../../hooks/useBrand'
 
 export function Sidebar() {
   const setCurrentPage = useSettingsStore((s) => s.setCurrentPage)
   const sidebarCollapsed = useSettingsStore((s) => s.sidebarCollapsed)
   const toggleSidebar = useSettingsStore((s) => s.toggleSidebar)
-  const projectName = useSettingsStore((s) => s.projectName) || 'DCS Manager'
-  const projectSubtitle = useSettingsStore((s) => s.projectSubtitle) || 'DCS Orchestrator'
+  const { name: projectName, subtitle: projectSubtitle } = useBrand()
   const connectionStatus = useConnectionStore((s) => s.status)
   const { shown, current, currentPage } = useNavSections()
   const { badges, statusIcons } = useNavBadges()
@@ -54,7 +54,7 @@ export function Sidebar() {
             <span className="text-sm font-bold tracking-wide text-gradient neon-emerald whitespace-nowrap">
               {projectName}
             </span>
-            <p className="text-[10px] text-slate-500 -mt-0.5 whitespace-nowrap">{projectSubtitle}</p>
+            {projectSubtitle && <p className="text-[10px] text-slate-500 -mt-0.5 whitespace-nowrap truncate" title={projectSubtitle}>{projectSubtitle}</p>}
           </div>
         )}
       </div>

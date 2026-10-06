@@ -663,7 +663,7 @@ export default function Topology() {
       const host = hostForExport || 'DCS'
       ctx.fillStyle = 'rgba(148,163,184,0.9)'
       ctx.font = '600 12px ui-sans-serif, system-ui, sans-serif'
-      ctx.fillText(`DCS Manager · ${host} · ${new Date().toLocaleString()} · ${totalContainers} containers · ${totalNetworks} networks · ${totalEdges} links`, PADX, h - 18)
+      ctx.fillText(`DCS Orchestrator · ${host} · ${new Date().toLocaleString()} · ${totalContainers} containers · ${totalNetworks} networks · ${totalEdges} links`, PADX, h - 18)
       const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'))
       if (!blob) throw new Error('PNG encoding failed')
       if (mode === 'copy') {

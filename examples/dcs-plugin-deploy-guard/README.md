@@ -12,7 +12,7 @@ Deployment lifecycle protection for DCS Orchestrator.
 
 ## Install
 
-From the DCS Manager UI:
+From the DCS Orchestrator dashboard:
 1. Go to **Plugins** page
 2. Click **Install from Git**
 3. Enter: `https://github.com/scotthowson/dcs-plugin-deploy-guard.git`
