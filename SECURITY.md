@@ -4,7 +4,7 @@
 
 Please report security problems privately, not in a public issue: through
 [GitHub's private vulnerability reporting](https://github.com/scotthowson/dcs-orchestrator-ui/security/advisories/new)
-for this repository, or by e-mail to `<security contact>`. Say which version (the About tab in Settings,
+for this repository. Say which version (the About tab in Settings,
 or `package.json`), how to reproduce it and what an attacker gains. This is a one-person project, so an
 acknowledgement may take a few days.
 
