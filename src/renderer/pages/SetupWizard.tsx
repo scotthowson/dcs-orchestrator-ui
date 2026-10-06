@@ -203,6 +203,29 @@ function EnvToggle({ label, helpText, envKey, envVars, setEnvVars }: {
 // SetupWizard
 // ---------------------------------------------------------------------------
 
+/** the wizard's settings from GET /setup/defaults: the server's saved .env over the stock defaults (the saved ones only reach a signed-in admin once one exists) */
+function envFromDefaults(data: SetupDefaultsResponse): Record<string, string> {
+  return {
+        SERVER_NAME: data.defaults.SERVER_NAME || 'Docker Server',
+        TZ: data.system.timezone || data.defaults.TZ || 'UTC',
+        PROXY_DOMAIN: data.defaults.PROXY_DOMAIN || 'example.com',
+        APP_DATA_DIR: data.defaults.APP_DATA_DIR || './App-Data',
+        PUID: String(data.system.puid || data.defaults.PUID || '1000'),
+        PGID: String(data.system.pgid || data.defaults.PGID || '1000'),
+        NTFY_URL: data.defaults.NTFY_URL || '',
+        NTFY_TOPIC: data.defaults.NTFY_TOPIC || '',
+        LOG_LEVEL: data.defaults.LOG_LEVEL || 'INFO',
+        BACKUP_SOURCE_DIR: data.defaults.BACKUP_SOURCE_DIR || '',
+        BACKUP_DEST_DIR: data.defaults.BACKUP_DEST_DIR || '',
+        CONTINUE_ON_FAILURE: data.defaults.CONTINUE_ON_FAILURE || 'true',
+        SKIP_HEALTHCHECK_WAIT: data.defaults.SKIP_HEALTHCHECK_WAIT || 'false',
+        SERVICE_START_DELAY: data.defaults.SERVICE_START_DELAY || '5',
+        ENABLE_POST_STARTUP_HEALTH_CHECK: data.defaults.ENABLE_POST_STARTUP_HEALTH_CHECK || 'true',
+        API_PORT: data.defaults.API_PORT || '9876',
+        API_BIND: data.defaults.API_BIND || (isWebMode() ? '0.0.0.0' : '127.0.0.1'),
+  }
+}
+
 export default function SetupWizard({ onComplete }: WizardProps) {
   // Wizard state
   const [step, setStep] = useState<Step>(1)
@@ -490,25 +513,7 @@ export default function SetupWizard({ onComplete }: WizardProps) {
       setDefaults(data)
 
       // Pre-populate env vars from defaults
-      setEnvVars({
-        SERVER_NAME: data.defaults.SERVER_NAME || 'Docker Server',
-        TZ: data.system.timezone || data.defaults.TZ || 'UTC',
-        PROXY_DOMAIN: data.defaults.PROXY_DOMAIN || 'example.com',
-        APP_DATA_DIR: data.defaults.APP_DATA_DIR || './App-Data',
-        PUID: String(data.system.puid || data.defaults.PUID || '1000'),
-        PGID: String(data.system.pgid || data.defaults.PGID || '1000'),
-        NTFY_URL: data.defaults.NTFY_URL || '',
-        NTFY_TOPIC: data.defaults.NTFY_TOPIC || '',
-        LOG_LEVEL: data.defaults.LOG_LEVEL || 'INFO',
-        BACKUP_SOURCE_DIR: data.defaults.BACKUP_SOURCE_DIR || '',
-        BACKUP_DEST_DIR: data.defaults.BACKUP_DEST_DIR || '',
-        CONTINUE_ON_FAILURE: data.defaults.CONTINUE_ON_FAILURE || 'true',
-        SKIP_HEALTHCHECK_WAIT: data.defaults.SKIP_HEALTHCHECK_WAIT || 'false',
-        SERVICE_START_DELAY: data.defaults.SERVICE_START_DELAY || '5',
-        ENABLE_POST_STARTUP_HEALTH_CHECK: data.defaults.ENABLE_POST_STARTUP_HEALTH_CHECK || 'true',
-        API_PORT: data.defaults.API_PORT || '9876',
-        API_BIND: data.defaults.API_BIND || (isWebMode() ? '0.0.0.0' : '127.0.0.1'),
-      })
+      setEnvVars(envFromDefaults(data))
 
       // Check if server is already initialized
       try {
@@ -623,6 +628,10 @@ export default function SetupWizard({ onComplete }: WizardProps) {
           if (!registered) {
             // Account already exists locally (e.g. previous session) — log in instead
             await login(adminUsername.trim(), adminPassword, true)
+          }
+          // a resumed setup: the settings saved last time are only the admin's to read, so read them now
+          if (!needsAdmin) {
+            void fetchSetupDefaults().then((d) => { setDefaults(d); setEnvVars((cur) => ({ ...cur, ...envFromDefaults(d) })) }).catch(() => {})
           }
           // A join saved by setup.sh (this VM runs under a hub) opens its section by itself
           void fetchFleetStatus().then((f) => { setFleetStatus(f); if (f.pending_join) setShowFleet(true) }).catch(() => {})
