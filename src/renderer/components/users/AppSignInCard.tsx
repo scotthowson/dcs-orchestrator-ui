@@ -4,6 +4,12 @@
 // alone) is where every server starts; "Every app" or "Chosen apps" switch it
 // on. The server writes it into Authelia's access rules and restarts Authelia.
 //
+// Authelia only offers the registration of a device when one of its rules asks
+// for two factors (otherwise its settings page says there are no protected
+// applications): the server keeps one such rule on a name nothing is routed to
+// (second-step.<domain>) in every mode. An older server's file may lack it:
+// the card says so and Repair asks the server to add it.
+//
 // Registering a device needs a one-time code Authelia sends to confirm who is
 // asking. Without e-mail, Authelia writes that message to a file on the server:
 // this card shows the latest code, so a device can be registered before the
@@ -12,10 +18,10 @@
 // =============================================================================
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ShieldCheck, ShieldAlert, ExternalLink, Loader2, KeyRound, Smartphone, Fingerprint, Copy, Check, RefreshCw, LifeBuoy, Plus, X } from 'lucide-react'
+import { ShieldCheck, ShieldAlert, ExternalLink, Loader2, KeyRound, Smartphone, Fingerprint, Copy, Check, RefreshCw, LifeBuoy, Plus, X, Wrench } from 'lucide-react'
 import { useToast } from '../common/Toast'
 import { useConfirm } from '../common/ConfirmDialog'
-import { fetchAutheliaSecondStep, setAutheliaSecondStep, fetchAutheliaVerificationCode } from '../../api/endpoints'
+import { fetchAutheliaSecondStep, setAutheliaSecondStep, repairAutheliaSecondStep, fetchAutheliaVerificationCode } from '../../api/endpoints'
 import type { AutheliaSecondStep, AutheliaStepMode, AutheliaVerificationCode } from '../../../shared/types'
 import { BTN_CARD, BTN_CARD_QUIET, TONE_OK } from '../../lib/ui'
 import { CHOICE, CHOICE_ON, CHOICE_OFF, SUBHEAD, FOCUS_RING } from '../../lib/fieldStyles'
@@ -50,6 +56,7 @@ export default function AppSignInCard() {
   const [apps, setApps] = useState<string[]>([])
   const [other, setOther] = useState('')
   const [busy, setBusy] = useState(false)
+  const [repairing, setRepairing] = useState(false)
   const [code, setCode] = useState<AutheliaVerificationCode | null>(null)
   const [watching, setWatching] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -105,8 +112,8 @@ export default function AppSignInCard() {
         title: 'Ask for a second step at sign-in',
         message:
           `${mode === 'all' ? 'Every app behind Authelia' : apps.map((a) => (state.domain ? `${a}.${state.domain}` : a)).join(', ')} will ask for a code from an authenticator app or a passkey after the password. ` +
-          `Register a device for your Authelia user first (the steps on this card), or the next sign-in has you register one on the spot with the verification code shown here. ` +
-          `Locked out? This dashboard has its own sign-in, not Authelia's: open it on your network (port 3000 of this server) and choose Password only.`,
+          `Register a device for your Authelia user first (the steps on this card). A user with no device is not locked out: at the next sign-in Authelia says the app needs two-factor authentication and links to the registration, with the verification code shown here. ` +
+          `This dashboard has its own sign-in, not Authelia's: open it on your network (port 3000 of this server) and choose Password only to come back.`,
         confirmLabel: 'Switch it on',
       })
       if (!ok) return
@@ -119,6 +126,17 @@ export default function AppSignInCard() {
     } catch (e) {
       addToast({ type: 'error', message: e instanceof Error ? e.message : 'Could not change the sign-in', duration: 8000 })
     } finally { setBusy(false) }
+  }
+
+  const repair = async () => {
+    setRepairing(true)
+    try {
+      const r = await repairAutheliaSecondStep()
+      addToast({ type: 'success', message: r.message })
+      load(); setTimeout(load, 6000)
+    } catch (e) {
+      addToast({ type: 'error', message: e instanceof Error ? e.message : 'Could not repair Authelia\'s rules', duration: 8000 })
+    } finally { setRepairing(false) }
   }
 
   const copyCode = (c: string) => {
@@ -162,6 +180,18 @@ export default function AppSignInCard() {
         {/* 1. register a device */}
         <div className="rounded-lg border border-white/5 bg-white/[0.02] p-3 space-y-2.5">
           <p className={SUBHEAD}>1 · Register a device first</p>
+          {live?.managed && live.enrol === false && (
+            <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-2.5 flex items-start gap-2 flex-wrap" role="status">
+              <ShieldAlert size={14} className="text-amber-300 shrink-0 mt-0.5" aria-hidden />
+              <p className="text-[11px] text-slate-300 flex-1 min-w-[12rem]">
+                Authelia's rules lack the one that lets a device be registered: its settings page says there are no protected applications that require a second factor.
+                Repair adds one rule for {state.enrol_host ?? 'second-step.<your domain>'}, a name nothing is routed to; no app changes, Authelia restarts for a few seconds.
+              </p>
+              <button type="button" onClick={repair} disabled={repairing} className={`${BTN_CARD} ${TONE_OK}`}>
+                {repairing ? <Loader2 size={12} className="animate-spin" /> : <Wrench size={12} />} Repair
+              </button>
+            </div>
+          )}
           <ol className="space-y-2 text-xs text-slate-300 list-decimal list-outside pl-4">
             <li>
               <span className="inline-flex items-center gap-1"><Smartphone size={12} className="text-cyan-400" aria-hidden /> Install an authenticator app</span> on your phone: Google Authenticator, Aegis, 1Password, Bitwarden, Microsoft Authenticator… Or use a{' '}
@@ -169,12 +199,14 @@ export default function AppSignInCard() {
             </li>
             <li>
               Open {signIn
-                ? <a href={`${signIn}/settings/two-factor-authentication`} target="_blank" rel="noreferrer" className={`text-cyan-300 underline underline-offset-2 ${FOCUS_RING}`}>{signIn.replace(/^https:\/\//, '')}/settings</a>
-                : <span className="font-mono">auth.&lt;your domain&gt;</span>} and sign in with your Authelia user and password.
+                ? <a href={`${signIn}/settings/two-factor-authentication`} target="_blank" rel="noreferrer" className={`text-cyan-300 underline underline-offset-2 ${FOCUS_RING}`}>{signIn.replace(/^https:\/\//, '')}/settings/two-factor-authentication</a>
+                : <span className="font-mono">auth.&lt;your domain&gt;/settings/two-factor-authentication</span>} and sign in with your Authelia user and password.
             </li>
-            <li>Under Two-Factor Authentication, add a one-time password (scan the QR code with the app) or a WebAuthn credential (the passkey).</li>
-            <li>Authelia first asks for a verification code to be sure it is you. {state.file_notifier ? 'It writes the code on this server instead of e-mailing it: it shows up just below.' : 'It e-mails it to the address of your Authelia user.'}</li>
-            <li>Type the six-digit code the app shows to finish, then choose below and Apply.</li>
+            <li>
+              Choose Add for a one-time password (scan the QR code with the app) or a WebAuthn credential (the passkey). Authelia first asks for a verification code to be sure it is you:{' '}
+              {state.file_notifier ? 'it writes that code on this server instead of e-mailing it, and it shows up just below.' : 'it e-mails it to the address of your Authelia user.'}
+            </li>
+            <li>Confirm with the six-digit code the app shows (or the passkey itself). The device is registered: now choose below and Apply.</li>
           </ol>
 
           {state.file_notifier && (
@@ -206,7 +238,7 @@ export default function AppSignInCard() {
               )}
               {code && !code.found && <p className="text-[11px] text-slate-500">{code.message}</p>}
               {watching && <p className="text-[11px] text-slate-500">Looking for a new code every few seconds for five minutes.</p>}
-              {!code && <p className="text-[11px] text-slate-500">Ask Authelia for a code (step 4), then show it here. Only admins see it.</p>}
+              {!code && <p className="text-[11px] text-slate-500">Ask Authelia for a code (step 3), then show it here. Only admins see it.</p>}
             </div>
           )}
         </div>
@@ -259,6 +291,7 @@ export default function AppSignInCard() {
               {busy ? <Loader2 size={12} className="animate-spin" /> : <ShieldCheck size={12} />} Apply
             </button>
             {changed && <span className="text-[11px] text-slate-500">Authelia restarts to read it (a few seconds; nobody is signed out).</span>}
+            {mode !== 'off' && <span className="text-[11px] text-slate-500">A user with no device registered is sent to the registration at sign-in, not locked out.</span>}
           </div>
 
           <div className="rounded-lg border border-cyan-500/15 bg-cyan-500/5 p-2.5 flex gap-2">

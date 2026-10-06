@@ -41,7 +41,7 @@ import type {
   TraefikFeedTokenResponse,
   FleetStatus, FleetMembersResponse, FleetMember, FleetMemberResponse, FleetOverview, FleetDiscoverResponse,
   FleetJoinTokensResponse, FleetJoinTokenResponse, FleetMemberTestResponse, FleetJoinHubResponse, FleetLeaveResponse,
-  FleetMemberSyncResponse, StackPushResponse, StackPullResponse, StackAppDataStatus, MemberFolders, HostFolderOperation, DashboardFeedStatus, WebTerminalStatus, AutheliaSecondStep, AutheliaSecondStepResult, AutheliaVerificationCode, ApiKeyInfo, ApiKeyCreated, SshAccess, SshKeyCreated,
+  FleetMemberSyncResponse, StackPushResponse, StackPullResponse, StackAppDataStatus, MemberFolders, HostFolderOperation, DashboardFeedStatus, WebTerminalStatus, AutheliaSecondStep, AutheliaSecondStepResult, AutheliaSecondStepRepair, AutheliaVerificationCode, ApiKeyInfo, ApiKeyCreated, SshAccess, SshKeyCreated,
   ProxmoxCapabilities, ProxmoxStorageResponse, FleetProvisionDefaults, FleetProvisionRequest, FleetMoveCheck, FleetProvisionResponse, FleetJob, FleetJobsResponse,
   SystemInfo,
   NetworkListResponse,
@@ -2268,6 +2268,8 @@ export function fetchAutheliaSecondStep(): Promise<AutheliaSecondStep> { return 
 export function setAutheliaSecondStep(mode: AutheliaSecondStep['mode'], apps: string[] = []): Promise<AutheliaSecondStepResult> {
   return apiClient.post<AutheliaSecondStepResult>('/authelia/second-step', mode === 'apps' ? { mode, apps } : { mode }, 30000)
 }
+/** POST /authelia/second-step/repair — put DCS's registration rule back into an older Authelia's configuration (admin) */
+export function repairAutheliaSecondStep(): Promise<AutheliaSecondStepRepair> { return apiClient.post<AutheliaSecondStepRepair>('/authelia/second-step/repair', {}, 30000) }
 /** GET /authelia/verification-code — the one-time code Authelia last wrote to its file on the server (admin) */
 export function fetchAutheliaVerificationCode(): Promise<AutheliaVerificationCode> { return apiClient.get<AutheliaVerificationCode>('/authelia/verification-code') }
 /** POST /feed/token — Switch the dashboard feed on with a new token; the token is answered once (admin) */

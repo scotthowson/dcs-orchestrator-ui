@@ -4189,11 +4189,14 @@ export interface AutheliaSecondStep {
   domain: string | null
   /** https://auth.<domain>, where a person signs in and registers a device */
   sign_in_url: string | null
+  /** second-step.<domain>: the name of DCS's own two_factor rule (nothing is routed to it; it makes Authelia offer the registration of a device) */
+  enrol_host: string | null
   /** Authelia is deployed here; its configuration was found */
   authelia: boolean
   config_found: boolean
   /** what Authelia's configuration says now (managed: false when it has no rule DCS manages) */
-  live: { managed: boolean; mode?: AutheliaStepMode; apps?: string[]; other_rules?: number } | null
+  /** enrol: DCS's registration rule is in the file (false on an older Authelia: Repair adds it) */
+  live: { managed: boolean; mode?: AutheliaStepMode; apps?: string[]; other_rules?: number; enrol?: boolean } | null
   /** the configuration says what the setting says (null when there is nothing to compare) */
   in_sync: boolean | null
   /** Authelia writes its messages (the verification codes) to a file on the server instead of sending e-mail */
@@ -4204,6 +4207,8 @@ export interface AutheliaSecondStep {
 export interface AutheliaSecondStepResult {
   success: boolean; mode: AutheliaStepMode; apps: string[]; applied: boolean; restarted: boolean; backup: string | null; message: string
 }
+/** POST /authelia/second-step/repair */
+export interface AutheliaSecondStepRepair { success: boolean; changed: boolean; restarted: boolean; backup: string | null; message: string }
 /** GET /authelia/verification-code — the last message of Authelia's file notifier (admin) */
 export interface AutheliaVerificationCode {
   file_notifier: boolean
