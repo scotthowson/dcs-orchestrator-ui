@@ -110,6 +110,19 @@ export default function Backup() {
     usePolling<BackupStatusResponse>(fetchScopedStatus, 5000, { enabled: isConnected })
   const statusRef = useRef(statusMember)
   useEffect(() => { if (statusRef.current !== statusMember) { statusRef.current = statusMember; refreshStatus() } }, [statusMember, refreshStatus])
+  // a restore runs in the background: when it ends with a stack it could not stop (left as it was), that is said at once,
+  // not only on the status card
+  const lastStatus = useRef<{ member: string | null; status: string } | null>(null)
+  useEffect(() => {
+    if (!statusData) return
+    const prev = lastStatus.current
+    lastStatus.current = { member: statusMember, status: statusData.status }
+    if (!prev || prev.member !== statusMember || prev.status !== 'restoring' || statusData.status === 'restoring') return
+    const skipped = statusData.last_restore?.skipped ?? []
+    if (skipped.length > 0) {
+      addToast({ type: 'error', duration: 20000, message: statusData.last_restore?.message || `${skipped.map((x) => x.stack).join(', ')} not restored: the containers did not stop` })
+    }
+  }, [statusData, statusMember, addToast])
 
   const fetchScopedBackups = useCallback(() => fetchBackupsScoped(scope), [scope])
   const { data: backupsData, loading: backupsLoading, refresh: refreshBackups } =
@@ -332,7 +345,8 @@ export default function Backup() {
               <UploadBackup
                 member={scopeMember}
                 serverLabel={scopeMember ? `the VM ${memberName}` : hasFleet ? 'the hub' : 'this server'}
-                onUploaded={refreshBackups}
+                limits={configData ? configData.upload : null}
+                onUploaded={() => { refreshBackups(); refreshConfig() }}
               />
             )}
             <SegmentedControl

@@ -35,6 +35,7 @@ import type {
   BackupDownloadLinkResponse,
   BackupChecksumResponse,
   BackupUploadResponse,
+  UploadLimits,
 } from '../../shared/types'
 import type {
   FleetTarget,
@@ -197,35 +198,73 @@ export function openBackupDownload(link: BackupDownloadLinkResponse): void {
   document.body.removeChild(a)
 }
 
-/** the most a server takes in one upload: the worker pool's front passes 128 MB on, API_MAX_UPLOAD_SIZE can only lower it */
-export const BACKUP_UPLOAD_MAX_BYTES = 128 * 1024 * 1024
+/** the most a server from before streamed uploads (4.0.34 and older) takes in one: its worker pool's front passed 128 MB on */
+export const LEGACY_UPLOAD_MAX_BYTES = 128 * 1024 * 1024
 
 /**
- * POST /backups/upload — the archive itself as the body (no base64), on a hub into a VM through the hub
- * (POST /fleet/members/{id}/backups/upload). The server lists it only once it reads back whole as a DCS backup and
- * answers why when it does not; onProgress gets the share sent (0 to 1).
+ * why FILE cannot go to the server, before a byte is sent: larger than its limit, or more than the room on its disk.
+ * limits: its GET /backups/config or GET /recovery `upload`; undefined when the server's answer has none (an older
+ * server, which takes 128 MB at most); null when it is not known (not read yet, no destination: the server decides).
+ * null when it may go.
  */
-export function uploadBackupScoped(member: string | null, file: File, onProgress?: (share: number) => void): Promise<BackupUploadResponse> {
-  const path = member ? `/fleet/members/${encodeURIComponent(member)}/backups/upload` : '/backups/upload'
+export function uploadRefusal(file: File, limits: UploadLimits | null | undefined, serverLabel: string, what = 'an upload'): string | null {
+  if (limits === null) return null
+  if (limits === undefined) {
+    return file.size > LEGACY_UPLOAD_MAX_BYTES
+      ? `${file.name} is ${formatBytes(file.size)}: ${serverLabel} runs an older DCS, which takes ${formatBytes(LEGACY_UPLOAD_MAX_BYTES)} at most. Update it (Updates page), or copy the file into its BACKUP_DEST_DIR by hand (scp, a share)`
+      : null
+  }
+  if (file.size > limits.max_bytes) {
+    return `${file.name} is ${formatBytes(file.size)}: ${serverLabel} takes ${what} of up to ${formatBytes(limits.max_bytes)} (API_MAX_BACKUP_UPLOAD_SIZE in its .env). Raise it there, or copy the file into BACKUP_DEST_DIR by hand`
+  }
+  if (limits.free_bytes !== null && file.size + limits.reserve_bytes > limits.free_bytes) {
+    return `Not enough room on ${serverLabel}: ${file.name} is ${formatBytes(file.size)} and its backup folder has ${formatBytes(limits.free_bytes)} free (${formatBytes(limits.reserve_bytes)} is kept spare). Make room there first`
+  }
+  return null
+}
+
+/**
+ * POST a file as the request body (no base64), with its progress (onProgress: bytes sent, of total). Nothing of it is
+ * held by the page: the browser streams it from the disk. The server streams it to its own disk and answers once it
+ * has checked it; a 413 / 507 names the limit or the room.
+ */
+function uploadFileXhr<T extends { success?: boolean }>(path: string, file: File, onProgress?: (sent: number, total: number) => void): Promise<T> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest()
-    xhr.open('POST', `${apiClient.getBaseUrl()}${path}?filename=${encodeURIComponent(file.name)}`)
+    xhr.open('POST', `${apiClient.getBaseUrl()}${path}`)
     const token = apiClient.getAuthToken()
     if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`)
     xhr.setRequestHeader('Content-Type', 'application/octet-stream')
-    xhr.timeout = 30 * 60 * 1000
-    if (onProgress) xhr.upload.onprogress = (e) => { if (e.lengthComputable) onProgress(e.loaded / e.total) }
+    // no overall limit: 20 GB take as long as they take; the server gives up on an upload that sends nothing for 5 minutes
+    xhr.timeout = 0
+    if (onProgress) xhr.upload.onprogress = (e) => { if (e.lengthComputable) onProgress(e.loaded, e.total) }
     xhr.onload = () => {
-      let body: (Partial<BackupUploadResponse> & { message?: string }) | null = null
+      let body: (Partial<T> & { message?: string }) | null = null
       try { body = JSON.parse(xhr.responseText) } catch { body = null }
-      if (xhr.status >= 200 && xhr.status < 300 && body?.success) { resolve(body as BackupUploadResponse); return }
-      if (xhr.status === 413) { reject(new Error(body?.message || 'The archive is larger than the server takes (API_MAX_UPLOAD_SIZE)')); return }
+      if (xhr.status >= 200 && xhr.status < 300 && body?.success) { resolve(body as T); return }
+      if (xhr.status === 413) { reject(new Error(body?.message || `${file.name} is larger than the server takes (API_MAX_BACKUP_UPLOAD_SIZE), or than a proxy in front of it lets through`)); return }
+      if (xhr.status === 507) { reject(new Error(body?.message || 'The server has no room for it')); return }
       reject(new Error(body?.message || `The upload failed (HTTP ${xhr.status})`))
     }
-    xhr.onerror = () => reject(new Error('The connection broke during the upload (a proxy in front of the API may refuse a body this large)'))
-    xhr.ontimeout = () => reject(new Error('The upload took longer than 30 minutes and was given up'))
+    xhr.onerror = () => reject(new Error('The connection broke during the upload: the server may have refused it (its upload limit or its free room), or a proxy in front of it did (Cloudflare takes 100 MB at most; see the Guide, "Downloading and uploading a backup"). Nothing of it was kept'))
+    xhr.onabort = () => reject(new Error('The upload was stopped'))
     xhr.send(file)
   })
+}
+
+/**
+ * POST /backups/upload — the archive itself as the body, on a hub into a VM through the hub
+ * (POST /fleet/members/{id}/backups/upload). The server lists it only once it reads back whole as a DCS backup and
+ * answers why when it does not; onProgress gets the bytes sent.
+ */
+export function uploadBackupScoped(member: string | null, file: File, onProgress?: (sent: number, total: number) => void): Promise<BackupUploadResponse> {
+  const path = member ? `/fleet/members/${encodeURIComponent(member)}/backups/upload` : '/backups/upload'
+  return uploadFileXhr<BackupUploadResponse>(`${path}?filename=${encodeURIComponent(file.name)}`, file, onProgress)
+}
+
+/** POST /recovery/upload — a recovery bundle, the file itself as the body (4.0.35; an older server takes JSON: uploadRecoveryBundle) */
+export function uploadRecoveryBundleFile(file: File, onProgress?: (sent: number, total: number) => void): Promise<{ success: boolean; file: string; size: number; message?: string }> {
+  return uploadFileXhr(`/recovery/upload?filename=${encodeURIComponent(file.name)}`, file, onProgress)
 }
 
 // ---------------------------------------------------------------------------

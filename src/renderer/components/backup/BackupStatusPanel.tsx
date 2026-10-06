@@ -15,6 +15,12 @@ import type { ScopeMember } from '../../hooks/useFleetScope'
 import type { BackupStatusResponse, BackupTriggerResponse } from '../../../shared/types'
 import type { MemberOutcome } from '../../../shared/fleetScopedOps'
 
+/** the last restore's warnings, without the ones that name a skipped stack (the red box says those) */
+function restoreWarnings(r: NonNullable<BackupStatusResponse['last_restore']>): string[] {
+  const skipped = (r.skipped ?? []).map((x) => `${x.stack} was not restored:`)
+  return (r.warnings ?? []).filter((w) => !skipped.some((p) => w.startsWith(p)))
+}
+
 const STAGE: Record<string, string> = { copy: 'Copying files', archive: 'Creating archive', cleanup: 'Cleaning up', retention: 'Enforcing retention' }
 
 export default function BackupStatusPanel({
@@ -103,11 +109,26 @@ export default function BackupStatusPanel({
                       formatDateString(data.last_restore.timestamp),
                     ].filter(Boolean).join(' · ')}
                   </p>
-                  {(data.last_restore.warnings?.length ?? 0) > 0 && (
+                  {/* a stack whose containers did not stop was left as it was: said first, in red, with what to do */}
+                  {(data.last_restore.skipped?.length ?? 0) > 0 && (
+                    <div role="alert" className="mt-1 rounded-lg bg-rose-500/10 border border-rose-500/25 p-3">
+                      <p className="text-xs font-semibold text-rose-300 flex items-center gap-1.5">
+                        <XCircle size={12} aria-hidden />
+                        Not restored: {data.last_restore.skipped!.map((x) => x.stack).join(', ')}
+                      </p>
+                      <ul className="mt-1.5 space-y-1 text-xs text-rose-200/90">
+                        {data.last_restore.skipped!.map((x) => <li key={x.stack} className="break-words"><span className="font-mono">{x.stack}</span>: {x.reason}</li>)}
+                      </ul>
+                      <p className="mt-1.5 text-xs text-rose-200/90">
+                        Its data was left exactly as it was and nothing of it was started. Stop {data.last_restore.skipped!.length > 1 ? 'them' : 'it'} on the Stacks page, then restore {data.last_restore.skipped!.length > 1 ? 'each stack' : 'that stack'} alone from this archive.
+                      </p>
+                    </div>
+                  )}
+                  {restoreWarnings(data.last_restore).length > 0 && (
                     <div role="alert" className="mt-1 rounded-lg bg-amber-500/10 border border-amber-500/20 p-3">
                       <p className="text-xs font-medium text-amber-300 flex items-center gap-1.5"><AlertTriangle size={12} aria-hidden /> Not everything came back</p>
                       <ul className="mt-1.5 space-y-1 text-xs text-amber-200/90 max-h-40 overflow-y-auto">
-                        {data.last_restore.warnings!.slice(0, 50).map((w, i) => <li key={i} className="break-words">{w}</li>)}
+                        {restoreWarnings(data.last_restore).slice(0, 50).map((w, i) => <li key={i} className="break-words">{w}</li>)}
                       </ul>
                     </div>
                   )}

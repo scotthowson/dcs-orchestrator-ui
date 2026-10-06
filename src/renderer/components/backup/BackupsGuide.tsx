@@ -107,6 +107,12 @@ What happens:
 • The archive is checked first: nothing is
   touched if it does not read back
 • The stacks it holds are stopped
+• A stack whose containers do not stop is
+  skipped: its folder, App-Data and volumes
+  stay exactly as they are and nothing of it
+  is started. The status card names it in red
+  with Docker's reason: stop it (Stacks page),
+  then restore that stack alone
 • Their folders, App-Data and volumes as they
   are now are set aside in .data/pre-restore
   (a drive's App-Data beside itself, as
@@ -148,8 +154,15 @@ backup; junk, a cut-short file or a tar.gz
 that is not a DCS backup is refused with the
 reason, and nothing of it stays.
 
-• At most 128 MB (API_MAX_UPLOAD_SIZE): copy a
-  larger archive into BACKUP_DEST_DIR by hand
+• Up to 20 GB (API_MAX_BACKUP_UPLOAD_SIZE),
+  streamed to the server's disk as it goes,
+  with its progress on the button. The file is
+  checked against the server's limit and its
+  free room before it is sent
+• An upload cut off half way (a closed tab,
+  a lost connection) leaves nothing behind
+• Through Cloudflare a body may be 100 MB at
+  most: upload larger archives over the LAN
 • A renamed file ("… (1).tar.gz") gets a
   backup's name from when it was made
 • The same archive twice is stored once
@@ -169,6 +182,10 @@ What happens:
   snapshot (.snapshots/pre-restore-<time>)
 • The stacks whose App-Data the bundle brings
   back are stopped (the ones that run)
+• A stack whose containers do not stop keeps
+  its App-Data as it is and is not started;
+  the card names it in red. Stop it, then
+  restore the bundle again
 • Their App-Data as it is now is set aside
   whole: .data/pre-restore/<time>/appdata, or
   beside a drive's App-Data as
@@ -181,7 +198,14 @@ What happens:
 
 The answer, and "Last restore" on the card,
 say what was stopped and started, where the
-old App-Data went and what could not be done.`,
+old App-Data went and what could not be done.
+
+Upload a bundle streams the file to the server
+(up to 20 GB, like a backup archive). The
+setup wizard sends a bundle in one request
+(about 96 MB at most): for a larger one,
+create the admin there, then upload and
+restore it on this card.`,
   },
   {
     title: 'Restoring a snapshot',

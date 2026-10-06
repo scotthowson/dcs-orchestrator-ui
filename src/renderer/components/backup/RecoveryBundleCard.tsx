@@ -1,14 +1,16 @@
 // =============================================================================
 // RecoveryBundleCard — one encrypted archive that rebuilds this install
 // anywhere: make it, download it, keep the passphrase in the secret store,
-// restore one, upload one from another box. A restore stops the stacks whose
-// App-Data the bundle brings back, sets their App-Data aside, restores it and
-// starts them again; the card says what it stopped and where the old data went
-// (also after a reload: the server keeps the last restore's result).
+// restore one, upload one from another box (the file itself, streamed, with its
+// progress). A restore stops the stacks whose App-Data the bundle brings back,
+// sets their App-Data aside, restores it and starts them again; a stack whose
+// containers do not stop is left as it was, and named in red. The card says
+// what it stopped and where the old data went (also after a reload: the server
+// keeps the last restore's result).
 // =============================================================================
 
 import { useCallback, useRef, useState } from 'react'
-import { LifeBuoy, Download, Loader2, Upload, RotateCcw, KeyRound, CheckCircle, AlertTriangle, RefreshCw } from 'lucide-react'
+import { LifeBuoy, Download, Loader2, Upload, RotateCcw, KeyRound, CheckCircle, AlertTriangle, RefreshCw, XCircle } from 'lucide-react'
 import { usePolling } from '../../hooks/usePolling'
 import { useConnectionStore } from '../../stores/connectionStore'
 import { useAuthStore } from '../../stores/authStore'
@@ -19,7 +21,14 @@ import { pageLabel } from '../../constants/pageTitles'
 import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD_QUIET, BTN_ICON_SM, TONE_OK, TONE_DANGER, TONE_GHOST, TONE_GHOST_DANGER } from '../../lib/ui'
 import { apiClient } from '../../api/client'
 import { fetchRecovery, createRecoveryBundle, restoreRecoveryBundle, uploadRecoveryBundle, setSecret } from '../../api/endpoints'
-import type { RecoveryBundleEntry, RecoveryLastRestore } from '../../../shared/types'
+import { formatBytes, uploadRecoveryBundleFile, uploadRefusal } from '../../api/fleetScopedOps'
+import type { RecoveryBundleEntry, RecoveryLastRestore, RestoreSkippedStack } from '../../../shared/types'
+
+/** the warnings of a restore without the ones that name a skipped stack (the red box says those) */
+function otherWarnings(warnings: string[], skipped: RestoreSkippedStack[] | undefined): string[] {
+  const p = (skipped ?? []).map((x) => `${x.stack} was not restored:`)
+  return warnings.filter((w) => !p.some((x) => w.startsWith(x)))
+}
 
 /** what a bundle restore did beyond the configuration, in a few words a person reads */
 function restoreFacts(r: Pick<RecoveryLastRestore, 'stopped' | 'started' | 'set_aside' | 'kept_before' | 'pruned'>): string[] {
@@ -58,6 +67,7 @@ export default function RecoveryBundleCard() {
   const [restoreTarget, setRestoreTarget] = useState<RecoveryBundleEntry | null>(null)
   const [restorePass, setRestorePass] = useState('')
   const [result, setResult] = useState<string | null>(null)
+  const [sent, setSent] = useState<{ sent: number; total: number } | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const create = useCallback(async () => {
@@ -104,29 +114,38 @@ export default function RecoveryBundleCard() {
 
   const upload = useCallback(async (file: File | null) => {
     if (!file) return
+    if (file.size === 0) { addToast({ type: 'error', message: `${file.name} is empty` }); return }
+    // a server that streams bundles says its limit and room (4.0.35); an older one takes the bundle as JSON (128 MB)
+    const refusal = uploadRefusal(file, data ? data.upload : null, 'this server', 'a bundle')
+    if (refusal) { addToast({ type: 'error', duration: 12000, message: refusal }); return }
     setBusy('upload')
+    setSent({ sent: 0, total: file.size })
     try {
-      const b64 = await readAsBase64(file)
-      const res = await uploadRecoveryBundle(file.name, b64)
-      addToast({ type: 'success', message: `Uploaded ${res.file}` })
+      const res = data?.upload
+        ? await uploadRecoveryBundleFile(file, (n, total) => setSent({ sent: n, total }))
+        : await uploadRecoveryBundle(file.name, await readAsBase64(file))
+      addToast({ type: 'success', message: `Uploaded ${res.file} (${formatBytes(res.size)})` })
       refetch()
     } catch (err) {
-      addToast({ type: 'error', message: err instanceof Error ? err.message : 'The upload failed' })
+      addToast({ type: 'error', duration: 15000, message: `${file.name} was not uploaded: ${err instanceof Error ? err.message : 'the upload failed'}` })
     } finally {
       setBusy(null)
+      setSent(null)
     }
-  }, [addToast, refetch])
+  }, [addToast, refetch, data])
 
   const restore = useCallback(async () => {
     if (!restoreTarget || busy) return
-    if (!(await confirm({ title: 'Restore this bundle?', message: `Restore ${restoreTarget.file}?\n\nThe configuration on this server is replaced (a pre-restore snapshot is kept under .snapshots). The stacks whose App-Data the bundle holds are stopped; their App-Data as it is now is set aside whole (in .data/pre-restore, or beside a drive's App-Data as <path>.before-restore-<time>), so nothing old and new is mixed and it can be put back; then the bundle's copy goes in its place and the stacks that ran start again.`, confirmLabel: 'Restore', danger: true }))) return
+    if (!(await confirm({ title: 'Restore this bundle?', message: `Restore ${restoreTarget.file}?\n\nThe configuration on this server is replaced (a pre-restore snapshot is kept under .snapshots). The stacks whose App-Data the bundle holds are stopped; their App-Data as it is now is set aside whole (in .data/pre-restore, or beside a drive's App-Data as <path>.before-restore-<time>), so nothing old and new is mixed and it can be put back; then the bundle's copy goes in its place and the stacks that ran start again. A stack whose containers do not stop keeps its App-Data as it is.`, confirmLabel: 'Restore', danger: true }))) return
     setBusy('restore')
     try {
       const res = await restoreRecoveryBundle(restoreTarget.file, restorePass, true)
       setResult(res.message)
       refetch()
-      // what did not come back (a drive folder that is not there, App-Data it could not write) is said, not hidden
-      addToast({ type: (res.warnings?.length ?? 0) > 0 ? 'warning' : 'success', message: res.message, duration: (res.warnings?.length ?? 0) > 0 ? 15000 : 8000 })
+      // what did not come back (a stack whose containers did not stop, a drive folder that is not there, App-Data it
+      // could not write) is said, not hidden: a skipped stack in red
+      const skipped = (res.skipped?.length ?? 0) > 0
+      addToast({ type: skipped ? 'error' : (res.warnings?.length ?? 0) > 0 ? 'warning' : 'success', message: res.message, duration: skipped ? 20000 : (res.warnings?.length ?? 0) > 0 ? 15000 : 8000 })
       setRestoreTarget(null)
       setRestorePass('')
       if (res.restart_scheduled) setTimeout(() => window.location.reload(), 8000)
@@ -229,9 +248,19 @@ export default function RecoveryBundleCard() {
         <div>
           <div className="flex items-center justify-between gap-3 mb-2">
             <p className="text-[10px] text-slate-500 uppercase tracking-wider">Bundles on this box{data ? ` (${data.bundles.length}, keeps ${data.retention})` : ''}</p>
-            <button type="button" onClick={() => fileRef.current?.click()} disabled={busy !== null} className={BTN_CARD_QUIET}>
-              {busy === 'upload' ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />} Upload a bundle
-            </button>
+            <Hint label={sent
+              ? (sent.sent >= sent.total ? 'Sent: the server is storing it' : `Sent ${formatBytes(sent.sent)} of ${formatBytes(sent.total)}`)
+              : `Put a bundle made on another box here${data?.upload ? ` (up to ${formatBytes(data.upload.max_bytes)}${data.upload.free_bytes !== null ? `, ${formatBytes(data.upload.free_bytes)} free` : ''})` : ''}`}>
+              <span className="inline-flex">
+                <button type="button" onClick={() => fileRef.current?.click()} disabled={busy !== null} aria-label={sent ? `Uploading the bundle, ${sent.total ? Math.floor((sent.sent / sent.total) * 100) : 0}%` : 'Upload a bundle'} className={`${BTN_CARD_QUIET} relative overflow-hidden`}>
+                  {busy === 'upload' ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
+                  {sent && data?.upload
+                    ? <span className="tabular-nums">{sent.sent >= sent.total ? 'Storing…' : `Uploading ${sent.total ? Math.floor((sent.sent / sent.total) * 100) : 0}%`}</span>
+                    : <span>Upload a bundle</span>}
+                  {sent && data?.upload && <span aria-hidden className="absolute left-0 bottom-0 h-0.5 bg-emerald-400 transition-[width] duration-300" style={{ width: `${sent.total ? Math.min(100, (sent.sent / sent.total) * 100) : 0}%` }} />}
+                </button>
+              </span>
+            </Hint>
             <input ref={fileRef} type="file" accept=".enc,application/octet-stream" className="hidden" onChange={(e) => { upload(e.target.files?.[0] ?? null); e.target.value = '' }} />
           </div>
           {data && data.bundles.length === 0 && <p className="text-xs text-slate-500">No bundle yet.</p>}
@@ -258,15 +287,21 @@ export default function RecoveryBundleCard() {
         </div>
 
         {data?.last_restore && (
-          <div role="status" className={`rounded-lg border px-3 py-2.5 space-y-1 ${data.last_restore.ok && data.last_restore.warnings.length === 0 ? 'border-white/5 bg-white/[0.02]' : 'border-amber-500/20 bg-amber-500/[0.05]'}`}>
+          <div role="status" className={`rounded-lg border px-3 py-2.5 space-y-1 ${(data.last_restore.skipped?.length ?? 0) > 0 ? 'border-rose-500/25 bg-rose-500/[0.05]' : data.last_restore.ok && data.last_restore.warnings.length === 0 ? 'border-white/5 bg-white/[0.02]' : 'border-amber-500/20 bg-amber-500/[0.05]'}`}>
             <p className="text-[10px] text-slate-500 uppercase tracking-wider">Last restore</p>
             <p className="text-xs text-slate-300">
               <span className="font-mono">{data.last_restore.file}</span>
               {data.last_restore.finished_at ? ` · ${new Date(data.last_restore.finished_at).toLocaleString()}` : ''}
               {data.last_restore.ok ? ` · ${data.last_restore.stacks} stacks, ${data.last_restore.users} accounts${data.last_restore.app_data.length ? `, App-Data of ${data.last_restore.app_data.join(', ')}` : ''}` : ` · refused: ${data.last_restore.error ?? 'it failed'}`}
             </p>
+            {(data.last_restore.skipped ?? []).map((x) => (
+              <p key={x.stack} role="alert" className="text-[11px] text-rose-300 break-words flex items-start gap-1.5">
+                <XCircle size={12} className="mt-0.5 shrink-0" aria-hidden />
+                <span><span className="font-semibold">{x.stack} was not restored</span>: {x.reason}. Its App-Data is as it was and it was not started: stop it on the Stacks page, then restore the bundle again.</span>
+              </p>
+            ))}
             {data.last_restore.ok && restoreFacts(data.last_restore).map((f) => <p key={f} className="text-[11px] text-slate-400 break-words">{f}</p>)}
-            {data.last_restore.warnings.map((w) => <p key={w} className="text-[11px] text-amber-300 break-words">Not done: {w}</p>)}
+            {otherWarnings(data.last_restore.warnings, data.last_restore.skipped).map((w) => <p key={w} className="text-[11px] text-amber-300 break-words">Not done: {w}</p>)}
           </div>
         )}
 

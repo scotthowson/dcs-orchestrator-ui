@@ -1296,6 +1296,10 @@ export interface BackupStatusResponse {
     volumes?: string[]
     appdata?: string[]
     warnings?: string[]
+    /** stacks left as they were because their containers did not stop (4.0.35): nothing of them was restored or started */
+    skipped?: RestoreSkippedStack[]
+    /** one sentence naming the skipped stacks and what to do ("" when none) */
+    message?: string
     legacy?: boolean
   } | null
   progress?: string | null
@@ -1308,6 +1312,22 @@ export interface BackupStatusResponse {
   warnings?: string[]
 }
 
+/** a stack a restore did not touch because its containers did not stop; reason has Docker's own words */
+export interface RestoreSkippedStack {
+  stack: string
+  reason: string
+}
+
+/** how large an upload the server takes and the room it has for one (4.0.35; absent on an older server) */
+export interface UploadLimits {
+  /** API_MAX_BACKUP_UPLOAD_SIZE */
+  max_bytes: number
+  /** free on the destination's disk; null when it could not be read */
+  free_bytes: number | null
+  /** kept free beside an upload */
+  reserve_bytes: number
+}
+
 export interface BackupConfigResponse {
   configured: boolean
   destination: string
@@ -1315,6 +1335,8 @@ export interface BackupConfigResponse {
   retention_count: number
   /** App-Data folders on drives a backup takes as parts of their own (4.0.33); ok: false while the drive is not there */
   appdata_dirs?: { stack: string; path: string; ok: boolean }[]
+  /** the largest archive an upload may be and the room in BACKUP_DEST_DIR (null when no destination is set) */
+  upload?: UploadLimits | null
 }
 
 export interface BackupTriggerResponse {
@@ -1505,6 +1527,8 @@ export interface RecoveryListResponse {
   passphrase_set: boolean
   stacks: string[]
   bundles: RecoveryBundleEntry[]
+  /** the largest bundle an upload may be and the room in the bundles' folder (4.0.35) */
+  upload?: UploadLimits
   /** the last bundle restore on this server (kept: its answer may never have reached a browser whose proxy it stopped) */
   last_restore?: RecoveryLastRestore | null
 }
@@ -1528,6 +1552,8 @@ export interface RecoveryLastRestore {
   warnings: string[]
   stopped: string[]
   started: string[]
+  /** stacks whose App-Data stayed as it was because their containers did not stop (4.0.35) */
+  skipped?: RestoreSkippedStack[]
   set_aside: RecoverySetAside[]
   kept_before: string | null
   pruned: string[]
@@ -1562,6 +1588,8 @@ export interface RecoveryRestoreResponse {
   /** the stacks whose App-Data it brought back that were running: stopped first, started again after */
   stopped?: string[]
   started?: string[]
+  /** stacks whose App-Data stayed as it was because their containers did not stop (4.0.35) */
+  skipped?: RestoreSkippedStack[]
   /** where the App-Data that was there went (.data/pre-restore/<time>/appdata/…, or <path>.before-restore-<time>) */
   set_aside?: RecoverySetAside[]
   kept_before?: string | null
