@@ -21,7 +21,11 @@
 
 The dashboard of [DCS Orchestrator](https://github.com/scotthowson/dcs-orchestrator): a desktop, browser and Android app for a hub and the Proxmox VMs it builds, one stack per VM. Light and dark looks for every theme, about 40 pages, real-time monitoring, CrowdSec, updates, backups and full server administration — built with Electron, React, Mantine and Tailwind CSS.
 
-> **Platforms:** Linux (AppImage, .deb, .rpm) &bull; macOS (.dmg) &bull; Windows (NSIS) &bull; Android (APK via Capacitor)
+> **Platforms:** the `ghcr.io/scotthowson/dcs-orchestrator-ui` image, which a DCS server runs for you (the browser app on port 3000) &bull; Linux (AppImage, .deb, .rpm) &bull; Windows (NSIS) &bull; Android (APK via Capacitor). A macOS `.dmg` builds with `npm run build` on a Mac; the releases do not ship one.
+
+## About this project
+
+DCS Orchestrator started as a passion project at home: I wanted one place to run the Docker stacks on my own server, and this dashboard grew with it. Most of the code was written with AI assistance (Claude, through Claude Code), with me directing the work, testing it on my own machines and deciding what ships. I have three kids and not all the time in the world, so answers to issues and pull requests may be slow. It works for me in daily use, but if you run it for other people, read what it does before you trust it with their data, and keep backups of your own: the server has backups, snapshots and a recovery bundle ([Operations → Backups](https://github.com/scotthowson/dcs-orchestrator/blob/main/docs/OPERATIONS.md#backups-and-snapshots) in the DCS repository), and a restore drill runs in its CI, but nothing replaces a copy you made yourself. Bug reports and contributions are welcome; security problems go through [SECURITY.md](SECURITY.md).
 
 ---
 
@@ -42,7 +46,7 @@ npm run dev
 npm run build
 ```
 
-**Requirements:** Node.js 20+, npm, and a running [DCS Orchestrator](https://github.com/scotthowson/dcs-orchestrator) server (its API is on by default).
+**Requirements:** Node.js 22 (what CI builds with), npm, and a running [DCS Orchestrator](https://github.com/scotthowson/dcs-orchestrator) server (its API is on by default).
 
 ---
 
@@ -79,7 +83,7 @@ Connect to and switch between multiple DCS servers from a single app.
 
 Live overview with configurable polling intervals.
 
-- **Needs your attention** — only what is broken or waiting on you (a stack with stopped containers, an unhealthy container, a VM that doesn't answer, a missing App-Data drive, a failed or old backup, a nearly full disk, image and DCS updates), worst first, each with the page that fixes it; hide an item until it changes. A dashboard arranged before the card existed is asked once whether to add it on top
+- **Needs your attention** — only what is broken or waiting on you (a stack with stopped containers, an unhealthy container, a VM that doesn't answer, a missing App-Data drive, a failed or old backup, a nearly full disk, image and DCS updates, OS security updates waiting on the server and a restart it needs to finish them), worst first, each with the page that fixes it; hide an item until it changes. A dashboard arranged before the card existed is asked once whether to add it on top
 - **Overview cards** — container counts, stack status, health summary
 - **Health score gauge** — weighted 0–100 scoring with A–F grades (stacks, resources, images, uptime factors)
 - **Resource charts** — real-time memory and load visualization (Recharts)
@@ -135,7 +139,8 @@ Live overview with configurable polling intervals.
 - **Aggregate health score** — weighted 0–100 scoring with A–F letter grades
 - **Score factors** — stacks, resources, images, and uptime sub-scores with visual bars
 - **Per-stack breakdown** — individual stack health scores, container counts, grade badges
-- **Container health table** — per-container status with color-coded badges
+- **Container health table** — per-container status with color-coded badges; on-demand (Sablier) containers show as asleep, not stopped
+- **Last 30 minutes** — each container's availability timeline (the former Uptime page) and the incident log
 - **Resource gauges** — CPU, memory, disk with animated SVG arcs
 
 ### Diagnostics & Factory Reset
@@ -156,8 +161,7 @@ Live overview with configurable polling intervals.
 | **Networks** | List, detail, create/delete, subnet/gateway/container IPs |
 | **Volumes** | Search, sort, size analysis, delete with confirmation |
 | **Images** | Repository/tag/size/age, staleness indicators, Docker Hub search, batch prune |
-| **Updates** | Image freshness checker with current vs latest tag comparison |
-| **Uptime** | Uptime monitoring and availability tracking |
+| **Updates** | DCS, the dashboard, the Docker Engine and every VM on the hub's version; images with a newer tag, automatic image updates on a schedule, *Update everything* |
 | **Trends** | Resource usage history with interactive charts |
 | **Topology** | Network topology visualization with container relationships |
 | **Disk Analysis** | Per-stack disk usage breakdown |
@@ -168,16 +172,13 @@ Live overview with configurable polling intervals.
 |------|-------------|
 | **Environment** | Root `.env` editor, raw mode, per-stack selector, validation, duplicate detection |
 | **Config** | Runtime profile, feature flags, display, log formatting, API, NTFY, security |
-| **Maintenance** | System report, orphan detection, disk analysis, safe/image/deep prune, log rotate |
-| **Backup** | Status polling, trigger full/per-stack backup, archive list, restore with confirmation |
+| **Cleanup** | System report, orphan detection, disk analysis, safe/image/deep prune, log rotate |
+| **Backups** | Full or one-stack backups; download an archive, upload one kept elsewhere (up to 20 GB, streamed to disk), verify it, restore it (what it replaces is set aside first; a stack whose containers do not stop is skipped and named); config snapshots; recovery bundles |
 | **Logs** | Live viewer, server-side filtering, statistics panel, archive browser, export |
 | **Terminal** | Remote terminal access with authentication |
-| **Cron Jobs** | View user and system crontabs, add/remove entries, raw editor |
 | **File Browser** | Navigate server filesystem, view files |
 | **Secrets** | Encrypted secrets management for stacks |
-| **Schedules** | Scheduled task management and execution |
 | **Plugins** | Plugin management and configuration |
-| **Snapshots** | Container state snapshots |
 
 ### Users & Security
 
@@ -188,6 +189,7 @@ Live overview with configurable polling intervals.
 - **Invite system** — generate invite codes, track usage, revoke
 - **Auto-lock** — configurable inactivity timer (5/15/30/60/120 min)
 - **User management** — admin panel for all registered users; three roles (admin, user, and **bot** for chat bots: day-to-day operations only, several sessions allowed), changeable per account
+- **Sign-in to your apps** — on the Users page, the second step Authelia asks for after the password: off, every app, or chosen apps; the one-time verification code Authelia wrote can be read there to register a device without e-mail
 - **Offline fallback** — local-only auth when server is unreachable
 - **Smooth logout** — `useLayoutEffect` fade-to-dark transition prevents login screen flash
 
@@ -203,7 +205,7 @@ Defense-in-depth permission model with admin and user roles enforced across ever
 | **Page restore** | Won't restore admin-only pages for non-admin sessions |
 | **Logout reset** | Forces page to dashboard on sign-out |
 
-**Admin-only pages:** Terminal, Secrets, File Browser, Plugins, Environment, Config, Maintenance, Backup, Cron Jobs, Users, Automations, Snapshots
+**Admin-only pages:** Terminal, Secrets, File Browser, Plugins, Environment, Config, Cleanup, Backups, Export, DNS & Routes, Users, and the Server crontab tab of Automation (its rules are readable by everyone)
 
 **Admin-only operations** (gated per-page on all accessible pages):
 
@@ -220,7 +222,7 @@ Defense-in-depth permission model with admin and user roles enforced across ever
 | **Disk Analysis** | Deep prune |
 | **Trends** | Capture metrics snapshot, configure alert thresholds |
 | **Notifications** | Create/toggle/delete rules, create/delete webhooks |
-| **Schedules** | Create, delete scheduled tasks |
+| **Automation** | Create, delete rules; the server crontab |
 | **Diagnostics** | Server control, factory reset |
 | **Dashboard** | Destructive quick actions (prune, log rotate, backup) |
 
@@ -279,11 +281,11 @@ Traefik elsewhere: switch it on, copy the snippet the panel shows into that Trae
 - New events slide in; nothing else re-animates while the page polls
 - A floating **back to top** arrow appears on every long page
 
-### Automations
+### Automation
 
-- Create automation rules triggered by system events
-- Configurable actions and conditions
-- Enable/disable individual automations
+- One page for everything that runs on its own: **timed rules** (the former Schedules: backups, prunes, updates, your own scripts on a timetable) and **condition rules** (when a container is unhealthy or stopped, CPU or memory is high, a disk is full)
+- Configurable actions, enable/disable each rule, a history of every run
+- A **Server crontab** tab for administrators: the crontab of the account the API runs as
 
 ### Bookmarks
 
@@ -367,9 +369,10 @@ Built on a **dark glassmorphism** foundation with full light mode support.
 | Desktop shell | Electron 33 |
 | Mobile | Capacitor (Android APK) |
 | UI framework | React 18 |
+| Components | Mantine 8 |
 | Build tool | Vite 6 |
 | Styling | Tailwind CSS 3 |
-| State management | Zustand 5 (14 stores) |
+| State management | Zustand 5 (19 stores) |
 | Charts | Recharts 2 |
 | Icons | Lucide React |
 | Language | TypeScript 5 |
@@ -386,24 +389,25 @@ src/
     index.ts               #   App lifecycle, window creation, CORS proxy
     preload.ts             #   contextBridge IPC exposure
     store.ts               #   electron-store persistence
+    presence.ts            #   Discord Rich Presence
   renderer/                # React SPA
     api/
       client.ts            #   Fetch wrapper, auth headers, retry logic
-      endpoints.ts         #   ~80 typed API endpoint functions
+      endpoints.ts         #   ~370 typed API endpoint functions
     hooks/                 #   usePolling, useConnection, useApi
-    stores/                #   14 Zustand stores (auth, settings, connection, stacks, ...)
+    stores/                #   19 Zustand stores (auth, settings, connection, stacks, theme, ...)
     components/
       common/              #   Modal, Toast, ErrorBoundary, DisconnectedBanner, ServerSwitcher, OnboardingOverlay
       dashboard/           #   OverviewCards, ResourceChart, DiskMonitor, HealthSummary, ...
       containers/          #   ContainerRow, ContainerDetail
       stacks/              #   StackCard, ComposeViewer, CreateStack, EditStack
       images/              #   ImageCard
-      layout/              #   Sidebar, Header, StatusBar
+      layout/              #   Sidebar, SectionTabs, MobileNav, Header, StatusBar
       settings/            #   ConnectionForm, AppSettings, ProfileCustomization
       CommandPalette.tsx   #   Ctrl+K spotlight search with dynamic actions
       KeyboardShortcuts.tsx#   Ctrl+/ overlay
       NotificationDrawer.tsx#  Server-scoped notification panel
-    pages/                 #   35+ page components
+    pages/                 #   35 page components
       SetupWizard.tsx      #     5-step first-run wizard with collapsible advanced config
       Dashboard.tsx        #     Live overview, health score, charts, quick actions
       Stacks.tsx           #     Stack management with batch operations
@@ -412,33 +416,33 @@ src/
       Images.tsx           #     Image tracking with staleness indicators and Docker Hub search
       Networks.tsx         #     Network management
       Volumes.tsx          #     Volume management with search & sort
-      Health.tsx           #     Health scoring with weighted grades and per-stack breakdown
+      Health.tsx           #     Health scoring, per-stack breakdown, each container's last 30 minutes
       Diagnostics.tsx      #     Resource gauges, server control, factory reset
       Logs.tsx             #     Log viewer with filtering & statistics
       Config.tsx           #     Server configuration editor
       Environment.tsx      #     Root and stack .env editor
-      Backup.tsx           #     Backup/restore with archive browser
-      Maintenance.tsx      #     System report, orphan detection, prune actions
+      Backup.tsx           #     Backups, config snapshots and recovery bundles
+      Maintenance.tsx      #     Cleanup: system report, orphan detection, prune actions
       Settings.tsx         #     Profile, appearance, export/import, security
       Login.tsx            #     Two-phase auth: server connection + login/register
       Users.tsx            #     User management and invite codes
       Notifications.tsx    #     NTFY notification center
-      Automations.tsx      #     Automation rules
+      Automations.tsx      #     Automation: timed and condition rules, the server crontab
       Terminal.tsx         #     Remote terminal
-      CronJobs.tsx         #     Cron job viewer/editor
       FileBrowser.tsx      #     Server file browser
       DiskAnalysis.tsx     #     Disk usage analysis
       Topology.tsx         #     Network topology
       Trends.tsx           #     Resource trends
-      Uptime.tsx           #     Uptime monitoring
-      Updates.tsx          #     Image update checker
-      Snapshots.tsx        #     Container snapshots
+      Updates.tsx          #     DCS, dashboard, engine, VM and image updates
       Bookmarks.tsx        #     Pinned navigation
       Activity.tsx         #     Activity feed
-      Secrets.tsx          #     Encrypted secrets management
-      Schedules.tsx        #     Scheduled task management
+      Secrets.tsx          #     Encrypted secrets, API keys, the dashboard feed
       Plugins.tsx          #     Plugin management
       System.tsx           #     System information
+      CrowdSec.tsx         #     Bans, alerts, allowlist, Discord alerts
+      DNS.tsx              #     DNS & Routes: Traefik routes, Cloudflare records, domains
+      Proxmox.tsx          #     Nodes, VMs, the fleet
+      Export.tsx           #     Download server data and reports
   shared/
     types.ts               #   TypeScript interfaces for all API responses
 ```
@@ -450,11 +454,14 @@ src/
 Connects to the DCS Orchestrator REST API (default `http://127.0.0.1:9876`; the reference is [docs/API.md](https://github.com/scotthowson/dcs-orchestrator/blob/main/docs/API.md)). The endpoints the dashboard uses are typed and wrapped:
 
 ```
-/setup    /status    /health     /stacks      /containers   /images
-/networks /volumes   /logs       /events      /config       /system
-/version  /disks     /env        /maintenance  /backup      /auth
-/terminal /batch     /templates  /cron        /files        /notifications
-/secrets  /schedules /plugins    /export      /webhooks
+/setup    /auth       /status     /summary     /stacks       /containers
+/images   /networks   /volumes    /templates   /health       /metrics
+/system   /disks      /storage    /env         /config       /settings
+/backups  /snapshots  /recovery   /rollback    /schedules    /automations
+/logs     /audit      /events     /stream      /notifications /webhooks
+/terminal /secrets    /plugins    /themes      /export       /batch
+/routes   /dns        /domains    /traefik     /authelia     /crowdsec
+/proxmox  /fleet      /ssh        /homarr      /feed         /power
 ```
 
 Server-side filtering via query parameters. Background operations (backup, restore) use status polling. Factory reset uses a dedicated admin-only endpoint.
@@ -477,9 +484,9 @@ npm run electron
 | Platform | Format |
 |----------|--------|
 | Linux | AppImage, .deb, .rpm |
-| macOS | .dmg |
 | Windows | NSIS installer |
 | Android | APK (via Capacitor) |
+| macOS | .dmg when built on a Mac (not in the releases: CI builds Linux, Windows and Android) |
 
 ### Testing the UI
 
@@ -488,6 +495,12 @@ npm run electron
 phone overflow, unnamed buttons, missing focus states and broken safe clicks — see [tests/README.md](tests/README.md).
 
 ---
+
+## Contributing
+
+Issues and pull requests are welcome. Before you open one, run the checks CI runs (`npm run typecheck`, `npm run check:themes`, `npm run build:renderer`) and,
+for a change that touches pages, the UI sweep described in [tests/README.md](tests/README.md). Please report security
+problems privately, as [SECURITY.md](SECURITY.md) describes.
 
 ## License
 

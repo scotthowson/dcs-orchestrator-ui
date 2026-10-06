@@ -19,7 +19,7 @@ From the DCS Orchestrator dashboard:
 
 Or manually:
 ```bash
-cd /path/to/Docker-Compose-Skeleton
+cd ~/.Docker-Compose-Skeleton-AIO   # the DCS Orchestrator install folder (it keeps the old name)
 git clone https://github.com/scotthowson/dcs-plugin-deploy-guard.git .plugins/deploy-guard
 ```
 
