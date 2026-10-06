@@ -19,7 +19,6 @@ import { repairOnDemand, startContainer } from '../../api/endpoints'
 import { useHealthStore } from '../../stores/healthStore'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { useConnectionStore } from '../../stores/connectionStore'
-import { useAuthStore } from '../../stores/authStore'
 import { pageLabel } from '../../constants/pageTitles'
 import type { BackupStatusResponse, DiskInfo, ImageCheckResponse, StackInfo } from '../../../shared/types'
 import { collectNeeds, plural, type NeedItem } from '../../lib/needs'
@@ -49,7 +48,6 @@ export default function NeedsYouCard({ stacks, stacksError, images, backup, disk
   const setCurrentPage = useSettingsStore((s) => s.setCurrentPage)
   const isConnected = useConnectionStore((s) => s.status === 'connected')
   const [hidden, setHidden] = useState(loadHidden)
-  const isAdmin = useAuthStore((s) => s.userRole) === 'admin'
   const { addToast } = useToast()
   const [fixing, setFixing] = useState('')
   // the one-click fixes: recreate on-demand containers a prune removed, or bring Sablier back so what sleeps can wake
