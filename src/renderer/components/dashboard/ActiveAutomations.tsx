@@ -1,5 +1,6 @@
 // =============================================================================
-// ActiveAutomations — the automation rules and whether they are switched on
+// ActiveAutomations — the automation rules (condition and cron rules) and whether
+// they are switched on; the card opens the Automation page
 // =============================================================================
 
 import { Bot } from 'lucide-react'
@@ -29,7 +30,7 @@ export default function ActiveAutomations({ data, error, onRetry }: Props) {
   return (
     <Card card="automations" meta={`${enabled}/${automations.length} enabled`} open="automations">
       {recent.length === 0 ? (
-        <CardEmpty icon={<Bot size={22} />} title="No automations yet" hint={`Create a rule on the ${pageLabel('automations')} page and it shows up here.`} />
+        <CardEmpty icon={<Bot size={22} />} title="No automation rules yet" hint={`Create a rule on the ${pageLabel('automations')} page and it shows up here.`} />
       ) : (
         <CardBody className="space-y-1.5">
           {recent.map((a) => (
@@ -38,7 +39,7 @@ export default function ActiveAutomations({ data, error, onRetry }: Props) {
                 <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${a.enabled ? 'bg-emerald-400' : 'bg-slate-600'}`} role="img" aria-label={a.enabled ? 'On' : 'Off'} />
                 <span className="text-[11px] text-slate-300 truncate">{a.name}</span>
               </div>
-              <Badge component="span" color={a.trigger_type === 'schedule' ? 'slate' : 'cyan'}>{a.trigger_type}</Badge>
+              <Badge component="span" color={a.trigger_type === 'schedule' ? 'cyan' : 'amber'}>{a.trigger_type === 'schedule' ? 'Timed' : 'Condition'}</Badge>
             </div>
           ))}
         </CardBody>
