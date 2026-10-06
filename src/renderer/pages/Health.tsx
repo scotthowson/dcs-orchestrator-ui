@@ -1,6 +1,6 @@
 // =============================================================================
-// Health — container health monitoring with enriched data, a resource overview
-// and a mobile-friendly layout
+// Health — container health monitoring with enriched data, a resource overview,
+// each container's last 30 minutes (the former Uptime page) and the incident log
 // =============================================================================
 
 import React, { useState, useMemo } from 'react'
@@ -23,25 +23,32 @@ import {
   ChevronUp,
   Layers,
   Gauge,
+  ArrowUp,
 } from 'lucide-react'
-import { Badge, SegmentedControl } from '@mantine/core'
+import { Badge, SegmentedControl, Tooltip } from '@mantine/core'
 import { usePolling } from '../hooks/usePolling'
 import { useFleetScope } from '../hooks/useFleetScope'
 import FleetScopeChips from '../components/fleet/FleetScopeChips'
 import VmCapsule from '../components/fleet/VmCapsule'
-import { fetchHealthReport, fetchContainers, fetchSystemMetrics, fetchHealthScore } from '../api/endpoints'
+import { fetchHealthReport, fetchContainers, fetchSystemMetrics, fetchHealthScore, fetchEvents } from '../api/endpoints'
 import { useStackCounts } from '../hooks/useStackCounts'
 import { useHealthStore } from '../stores/healthStore'
 import { useConnectionStore } from '../stores/connectionStore'
-import type { HealthReport, HealthContainer, ContainerInfo, SystemMetricsResponse, HealthScoreResponse } from '../../shared/types'
+import { useSettingsStore } from '../stores/settingsStore'
+import type { HealthReport, HealthContainer, ContainerInfo, SystemMetricsResponse, HealthScoreResponse, EventsResponse, EventEntry } from '../../shared/types'
 import { useApiLink, sinceText, type ApiLinkState } from '../hooks/useApiLink'
 import { OnDemandMissingBanner } from '../components/common/OnDemandMissingBanner'
 import { DisconnectedBanner } from '../components/common/DisconnectedBanner'
 import PageHeader from '../components/common/PageHeader'
 import SortableTh from '../components/common/SortableTh'
 import { EmptyState } from '../components/common/PageState'
-import { Panel, StatTile, pctTone, TONE_FILL, TONE_TEXT, type Tone } from '../components/dashboard/cardShared'
+import { Panel, StatTile, CardSwitch, pctTone, TONE_FILL, TONE_TEXT, type Tone } from '../components/dashboard/cardShared'
 import { BTN_TOOLBAR_QUIET } from '../lib/ui'
+import UptimeTimeline, { type TimelineRow } from '../components/health/UptimeTimeline'
+import IncidentLog, { isIncident, type IncidentRow } from '../components/health/IncidentLog'
+import {
+  WINDOW_MIN, buildTimeline, coverageOf, ownerKey, isNotableEvent, availabilityText, availabilityTone, formatAverageUptime,
+} from '../components/health/uptimeModel'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -56,6 +63,19 @@ function formatUptime(seconds: number): string {
   if (hours > 0) return `${hours}h ${mins}m`
   return `${mins}m`
 }
+
+// ---------------------------------------------------------------------------
+// The container list's view (Table | Last 30 min), remembered per device
+// ---------------------------------------------------------------------------
+
+type ContainerView = 'table' | 'timeline'
+const VIEW_KEY = 'dcs-health-container-view'
+function loadView(): ContainerView { try { return localStorage.getItem(VIEW_KEY) === 'timeline' ? 'timeline' : 'table' } catch { return 'table' } }
+function saveView(v: ContainerView) { try { localStorage.setItem(VIEW_KEY, v) } catch { /* private window */ } }
+const VIEW_OPTIONS: { value: ContainerView; label: string }[] = [
+  { value: 'table', label: 'Table' },
+  { value: 'timeline', label: `Last ${WINDOW_MIN} min` },
+]
 
 // ---------------------------------------------------------------------------
 // Status indicator config — includes 'unknown' for disconnected / no data
@@ -248,10 +268,22 @@ export default function Health() {
   const scopeRef = React.useRef(scope)
   React.useEffect(() => { if (scopeRef.current !== scope) { scopeRef.current = scope; refresh() } }, [scope, refresh])
 
-  // Poll full container list for enriched data (image, uptime, restart count)
-  const { data: containerData } = usePolling<{ containers: ContainerInfo[] }>(fetchContainers, 10000, {
+  // Poll full container list for enriched data (image, uptime, restart count); when it answered dates each start time
+  const fetchContainersAt = React.useCallback(async () => ({ at: Date.now() / 1000, res: await fetchContainers() }), [])
+  const { data: containerTagged, refresh: refreshContainers } = usePolling<{ at: number; res: { containers: ContainerInfo[] } }>(fetchContainersAt, 10000, {
     enabled: isConnected,
   })
+  const containerData = containerTagged?.res ?? null
+
+  // Docker's events, for the last 30 minutes of every container and the incident log (asked less often for the whole fleet);
+  // each answer says the scope it was asked for and when, so a switch never reads the old server's events
+  const fetchScopedEvents = React.useCallback(async () => ({ scope, at: Date.now() / 1000, res: await fetchEvents(scope) }), [scope])
+  const { data: eventsTagged, loading: eventsLoading, refresh: refreshEvents } = usePolling<{ scope: string; at: number; res: EventsResponse }>(fetchScopedEvents, scope === 'all' ? 20000 : 15000, {
+    enabled: isConnected,
+  })
+  const eventsScopeRef = React.useRef(scope)
+  React.useEffect(() => { if (eventsScopeRef.current !== scope) { eventsScopeRef.current = scope; refreshEvents() } }, [scope, refreshEvents])
+  const eventsData = eventsTagged && eventsTagged.scope === scope ? eventsTagged : null
 
   // Poll system metrics for resource overview
   const { data: metrics } = usePolling<SystemMetricsResponse>(fetchSystemMetrics, 10000, {
@@ -329,11 +361,54 @@ export default function Health() {
     })
   }, [healthContainers, containerMap])
 
+  // Each container's last 30 minutes, from its server's events and its start time
+  const timelines = useMemo(() => {
+    const now = Date.now() / 1000
+    const cov = coverageOf(eventsData?.res ?? null, eventsData?.at ?? now, scopeMember)
+    const byKey = new Map<string, EventEntry[]>()
+    for (const e of eventsData?.res.events ?? []) {
+      if (e.type && e.type !== 'container') continue
+      const k = `${ownerKey(e.member ?? scopeMember)}|${e.name}`
+      const list = byKey.get(k)
+      if (list) list.push(e)
+      else byKey.set(k, [e])
+    }
+    const map = new Map<string, { timeline: ReturnType<typeof buildTimeline>; lastEvent?: EventEntry }>()
+    for (const c of enrichedContainers) {
+      const k = `${ownerKey(c.member)}|${c.name}`
+      const evts = byKey.get(k) ?? []
+      const startedAt = c.state.toLowerCase() === 'running' && c.uptime_seconds !== undefined && containerTagged
+        ? containerTagged.at - c.uptime_seconds
+        : null
+      const notable = evts.filter(isNotableEvent)
+      map.set(rowKey(c), {
+        timeline: buildTimeline(c, evts, cov.get(ownerKey(c.member)), startedAt, now),
+        lastEvent: notable.length ? notable.reduce((a, b) => (b.timestamp > a.timestamp ? b : a)) : undefined,
+      })
+    }
+    return map
+  }, [enrichedContainers, eventsData, containerTagged, scopeMember])
+
   // Search and filter state
   const [searchQuery, setSearchQuery] = useState('')
   const [healthFilter, setHealthFilter] = useState<'all' | 'healthy' | 'unhealthy' | 'stopped' | 'ondemand'>('all')
   const [sortAsc, setSortAsc] = useState(true)
   const [expandedRow, setExpandedRow] = useState<string | null>(null)
+
+  // Table | Last 30 min — remembered on this device; a link to the former Uptime page opens "Last 30 min"
+  const [view, setView] = useState<ContainerView>(loadView)
+  const changeView = (v: ContainerView) => { setView(v); saveView(v) }
+  const listRef = React.useRef<HTMLDivElement>(null)
+  const navigationPayload = useSettingsStore((s) => s.navigationPayload)
+  React.useEffect(() => {
+    const p = useSettingsStore.getState().navigationPayload
+    if (p && (p.view === 'timeline' || p.view === 'table')) {
+      setView(p.view)
+      // consuming re-runs this effect: the scroll is not tied to it (the ref is empty once the page is gone)
+      useSettingsStore.getState().consumeNavigationPayload()
+      if (p.view === 'timeline') setTimeout(() => listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 250)
+    }
+  }, [navigationPayload])
 
   // Filtered and sorted containers
   const filteredContainers = useMemo(() => {
@@ -358,6 +433,39 @@ export default function Health() {
     return result
   }, [enrichedContainers, searchQuery, healthFilter, sortAsc])
 
+  const toTimelineRow = React.useCallback((c: EnrichedContainer): IncidentRow | null => {
+    const t = timelines.get(rowKey(c))
+    return t ? { ...c, key: rowKey(c), timeline: t.timeline, lastEvent: t.lastEvent } : null
+  }, [timelines])
+
+  // the "Last 30 min" rows: the same filter and search, running first, then by name
+  const timelineRows: TimelineRow[] = useMemo(() => {
+    const running = (c: EnrichedContainer) => c.state.toLowerCase() === 'running'
+    return [...filteredContainers]
+      .sort((a, b) => (running(a) === running(b) ? a.name.localeCompare(b.name) : running(a) ? -1 : 1))
+      .map(toTimelineRow)
+      .filter((r): r is IncidentRow => r !== null)
+  }, [filteredContainers, toTimelineRow])
+
+  // the incident log: every container that restarted, fails its health check or is restarting, most restarts first
+  const incidents: IncidentRow[] = useMemo(() => enrichedContainers
+    .filter(isIncident)
+    .sort((a, b) => (b.restart_count ?? 0) - (a.restart_count ?? 0))
+    .map(toTimelineRow)
+    .filter((r): r is IncidentRow => r !== null), [enrichedContainers, toTimelineRow])
+
+  // availability over the last 30 minutes: the mean of every container's that has known time
+  const availability = useMemo(() => {
+    const known = [...timelines.values()].map((t) => t.timeline).filter((t) => t.availability !== null)
+    const pct = known.length ? Math.round((known.reduce((sum, t) => sum + (t.availability ?? 0), 0) / known.length) * 100) / 100 : null
+    const estimated = known.some((t) => t.estimated) || known.length < timelines.size
+    const reasons = [...new Set([...timelines.values()].flatMap((t) => t.timeline.why))]
+    return { pct, estimated, reasons, counted: known.length }
+  }, [timelines])
+  const avgUptimeSec = enrichedContainers.length
+    ? enrichedContainers.reduce((sum, c) => sum + (c.uptime_seconds ?? 0), 0) / enrichedContainers.length
+    : 0
+
   // Computed stats
   const total = summary.total || 1
   const healthyPct = (summary.healthy / total) * 100
@@ -378,7 +486,10 @@ export default function Health() {
     const exportData = {
       ...report,
       exportedAt: new Date().toISOString(),
-      containers: enrichedContainers,
+      containers: enrichedContainers.map((c) => {
+        const t = timelines.get(rowKey(c))?.timeline
+        return t ? { ...c, availability_30m: t.availability, availability_estimated: t.estimated } : c
+      }),
       metrics: metrics ?? null,
     }
     const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' })
@@ -399,6 +510,15 @@ export default function Health() {
     { value: 'ondemand', label: 'On demand' },
   ]
   const tileTone = (n: number, tone: Tone): Tone => (n > 0 ? tone : 'neutral')
+  const incidentUnhealthy = incidents.filter((c) => c.health.toLowerCase() === 'unhealthy').length
+  const incidentRestarted = incidents.filter((c) => (c.restart_count ?? 0) > 0).length
+
+  // Refresh: the report, the container list and the events (the button, Ctrl+R and the palette's refresh)
+  const refreshAll = React.useCallback(() => { refresh(); refreshContainers(); refreshEvents() }, [refresh, refreshContainers, refreshEvents])
+  React.useEffect(() => {
+    window.addEventListener('app-refresh', refreshAll)
+    return () => window.removeEventListener('app-refresh', refreshAll)
+  }, [refreshAll])
 
   return (
     <div className="space-y-4 md:space-y-5 animate-fade-in">
@@ -415,7 +535,7 @@ export default function Health() {
             <Download size={14} />
             <span className="hidden sm:inline">Export</span>
           </button>
-          <button type="button" onClick={refresh} disabled={loading} aria-label="Refresh" className={BTN_TOOLBAR_QUIET}>
+          <button type="button" onClick={refreshAll} disabled={loading} aria-label="Refresh" className={BTN_TOOLBAR_QUIET}>
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
             <span className="hidden sm:inline">Refresh</span>
           </button>
@@ -505,14 +625,38 @@ export default function Health() {
 
         {/* Summary stats grid */}
         <div className={`lg:col-span-2 grid grid-cols-2 md:grid-cols-3 gap-3 transition-all duration-500 ${stale ? 'opacity-50 saturate-50' : ''}`}>
-          <StatTile icon={Layers} label="Stacks" value={`${stackCounts.running}/${stackCounts.total}`} tone={stackCounts.running === stackCounts.total ? 'ok' : 'attention'} />
+          <Tooltip
+            multiline
+            w={300}
+            withArrow
+            label={`The share of the last ${WINDOW_MIN} minutes the containers were running and passing their health check (asleep on demand counts as available), read from Docker's own start, stop and health events: the mean of ${availability.counted} container${availability.counted === 1 ? '' : 's'}.${availability.estimated ? ` Estimated: ${availability.reasons.length ? availability.reasons.join('. ') : 'part of the window is not covered yet'}. That time is left out.` : ''}`}
+          >
+            <div className="min-w-0">
+              <StatTile
+                className="h-full"
+                icon={ArrowUp}
+                label="Availability"
+                value={availabilityText(availability.pct)}
+                sub={availability.pct === null ? 'no data yet' : `last ${WINDOW_MIN} min${availability.estimated ? ' · estimated' : ''}`}
+                tone={availability.pct === null ? 'neutral' : availabilityTone(availability.pct)}
+              />
+            </div>
+          </Tooltip>
           <StatTile icon={HeartPulse} label="Healthy" value={summary.healthy} tone={tileTone(summary.healthy, 'ok')} />
           <StatTile icon={XCircle} label="Unhealthy" value={summary.unhealthy} tone={tileTone(summary.unhealthy, 'problem')} />
-          <StatTile icon={Box} label="Stopped" value={summary.stopped} />
-          {!!summary.sleeping && <StatTile icon={Box} label="On demand" value={summary.sleeping} />}
+          <StatTile icon={Activity} label="Running" value={summary.total - summary.stopped - (summary.sleeping ?? 0)} sub={`avg uptime ${formatAverageUptime(avgUptimeSec)}`} tone="ok" />
+          <StatTile icon={Box} label="Stopped" value={summary.stopped} sub={summary.sleeping ? `+${summary.sleeping} on demand, asleep` : undefined} />
+          <StatTile icon={Layers} label="Stacks" value={`${stackCounts.running}/${stackCounts.total}`} tone={stackCounts.running === stackCounts.total ? 'ok' : 'attention'} />
           <StatTile icon={RotateCcw} label="Restarting" value={restartingCount} tone={tileTone(restartingCount, 'attention')} />
           <StatTile icon={RefreshCw} label="Total restarts" value={totalRestarts} tone={totalRestarts > 10 ? 'attention' : 'neutral'} />
-          <StatTile icon={Activity} label="Running" value={summary.total - summary.stopped - (summary.sleeping ?? 0)} tone="ok" />
+          <StatTile
+            className="col-span-2 md:col-span-1"
+            icon={AlertTriangle}
+            label="Incidents"
+            value={incidents.length}
+            sub={incidents.length ? [incidentUnhealthy && `${incidentUnhealthy} unhealthy`, incidentRestarted && `${incidentRestarted} restarted`].filter(Boolean).join(' · ') : 'none'}
+            tone={incidents.length > 0 ? 'attention' : 'neutral'}
+          />
         </div>
       </div>
 
@@ -616,12 +760,14 @@ export default function Health() {
           </Panel>
         )}
 
-        {/* Container health table */}
+        {/* The containers: the health table, or each one's last 30 minutes */}
+        <div ref={listRef} className="scroll-mt-4">
         <Panel
           flush
           icon={Activity}
-          title="Container health"
+          title={view === 'table' ? 'Container health' : 'Container uptime'}
           meta={`${filteredContainers.length}${filteredContainers.length !== enrichedContainers.length ? ` / ${enrichedContainers.length}` : ''}`}
+          actions={<CardSwitch label="How to show the containers" value={view} onChange={changeView} data={VIEW_OPTIONS} />}
         >
           <div className="px-4 py-3 border-b border-white/5 flex flex-col sm:flex-row sm:items-center gap-3">
             <div className="max-w-full overflow-x-auto scrollbar-none">
@@ -645,6 +791,16 @@ export default function Health() {
             </div>
           </div>
 
+          {view === 'timeline' ? (
+            <UptimeTimeline
+              rows={timelineRows}
+              loading={(loading && enrichedContainers.length === 0) || (eventsLoading && !eventsData)}
+              fleetWide={scope === 'all'}
+              onScope={setScope}
+              filtered={!!searchQuery.trim() || healthFilter !== 'all'}
+              emptyHint={scopeMember ? `Nothing runs inside the VM ${memberName} yet.` : 'Uptime is tracked for every container Docker reports on this host.'}
+            />
+          ) : (<>
           {/* Desktop table (hidden on mobile) */}
           <div className="hidden md:block overflow-x-auto scrollbar-thin">
             <table className="w-full text-sm">
@@ -775,7 +931,12 @@ export default function Health() {
               )
             })}
           </div>
+          </>)}
         </Panel>
+        </div>
+
+        {/* Incident log, or all clear */}
+        <IncidentLog incidents={incidents} show={enrichedContainers.length > 0 && (!!eventsData || !eventsLoading)} fleetWide={scope === 'all'} />
       </div>
     </div>
   )
