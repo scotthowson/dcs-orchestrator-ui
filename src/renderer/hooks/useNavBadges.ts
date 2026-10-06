@@ -21,6 +21,7 @@ import { useNotificationStore } from '../stores/notificationStore'
 import type { PageId } from '../../shared/types'
 import type { NavSection } from '../constants/navSections'
 import { pageLabel } from '../constants/pageTitles'
+import { stackIsFine } from '../lib/containerState'
 
 /** the count beside a page's name; `second` is a count of another kind next to it (the stacks that live in VMs) */
 export interface NavBadge { value: string; color: string; title?: string; second?: { value: string; color: string; title?: string } }
@@ -35,7 +36,7 @@ export function useNavBadges(): { badges: Partial<Record<PageId, NavBadge>>; sta
   const vmList = usePolling(vmStackList, 30000, { enabled: isConnectedForVms && isHub })
   // a hub counts its VMs in every badge: containers, images, networks and volumes are its own plus theirs
   const { totals: fleet } = useFleetTotals()
-  const vmStacks = vmList.data ? { total: vmList.data.stacks.filter((x) => x.placement === 'vm').length, up: vmList.data.stacks.filter((x) => x.placement === 'vm' && x.status === 'running').length } : null
+  const vmStacks = vmList.data ? { total: vmList.data.stacks.filter((x) => x.placement === 'vm').length, up: vmList.data.stacks.filter((x) => x.placement === 'vm' && stackIsFine(x)).length } : null
   const systemStatus = useSystemStore((s) => s.status)
   const healthReport = useHealthStore((s) => s.report)
   const connectionStatus = useConnectionStore((s) => s.status)
@@ -49,10 +50,11 @@ export function useNavBadges(): { badges: Partial<Record<PageId, NavBadge>>; sta
 
   if (systemStatus) {
     const runningContainers = systemStatus.docker.containers.running + fleet.containersRunning
+    const asleepContainers = (systemStatus.docker.containers.sleeping ?? 0) + fleet.containersSleeping
     badges.containers = {
       value: `${runningContainers}`,
       color: runningContainers > 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-500/20 text-slate-400',
-      title: `${runningContainers} containers running`,
+      title: `${runningContainers} containers running${asleepContainers ? `, ${asleepContainers} asleep on demand` : ''}`,
     }
     // green: the stacks that run on this server itself; violet: the ones that live in a VM of the fleet (a hub shows both)
     badges.stacks = {
@@ -60,7 +62,7 @@ export function useNavBadges(): { badges: Partial<Record<PageId, NavBadge>>; sta
       color: systemStatus.stacks.running > 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-500/20 text-slate-400',
       title: isHub ? `${systemStatus.stacks.running} running on this server` : `${systemStatus.stacks.running} stacks running`,
       second: isHub && vmStacks !== null && vmStacks.total > 0
-        ? { value: `${vmStacks.total}`, color: vmStacks.up > 0 ? 'bg-violet-500/20 text-violet-300' : 'bg-slate-500/20 text-slate-400', title: `${vmStacks.total} in VMs, ${vmStacks.up} running` }
+        ? { value: `${vmStacks.total}`, color: vmStacks.up > 0 ? 'bg-violet-500/20 text-violet-300' : 'bg-slate-500/20 text-slate-400', title: `${vmStacks.total} in VMs, ${vmStacks.up} up (running or asleep on demand)` }
         : undefined,
     }
     badges.images = { value: `${systemStatus.docker.images + fleet.images}`, color: 'bg-cyan-500/20 text-cyan-400' }

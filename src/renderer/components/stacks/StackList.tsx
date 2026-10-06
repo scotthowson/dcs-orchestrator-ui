@@ -53,7 +53,7 @@ interface Props {
   isAdmin?: boolean
 }
 
-type StatusFilter = 'all' | 'running' | 'stopped'
+type StatusFilter = 'all' | 'running' | 'asleep' | 'stopped'
 type SortMode = 'name' | 'status' | 'priority' | 'containers'
 
 const priorityOrder: Record<string, number> = {
@@ -171,9 +171,11 @@ export default function StackList({ onAction, onSelect, onRefresh, loading = fal
         list.sort((a, b) => a.name.localeCompare(b.name))
         break
       case 'status':
+        // running, then asleep on demand (fine), then stopped
         list.sort((a, b) => {
-          if (a.status === b.status) return a.name.localeCompare(b.name)
-          return a.status === 'running' ? -1 : 1
+          const rank = (s: { status: string; sleeping?: boolean }) => (s.status === 'running' ? 0 : s.sleeping ? 1 : 2)
+          if (rank(a) !== rank(b)) return rank(a) - rank(b)
+          return a.name.localeCompare(b.name)
         })
         break
       case 'priority':
@@ -221,7 +223,8 @@ export default function StackList({ onAction, onSelect, onRefresh, loading = fal
       const matchesStatus =
         statusFilter === 'all' ||
         (statusFilter === 'running' && s.status === 'running') ||
-        (statusFilter === 'stopped' && s.status === 'stopped' && !s.sleeping)
+        (statusFilter === 'stopped' && s.status === 'stopped' && !s.sleeping) ||
+        (statusFilter === 'asleep' && s.status !== 'running' && !!s.sleeping)
       return matchesSearch && matchesStatus
     })
   }, [sorted, search, statusFilter, stackAnnotations, containerMatches])
@@ -503,7 +506,8 @@ export default function StackList({ onAction, onSelect, onRefresh, loading = fal
             aria-label="Show"
             value={statusFilter}
             onChange={(v) => setStatusFilter(v as StatusFilter)}
-            data={[{ value: 'all', label: 'All' }, { value: 'running', label: 'Running' }, { value: 'stopped', label: 'Stopped' }]}
+            data={[{ value: 'all', label: 'All' }, { value: 'running', label: 'Running' },
+              ...(sleepingCount > 0 || statusFilter === 'asleep' ? [{ value: 'asleep', label: 'Asleep' }] : []), { value: 'stopped', label: 'Stopped' }]}
           />
         </div>
 

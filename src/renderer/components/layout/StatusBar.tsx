@@ -3,7 +3,7 @@
 // =============================================================================
 
 import { useEffect, useState, useCallback } from 'react'
-import { Activity, Clock, Container, Cpu, HardDrive, MemoryStick, User, Wifi, WifiOff } from 'lucide-react'
+import { Activity, Clock, Container, Cpu, HardDrive, MemoryStick, Moon, User, Wifi, WifiOff } from 'lucide-react'
 import { useApiLink } from '../../hooks/useApiLink'
 import { useFleetTotals } from '../../hooks/useFleetTotals'
 import { useSystemStore } from '../../stores/systemStore'
@@ -105,6 +105,10 @@ export function StatusBar() {
   const { totals: fleet } = useFleetTotals()   // a hub adds its VMs' containers
   const containersRunning = (status?.docker.containers.running ?? 0) + fleet.containersRunning
   const containersTotal = (status?.docker.containers.total ?? 0) + fleet.containersTotal
+  // asleep on demand is up (the first request wakes it): it counts with the running ones, and is said apart
+  const containersAsleep = (status?.docker.containers.sleeping ?? 0) + fleet.containersSleeping
+  const containersUp = containersRunning + containersAsleep
+  const containersTitle = `${containersRunning} running${containersAsleep ? ` · ${containersAsleep} asleep (on demand)` : ''} · ${containersTotal - containersUp} stopped · ${containersTotal} in all`
   const isConnected = connectionStatus === 'connected'
   const memUsed = status?.system?.memory_mb?.available ?? 0
   const memTotal = status?.system?.memory_mb?.total ?? 0
@@ -191,11 +195,12 @@ export function StatusBar() {
             </>
           )}
 
-          <button onClick={nav('containers')} className="flex items-center gap-1 text-slate-500 hover:text-slate-400 transition-colors duration-200 cursor-pointer">
+          <button onClick={nav('containers')} title={containersTitle} className="flex items-center gap-1 text-slate-500 hover:text-slate-400 transition-colors duration-200 cursor-pointer">
             <Container size={9} />
-            <span className="text-emerald-400/80">{containersRunning}</span>
+            <span className="text-emerald-400/80">{containersUp}</span>
             <span className="text-slate-700">/</span>
             <span className="text-slate-400">{containersTotal}</span>
+            {containersAsleep > 0 && <span className="flex items-center gap-0.5 text-indigo-300"><Moon size={8} aria-hidden />{containersAsleep}</span>}
           </button>
 
           {lastRefreshAgo && (
@@ -253,11 +258,12 @@ export function StatusBar() {
         {/* Row 2: containers + uptime + last refresh */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1 text-slate-500">
+            <span className="flex items-center gap-1 text-slate-500" title={containersTitle}>
               <Container size={8} />
-              <span className="text-emerald-400/80">{containersRunning}</span>
+              <span className="text-emerald-400/80">{containersUp}</span>
               <span className="text-slate-700">/</span>
               <span className="text-slate-400">{containersTotal}</span>
+              {containersAsleep > 0 && <span className="flex items-center gap-0.5 text-indigo-300"><Moon size={7} aria-hidden />{containersAsleep}</span>}
             </span>
             <span className="text-white/[0.06]">|</span>
             <span className="flex items-center gap-1 text-slate-500">

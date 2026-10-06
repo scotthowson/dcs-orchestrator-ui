@@ -11,6 +11,8 @@ import VmCapsule from '../fleet/VmCapsule'
 import { EmptyState } from '../common/PageState'
 import { TONE_TEXT } from '../dashboard/cardShared'
 import { WINDOW_MIN, availabilityText, availabilityTone, type Minute, type SegStatus, type Timeline, type UptimeRow } from './uptimeModel'
+import { StateChip } from '../common/StateChip'
+import { containerState } from '../../lib/containerState'
 
 export interface TimelineRow extends UptimeRow {
   key: string
@@ -31,7 +33,7 @@ const SEG_WORD: Record<SegStatus, string> = {
   up: 'running',
   unhealthy: 'unhealthy',
   down: 'stopped',
-  sleeping: 'on demand, asleep',
+  sleeping: 'asleep (on demand)',
   unknown: 'no data',
 }
 const SEG_TONE: Record<SegStatus, string> = {
@@ -101,17 +103,11 @@ function UptimeBar({ minutes, name }: { minutes: Minute[]; name: string }) {
 // Running and healthy is fine, unhealthy a problem, restarting needs a look, stopped is neutral, "on demand" is Sablier's indigo
 // ---------------------------------------------------------------------------
 
-export function UptimeStatusBadge({ state, health, onDemand }: { state: string; health: string; onDemand?: boolean }) {
+export function UptimeStatusBadge({ state, health, onDemand, sablierUp }: { state: string; health: string; onDemand?: boolean; sablierUp?: boolean | null }) {
   const s = state.toLowerCase()
   const h = health.toLowerCase()
-  if (s !== 'running' && onDemand) {
-    return (
-      <span className="inline-flex shrink-0 whitespace-nowrap items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-500/15 text-[10px] font-medium text-indigo-300" title="Stopped on purpose: Sablier starts it on the first request">
-        <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" aria-hidden />
-        On demand
-      </span>
-    )
-  }
+  // asleep on demand: the shared chip (indigo moon, amber when Sablier is not there to wake it)
+  if (s !== 'running' && s !== 'restarting' && onDemand) return <StateChip state={containerState({ state, on_demand: true, sablier_up: sablierUp })} size="xs" />
   if (s === 'running' && h === 'healthy') return <Badge component="span" color="emerald">Healthy</Badge>
   if (s === 'running' && h === 'unhealthy') return <Badge component="span" color="rose">Unhealthy</Badge>
   if (s === 'running') return <Badge component="span" color="emerald">Running</Badge>
@@ -173,7 +169,7 @@ export default function UptimeTimeline({ rows, loading, fleetWide, onScope, filt
       <div className="px-4 py-2 border-b border-white/[0.03] flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-[11px] text-slate-500">
         <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
           {(['up', 'unhealthy', 'down', 'sleeping', 'unknown'] as const).map((s) => (
-            <span key={s} className="flex items-center gap-1.5"><span className={`w-2.5 h-2.5 rounded-sm ${SEG_CLASS[s]}`} aria-hidden />{s === 'sleeping' ? 'On demand' : SEG_WORD[s].charAt(0).toUpperCase() + SEG_WORD[s].slice(1)}</span>
+            <span key={s} className="flex items-center gap-1.5"><span className={`w-2.5 h-2.5 rounded-sm ${SEG_CLASS[s]}`} aria-hidden />{s === 'sleeping' ? 'Asleep (on demand)' : SEG_WORD[s].charAt(0).toUpperCase() + SEG_WORD[s].slice(1)}</span>
           ))}
         </span>
         <span>Each bar covers the last {WINDOW_MIN} minutes</span>

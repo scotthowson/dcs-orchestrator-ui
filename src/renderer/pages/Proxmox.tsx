@@ -17,7 +17,7 @@ import {
   RotateCcw, Server, Cpu, MemoryStick, HardDrive, Clock, Play, Power, Square, RotateCw, Zap, Pause, PlayCircle,
   RefreshCw, Search, AlertTriangle, Settings2, ShieldCheck, Boxes, Box, Tag, ListChecks, X, Loader2,
   Satellite, Link2, KeyRound, Radar, Rocket, MoreHorizontal, PlugZap, Pencil, Trash2, Layers, ExternalLink, Home,
-  Info, LayoutGrid, LayoutList, Hammer, LayoutDashboard, ChevronDown, ChevronUp, FolderSync, FolderInput, TerminalSquare, Globe,
+  Info, LayoutGrid, LayoutList, Hammer, LayoutDashboard, ChevronDown, ChevronUp, FolderSync, FolderInput, TerminalSquare, Globe, Moon,
 } from 'lucide-react'
 import { usePolling } from '../hooks/usePolling'
 import { useConnectionStore } from '../stores/connectionStore'
@@ -54,6 +54,8 @@ import {
 } from '../lib/ui'
 import { useModalA11y } from '../hooks/useModalA11y'
 import Hint from '../components/common/Hint'
+import { StateDot, StackDot, AsleepCount } from '../components/common/StateChip'
+import { containerState, countStates, countsFrom, statesLine, fineCount, problemCount, stackIsFine, stackState, STATE_META, STACK_META, type StateCounts } from '../lib/containerState'
 
 const STATUS_POLL = 20_000
 const LIST_POLL = 15_000
@@ -296,8 +298,10 @@ function NodesCard({ nodes, vms, version, memberVmids, onPick, loading = false }
 }
 
 function HubCard({ fleet, stacks, isHub, memberCount, onStacks, onStack, pveSelf, isAdmin, tagging, onTag }: { fleet: FleetStatus | null; stacks: StackInfo[]; isHub: boolean; memberCount: number; onStacks: () => void; onStack: (name: string) => void; pveSelf?: ProxmoxSelf | null; isAdmin: boolean; tagging: boolean; onTag: () => void }) {
-  const running = stacks.filter((s) => s.status === 'running').length
+  // a stack asleep on demand is fine: it counts with the running ones, and its asleep containers are said apart
+  const running = stacks.filter((s) => stackIsFine(s)).length
   const containers = stacks.reduce((a, s) => a + (s.running_containers || 0), 0)
+  const asleep = stacks.reduce((a, s) => a + (s.sleeping_containers || 0), 0)
   const role = fleet?.role
   return (
     <div className={`${CARD} p-4 h-full flex flex-col`}>
@@ -318,7 +322,7 @@ function HubCard({ fleet, stacks, isHub, memberCount, onStacks, onStack, pveSelf
         </div>
         <div className="rounded-lg bg-white/[0.03] border border-white/5 px-3 py-2">
           <p className="text-[10px] uppercase tracking-wider text-slate-500">Containers</p>
-          <p className="text-base font-semibold text-slate-100 tabular-nums leading-tight mt-0.5">{containers}<span className="text-slate-600 font-normal text-xs"> running</span></p>
+          <p className="text-base font-semibold text-slate-100 tabular-nums leading-tight mt-0.5">{containers}<span className="text-slate-600 font-normal text-xs"> running</span>{asleep > 0 && <span className="font-normal text-xs"> <AsleepCount n={asleep} /></span>}</p>
         </div>
       </div>
       {pveSelf?.guest && (
@@ -339,8 +343,8 @@ function HubCard({ fleet, stacks, isHub, memberCount, onStacks, onStack, pveSelf
       )}
       <div className="mt-3 flex flex-wrap gap-1.5 flex-1 content-start">
         {stacks.map((st) => (
-          <Hint key={st.name} label={`${st.name} on the ${pageLabel('stacks')} page`}><button type="button" onClick={() => onStack(st.name)} className="h-7 px-2 rounded-lg bg-white/[0.03] border border-white/5 text-[11px] text-slate-300 hover:bg-white/10 flex items-center gap-1.5 max-w-full">
-            <span className={`inline-block w-1.5 h-1.5 rounded-full shrink-0 ${st.status === 'running' ? 'bg-emerald-400' : 'bg-slate-500'}`} /><span className="truncate">{st.name}</span><span className="text-slate-600 tabular-nums">{st.running_containers}</span>
+          <Hint key={st.name} label={`${st.name}: ${STACK_META[stackState(st)].label.toLowerCase()} — on the ${pageLabel('stacks')} page`}><button type="button" onClick={() => onStack(st.name)} className="h-7 px-2 rounded-lg bg-white/[0.03] border border-white/5 text-[11px] text-slate-300 hover:bg-white/10 flex items-center gap-1.5 max-w-full">
+            <StackDot stack={st} /><span className="truncate">{st.name}</span><span className="text-slate-600 tabular-nums">{st.running_containers}</span>
           </button></Hint>
         ))}
         {stacks.length === 0 && <span className="text-[11px] text-slate-500">No stacks run on this server itself{isHub ? ' — they live in the VMs' : ''}.</span>}
@@ -439,14 +443,34 @@ function stackContainers(live: FleetMemberLive, stack: StackInfo): ContainerInfo
   return (live.containers ?? []).filter((c) => !c.stack || c.stack === stack.name)
 }
 function isRunningContainer(c: ContainerInfo): boolean { return String(c.state ?? '').startsWith('running') }
-/** "3 containers · 2 running": the folded containers block's one line, and the header the open block keeps */
-function containersLine(total: number, running: number): string {
-  return total === 0 ? 'No containers yet — deploy a template here' : `${total} container${total === 1 ? '' : 's'} · ${running} running`
+/** "3 containers · 2 running · 1 asleep": the folded containers block's one line, and the header the open block keeps */
+function containersLine(n: StateCounts): string {
+  return n.total === 0 ? 'No containers yet — deploy a template here' : statesLine(n)
 }
-/** "2 stacks · 7 containers · 5 running": the same line for a member with more than one stack */
+/** a member's containers by state: from its snapshot rows when it sent them, else its counts */
+function memberCounts(live: FleetMemberLive): StateCounts {
+  return live.containers ? countStates(live.containers) : countsFrom(live.containers_total, live.containers_running, live.containers_sleeping, live.containers_stuck)
+}
+/** "2 stacks · 7 containers · 5 running · 1 asleep": the same line for a member with more than one stack */
 function stacksLine(live: FleetMemberLive): string {
-  const n = live.stacks.length, t = live.containers_total
-  return `${n} stack${n === 1 ? '' : 's'} · ${t} container${t === 1 ? '' : 's'} · ${live.containers_running} running`
+  const n = live.stacks.length
+  return `${n} stack${n === 1 ? '' : 's'} · ${statesLine(memberCounts(live))}`
+}
+/** "4/5 containers" for a guest — asleep on demand counts as up (it wakes on the first request); the rest is said in the tooltip */
+function memberRatio(live: FleetMemberLive): { text: string; hint: string; problem: boolean } {
+  const n = memberCounts(live)
+  return { text: `${fineCount(n) + n.unhealthy}/${n.total} containers`, hint: statesLine(n), problem: problemCount(n) > 0 }
+}
+/** "1 stack · 2/2 containers · ☾ 1 asleep" — asleep on demand counts as up, and is said apart in its own calm colour */
+function MemberCounts({ live, className = 'text-slate-400' }: { live: FleetMemberLive; className?: string }) {
+  const n = memberCounts(live)
+  const r = memberRatio(live)
+  return (
+    <span className={`${className} tabular-nums inline-flex items-center gap-1.5 min-w-0`} title={r.hint}>
+      <span className={r.problem ? 'text-amber-300' : ''}>{live.stacks_total} stack{live.stacks_total === 1 ? '' : 's'} · {r.text}</span>
+      <AsleepCount n={n.asleep} stuck={n.stuck} />
+    </span>
+  )
 }
 /** the small chevron that folds an open block back to its one line */
 function CollapseButton({ onClick }: { onClick: () => void }) {
@@ -473,8 +497,8 @@ function VmContainers({ member, live, stack, isAdmin, onStackAction, busyKey, on
   return (
     <div className="rounded-lg border border-white/5 bg-white/[0.02]">
       <div className="flex items-center gap-2 px-2.5 py-1.5 border-b border-white/[0.04]">
-        <span className={`inline-block w-2 h-2 rounded-full shrink-0 ${stack.status === 'running' ? 'bg-emerald-400' : 'bg-slate-500'}`} />
-        <p className="text-[11px] font-medium text-slate-200 flex-1 truncate tabular-nums">{containersLine(containers.length, containers.filter(isRunning).length)}</p>
+        <StackDot stack={stack} size={8} />
+        <p className="text-[11px] font-medium text-slate-200 flex-1 truncate tabular-nums">{containersLine(countStates(containers))}</p>
         {isAdmin && (busy ? <Loader2 size={13} className="animate-spin text-cyan-400" /> : (
           <div className="flex items-center gap-0.5">
             {stack.status !== 'running' && <Hint label="Start the stack"><button aria-label="Start the stack" type="button" onClick={() => onStackAction(member, stack.name, 'start')} className={`${BTN_ICON_SM} ${TONE_GHOST_OK}`}><Play size={12} /></button></Hint>}
@@ -488,16 +512,18 @@ function VmContainers({ member, live, stack, isAdmin, onStackAction, busyKey, on
         <div className="divide-y divide-white/[0.04] max-h-56 overflow-y-auto scrollbar-thin">
           {containers.map((c) => {
             const running = isRunning(c)
+            const cs = containerState(c)
+            const sleepy = cs === 'asleep' || cs === 'stuck'
             return (
               <div key={c.name} className="flex items-center gap-2.5 px-2.5 py-1.5">
-                <span className={`inline-block w-1.5 h-1.5 rounded-full shrink-0 ${running ? 'bg-emerald-400' : 'bg-slate-500'}`} />
+                <StateDot state={cs} size={6} />
                 <div className="min-w-0 flex-1">
                   <p className="text-[11px] font-medium text-slate-200 truncate">{c.name}</p>
-                  <p className="text-[10px] text-slate-500 truncate">{c.image}{c.uptime_seconds ? ` · up ${fmtUptime(c.uptime_seconds)}` : ''}{c.health && c.health !== 'none' ? ` · ${c.health}` : ''}</p>
+                  <p className="text-[10px] text-slate-500 truncate">{sleepy ? <span className={STATE_META[cs].text} title={STATE_META[cs].hint}>{cs === 'asleep' ? 'asleep · wakes on the first request' : "on demand, but Sablier is not running"}</span> : c.image}{c.uptime_seconds ? ` · up ${fmtUptime(c.uptime_seconds)}` : ''}{c.health && c.health !== 'none' && !sleepy ? ` · ${c.health}` : ''}</p>
                 </div>
                 {isAdmin && (cbusy.startsWith(`${c.name}:`) ? <Loader2 size={12} className="animate-spin text-cyan-400" /> : (
                   <div className="flex items-center gap-0.5">
-                    {!running && <Hint label="Start"><button aria-label={`Start ${c.name}`} type="button" onClick={() => act(c.name, 'start')} className={`${BTN_ICON_SM} ${TONE_GHOST_OK}`}><Play size={11} /></button></Hint>}
+                    {!running && <Hint label={sleepy ? 'Wake it now (Sablier puts it back to sleep when idle)' : 'Start'}><button aria-label={`${sleepy ? 'Wake' : 'Start'} ${c.name}`} type="button" onClick={() => act(c.name, 'start')} className={`${BTN_ICON_SM} ${TONE_GHOST_OK}`}><Play size={11} /></button></Hint>}
                     {running && <Hint label="Restart"><button aria-label={`Restart ${c.name}`} type="button" onClick={() => act(c.name, 'restart')} className={`${BTN_ICON_SM} ${TONE_GHOST}`}><RotateCcw size={11} /></button></Hint>}
                     {running && <Hint label="Stop"><button aria-label={`Stop ${c.name}`} type="button" onClick={() => act(c.name, 'stop')} className={`${BTN_ICON_SM} ${TONE_GHOST_DANGER}`}><Square size={11} /></button></Hint>}
                   </div>
@@ -524,7 +550,7 @@ function MemberStacks({ member, live, isAdmin, onStackAction, busyKey, onCollaps
     <div className="rounded-lg border border-white/5 bg-white/[0.02] divide-y divide-white/[0.04]">
       {onCollapse && (
         <div className="flex items-center gap-2 px-2.5 py-1.5">
-          <span className={`inline-block w-2 h-2 rounded-full shrink-0 ${stacks.some((st) => st.status === 'running') ? 'bg-emerald-400' : 'bg-slate-500'}`} />
+          <span className={`inline-block w-2 h-2 rounded-full shrink-0 ${stacks.some((st) => st.status === 'running') ? 'bg-emerald-400' : stacks.some((st) => stackIsFine(st)) ? 'bg-indigo-400' : 'bg-slate-500'}`} />
           <p className="text-[11px] font-medium text-slate-200 flex-1 truncate tabular-nums">{stacksLine(live)}</p>
           <CollapseButton onClick={onCollapse} />
         </div>
@@ -534,10 +560,14 @@ function MemberStacks({ member, live, isAdmin, onStackAction, busyKey, onCollaps
         const busy = busyKey === key
         return (
           <div key={st.name} className="flex items-center gap-2.5 px-2.5 py-1.5">
-            <span className={`inline-block w-2 h-2 rounded-full shrink-0 ${st.status === 'running' ? 'bg-emerald-400' : 'bg-slate-500'}`} />
+            <StackDot stack={st} size={8} />
             <div className="min-w-0 flex-1">
               <p className="text-xs font-medium text-slate-200 truncate">{st.name}</p>
-              <p className="text-[10px] text-slate-500">{st.status === 'running' ? `${st.running_containers} container${st.running_containers === 1 ? '' : 's'} running` : 'stopped'}</p>
+              <p className="text-[10px] text-slate-500">{st.status === 'running'
+                ? <>{st.running_containers} container{st.running_containers === 1 ? '' : 's'} running{(st.sleeping_containers ?? 0) > 0 && <> · <AsleepCount n={st.sleeping_containers ?? 0} /></>}</>
+                : stackState(st) === 'asleep' ? <span className="text-indigo-300" title={STACK_META.asleep.hint}>asleep · wakes on the first request</span>
+                : stackState(st) === 'stuck' ? <span className="text-amber-400" title={STACK_META.stuck.hint}>on demand, but Sablier is not running</span>
+                : 'stopped'}</p>
             </div>
             {isAdmin && (
               <div className="flex items-center gap-0.5">
@@ -656,12 +686,13 @@ function ContainersBlock({ vm, member, live, isAdmin, busyKey, expanded, onToggl
       : <MemberStacks member={member} live={live} isAdmin={isAdmin} onStackAction={onStackAction} busyKey={busyKey} onCollapse={onToggle} />
   }
   const inStack = single ? stackContainers(live, single) : []
-  const text = single ? containersLine(inStack.length, inStack.filter(isRunningContainer).length) : stacksLine(live)
+  const text = single ? containersLine(countStates(inStack)) : stacksLine(live)
   const up = stacks.some((st) => st.status === 'running')
+  const asleepOnly = !up && stacks.some((st) => stackIsFine(st))
   return (
     <Hint label="Show the containers and their controls">
       <button type="button" onClick={onToggle} aria-expanded={false} className="w-full h-8 px-2.5 rounded-lg border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] text-[11px] flex items-center gap-2 min-w-0 transition-colors">
-        <span className={`inline-block w-2 h-2 rounded-full shrink-0 ${up ? 'bg-emerald-400' : 'bg-slate-500'}`} />
+        {asleepOnly ? <Moon size={11} className="text-indigo-300 shrink-0" aria-label="asleep" /> : <span className={`inline-block w-2 h-2 rounded-full shrink-0 ${up ? 'bg-emerald-400' : 'bg-slate-500'}`} />}
         <span className="flex-1 truncate text-left font-medium text-slate-200 tabular-nums">{text}</span>
         <ChevronDown size={12} className="text-slate-500 shrink-0" />
       </button>
@@ -708,7 +739,7 @@ function VmCard(p: VmRowProps) {
         {member ? (
           <>
             <DcsChip vm={vm} member={member} live={live} offline={!running} />
-            {live?.reachable && <span className="text-slate-400 tabular-nums shrink-0">{live.stacks_total} stack{live.stacks_total === 1 ? '' : 's'} · {live.containers_running}/{live.containers_total} containers</span>}
+            {live?.reachable && <MemberCounts live={live} className="text-slate-400 shrink-0" />}
             <span className="text-slate-600 font-mono truncate min-w-0">{hostOf(member.url)}</span>
           </>
         ) : isHub && running && isAdmin ? (
@@ -795,7 +826,7 @@ function VmTableRow(p: VmRowProps) {
         {member ? (
           <div className="flex items-center gap-2 flex-wrap">
             <DcsChip vm={vm} member={member} live={live} />
-            {live?.reachable ? <span className="text-slate-400 tabular-nums">{live.stacks_total} stack{live.stacks_total === 1 ? '' : 's'} · {live.containers_running}/{live.containers_total} containers</span> : live ? <span className="text-rose-300/90">no answer</span> : <Loader2 size={11} className="animate-spin text-slate-500" />}
+            {live?.reachable ? <MemberCounts live={live} /> : live ? <span className="text-rose-300/90">no answer</span> : <Loader2 size={11} className="animate-spin text-slate-500" />}
           </div>
         ) : isHub && running && isAdmin ? (
           <div className="flex items-center gap-2 flex-wrap"><ScanLine vm={vm} scan={scan} onLink={onLink} isSelf={p.isSelf} wrap /></div>
@@ -954,7 +985,7 @@ function VmSheet({ vm, member, live, isAdmin, busyKey, pveUrl, refreshTick = 0, 
           <div className="space-y-2">
             <div className="flex items-center gap-x-2 gap-y-1 flex-wrap text-[11px]">
               <DcsChip vm={vm} member={member} live={live} />
-              {live?.reachable && <span className="text-slate-400 tabular-nums">{live.stacks_total} stack{live.stacks_total === 1 ? '' : 's'} · {live.containers_running}/{live.containers_total} containers</span>}
+              {live?.reachable && <MemberCounts live={live} />}
               <span className="text-slate-600 font-mono truncate">{member.url}</span>
               {member.identity?.dashboard !== false && <a href={member.url.replace(/:\d+$/, ':3000')} target="_blank" rel="noreferrer" className="text-slate-400 hover:text-slate-200 flex items-center gap-1"><LayoutDashboard size={11} /> its dashboard</a>}
             </div>
@@ -1318,7 +1349,7 @@ export default function Proxmox() {
         badge={roleChip}
         subtitle={<>
           {!s ? 'Checking the link…' : !configured ? 'Not linked yet.' : !reachable ? 'Linked, but Proxmox does not answer.' : `Proxmox VE ${s.version} · ${s.nodes_online}/${s.nodes} node${s.nodes === 1 ? '' : 's'} online · ${s.vms.running} of ${s.vms.total} guests running`}
-          {overview.data && memberCount > 0 && ` · ${overview.data.totals.reachable}/${overview.data.totals.members} members answering · ${overview.data.totals.stacks} stack${overview.data.totals.stacks === 1 ? '' : 's'} · ${overview.data.totals.containers_running}/${overview.data.totals.containers_total} containers`}
+          {overview.data && memberCount > 0 && ` · ${overview.data.totals.reachable}/${overview.data.totals.members} members answering · ${overview.data.totals.stacks} stack${overview.data.totals.stacks === 1 ? '' : 's'} · ${overview.data.totals.containers_running + (overview.data.totals.containers_sleeping ?? 0)}/${overview.data.totals.containers_total} containers up${overview.data.totals.containers_sleeping ? ` (${overview.data.totals.containers_sleeping} asleep on demand)` : ''}`}
         </>}
         actions={<>
           {isAdmin && configured && reachable && role !== 'member' && (
@@ -1470,7 +1501,7 @@ export default function Proxmox() {
                       <span className={`inline-block w-2 h-2 rounded-full ${m.reachable ? 'bg-emerald-400' : 'bg-rose-400'}`} />
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-slate-200">{m.name} <span className="text-[11px] text-slate-500 font-mono">{m.url}</span></p>
-                        <p className="text-[11px] text-slate-500">{m.reachable ? `${m.stacks_total} stack${m.stacks_total === 1 ? '' : 's'} · ${m.containers_running}/${m.containers_total} containers` : m.error || 'no answer'} · the hub could not tell which guest this is</p>
+                        <p className="text-[11px] text-slate-500">{m.reachable ? `${m.stacks_total} stack${m.stacks_total === 1 ? '' : 's'} · ${statesLine(memberCounts(m))}` : m.error || 'no answer'} · the hub could not tell which guest this is</p>
                       </div>
                       {isAdmin && <button type="button" onClick={() => setEditing(m)} className={`${BTN_CARD} ${TONE_ATTN} font-medium`}><Pencil size={12} /> Pick the guest</button>}
                       {isAdmin && <Hint label={`Manage ${m.name}`}><button aria-label={`Manage ${m.name}`} type="button" onClick={() => setMenu(m)} className={BTN_ICON_QUIET}><MoreHorizontal size={14} /></button></Hint>}

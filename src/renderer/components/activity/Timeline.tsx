@@ -12,6 +12,7 @@ import {
   Box, Network, HardDrive, Database,
   Clock, Filter, Search, Activity as ActivityIcon,
   Zap, WifiOff, Server, X, ChevronDown, AlertTriangle,
+  Moon,
 } from 'lucide-react'
 import { useConnectionStore } from '../../stores/connectionStore'
 import { EmptyState } from '../common/PageState'
@@ -19,6 +20,7 @@ import Hint from '../common/Hint'
 import { BTN_TOOLBAR_QUIET, BTN_TOOLBAR, BTN_ICON_SM, TONE_OK, TONE_GHOST } from '../../lib/ui'
 import { CARD_HOVER, SEARCH_FIELD, FOCUS_RING } from '../../lib/pageKit'
 import type { EventEntry } from '../../../shared/types'
+import { onDemandEventWord } from '../../lib/containerState'
 
 // ---------------------------------------------------------------------------
 // Constants & helpers
@@ -39,6 +41,8 @@ const FILTER_TABS: { key: FilterType; label: string; icon: React.ReactNode }[] =
 function isErrorEvent(e: EventEntry): boolean {
   const a = e.action.toLowerCase()
   if (a.startsWith('exec_')) return false
+  // an on-demand container that Sablier put to sleep did not crash
+  if (onDemandEventWord(e) === 'fell asleep') return false
   return a === 'die' || a === 'oom' || a === 'kill' || a.startsWith('health_status: unhealthy') || a.includes('unhealthy')
 }
 
@@ -68,6 +72,15 @@ function actionIcon(action: string): React.ReactNode {
     default:
       return <Zap size={14} />
   }
+}
+
+/** an on-demand container falling asleep or waking up */
+const ASLEEP_COLORS = {
+  dot: 'bg-indigo-400',
+  icon: 'text-indigo-300',
+  bg: 'bg-indigo-500/10',
+  border: 'border-indigo-500/20',
+  glow: '',
 }
 
 /** Color config per action */
@@ -263,7 +276,9 @@ function StatsBar({ events }: { events: EventEntry[] }) {
 // ---------------------------------------------------------------------------
 
 const TimelineCard = React.memo(function TimelineCard({ event, index, fresh }: { event: EventEntry; index: number; fresh: boolean }) {
-  const colors = actionColors(event.action)
+  // an on-demand container falling asleep (Sablier, on purpose) or waking up: calm indigo, never the crash red
+  const odWord = onDemandEventWord(event)
+  const colors = odWord ? ASLEEP_COLORS : actionColors(event.action)
   const badge = typeBadge(event.type)
 
   return (
@@ -298,7 +313,7 @@ const TimelineCard = React.memo(function TimelineCard({ event, index, fresh }: {
               flex items-center justify-center
               ${colors.icon}
             `} aria-hidden>
-              {actionIcon(event.action)}
+              {odWord ? <Moon size={14} /> : actionIcon(event.action)}
             </div>
 
             <div className="min-w-0 flex-1">
@@ -308,8 +323,8 @@ const TimelineCard = React.memo(function TimelineCard({ event, index, fresh }: {
                   inline-flex items-center rounded-md border px-2 py-0.5
                   text-[11px] font-semibold uppercase tracking-wide
                   ${colors.bg} ${colors.border} ${colors.icon}
-                `}>
-                  {event.action}
+                `} title={odWord ? (odWord === 'fell asleep' ? 'On demand: Sablier stopped it while idle — the first request wakes it' : 'On demand: a request woke it') : undefined}>
+                  {odWord ?? event.action}
                 </span>
                 <Badge color="slate" leftSection={badge.icon}>{badge.label}</Badge>
               </div>

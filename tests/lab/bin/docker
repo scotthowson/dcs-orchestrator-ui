@@ -8,8 +8,11 @@ logs, events, top, port, version) from a fixed set of containers, and refuses
 every call that would change anything (start, stop, rm, pull, run, exec,
 compose up/down, prune, ...) with exit status 1.
 
-DCS_FAKE_DOCKER_PROFILE picks the set: "hub" (networking-security and
-monitoring-management) or "member" (media-services, the stack in VM 100).
+DCS_FAKE_DOCKER_PROFILE picks the set: "hub" (networking-security,
+monitoring-management and development-tools) or "member" (media-services, the
+stack in VM 100). Each has a container that starts on demand and is asleep
+(Sablier stopped it while idle: it-tools on the hub, a whole stack asleep;
+bazarr in the VM) and a running Sablier (the VM's own is no compose service).
 --format takes the subset of Go templates the API uses: fields, json, index,
 eq/ne, if/else, range (with variables), println, string literals and .Label.
 """
@@ -99,11 +102,17 @@ SPECS = {
         ('dashdot', 'monitoring-management', 'mauricenino/dashdot:latest', 'running', 'healthy', 2 * DAY + 600, 0, [(3001, 3001, 'tcp')], ['monitoring-management_default'], ['dashdot-data'], 2.4, 96, 512),
         ('redis', 'monitoring-management', 'redis:alpine', 'running', 'healthy', 2 * DAY + 580, 0, [], ['monitoring-management_default'], ['redis-data'], 0.3, 12, 256),
         ('uptime-kuma', 'monitoring-management', 'louislam/uptime-kuma:1', 'exited', None, 2 * 3600, 1, [], ['monitoring-management_default'], ['uptime-kuma-data'], 0.0, 0, 0),
+        # on demand: Sablier wakes it-tools on the first request and stopped it 40 minutes ago (SIGTERM: exit 143)
+        ('Sablier', 'networking-security', 'acouvreur/sablier:1.6.1', 'running', 'healthy', 3 * DAY + 5200, 0, [], ['proxy'], [], 0.1, 14, 0),
+        ('it-tools', 'development-tools', 'corentinth/it-tools:latest', 'exited', None, 40 * 60, 143, [(8380, 80, 'tcp')], ['proxy'], [], 0.0, 0, 0),
     ],
     'member': [
         ('jellyfin', 'media-services', 'jellyfin/jellyfin:10.9.11', 'running', 'healthy', 26 * 3600, 0, [(8096, 8096, 'tcp')], ['media-services_default'], ['jellyfin-config'], 4.1, 612, 2048),
         ('radarr', 'media-services', 'lscr.io/linuxserver/radarr:latest', 'running', 'unhealthy', 26 * 3600 - 40, 0, [(7878, 7878, 'tcp')], ['media-services_default'], ['radarr-config'], 1.2, 188, 0),
         ('sonarr', 'media-services', 'lscr.io/linuxserver/sonarr:latest', 'exited', None, 5 * 3600, 0, [(8989, 8989, 'tcp')], ['media-services_default'], ['sonarr-config'], 0.0, 0, 0),
+        # on demand in the VM: asleep (its own Sablier, which only the hub's proxy reaches, stopped it while idle)
+        ('bazarr', 'media-services', 'lscr.io/linuxserver/bazarr:latest', 'exited', None, 25 * 60, 143, [(6767, 6767, 'tcp')], ['media-services_default'], ['bazarr-config'], 0.0, 0, 0),
+        ('Sablier', '', 'acouvreur/sablier:1.6.1', 'running', None, 26 * 3600, 0, [(10000, 10000, 'tcp')], ['bridge'], [], 0.1, 14, 0),
     ],
 }
 SPECS = SPECS.get(PROFILE, SPECS['hub'])
@@ -138,6 +147,8 @@ class Container:
         return self.state == 'running'
 
     def labels(self):
+        if not self.stack:   # a VM's own Sablier: started by DCS with docker run, not a compose service
+            return {'dcs.role': 'fleet-sablier'}
         return {
             'com.docker.compose.project': self.stack,
             'com.docker.compose.service': self.service,

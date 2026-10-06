@@ -7,6 +7,8 @@ import { useConnectionStore } from '../../stores/connectionStore'
 import { pageLabel } from '../../constants/pageTitles'
 import type { StackInfo } from '../../../shared/types'
 import { Card, CardEmpty, CardError, CardLoading, CardOffline } from './cardShared'
+import { StackDot } from '../common/StateChip'
+import { stackLine, stackLineTone, stackState, STACK_META } from '../../lib/containerState'
 
 interface Props {
   stacks: StackInfo[] | null
@@ -22,7 +24,7 @@ export default function StackStatusGrid({ stacks, error, onRetry }: Props) {
   if (!stacks) return <Card card="stack-grid"><CardLoading label="Loading the stacks…" variant="tiles" rows={6} /></Card>
 
   return (
-    <Card card="stack-grid" meta={`${stacks.length} total`} open="stacks">
+    <Card card="stack-grid" meta={`${stacks.length} total${stacks.some((s) => stackState(s) === 'asleep') ? ` · ${stacks.filter((s) => stackState(s) === 'asleep').length} asleep` : ''}`} open="stacks">
       {stacks.length === 0 ? (
         <CardEmpty icon={<Layers size={22} />} title="No stacks yet" hint={`Deploy a template or create a stack on the ${pageLabel('stacks')} page.`} />
       ) : (
@@ -32,10 +34,10 @@ export default function StackStatusGrid({ stacks, error, onRetry }: Props) {
               key={`${s.member ?? ''}|${s.name}`}
               className="rounded-lg bg-white/[0.03] border border-white/5 px-3 py-2.5 hover:bg-white/5 transition-colors flex items-center gap-2.5 min-h-[44px]"
             >
-              <span className={`w-2 h-2 rounded-full shrink-0 ${s.status === 'running' ? 'bg-emerald-400' : 'bg-slate-600'}`} aria-hidden />
+              <StackDot stack={s} size={8} />
               <span className="text-xs font-medium text-slate-200 truncate flex-1">{s.name}</span>
-              <span className="text-[10px] text-slate-500 shrink-0 tabular-nums">
-                {s.status === 'running' ? `${s.running_containers} running` : 'stopped'}
+              <span className={`text-[10px] shrink-0 tabular-nums ${stackLineTone(s)}`} title={STACK_META[stackState(s)].hint}>
+                {stackLine(s)}
               </span>
             </div>
           ))}

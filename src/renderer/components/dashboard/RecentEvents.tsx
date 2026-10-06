@@ -3,7 +3,8 @@
 // =============================================================================
 
 import React from 'react'
-import { Box, Image, Network, Settings, Activity } from 'lucide-react'
+import { Box, Image, Network, Settings, Activity, Moon } from 'lucide-react'
+import { onDemandEventWord } from '../../lib/containerState'
 import { Badge } from '@mantine/core'
 import { useLogStore } from '../../stores/logStore'
 import { useConnectionStore } from '../../stores/connectionStore'
@@ -70,7 +71,9 @@ function EventRow({ event, index }: { event: EventEntry; index: number }) {
         {eventTypeIcon(event.type)}
       </div>
 
-      <Badge component="span" color={actionColor(event.action)}>{event.action}</Badge>
+      {onDemandEventWord(event)
+        ? <Badge component="span" color="indigo" leftSection={<Moon size={9} aria-hidden />} title="On demand: Sablier puts it to sleep while idle and wakes it on the first request">{onDemandEventWord(event)}</Badge>
+        : <Badge component="span" color={actionColor(event.action)}>{event.action}</Badge>}
 
       {/* Where it happened (only rows of a fleet view carry it) */}
       {event.member !== undefined && <VmCapsule member={event.member} name={event.member_name} vmid={event.vmid} size="xs" />}

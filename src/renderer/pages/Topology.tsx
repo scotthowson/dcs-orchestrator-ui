@@ -39,6 +39,7 @@ import PageHeader from '../components/common/PageHeader'
 import Hint from '../components/common/Hint'
 import { BTN_TOOLBAR_QUIET, BTN_ICON, BTN_ICON_SM, TONE_GHOST } from '../lib/ui'
 import { CARD, FOCUS_RING } from '../lib/pageKit'
+import { STATE_META } from '../lib/containerState'
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -89,9 +90,11 @@ const SHADOW = { fill: 'var(--dcs-border, #000000)' }
 // Color helpers
 // ---------------------------------------------------------------------------
 
-function healthColor(state: string, health: string): string {
+function healthColor(state: string, health: string, onDemand?: boolean): string {
   const s = state.toLowerCase()
   const h = health.toLowerCase()
+  // asleep on demand: Sablier stopped it on purpose, the first request wakes it — calm indigo, never the stopped red
+  if (onDemand && s !== 'running' && s !== 'restarting') return STATE_META.asleep.color
   if (s === 'running' && h === 'healthy') return '#10b981'
   if (s === 'running' && (h === 'none' || !h || h === 'n/a')) return '#06b6d4'
   if (s === 'running' && h === 'unhealthy') return '#f59e0b'
@@ -349,7 +352,7 @@ function DetailPanel({
   /** null: the node runs on the hub; a string: the address of the VM that runs it ('' = not known, so no link) */
   vmHost: string | null
 }) {
-  const stroke = healthColor(node.state, node.health)
+  const stroke = healthColor(node.state, node.health, node.on_demand)
   // a VM's published port answers on the VM: the hub's hostname in that link opened the wrong machine
   const hubHostname = useSystemStore((s) => s.status?.hostname)
   const hostname = vmHost === null ? hubHostname : vmHost
@@ -394,7 +397,7 @@ function DetailPanel({
               <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-1.5">State</p>
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: stroke }} aria-hidden />
-                <span className="text-sm font-medium text-slate-200 capitalize">{node.state}</span>
+                <span className="text-sm font-medium text-slate-200 capitalize">{node.on_demand && node.state !== 'running' ? 'asleep (on demand)' : node.state}</span>
               </div>
             </div>
             <div className={`${CARD} p-3.5`}>
@@ -1274,7 +1277,7 @@ export default function Topology() {
 
                 {/* =========== CONTAINER CARDS (middle tier) =========== */}
                 {layout.containers.map((c) => {
-                  const stroke = healthColor(c.node.state, c.node.health)
+                  const stroke = healthColor(c.node.state, c.node.health, c.node.on_demand)
                   const isHigh = highlightedContainers.has(c.node.id)
                   const dim = hasHighlight && !isHigh
                   const isSel = selectedNode?.id === c.node.id
@@ -1285,7 +1288,7 @@ export default function Topology() {
                       data-node="true"
                       role="button"
                       tabIndex={0}
-                      aria-label={`Container ${c.node.id}, ${c.node.state || 'unknown'}${c.node.health && c.node.health !== 'none' ? `, ${c.node.health}` : ''}. Open its details`}
+                      aria-label={`Container ${c.node.id}, ${c.node.on_demand && c.node.state !== 'running' ? 'asleep on demand' : c.node.state || 'unknown'}${c.node.health && c.node.health !== 'none' ? `, ${c.node.health}` : ''}. Open its details`}
                       style={{ cursor: 'pointer', transition: 'opacity 0.2s' }}
                       opacity={dim ? 0.35 : 1}
                       onClick={(e) => { e.stopPropagation(); setSelectedNode(c.node) }}
@@ -1296,7 +1299,7 @@ export default function Topology() {
                       onMouseEnter={() => setHoveredContainer(c.node.id)}
                       onMouseLeave={() => setHoveredContainer(null)}
                     >
-                      <title>{`${c.node.id} — ${c.node.state || 'unknown'}${c.node.health && c.node.health !== 'none' ? ` (${c.node.health})` : ''} · ${c.node.image}`}</title>
+                      <title>{`${c.node.id} — ${c.node.on_demand && c.node.state !== 'running' ? 'asleep on demand: wakes on the first request' : c.node.state || 'unknown'}${c.node.health && c.node.health !== 'none' ? ` (${c.node.health})` : ''} · ${c.node.image}`}</title>
                       {/* Outer glow rings on hover */}
                       {(isHigh || isSel) && (
                         <>
@@ -1684,6 +1687,7 @@ export default function Topology() {
               { label: 'Running', color: '#06b6d4' },
               { label: 'Warning', color: '#f59e0b' },
               { label: 'Stopped', color: '#ef4444' },
+              { label: 'Asleep (on demand)', color: STATE_META.asleep.color },
             ].map((h) => (
               <div key={h.label} className="flex items-center gap-1 rounded-full bg-white/[0.03] border border-white/5 px-2 py-0.5">
                 <span className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full shrink-0" style={{ backgroundColor: h.color }} aria-hidden />

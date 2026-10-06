@@ -67,7 +67,10 @@ export interface ServerStatus {
     containers: {
       total: number
       running: number
+      /** Docker's count: the on-demand containers asleep are part of it */
       stopped: number
+      /** of the stopped ones, the on-demand containers asleep (Sablier stopped them on purpose) */
+      sleeping?: number
     }
     images: number
     volumes: number
@@ -127,8 +130,14 @@ export interface HealthReport {
     stopped: number
     /** Stopped on purpose: Sablier starts them on the first request */
     sleeping?: number
+    /** whether this server's Sablier runs (null: nothing here starts on demand; on a fleet: false when one DCS lacks it) */
+    sablier_running?: boolean | null
+    /** asleep with no Sablier running to wake them: a problem */
+    on_demand_stuck?: number
     /** On-demand containers that no longer exist (a prune removed them): POST /sablier/repair recreates them */
     on_demand_missing?: string[]
+    /** a hub's fleet report: the VMs' own missing on-demand containers */
+    on_demand_missing_members?: { id: string; name: string; vmid: number | null; missing: string[] }[]
   }
   containers: HealthContainer[]
   api?: ApiHealthMetrics
@@ -150,6 +159,8 @@ export interface FleetHealthMember { id: string | null; name: string; vmid: numb
 export interface HealthContainer {
   /** Managed by Sablier: a stopped one is idle, not broken */
   on_demand?: boolean
+  /** an on-demand container's Sablier runs (it can wake); null/absent for the others */
+  sablier_up?: boolean | null
   /** the fleet view: which member runs it (null = the hub) */
   member?: string | null
   member_name?: string
@@ -175,6 +186,8 @@ export interface StackInfo {
   sleeping?: boolean
   /** its on-demand containers that are asleep right now (Sablier wakes them on a request) */
   sleeping_containers?: number
+  /** the server's Sablier runs, so what is asleep can wake (null: nothing there starts on demand) */
+  sablier_up?: boolean | null
   /** the hub needs it (proxy, sign-in, firewall): it never moves into a VM */
   hub_only?: boolean
   has_env: boolean
@@ -223,6 +236,9 @@ export interface StackDetail {
   running_containers: number
   /** its on-demand containers asleep right now */
   sleeping_containers?: number
+  /** every container of this stopped stack is asleep on demand */
+  sleeping?: boolean
+  sablier_up?: boolean | null
   has_env: boolean
   services: string[]
   containers: ContainerInfo[]
@@ -274,6 +290,8 @@ export interface ContainerInfo {
   /** an on-demand container that is not running: Sablier stopped it on purpose (the stack page says so) */
   sleeping?: boolean
   on_demand?: boolean
+  /** an on-demand container's Sablier runs (it can wake); null/absent for the others */
+  sablier_up?: boolean | null
   /** Compose project (the stack) this container belongs to, "" for containers Compose does not manage */
   stack?: string
   name: string
@@ -794,6 +812,8 @@ export interface EventEntry {
   type: string
   action: string
   name: string
+  /** a container Sablier starts on demand: its stop is falling asleep, not a crash */
+  on_demand?: boolean
 }
 
 // GET /containers/:name/reset — what a nuke & reinstall would do
@@ -1090,7 +1110,8 @@ export interface StackEnvSaveResponse extends FleetPushOutcome {
 // ---------------------------------------------------------------------------
 
 export interface MaintenanceReport {
-  containers: { total: number; running: number; stopped: number }
+  /** stopped is Docker's count; sleeping the on-demand ones among them */
+  containers: { total: number; running: number; stopped: number; sleeping?: number }
   images: { total: number; dangling: number }
   volumes: { total: number; dangling: number }
   networks: { total: number; custom: number }
@@ -2297,6 +2318,8 @@ export interface TopologyNode {
   name?: string
   state: string
   health: string
+  /** Sablier starts it on demand: stopped means asleep */
+  on_demand?: boolean
   image: string
   stack: string
   networks: string[]
@@ -3900,6 +3923,9 @@ export interface FleetMemberLive extends FleetMemberBase {
   stacks_total: number
   containers_running: number
   containers_total: number
+  /** on demand and asleep (fine), and asleep with no Sablier to wake them */
+  containers_sleeping?: number
+  containers_stuck?: number
   /** the VM's own Docker counts (from its /status; older hubs do not send them) */
   images?: number
   networks?: number
@@ -3912,7 +3938,7 @@ export interface FleetOverview {
   hub: { version: string; name: string; hostname: string }
   members: FleetMemberLive[]
   /** images, networks and volumes are the VMs' Docker counts added up (hubs before 3.9.10 do not send them) */
-  totals: { members: number; reachable: number; stacks: number; containers_running: number; containers_total: number; images?: number; networks?: number; volumes?: number }
+  totals: { members: number; reachable: number; stacks: number; containers_running: number; containers_total: number; containers_sleeping?: number; images?: number; networks?: number; volumes?: number }
 }
 
 /** One guest as the scan saw it */

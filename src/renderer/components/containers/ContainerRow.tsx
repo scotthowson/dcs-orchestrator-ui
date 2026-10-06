@@ -14,6 +14,8 @@ import { CopyButton } from '../common/CopyButton'
 import Hint from '../common/Hint'
 import VmCapsule from '../fleet/VmCapsule'
 import { BTN_ICON_SM, TONE_GHOST, TONE_GHOST_OK, TONE_GHOST_DANGER } from '../../lib/ui'
+import { StateChip, StateDot } from '../common/StateChip'
+import { containerState, isAsleep, STATE_META } from '../../lib/containerState'
 
 // one pill shape for a container's state, whatever it says (sleeping included): same height, never on two lines
 const STATE_PILL = 'inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full text-xs font-medium leading-none ring-1 whitespace-nowrap'
@@ -207,25 +209,12 @@ const ContainerRow: React.FC<ContainerRowProps> = ({
 
       {/* State — every pill the same height, on one line; an on-demand container says so inside its pill */}
       <td className="px-3 py-3 whitespace-nowrap">
-        {container.on_demand && stateKey !== 'running' ? (
-          onOnDemand ? (
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); onOnDemand(container) }}
-              className={`${STATE_PILL} bg-indigo-500/10 text-indigo-300 ring-indigo-500/20 hover:bg-indigo-500/20 transition-colors`}
-              title="Stopped on purpose: Sablier starts it on the first request — click for the idle time, the waiting page, or to serve it normally"
-            >
-              <Moon size={11} aria-hidden className="shrink-0" />
-              sleeping
-              <span className={ON_DEMAND_TAG}>· on demand</span>
-            </button>
-          ) : (
-            <span className={`${STATE_PILL} bg-indigo-500/10 text-indigo-300 ring-indigo-500/20`} title="Stopped on purpose: Sablier starts it on the first request">
-              <Moon size={11} aria-hidden className="shrink-0" />
-              sleeping
-              <span className={ON_DEMAND_TAG}>· on demand</span>
-            </span>
-          )
+        {isAsleep(container) ? (
+          <StateChip
+            state={containerState(container)}
+            onClick={onOnDemand ? () => onOnDemand(container) : undefined}
+            title={onOnDemand ? `${STATE_META[containerState(container)].hint} — click for the idle time, the waiting page, or to serve it normally` : undefined}
+          />
         ) : (
           <span className={`${STATE_PILL} ${sv.bg} ${sv.text} ${sv.ring}`}>
             <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${sv.dot} ${stateKey === 'running' ? 'animate-pulse' : ''}`} />
@@ -273,11 +262,11 @@ const ContainerRow: React.FC<ContainerRowProps> = ({
       <td className="px-3 py-2">
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
           {container.state !== 'running' && (
-            <Hint label="Start">
+            <Hint label={isAsleep(container) ? 'Wake it now (Sablier puts it back to sleep when idle)' : 'Start'}>
               <button
                 onClick={(e) => { e.stopPropagation(); onQuickAction?.(container, 'start') }}
                 className={`${BTN_ICON_SM} ${TONE_GHOST_OK}`}
-                aria-label={`Start ${container.name}`}
+                aria-label={`${isAsleep(container) ? 'Wake' : 'Start'} ${container.name}`}
               >
                 {quickActionLoading === `${busyKey}start` ? <RefreshCw size={13} className="animate-spin text-emerald-400" /> : <Play size={13} />}
               </button>
@@ -390,19 +379,26 @@ export const ContainerCard: React.FC<ContainerRowProps> = ({
       {/* Middle: badges */}
       <div className="flex items-center gap-2 mt-2.5 flex-wrap">
         {showCapsule && <VmCapsule member={container.member} name={container.member_name} vmid={container.vmid} size="xs" />}
-        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium ring-1 ${sv.bg} ${sv.text} ${sv.ring}`}>
-          <span className={`h-1 w-1 rounded-full ${sv.dot} ${stateKey === 'running' ? 'animate-pulse' : ''}`} />
-          {container.state}
-        </span>
-        {container.on_demand && (
+        {isAsleep(container) ? (
+          <StateChip state={containerState(container)} size="xs" onClick={onOnDemand ? () => onOnDemand(container) : undefined} />
+        ) : (
+          <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium ring-1 ${sv.bg} ${sv.text} ${sv.ring}`}>
+            <span className={`h-1 w-1 rounded-full ${sv.dot} ${stateKey === 'running' ? 'animate-pulse' : ''}`} />
+            {container.state}
+          </span>
+        )}
+        {container.on_demand && !isAsleep(container) && (
           onOnDemand
             ? <button type="button" onClick={(e) => { e.stopPropagation(); onOnDemand(container) }} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ring-1 bg-indigo-500/10 text-indigo-300 ring-indigo-500/20 hover:bg-indigo-500/20 transition-colors" title="Sablier starts it on the first request and stops it when idle — tap for the settings"><Moon size={9} /> on demand</button>
             : <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ring-1 bg-indigo-500/10 text-indigo-300 ring-indigo-500/20" title="Sablier starts it on the first request and stops it when idle"><Moon size={9} /> on demand</span>
         )}
-        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium ring-1 ${hv.bg} ${hv.text} ${hv.ring}`}>
-          <span className={`h-1 w-1 rounded-full ${hv.dot}`} />
-          {container.health || 'none'}
-        </span>
+        {/* asleep: its last health check is history */}
+        {!isAsleep(container) && (
+          <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium ring-1 ${hv.bg} ${hv.text} ${hv.ring}`}>
+            <span className={`h-1 w-1 rounded-full ${hv.dot}`} />
+            {container.health || 'none'}
+          </span>
+        )}
         {container.restart_count > 0 && (
           <span className="inline-flex items-center gap-1 text-[10px] text-amber-400">
             <RefreshCw size={9} /> {container.restart_count}
@@ -484,11 +480,11 @@ function ContainerNameWithPopover({ container, formatUptime, onOpen }: { contain
         >
           <div className="bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl shadow-black/40 p-3">
             <div className="flex items-center gap-2 mb-2">
-              <span className={`w-2 h-2 rounded-full ${container.state === 'running' ? 'bg-emerald-400' : 'bg-slate-500'}`} />
+              <StateDot state={containerState(container)} />
               <span className="text-xs font-semibold text-slate-200">{container.name}</span>
             </div>
             <div className="space-y-1.5 text-[11px]">
-              <div className="flex justify-between"><span className="text-slate-500">State</span><span className="text-slate-300 capitalize">{container.state}</span></div>
+              <div className="flex justify-between"><span className="text-slate-500">State</span><span className={isAsleep(container) ? STATE_META[containerState(container)].text : 'text-slate-300 capitalize'}>{isAsleep(container) ? `${STATE_META[containerState(container)].label} · on demand` : container.state}</span></div>
               {container.health && container.health !== 'none' && <div className="flex justify-between"><span className="text-slate-500">Health</span><span className={`capitalize ${container.health === 'healthy' ? 'text-emerald-400' : container.health === 'unhealthy' ? 'text-rose-400' : 'text-amber-400'}`}>{container.health}</span></div>}
               <div className="flex justify-between"><span className="text-slate-500">Image</span><span className="text-slate-300 font-mono truncate ml-2 max-w-[160px]">{container.image}</span></div>
               {container.ports && <div className="flex justify-between"><span className="text-slate-500">Ports</span><span className="text-cyan-400 font-mono truncate ml-2 max-w-[160px]">{container.ports}</span></div>}

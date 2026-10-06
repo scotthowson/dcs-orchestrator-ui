@@ -35,9 +35,10 @@ export default function DiscordPresence() {
       const unhealthy = summary?.unhealthy ?? 0
       const sleeping = summary?.sleeping ?? 0
       const parts: string[] = []
-      if (containerCount > 0) parts.push(`${running}/${containerCount} containers`)
+      // asleep on demand is up (the first request wakes it): it counts with the running ones, and is said apart
+      if (containerCount > 0) parts.push(`${running + sleeping}/${containerCount} containers up`)
       if (stackCount > 0) parts.push(`${stackCount} stack${stackCount === 1 ? '' : 's'}`)
-      if (sleeping > 0) parts.push(`${sleeping} on demand`)
+      if (sleeping > 0) parts.push(`${sleeping} asleep`)
       parts.push(unhealthy > 0 ? `${unhealthy} unhealthy` : 'all healthy')
       void update({
         details: isConnected ? `Managing ${server}` : `Reconnecting to ${server}`,

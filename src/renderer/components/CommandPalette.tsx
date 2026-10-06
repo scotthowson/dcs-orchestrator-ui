@@ -29,6 +29,7 @@ import type { PageId, TemplateInfo, ProxmoxVm, FleetMember } from '../../shared/
 import { ADMIN_ONLY_PAGES } from '../../shared/types'
 import ModalOverlay from './common/ModalOverlay'
 import { navPages, sectionOf } from '../constants/navSections'
+import { containerState, isAsleep, stackLine, STATE_META } from '../lib/containerState'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -251,7 +252,9 @@ export function CommandPalette() {
       items.push({
         id: 'info-containers',
         label: `${status.docker.containers.running} / ${status.docker.containers.total} Containers Running`,
-        description: `${status.docker.containers.stopped} stopped`,
+        description: (status.docker.containers.sleeping ?? 0) > 0
+          ? `${status.docker.containers.sleeping} asleep on demand · ${Math.max(0, status.docker.containers.stopped - (status.docker.containers.sleeping ?? 0))} stopped`
+          : `${status.docker.containers.stopped} stopped`,
         icon: <Box size={16} className="text-cyan-400" />,
         type: 'action',
         keywords: ['container', 'running', 'status'],
@@ -525,7 +528,7 @@ export function CommandPalette() {
         items.push({
           id: `open-stack-${stack.name}`,
           label: stack.name,
-          description: `Stack · ${stack.status}${stack.running_containers != null ? ` · ${stack.running_containers} running` : ''}`,
+          description: `Stack · ${stackLine(stack)}`,
           icon: <Layers size={16} className="text-cyan-400" />,
           type: 'stack',
           keywords: ['stack', 'open', stack.name.toLowerCase()],
@@ -536,7 +539,7 @@ export function CommandPalette() {
         items.push({
           id: `open-container-${container.member ?? 'local'}-${container.name}`,
           label: container.name,
-          description: `Container · ${container.state}${container.stack ? ` · ${container.stack}` : ''} · ${container.image}`,
+          description: `Container · ${isAsleep(container) ? `${STATE_META[containerState(container)].label} (on demand)` : container.state}${container.stack ? ` · ${container.stack}` : ''} · ${container.image}`,
           icon: <Box size={16} className={container.state === 'running' ? 'text-emerald-400' : 'text-slate-400'} />,
           type: 'container',
           keywords: ['container', 'open', container.name.toLowerCase(), (container.image || '').toLowerCase(), (container.stack || '').toLowerCase()],
@@ -677,7 +680,7 @@ export function CommandPalette() {
           items.push({
             id: `stack-start-${stack.name}`,
             label: `Start Stack: ${stack.name}`,
-            description: 'Currently stopped',
+            description: stack.sleeping ? 'Asleep on demand: starting wakes it now' : 'Currently stopped',
             icon: <Play size={16} className="text-emerald-400" />,
             type: 'stack',
             keywords: ['start', 'stack', stack.name.toLowerCase(), 'up', 'launch'],

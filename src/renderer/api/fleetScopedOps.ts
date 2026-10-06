@@ -320,6 +320,7 @@ export async function fetchFleetMaintenanceReport(targets: FleetTarget[]): Promi
     totals.containers.total += r.containers?.total ?? 0
     totals.containers.running += r.containers?.running ?? 0
     totals.containers.stopped += r.containers?.stopped ?? 0
+    totals.containers.sleeping = (totals.containers.sleeping ?? 0) + (r.containers?.sleeping ?? 0)
     totals.images.total += r.images?.total ?? 0
     totals.images.dangling += r.images?.dangling ?? 0
     totals.volumes.total += r.volumes?.total ?? 0

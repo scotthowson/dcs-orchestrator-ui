@@ -38,6 +38,8 @@ import OnDemandDialog from './OnDemandDialog'
 import HomarrChip from './HomarrChip'
 import ThemeButton from './ThemeButton'
 import { Bomb } from 'lucide-react'
+import { StateChip } from '../common/StateChip'
+import { containerState, isAsleep } from '../../lib/containerState'
 import {
   AreaChart,
   Area,
@@ -935,8 +937,13 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
           )}
           <div className="flex flex-wrap items-center gap-2 flex-shrink-0 ml-auto w-full sm:w-auto">
             {showCapsule && <VmCapsule member={member} name={memberName || containerInfo.member_name} vmid={containerInfo.vmid} />}
-            <StatusBadge label={containerInfo.state} variants={STATE_VARIANTS} />
-            <StatusBadge label={containerInfo.health} variants={HEALTH_VARIANTS} />
+            {/* asleep on demand: its own calm state, and its last health check is history */}
+            {isAsleep(containerInfo)
+              ? <StateChip state={containerState(containerInfo)} />
+              : <>
+                  <StatusBadge label={containerInfo.state} variants={STATE_VARIANTS} />
+                  <StatusBadge label={containerInfo.health} variants={HEALTH_VARIANTS} />
+                </>}
           </div>
         </div>
 
@@ -976,9 +983,10 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
               onClick={() => handleAction('start')}
               disabled={!!actionLoading}
               className={`${BTN_TOOLBAR} ${TONE_OK}`}
+              title={isAsleep(containerInfo) ? 'Wake it now: Sablier puts it back to sleep once it is idle again' : undefined}
             >
               {actionLoading === 'start' ? <RefreshCw size={14} className="animate-spin" /> : <Play size={14} />}
-              Start
+              {isAsleep(containerInfo) ? 'Wake now' : 'Start'}
             </button>
           )}
           {containerInfo.state === 'running' && (

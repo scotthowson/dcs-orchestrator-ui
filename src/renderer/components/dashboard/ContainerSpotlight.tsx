@@ -11,6 +11,8 @@ import Hint from '../common/Hint'
 import ModalOverlay from '../common/ModalOverlay'
 import { BTN_CARD, BTN_ICON_SM, BTN_SHEET_PRIMARY, BTN_SHEET_QUIET, TONE_GHOST, TONE_OK } from '../../lib/ui'
 import { Card, CardBody, CardEmpty, CardLoading, pctTone, TONE_FILL, type CardCommonProps } from './cardShared'
+import { StateDot } from '../common/StateChip'
+import { containerState, isAsleep, STATE_META } from '../../lib/containerState'
 
 interface SpotlightConfig { containers: string[] }
 
@@ -86,10 +88,12 @@ export default function ContainerSpotlight({ cardConfig, onSaveConfig, dashboard
                 className="w-full text-left rounded-lg px-2.5 py-2 bg-white/[0.03] border border-white/5 hover:bg-white/[0.05] hover:border-white/10 transition-colors"
               >
                 <div className="flex items-center gap-2">
-                  <span className={`h-2 w-2 rounded-full shrink-0 ${!info ? 'bg-slate-700' : running ? (health === 'unhealthy' ? 'bg-rose-400' : 'bg-emerald-400') : 'bg-slate-500'}`} aria-hidden />
+                  {info && isAsleep(info)
+                    ? <StateDot state={containerState(info)} />
+                    : <span className={`h-2 w-2 rounded-full shrink-0 ${!info ? 'bg-slate-700' : running ? (health === 'unhealthy' ? 'bg-rose-400' : 'bg-emerald-400') : 'bg-slate-500'}`} aria-hidden />}
                   <span className="text-xs font-mono font-medium text-slate-200 truncate">{name}</span>
                   <span className="ml-auto text-[10px] text-slate-500 shrink-0">
-                    {!info ? 'not found' : running ? (health ? health : 'running') : info.state}
+                    {!info ? 'not found' : running ? (health ? health : 'running') : isAsleep(info) ? <span className={STATE_META[containerState(info)].text} title={STATE_META[containerState(info)].hint}>{STATE_META[containerState(info)].label} · on demand</span> : info.state}
                     {info && running ? ` · ${formatUptime(info.uptime_seconds)}` : ''}
                   </span>
                 </div>
