@@ -66,6 +66,18 @@ function sourceIcon(source: CronEntry['source']) {
 }
 
 
+
+/** the crontab's text: `crontab -l` says "no crontab for <user>" when there is none, which is not a line to keep */
+function crontabText(raw: string | undefined | null): string {
+  const t = raw ?? ''
+  return /^no crontab for /.test(t.trim()) ? '' : t
+}
+
+/** a cron line with its whitespace evened out, to find it again by its text */
+function squash(line: string): string {
+  return line.trim().replace(/\s+/g, ' ')
+}
+
 export default function ServerCrontab({ refreshKey, serverName }: {
   /** the page's Refresh: a new number re-reads the crontab on screen */
   refreshKey: number
@@ -126,7 +138,7 @@ export default function ServerCrontab({ refreshKey, serverName }: {
 
   // Open raw editor
   const handleOpenRawEditor = useCallback(() => {
-    setRawContent(userData?.raw ?? '')
+    setRawContent(crontabText(userData?.raw))
     setShowRawEditor(true)
   }, [userData])
 
@@ -153,8 +165,8 @@ export default function ServerCrontab({ refreshKey, serverName }: {
   const handleAddEntry = useCallback(async () => {
     if (!newCommand.trim()) return
     const newLine = `${newSchedule} ${newCommand}`
-    const currentRaw = userData?.raw ?? ''
-    const updatedRaw = currentRaw.trim() + '\n' + newLine + '\n'
+    const currentRaw = crontabText(userData?.raw).trim()
+    const updatedRaw = (currentRaw ? currentRaw + '\n' : '') + newLine + '\n'
     setSaving(true)
     try {
       const res = await updateCrontab(updatedRaw)
@@ -175,8 +187,9 @@ export default function ServerCrontab({ refreshKey, serverName }: {
   }, [newSchedule, newCommand, userData, addToast, refreshUser])
 
   // Delete cron entry (asks first)
-  const handleDeleteEntry = useCallback(async (idx: number, command: string) => {
-    if (!userData?.raw) return
+  const handleDeleteEntry = useCallback(async (schedule: string, command: string) => {
+    const raw = crontabText(userData?.raw)
+    if (!raw) return
     const ok = await confirm({
       title: 'Remove this cron entry?',
       message: `${command}\n\nIt is taken out of the user crontab and stops running.`,
@@ -184,15 +197,17 @@ export default function ServerCrontab({ refreshKey, serverName }: {
       danger: true,
     })
     if (!ok) return
-    const lines = userData.raw.split('\n')
-    // Find the actual line index for this entry (skip comments/blanks)
-    let entryCount = -1
-    const newLines = lines.filter((line) => {
-      const trimmed = line.trim()
-      if (!trimmed || trimmed.startsWith('#')) return true
-      entryCount++
-      return entryCount !== idx
-    })
+    // The line itself, by its text: the row's place in the (filtered) table is not its place in the file, where
+    // comments and settings such as MAILTO= sit between the jobs. Identical lines are interchangeable: the first goes.
+    const lines = raw.split('\n')
+    const want = squash(`${schedule} ${command}`)
+    const at = lines.findIndex((line) => squash(line) === want)
+    if (at < 0) {
+      addToast({ type: 'error', message: 'That entry is no longer in the crontab: it changed on the server. Refreshed.' })
+      refreshUser()
+      return
+    }
+    const newLines = lines.filter((_, i) => i !== at)
     setSaving(true)
     try {
       const res = await updateCrontab(newLines.join('\n'))
@@ -462,7 +477,7 @@ export default function ServerCrontab({ refreshKey, serverName }: {
                             <Hint label="Remove the entry">
                               <button
                                 type="button"
-                                onClick={() => handleDeleteEntry(idx, entry.command)}
+                                onClick={() => handleDeleteEntry(entry.schedule, entry.command)}
                                 disabled={saving}
                                 aria-label={`Remove the entry ${entry.command}`}
                                 className={`${BTN_ICON_SM} ${TONE_GHOST_DANGER}`}

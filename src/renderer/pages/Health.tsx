@@ -355,7 +355,8 @@ export default function Health() {
         ...hc,
         image: info?.image,
         uptime_seconds: info?.uptime_seconds,
-        restart_count: info?.restart_count,
+        // /health carries Docker's real RestartCount; /containers reports 0 for every container
+        restart_count: hc.restart_count ?? info?.restart_count,
         ports: info?.ports,
       }
     })

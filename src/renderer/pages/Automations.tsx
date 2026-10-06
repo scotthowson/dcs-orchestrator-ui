@@ -10,6 +10,7 @@
 // The Schedules and Cron Jobs pages open here (PAGE_ALIASES: {tab, kind}).
 // =============================================================================
 
+import { serverLabel } from '../hooks/useBrand'
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { Plus, RefreshCw, BookOpen, Bot, Layers, Zap, CalendarClock, Radar, ListChecks, Server } from 'lucide-react'
 import { usePolling } from '../hooks/usePolling'
@@ -53,7 +54,7 @@ const CHIP = 'inline-flex items-center gap-1.5 h-8 sm:h-7 px-2.5 rounded-full te
 export default function Automations() {
   const isConnected = useConnectionStore((s) => s.status === 'connected')
   const isAdmin = useAuthStore((s) => s.userRole) === 'admin'
-  const serverName = useSystemStore((s) => s.status?.server_name || s.status?.hostname || '')
+  const serverName = useSystemStore((s) => serverLabel(s.status))
   const { addToast } = useToast()
   const confirm = useConfirm()
 

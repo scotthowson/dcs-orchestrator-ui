@@ -12,7 +12,7 @@ import {
   fetchDisks, fetchSystemInfo,
   fetchStacks, fetchImageUpdates, fetchBackupStatus,
   fetchLogStats, fetchMaintenanceReport, fetchNotificationHistory,
-  fetchAutomations, fetchMetricsTrends, crowdsecStatus,
+  fetchAutomations, fetchSchedules, fetchMetricsTrends, crowdsecStatus,
 } from '../api/endpoints'
 import { useConnectionStore } from '../stores/connectionStore'
 import { useAuthStore } from '../stores/authStore'
@@ -366,6 +366,11 @@ export default function Dashboard() {
     enabled: isConnected,
     onError: onPollError,
   })
+  // the timed rules (schedules) are rules of the same Automation page: the card lists both
+  const schedulesPoll = usePolling(() => fetchSchedules(), 60000, {
+    enabled: isConnected,
+    onError: onPollError,
+  })
 
   const crowdsecPoll = usePolling(crowdsecStatus, 60000, {
     enabled: isConnected,
@@ -446,7 +451,7 @@ export default function Dashboard() {
               'log-health': { data: logStatsPoll.data ?? null, error: logStatsPoll.error, onRetry: logStatsPoll.refresh },
               'maintenance': { data: maintenancePoll.data ?? null, error: maintenancePoll.error, onRetry: maintenancePoll.refresh },
               'notifications': { data: notifHistoryPoll.data ?? null, error: notifHistoryPoll.error, onRetry: notifHistoryPoll.refresh },
-              'automations': { data: automationsPoll.data ?? null, error: automationsPoll.error, onRetry: automationsPoll.refresh },
+              'automations': { data: automationsPoll.data ?? null, schedules: schedulesPoll.data ?? null, error: automationsPoll.error, onRetry: automationsPoll.refresh },
               'crowdsec': { data: crowdsecPoll.data ?? null, error: crowdsecPoll.error, onRetry: crowdsecPoll.refresh },
             }}
           />

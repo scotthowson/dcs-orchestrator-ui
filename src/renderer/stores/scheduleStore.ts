@@ -19,6 +19,10 @@ interface ScheduleState {
   fetchHistory: (id: string, member?: string | null) => Promise<void>
 }
 
+/** the row an action was for: its id on its own server (in the Everywhere list two servers can have the same id) */
+const sameRow = (s: { id: string; member?: string | null }, id: string, member?: string | null) =>
+  s.id === id && (s.member == null || member == null || s.member === member)
+
 export const useScheduleStore = create<ScheduleState>((set, get) => ({
   schedules: [],
   history: {},
@@ -68,7 +72,7 @@ export const useScheduleStore = create<ScheduleState>((set, get) => ({
     set({ saving: true, error: null })
     try {
       await api.deleteSchedule(id, member)
-      set(prev => ({ schedules: prev.schedules.filter(s => s.id !== id), saving: false }))
+      set(prev => ({ schedules: prev.schedules.filter(s => !sameRow(s, id, member)), saving: false }))
       return true
     } catch (err) {
       set({ saving: false, error: err instanceof Error ? err.message : 'Failed to delete schedule' })
@@ -81,7 +85,7 @@ export const useScheduleStore = create<ScheduleState>((set, get) => ({
       const res = await api.toggleSchedule(id, member)
       // The server answers {success, id, enabled}: merge the flag, keep the entry
       const enabled = (res as { enabled?: boolean }).enabled
-      set(prev => ({ schedules: prev.schedules.map(s => s.id === id ? { ...s, enabled: enabled ?? !s.enabled } : s) }))
+      set(prev => ({ schedules: prev.schedules.map(s => sameRow(s, id, member) ? { ...s, enabled: enabled ?? !s.enabled } : s) }))
       return true
     } catch (err) {
       set({ error: err instanceof Error ? err.message : 'Failed to toggle schedule' })

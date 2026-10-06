@@ -401,9 +401,10 @@ export default function SetupWizard({ onComplete }: WizardProps) {
   const [prefTheme, setPrefTheme] = useState<'dark' | 'light' | 'system'>(() => useSettingsStore.getState().theme)
   const [prefSessionMinutes, setPrefSessionMinutes] = useState(240)
   const [prefAutoLock, setPrefAutoLock] = useState(0)
-  const [prefAppName, setPrefAppName] = useState('DCS Orchestrator')
+  // this device's own name and subtitle, if it has them: setting up another server must not reset them
+  const [prefAppName, setPrefAppName] = useState(() => useSettingsStore.getState().projectName || 'DCS Orchestrator')
   // '' = the server's name
-  const [prefAppSubtitle, setPrefAppSubtitle] = useState('')
+  const [prefAppSubtitle, setPrefAppSubtitle] = useState(() => useSettingsStore.getState().projectSubtitle || '')
 
   // Pre-flight validation
   const [alreadyConfigured, setAlreadyConfigured] = useState(false)

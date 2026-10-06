@@ -69,7 +69,8 @@ function UptimeBar({ minutes, name }: { minutes: Minute[]; name: string }) {
       <div className="uptime-bar flex gap-[2px] h-7 items-center" role="img" aria-label={label}>
         {minutes.map((m, i) => (
           <div
-            key={m.start}
+            // by position: m.start moves with every poll, and a new key would remount (and re-animate) every minute's bar
+            key={i}
             className={`uptime-seg flex-1 h-full rounded-[3px] transition-all duration-300 ease-out hover:scale-y-125 hover:brightness-125 cursor-default ${SEG_CLASS[m.status]} ${m.status === 'up' ? 'uptime-seg-up' : ''} ${i === minutes.length - 1 && m.status === 'up' ? 'uptime-seg-live' : ''}`}
             style={{ animationDelay: `${i * 18}ms` }}
             onMouseEnter={(e) => {

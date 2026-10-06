@@ -157,6 +157,8 @@ export interface HealthContainer {
   name: string
   state: string
   health: string
+  /** Docker's RestartCount (GET /containers hard-codes 0, so this is the one to trust) */
+  restart_count?: number
 }
 
 // GET /stacks

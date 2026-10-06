@@ -492,6 +492,13 @@ export default function App() {
     return () => window.removeEventListener('dcs-lock-screen', handler)
   }, [])
 
+  // The payload of a navigation reaches the new page once it is on screen, never the page being left (settingsStore)
+  useEffect(() => {
+    if (transitionPage !== currentPage) return
+    const pending = useSettingsStore.getState().pendingNavigationPayload
+    if (pending) useSettingsStore.setState({ navigationPayload: pending, pendingNavigationPayload: null })
+  }, [transitionPage, currentPage])
+
   // Smooth page transition: fade out, swap component, fade in
   useEffect(() => {
     if (currentPage !== transitionPage) {

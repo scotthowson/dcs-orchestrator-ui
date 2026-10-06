@@ -118,7 +118,9 @@ export function buildTimeline(row: UptimeRow, events: EventEntry[], cov: Coverag
   const runEv = evts.filter((e) => runValue(e.action) !== null)
   const healthEv = evts.filter((e) => healthValue(e.action) !== null)
   const hasCheck = h === 'healthy' || h === 'unhealthy' || h === 'starting' || healthEv.length > 0
-  const factUp = curUp && startedAt !== null
+  // the start time comes from a container list that can be a few seconds (a VM's: up to ~20 s) older than the events:
+  // a stop or start event after it means it restarted since, and the events tell the story from there
+  const factUp = curUp && startedAt !== null && !runEv.some((e) => e.timestamp > startedAt)
   // the container was created inside the covered time (its first event is a create): until its first start there was nothing to run
   const created = evts.length > 0 && evts[0].action === 'create' && runEv.length > 0 && runValue(runEv[0].action)
     ? runEv[0].timestamp

@@ -58,6 +58,11 @@ interface SettingsState extends PersistedSettings {
   settingsLoaded: boolean
   currentPage: PageId
   navigationPayload: Record<string, unknown> | null
+  /**
+   * The payload of a navigation to ANOTHER page, held back until that page is on screen (App hands it over when the
+   * page transition ends): the page being left stays mounted for the 150 ms fade and must not take it.
+   */
+  pendingNavigationPayload: Record<string, unknown> | null
   setCurrentPage: (page: PageId, payload?: Record<string, unknown>) => void
   consumeNavigationPayload: () => Record<string, unknown> | null
   toggleSidebar: () => void
@@ -107,6 +112,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   settingsLoaded: false,
   currentPage: 'dashboard',
   navigationPayload: null,
+  pendingNavigationPayload: null,
 
   setCurrentPage: (requested, requestedPayload) => {
     // a page that moved into another (Uptime → Health's "Last 30 min", …) opens there, on its view
@@ -115,11 +121,13 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     if (ADMIN_ONLY_PAGES.has(page)) {
       const role = useAuthStore.getState().userRole
       if (role !== 'admin') {
-        set({ currentPage: 'dashboard', navigationPayload: null })
+        set({ currentPage: 'dashboard', navigationPayload: null, pendingNavigationPayload: null })
         return
       }
     }
-    set({ currentPage: page, navigationPayload: payload ?? null })
+    // the page on screen gets its payload now; another page gets it once it is on screen (App)
+    if (page === get().currentPage) set({ navigationPayload: payload ?? null, pendingNavigationPayload: null })
+    else set({ currentPage: page, navigationPayload: null, pendingNavigationPayload: payload ?? null })
     rememberTab(page)
     // Persist last page so F5/refresh restores it (skip transient pages)
     if (!TRANSIENT_PAGES.has(page)) {
