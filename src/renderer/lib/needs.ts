@@ -4,6 +4,7 @@
 // (components/dashboard/NeedsYouCard) hands it what the Dashboard already polls.
 // =============================================================================
 
+import { pageLabel } from '../constants/pageTitles'
 import type { BackupStatusResponse, DiskInfo, HealthReport, ImageCheckResponse, PageId, StackInfo } from '../../shared/types'
 
 export type Severity = 'problem' | 'attention'
@@ -92,14 +93,14 @@ export function collectNeeds(input: {
 
   if (backup) {
     if (backup.status === 'error') {
-      out.push({ key: 'backup-failed', severity: 'problem', title: 'The last backup failed', detail: backup.error || 'Open Backup for what went wrong.', page: 'backup', fingerprint: `${backup.error ?? ''}|${backup.started_at ?? ''}` })
+      out.push({ key: 'backup-failed', severity: 'problem', title: 'The last backup failed', detail: backup.error || `Open ${pageLabel('backup')} for what went wrong.`, page: 'backup', fingerprint: `${backup.error ?? ''}|${backup.started_at ?? ''}` })
     } else if (backup.warnings?.length) {
       out.push({ key: 'backup-incomplete', severity: 'attention', title: 'The last backup is incomplete', detail: names(backup.warnings, 2), page: 'backup', fingerprint: backup.warnings.join('|') })
     }
     if (backup.status !== 'running' && backup.status !== 'restoring') {
       const last = backup.last_backup?.timestamp ? Date.parse(backup.last_backup.timestamp) : NaN
       if (!backup.last_backup) {
-        out.push({ key: 'backup-none', severity: 'attention', title: 'No backup yet', detail: 'Make one now, or set a schedule on the Backup page.', page: 'backup', fingerprint: 'none' })
+        out.push({ key: 'backup-none', severity: 'attention', title: 'No backup yet', detail: `Make one now, or set a timed rule on the ${pageLabel('automations')} page.`, page: 'backup', fingerprint: 'none' })
       } else if (Number.isFinite(last)) {
         const days = Math.floor((now - last) / 86_400_000)
         if (days >= BACKUP_STALE_DAYS) {
@@ -122,7 +123,7 @@ export function collectNeeds(input: {
   }
 
   if (dcsUpdates > 0) {
-    out.push({ key: 'dcs-update', severity: 'attention', title: 'A DCS update is ready', detail: 'Install it from the Updates page.', page: 'updates', fingerprint: String(dcsUpdates) })
+    out.push({ key: 'dcs-update', severity: 'attention', title: 'A DCS update is ready', detail: `Install it from the ${pageLabel('updates')} page.`, page: 'updates', fingerprint: String(dcsUpdates) })
   }
 
   // worst first, then the order above

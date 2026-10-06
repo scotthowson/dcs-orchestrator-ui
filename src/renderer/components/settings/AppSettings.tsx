@@ -246,7 +246,7 @@ export default function AppSettingsForm({ onDirtyChange, onRegisterSave }: {
 // Personal preferences
 // ---------------------------------------------------------------------------
 
-const LANDING_PAGES: { id: PageId; label: string }[] = (['dashboard', 'stacks', 'containers', 'health', 'uptime', 'topology', 'updates', 'templates', 'logs', 'activity'] as const)
+const LANDING_PAGES: { id: PageId; label: string }[] = (['dashboard', 'stacks', 'containers', 'health', 'topology', 'updates', 'templates', 'logs', 'activity'] as const)
   .map((id) => ({ id, label: pageLabel(id) }))
 
 /** the dashboard's toggle (a Mantine Switch, themed in lib/mantine.tsx), named for a screen reader */

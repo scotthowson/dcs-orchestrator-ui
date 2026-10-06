@@ -91,7 +91,7 @@ const OPENERS = {
   bookmarks: ['Add bookmark'],
   maintenance: ['Guide'],
   environment: ['Root .env', 'Stack .env', 'Editor'],
-  backup: ['Guide'],
+  backup: ['Guide', 'Backup settings', 'Make a bundle'],
   cronjobs: ['Add Entry', 'Raw Editor', 'Guide', 'User Crontab', 'System Cron'],
   trends: ['Alerts', 'Auto'],
   notifications: ['Guide', 'Add Rule', /^NOTIFICATION HISTORY/, /^WEBHOOKS/, 'Add Webhook'],

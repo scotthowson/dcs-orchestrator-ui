@@ -23,7 +23,6 @@ import Stacks from './pages/Stacks'
 import Containers from './pages/Containers'
 import Images from './pages/Images'
 import Health from './pages/Health'
-import Uptime from './pages/Uptime'
 import Networks from './pages/Networks'
 import Logs from './pages/Logs'
 import System from './pages/System'
@@ -38,20 +37,16 @@ import Environment from './pages/Environment'
 import Volumes from './pages/Volumes'
 import Backup from './pages/Backup'
 import Terminal from './pages/Terminal'
-import CronJobs from './pages/CronJobs'
 import Trends from './pages/Trends'
 import Updates from './pages/Updates'
 import Notifications from './pages/Notifications'
-import Snapshots from './pages/Snapshots'
 import Templates from './pages/Templates'
 import Automations from './pages/Automations'
 import Topology from './pages/Topology'
 import FileBrowser from './pages/FileBrowser'
 import DiskAnalysis from './pages/DiskAnalysis'
 import Secrets from './pages/Secrets'
-import Schedules from './pages/Schedules'
 import Plugins from './pages/Plugins'
-import EventFeed from './pages/EventFeed'
 import DNS from './pages/DNS'
 import Proxmox from './pages/Proxmox'
 import CrowdSec from './pages/CrowdSec'
@@ -61,7 +56,7 @@ import KeyboardShortcutsPanel from './components/common/KeyboardShortcutsPanel'
 import { BackToTop } from './components/common/BackToTop'
 import { MobileNav } from './components/layout/MobileNav'
 import { SectionTabs } from './components/layout/SectionTabs'
-import { navSections, visiblePages, sectionTarget } from './constants/navSections'
+import { navSections, visiblePages, sectionTarget, type AliasPageId } from './constants/navSections'
 import { apiClient } from './api/client'
 import { sseClient } from './lib/sse'
 import { sanitizeCss } from './lib/cssSanitize'
@@ -72,13 +67,13 @@ import type { PageId } from '../shared/types'
 import { ADMIN_ONLY_PAGES } from '../shared/types'
 import ModalOverlay from './components/common/ModalOverlay'
 
-const pageComponents: Record<PageId, React.ComponentType> = {
+// a page that moved into another (navSections PAGE_ALIASES) is never shown under its own id
+const pageComponents: Record<Exclude<PageId, AliasPageId>, React.ComponentType> = {
   dashboard: Dashboard,
   stacks: Stacks,
   containers: Containers,
   images: Images,
   health: Health,
-  uptime: Uptime,
   networks: Networks,
   volumes: Volumes,
   bookmarks: Bookmarks,
@@ -93,20 +88,16 @@ const pageComponents: Record<PageId, React.ComponentType> = {
   environment: Environment,
   backup: Backup,
   terminal: Terminal,
-  cronjobs: CronJobs,
   trends: Trends,
   updates: Updates,
   notifications: Notifications,
-  snapshots: Snapshots,
   templates: Templates,
   automations: Automations,
   topology: Topology,
   'file-browser': FileBrowser,
   'disk-analysis': DiskAnalysis,
   secrets: Secrets,
-  schedules: Schedules,
   plugins: Plugins,
-  'event-feed': EventFeed,
   dns: DNS,
   proxmox: Proxmox,
   crowdsec: CrowdSec,
@@ -613,7 +604,7 @@ export default function App() {
     return <Login />
   }
 
-  const ActivePage = pageComponents[transitionPage] || Dashboard
+  const ActivePage = pageComponents[transitionPage as Exclude<PageId, AliasPageId>] || Dashboard
 
   return (
     <ToastProvider>

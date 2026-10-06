@@ -312,10 +312,10 @@ The sidebar has ten sections; each opens on a strip of its pages, and returns to
 | Stacks | Stacks · Templates · Environment |
 | Fleet | Proxmox · Topology |
 | Docker | Containers · Images · Volumes · Networks · Disk Analysis |
-| Monitoring | Health · Uptime · Trends · Diagnostics · Activity · Live Events · Logs |
+| Monitoring | Health (with each container's last 30 minutes) · Trends · Diagnostics · Activity (timeline, live stream, audit log) · Logs |
 | Security | CrowdSec · DNS & Routes · Secrets · Users |
-| Maintenance | Updates · Backup · Snapshots · Export · Cleanup |
-| Automation | Schedules · Cron Jobs · Automations |
+| Maintenance | Updates · Backups (backups, config snapshots, recovery bundles) · Export · Cleanup |
+| Automation | one page: timed and condition rules, and the server crontab |
 | Tools | Terminal · File Browser · Bookmarks · Plugins |
 | Settings | Settings · Notifications · Config · System |
 
