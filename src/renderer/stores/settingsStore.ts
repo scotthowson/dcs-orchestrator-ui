@@ -150,8 +150,12 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     let lastPage = (stored as Record<string, unknown>).lastPage as PageId | undefined
     // Don't restore admin-only pages for non-admin users
     let restoredPage: PageId | undefined
+    // a saved page that moved into another opens there on its view (the alias's payload), as a link to it would
+    let restoredPayload: Record<string, unknown> | null = null
     if (lastPage && !TRANSIENT_PAGES.has(lastPage)) {
-      lastPage = resolvePage(lastPage).page
+      const resolved = resolvePage(lastPage)
+      lastPage = resolved.page
+      restoredPayload = resolved.payload
       if (ADMIN_ONLY_PAGES.has(lastPage)) {
         try {
           const role = useAuthStore.getState().userRole
@@ -179,7 +183,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       projectSubtitle,
       theme,
       settingsLoaded: true,
-      ...(restoredPage ? { currentPage: restoredPage } : {}),
+      ...(restoredPage ? { currentPage: restoredPage, navigationPayload: restoredPayload } : {}),
     })
     if (restoredPage) rememberTab(restoredPage)
   },
