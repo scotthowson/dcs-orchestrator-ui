@@ -6,6 +6,7 @@
 //             this dashboard mean state (violet is the fleet's).
 // =============================================================================
 
+import { stackLine, stackLineTone } from '../lib/containerState'
 import React, { useState, useMemo, useCallback, useEffect, useId, useRef } from 'react'
 import {
   Rocket,
@@ -1339,7 +1340,7 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
                       <span className="flex items-center gap-2.5 w-full min-w-0 text-xs">
                         <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${st?.status === 'running' ? 'bg-emerald-400' : 'bg-slate-500'}`} aria-hidden />
                         <span className="font-mono truncate flex-1">{option.label}{st?.placement === 'vm' ? <span className="ml-1.5 text-[9px] font-sans text-violet-300/90">VM{st.vmid ? ` ${st.vmid}` : ''}</span> : null}</span>
-                        <span className="text-[10px] text-slate-500 shrink-0">{st ? (st.status === 'running' ? `${st.running_containers} running` : 'stopped') : ''}</span>
+                        <span className={`text-[10px] shrink-0 ${st ? stackLineTone(st) : 'text-slate-500'}`}>{st ? stackLine(st) : ''}</span>
                         {option.value === defaultStack && <span className="text-[9px] text-emerald-500/70 font-semibold shrink-0">recommended</span>}
                         <Check size={13} className={`shrink-0 ${checked ? '' : 'invisible'}`} aria-hidden />
                       </span>
