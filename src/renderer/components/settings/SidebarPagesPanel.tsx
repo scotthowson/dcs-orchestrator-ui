@@ -83,7 +83,8 @@ export default function SidebarPagesPanel() {
                       <button
                         key={id}
                         type="button"
-                        aria-pressed={on}
+                        role="switch"
+                        aria-checked={on}
                         disabled={locked}
                         title={locked ? 'Always shown' : on ? `Hide ${pageMeta[id].label}` : `Show ${pageMeta[id].label}`}
                         onClick={() => setPages([id], !on)}
