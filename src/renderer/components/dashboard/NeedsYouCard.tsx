@@ -16,6 +16,7 @@ import { CheckCircle2, ChevronRight, EyeOff } from 'lucide-react'
 import { useHealthStore } from '../../stores/healthStore'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { useConnectionStore } from '../../stores/connectionStore'
+import { useAuthStore } from '../../stores/authStore'
 import { pageLabel } from '../../constants/pageTitles'
 import type { BackupStatusResponse, DiskInfo, ImageCheckResponse, StackInfo } from '../../../shared/types'
 import { collectNeeds, plural, type NeedItem } from '../../lib/needs'
@@ -38,7 +39,10 @@ interface Props {
 
 export default function NeedsYouCard({ stacks, stacksError, images, backup, disks }: Props) {
   const health = useHealthStore((s) => s.report)
-  const dcsUpdates = useSettingsStore((s) => s.updatesAvailable) ?? 0
+  // the DCS update count is what an admin's check found (kept on this device): no item for anyone else, who cannot install it
+  const isAdmin = useAuthStore((s) => s.userRole) === 'admin'
+  const storedUpdates = useSettingsStore((s) => s.updatesAvailable) ?? 0
+  const dcsUpdates = isAdmin ? storedUpdates : 0
   const setCurrentPage = useSettingsStore((s) => s.setCurrentPage)
   const isConnected = useConnectionStore((s) => s.status === 'connected')
   const [hidden, setHidden] = useState(loadHidden)

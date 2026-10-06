@@ -107,10 +107,10 @@ function StalenessBadge({ staleness }: { staleness: string }) {
 // Skeleton rows for loading state
 // ---------------------------------------------------------------------------
 
-function SkeletonRow() {
+function SkeletonRow({ cols = 6 }: { cols?: number }) {
   return (
     <tr className="border-b border-white/[0.03]">
-      {[...Array(6)].map((_, i) => (
+      {[...Array(cols)].map((_, i) => (
         <td key={i} className="px-3 py-3">
           <div className="h-3 w-20 rounded skeleton" />
         </td>
@@ -1102,12 +1102,22 @@ export default function Updates() {
               <Fact label="Version"><span className="text-xs font-mono text-slate-300">{appVersion}</span></Fact>
               <Fact label="Build date"><span className="text-xs text-slate-400">{BUILD_DATE}</span></Fact>
               <Fact label="Platform"><span className="text-xs text-slate-400">{window.electronAPI ? 'Electron desktop' : 'Web interface (Docker)'}</span></Fact>
-              <Fact label="Status">
-                {uiUpdateAvailable
-                  ? <Pill tone="cyan" icon={<ArrowUpCircle size={10} />}>Update available</Pill>
-                  : <Pill tone="emerald" icon={<CheckCircle size={10} />}>Current</Pill>}
-              </Fact>
-              <StatusLine ok={!uiUpdateAvailable} okText="Up to date" warnText="Update available" checkedAt={lastChecked} updatedAt={BUILD_DATE} updatedLabel="Built" />
+              {isAdmin ? (
+                <>
+                  <Fact label="Status">
+                    {uiUpdateAvailable
+                      ? <Pill tone="cyan" icon={<ArrowUpCircle size={10} />}>Update available</Pill>
+                      : <Pill tone="emerald" icon={<CheckCircle size={10} />}>Current</Pill>}
+                  </Fact>
+                  <StatusLine ok={!uiUpdateAvailable} okText="Up to date" warnText="Update available" checkedAt={lastChecked} updatedAt={BUILD_DATE} updatedLabel="Built" />
+                </>
+              ) : (
+                // the dashboard's release is learnt from the same check as the framework's: an admin's to run
+                <p className="text-[10px] text-slate-500 flex items-start gap-1.5">
+                  <Shield size={11} className="shrink-0 mt-px" />
+                  <span>Admins check for and apply dashboard updates.</span>
+                </p>
+              )}
             </div>
             {uiUpdateAvailable && (
               <div className="mt-3 pt-3 border-t border-white/[0.03]">
@@ -1288,11 +1298,13 @@ export default function Updates() {
               </Hint>
             )}
 
-            {/* Check the registry */}
-            <button type="button" onClick={handleCheckRegistry} disabled={registryChecking} className={BTN_TOOLBAR_QUIET}>
-              {registryChecking ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
-              Check registry for updates
-            </button>
+            {/* Check the registry (a POST: an admin's; anyone reads what the last check found) */}
+            {isAdmin && (
+              <button type="button" onClick={handleCheckRegistry} disabled={registryChecking} className={BTN_TOOLBAR_QUIET}>
+                {registryChecking ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                Check registry for updates
+              </button>
+            )}
             {data?.registry_checked_at && (
               <span className="text-[10px] text-slate-500 whitespace-nowrap" title={new Date(data.registry_checked_at).toLocaleString()}>
                 Registry checked {formatRelative(data.registry_checked_at)}
@@ -1307,8 +1319,9 @@ export default function Updates() {
           {data && (
             <StatusLine
               ok={counts.updates === 0}
-              okText={data.registry_checked_at ? `All ${counts.total} image${counts.total === 1 ? '' : 's'} up to date` : `No updates known for ${counts.total} image${counts.total === 1 ? '' : 's'} — check the registry`}
+              okText={data.registry_checked_at ? `All ${counts.total} image${counts.total === 1 ? '' : 's'} up to date` : `No updates known for ${counts.total} image${counts.total === 1 ? '' : 's'} — ${isAdmin ? 'check the registry' : 'admins check the registry'}`}
               warnText={`${counts.updates} image update${counts.updates === 1 ? '' : 's'} available`}
+              okTone={data.registry_checked_at || isAdmin ? 'emerald' : 'slate'}
               checkedAt={data.registry_checked_at}
               updatedAt={data.last_update_at}
               updatedLabel="Last pulled"
@@ -1384,7 +1397,9 @@ export default function Updates() {
               {scopeMember && <VmCapsule member={scopeMember} name={scopeName} vmid={scopeMembers.find((m) => m.id === scopeMember)?.vmid} />}
             </h3>
             <p className="text-[10px] text-slate-500 leading-relaxed max-w-md">
-              Age shows when the image was built. Press “Check registry for updates” to compare digests against upstream — this shows definitive “Update” or “Latest” badges without pulling images.
+              {isAdmin
+                ? 'Age shows when the image was built. Press “Check registry for updates” to compare digests against upstream — this shows definitive “Update” or “Latest” badges without pulling images.'
+                : 'Age shows when the image was built. Admins check the registry for newer digests and update the images; what their last check found shows as “Update” or “Latest”.'}
             </p>
           </div>
 
@@ -1399,12 +1414,12 @@ export default function Updates() {
                     <th scope="col" className={`${TH} text-left hidden sm:table-cell`}>Stack</th>
                     <th scope="col" className={`${TH} text-right`}>Age (days)</th>
                     <th scope="col" className={`${TH} text-left`}>Staleness</th>
-                    <th scope="col" className={`${TH} text-right`}>Actions</th>
+                    {isAdmin && <th scope="col" className={`${TH} text-right`}>Actions</th>}
                   </tr>
                 </thead>
                 <tbody>
                   {[...Array(6)].map((_, i) => (
-                    <SkeletonRow key={i} />
+                    <SkeletonRow key={i} cols={isAdmin ? 6 : 5} />
                   ))}
                 </tbody>
               </table>
@@ -1414,10 +1429,12 @@ export default function Updates() {
             <EmptyState
               icon={<Package size={32} />}
               title="No images found"
-              hint={isConnected
-                ? 'Run a registry check to discover images and their update status.'
-                : 'Connect to the API server to view image update information.'}
-              action={isConnected ? (
+              hint={!isConnected
+                ? 'Connect to the API server to view image update information.'
+                : isAdmin
+                  ? 'Run a registry check to discover images and their update status.'
+                  : 'Images appear here once a stack has pulled them.'}
+              action={isConnected && isAdmin ? (
                 <button type="button" onClick={handleCheckRegistry} disabled={registryChecking} className={BTN_TOOLBAR_QUIET}>
                   {registryChecking ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
                   Check registry
@@ -1436,7 +1453,7 @@ export default function Updates() {
                     {imgScope === 'all' && <th scope="col" className={`${TH} text-left`}>Where</th>}
                     <th scope="col" className={`${TH} text-right`}>Age (days)</th>
                     <th scope="col" className={`${TH} text-left`}>Staleness</th>
-                    <th scope="col" className={`${TH} text-right`}>Actions</th>
+                    {isAdmin && <th scope="col" className={`${TH} text-right`}>Actions</th>}
                   </tr>
                 </thead>
                 <tbody className={`divide-y divide-white/[0.03] transition-opacity ${switching ? 'opacity-40' : ''}`}>
@@ -1544,48 +1561,40 @@ export default function Updates() {
                           </div>
                         </td>
 
-                        {/* Update button */}
+                        {/* Update button (an admin's: for anyone else the staleness column says what is known) */}
+                        {isAdmin && (
                         <td className="px-3 py-3 text-right whitespace-nowrap">
-                          {isAdmin ? (
-                            <Hint label={rowHint}>
-                              <span className="inline-flex">
-                                <button
-                                  type="button"
-                                  onClick={() => handleUpdateImage(img)}
-                                  disabled={isUpdating || queued || (img.staleness === 'current' && img.update_available !== true && !needsRecreate)}
-                                  className={`${BTN_CARD} ${rowTone}`}
-                                >
-                                  {isUpdating ? (
-                                    <Loader2 size={12} className="animate-spin" />
-                                  ) : img.staleness === 'current' && !needsRecreate ? (
-                                    <CheckCircle size={12} />
-                                  ) : needsRecreate ? (
-                                    <RotateCcw size={12} />
-                                  ) : (
-                                    <Download size={12} />
-                                  )}
-                                  {isUpdating
-                                    ? 'Updating…'
-                                    : queued
-                                      ? 'Queued'
-                                      : needsRecreate
-                                        ? 'Recreate'
-                                        : img.staleness === 'current'
-                                          ? 'Up to date'
-                                          : 'Update'}
-                                </button>
-                              </span>
-                            </Hint>
-                          ) : (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium text-slate-500">
-                              {img.staleness === 'current' ? (
-                                <><CheckCircle size={12} /> Up to date</>
-                              ) : (
-                                <StalenessBadge staleness={img.staleness} />
-                              )}
+                          <Hint label={rowHint}>
+                            <span className="inline-flex">
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateImage(img)}
+                                disabled={isUpdating || queued || (img.staleness === 'current' && img.update_available !== true && !needsRecreate)}
+                                className={`${BTN_CARD} ${rowTone}`}
+                              >
+                                {isUpdating ? (
+                                  <Loader2 size={12} className="animate-spin" />
+                                ) : img.staleness === 'current' && !needsRecreate ? (
+                                  <CheckCircle size={12} />
+                                ) : needsRecreate ? (
+                                  <RotateCcw size={12} />
+                                ) : (
+                                  <Download size={12} />
+                                )}
+                                {isUpdating
+                                  ? 'Updating…'
+                                  : queued
+                                    ? 'Queued'
+                                    : needsRecreate
+                                      ? 'Recreate'
+                                      : img.staleness === 'current'
+                                        ? 'Up to date'
+                                        : 'Update'}
+                              </button>
                             </span>
-                          )}
+                          </Hint>
                         </td>
+                        )}
                       </tr>
                     )
                   })}

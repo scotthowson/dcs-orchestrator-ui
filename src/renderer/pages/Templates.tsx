@@ -1065,7 +1065,7 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
     : localDeploying ? 'busy' : 'idle'
   const headerTitle = deployResult
     ? (outcome === 'running' ? 'Deployed and running' : outcome === 'failed' ? 'Deployment needs attention' : outcome === 'not-started' ? 'Merged — not started' : `Deploying ${template.name}`)
-    : localDeploying ? `Preparing ${template.name}${selectedStack?.placement === 'vm' ? ` in VM ${selectedStack.member_name || selectedStack.vmid || ''}` : ''}` : `Deploy ${template.name}`
+    : localDeploying ? `Preparing ${template.name}${selectedStack?.placement === 'vm' ? ` in VM ${selectedStack.member_name || selectedStack.vmid || ''}` : ''}` : isAdmin ? `Deploy ${template.name}` : template.name
   const headerSub = deployResult
     ? (outcome === 'pending'
       ? `${phaseLabel(activity?.phase)}${activity?.elapsed_s ? ` · ${activity.elapsed_s}s` : ''}`
@@ -1189,7 +1189,7 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
                 : headerTone === 'bad' ? <AlertTriangle size={16} className="text-rose-400" />
                 : headerTone === 'held' ? <AlertTriangle size={16} className="text-amber-400" />
                 : headerTone === 'busy' ? <Loader2 size={16} className="text-cyan-400 animate-spin" />
-                : <Rocket size={16} className="text-emerald-400" />}
+                : isAdmin ? <Rocket size={16} className="text-emerald-400" /> : <Eye size={16} className="text-emerald-400" />}
             </div>
             <div className="min-w-0">
               <h3 className="text-sm font-semibold text-slate-200 truncate">{headerTitle}</h3>
@@ -2223,7 +2223,7 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
                 onClick={() => { if (confirming) { setConfirming(false) } else { onClose() } }}
                 className={`${BTN_SHEET_QUIET} flex-1 sm:flex-none`}
               >
-                {confirming ? 'Back' : 'Cancel'}
+                {confirming ? 'Back' : isAdmin ? 'Cancel' : 'Close'}
               </button>
               {!confirming && (
                 <button
@@ -2253,6 +2253,12 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
                   )}
                   {confirming ? 'Confirm and deploy' : 'Deploy stack'}
                 </button>
+              )}
+              {!isAdmin && (
+                <p className="w-full sm:w-auto sm:order-first sm:mr-auto flex items-center gap-1.5 text-[11px] text-slate-500">
+                  <Shield size={12} className="shrink-0" aria-hidden />
+                  Admins deploy templates
+                </p>
               )}
             </div>
           </>
@@ -3231,12 +3237,19 @@ function TemplateCard({ template, onDeploy, onEdit, onDelete, onExport, deploySt
         </div>
       )}
 
-      {/* Deploy button */}
+      {/* Deploy button (deploying is an admin's: the API refuses it to anyone else, who opens the same sheet to read the template) */}
       {template.singleton && deployStatus && deployStatus.state !== 'none' ? (
         <div className={`${BTN_CARD} mt-auto w-full justify-center bg-emerald-500/[0.06] text-emerald-300/80 border border-emerald-500/10 cursor-default select-none`}>
           <CheckCircle size={12} />
           Deployed
         </div>
+      ) : !isAdmin ? (
+        <Hint label="Admins deploy templates">
+          <button type="button" onClick={() => onDeploy(template)} aria-label={`View ${name}`} className={`${BTN_CARD} ${TONE_QUIET} mt-auto w-full justify-center`}>
+            <Eye size={12} />
+            View
+          </button>
+        </Hint>
       ) : running ? (
         <button type="button" onClick={() => onDeploy(template)} aria-label={`Redeploy ${name}`} className={`${BTN_CARD} ${TONE_QUIET} mt-auto w-full justify-center`}>
           <Rocket size={12} />

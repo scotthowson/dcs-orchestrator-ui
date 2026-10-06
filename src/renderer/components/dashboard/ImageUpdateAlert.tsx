@@ -4,6 +4,7 @@
 
 import { ArrowUpCircle } from 'lucide-react'
 import { useConnectionStore } from '../../stores/connectionStore'
+import { useAuthStore } from '../../stores/authStore'
 import type { ImageCheckResponse } from '../../../shared/types'
 import { Card, CardEmpty, CardError, CardLoading, CardOffline } from './cardShared'
 
@@ -15,6 +16,8 @@ interface Props {
 
 export default function ImageUpdateAlert({ data, error, onRetry }: Props) {
   const isConnected = useConnectionStore((s) => s.status === 'connected')
+  // the registry check is an admin's: anyone else sees the ages, and says so, rather than a verdict nobody asked for
+  const isAdmin = useAuthStore((s) => s.userRole) === 'admin'
 
   if (!isConnected && !data) return <Card card="image-updates" dim><CardOffline /></Card>
   if (!data && error) return <Card card="image-updates"><CardError title="Could not check the images" error={error} onRetry={onRetry} /></Card>
@@ -47,6 +50,7 @@ export default function ImageUpdateAlert({ data, error, onRetry }: Props) {
               <span className="text-slate-400">Stale ({stale})</span>
             </span>
           </div>
+          {!isAdmin && <p className="mt-2 text-[10px] text-slate-500 truncate">By build age · admins check the registry for updates</p>}
         </div>
       )}
     </Card>

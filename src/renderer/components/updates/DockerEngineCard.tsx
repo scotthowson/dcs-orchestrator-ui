@@ -9,6 +9,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Container, Loader2, Download, RefreshCw, AlertTriangle, CheckCircle, KeyRound, ChevronDown, ChevronUp } from 'lucide-react'
 import { usePolling } from '../../hooks/usePolling'
 import { useToast } from '../common/Toast'
+import { useAuthStore } from '../../stores/authStore'
 import VmCapsule from '../fleet/VmCapsule'
 import { CopyChip } from '../fleet/fleetShared'
 import { pageLabel } from '../../constants/pageTitles'
@@ -27,6 +28,8 @@ const SOURCE_LABEL: Record<string, string> = {
 
 export default function DockerEngineCard({ enabled, isHub }: { enabled: boolean; isHub: boolean }) {
   const { addToast } = useToast()
+  // anyone reads the engine; updating it is an admin's (the API refuses the POSTs to anyone else)
+  const isAdmin = useAuthStore((s) => s.userRole) === 'admin'
   const fetcher = useCallback(() => fetchDockerEngine(isHub), [isHub])
   const { data, refresh, loading, error } = usePolling<DockerEngineInfo | DockerEngineFleet>(fetcher, 120000, { enabled })
   const [status, setStatus] = useState<DockerEngineStatus | null>(null)
@@ -214,7 +217,7 @@ export default function DockerEngineCard({ enabled, isHub }: { enabled: boolean;
             </div>
           )}
 
-          {showAuth && !own.sudo_ready && (
+          {isAdmin && showAuth && !own.sudo_ready && (
             <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] p-3 space-y-2">
               <p className="text-[11px] text-slate-400 flex items-center gap-1.5"><KeyRound size={12} /> The API needs sudo for this: your Linux account (used once, like the OS updates on the {pageLabel('system')} page)</p>
               <div className="flex flex-col sm:flex-row gap-2">
@@ -232,7 +235,7 @@ export default function DockerEngineCard({ enabled, isHub }: { enabled: boolean;
           )}
 
           <div className="flex items-center gap-2 pt-1">
-            {own.upgradable && !running && !showAuth && (
+            {isAdmin && own.upgradable && !running && !showAuth && (
               <button type="button" onClick={() => (own.sudo_ready ? void start() : setShowAuth(true))} disabled={busy}
                 className={`${BTN_CARD} ${TONE_OK}`}>
                 {busy ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />} Update engine
@@ -249,7 +252,7 @@ export default function DockerEngineCard({ enabled, isHub }: { enabled: boolean;
                 <p className="text-[10px] text-slate-500 uppercase tracking-wider">
                   The VMs · {fleet.versions.length <= 1 ? 'one engine version everywhere' : `${fleet.versions.length} engine versions`}
                 </p>
-                {upgradableVms > 0 && (
+                {isAdmin && upgradableVms > 0 && (
                   <button type="button" onClick={() => void updateVms()} disabled={fleetBusy}
                     className={`${BTN_CARD} ${TONE_OK}`}>
                     {fleetBusy ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />} Update {upgradableVms} VM{upgradableVms === 1 ? '' : 's'}

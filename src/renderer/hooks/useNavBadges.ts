@@ -16,6 +16,7 @@ import { useSettingsStore } from '../stores/settingsStore'
 import { useSystemStore } from '../stores/systemStore'
 import { useHealthStore } from '../stores/healthStore'
 import { useConnectionStore } from '../stores/connectionStore'
+import { useAuthStore } from '../stores/authStore'
 import { useNotificationStore } from '../stores/notificationStore'
 import type { PageId } from '../../shared/types'
 import type { NavSection } from '../constants/navSections'
@@ -40,6 +41,8 @@ export function useNavBadges(): { badges: Partial<Record<PageId, NavBadge>>; sta
   const connectionStatus = useConnectionStore((s) => s.status)
   const link = useApiLink()
   const unreadNotifications = useNotificationStore((s) => s.getServerUnreadCount())
+  // the count comes from GET /system/update/check, an admin's to run: kept on this device, it would be another account's verdict
+  const isAdmin = useAuthStore((s) => s.userRole) === 'admin'
   const updatesAvailable = useSettingsStore((s) => s.updatesAvailable) ?? 0
 
   const badges: Partial<Record<PageId, NavBadge>> = {}
@@ -74,7 +77,7 @@ export function useNavBadges(): { badges: Partial<Record<PageId, NavBadge>>; sta
     badges.activity = { value: `${unreadNotifications}`, color: 'bg-amber-500/20 text-amber-400', title: `${unreadNotifications} unread` }
   }
 
-  if (updatesAvailable > 0) {
+  if (isAdmin && updatesAvailable > 0) {
     badges.updates = { value: `${updatesAvailable}`, color: 'bg-cyan-500/20 text-cyan-400', title: 'A DCS update is available' }
   }
 

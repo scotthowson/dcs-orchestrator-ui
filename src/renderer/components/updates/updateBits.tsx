@@ -61,16 +61,17 @@ export function formatRelativeTime(ts: number): string {
   return `${Math.floor(diff / 86400)}d ago`
 }
 
-/** One line every card shares: up to date or not, when it was checked, when it last changed */
-export function StatusLine({ ok, okText, warnText, checkedAt, updatedAt, updatedLabel = 'Last updated', tone = 'cyan' }: {
+/** One line every card shares: up to date or not, when it was checked, when it last changed (okTone slate: nothing is
+ *  known to be wrong, but nobody checked either — no green for a claim nobody made) */
+export function StatusLine({ ok, okText, warnText, checkedAt, updatedAt, updatedLabel = 'Last updated', tone = 'cyan', okTone = 'emerald' }: {
   ok: boolean; okText: string; warnText: string
-  checkedAt?: number | string | null; updatedAt?: number | string | null; updatedLabel?: string; tone?: 'cyan' | 'amber' | 'rose'
+  checkedAt?: number | string | null; updatedAt?: number | string | null; updatedLabel?: string; tone?: 'cyan' | 'amber' | 'rose'; okTone?: 'emerald' | 'slate'
 }) {
   const toMs = (v?: number | string | null) => (!v ? 0 : typeof v === 'number' ? (v < 1e12 ? v * 1000 : v) : Date.parse(v) || 0)
   const c = toMs(checkedAt); const u = toMs(updatedAt)
   return (
     <div className="flex items-center gap-x-3 gap-y-1 flex-wrap text-[10px] text-slate-500">
-      <Pill tone={ok ? 'emerald' : tone} dot>{ok ? okText : warnText}</Pill>
+      <Pill tone={ok ? okTone : tone} dot>{ok ? okText : warnText}</Pill>
       <span title={c ? new Date(c).toLocaleString() : undefined}>Checked {c ? formatRelativeTime(c) : 'never'}</span>
       <span title={u ? new Date(u).toLocaleString() : undefined}>{updatedLabel} {u ? new Date(u).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : 'never'}</span>
     </div>

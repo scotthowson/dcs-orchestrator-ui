@@ -13,7 +13,7 @@
 // On a hub the scope chips pick the server (the hub or one VM) the page works on.
 // =============================================================================
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Activity, Ban, Bell, ShieldCheck, MessageSquare, SlidersHorizontal, Package, Plug, ScrollText, RefreshCw, ShieldOff, UserCheck } from 'lucide-react'
 import { usePolling } from '../hooks/usePolling'
 import { useFleetScope } from '../hooks/useFleetScope'
@@ -51,7 +51,7 @@ export default function CrowdSec() {
   const isConnected = useConnectionStore((s) => s.status === 'connected')
   const isAdmin = useAuthStore((s) => s.userRole === 'admin')
   const navigationPayload = useSettingsStore((s) => s.navigationPayload)
-  const { scope, setScope, member: scopeMember, memberName, members: scopeMembers, hasFleet } = useFleetScope()
+  const { scope, setScope, member: scopeMember, memberName, members: scopeMembers, hasFleet, pending: scopePending } = useFleetScope()
   // one server at a time: the hub or one VM (Everywhere reads as the hub here)
   const pageScope = scope === 'all' ? 'hub' : scope
   const member = pageScope === 'hub' ? null : scopeMember
@@ -76,10 +76,18 @@ export default function CrowdSec() {
     }
   }, [navigationPayload, goTab])
 
-  // the answer carries the server it is about, so the numbers of the hub are never shown under a VM (and a slow answer of the server just left is ignored)
-  const status = usePolling<{ of: string | null; status: CrowdSecStatusResponse }>(async () => ({ of: member, status: await crowdsecStatus(member) }), POLL_MS, { enabled: isConnected })
+  // the answer carries the server it is about, so the numbers of the hub are never shown under a VM (and a slow answer of the server just left is ignored).
+  // Nothing is asked while the scope is still being worked out (a VM remembered, the VMs not read yet): the page used to
+  // open on the hub, then drop to its skeleton and open again on the VM, remounting the tab
+  const status = usePolling<{ of: string | null; status: CrowdSecStatusResponse }>(async () => ({ of: member, status: await crowdsecStatus(member) }), POLL_MS, { enabled: isConnected && !scopePending })
   const statusRefresh = status.refresh
-  useEffect(() => { statusRefresh() }, [member, statusRefresh])
+  // another server chosen: ask it at once (the first question is the poll's own)
+  const askedFor = useRef<string | null | undefined>(undefined)
+  useEffect(() => {
+    if (scopePending) return
+    if (askedFor.current !== undefined && askedFor.current !== member) statusRefresh()
+    askedFor.current = member
+  }, [member, scopePending, statusRefresh])
   const s = status.data && status.data.of === member ? status.data.status : null
 
   const ctx = useMemo(() => ({ member, memberName: scopeMember ? memberName : '', isAdmin, status: s, refreshStatus: statusRefresh, goTab }), [member, scopeMember, memberName, isAdmin, s, statusRefresh, goTab])

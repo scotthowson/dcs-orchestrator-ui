@@ -10,10 +10,15 @@ import { useFleetRole } from './useFleetRole'
 import { useConnectionStore } from '../stores/connectionStore'
 import { fetchFleetMembers } from '../api/endpoints'
 import { sharedFetch } from '../lib/sharedFetch'
-import type { FleetMember } from '../../shared/types'
+import { apiClient } from '../api/client'
+import type { FleetMember, FleetMembersResponse } from '../../shared/types'
 
 // the global poller, the page and its cards all ask for the VMs: one request serves them
 const fleetMembersShared = sharedFetch(fetchFleetMembers, 10000)
+// the last list of VMs, per server: a page that mounts again opens on the VM it was left on at once. Without it every
+// mount read "no fleet" until the list came back, worked on the hub for that moment, then switched to the VM (a page
+// keyed by the server, like CrowdSec, showed the hub, its skeleton, then the VM: it "reloaded itself")
+let lastList: { base: string; data: FleetMembersResponse } | null = null
 
 /** 'all' | 'hub' | a member id */
 export type FleetScope = string
@@ -30,13 +35,16 @@ export function scopeMember(scope: FleetScope): string | null { return scope ===
 
 export function useFleetScope() {
   const isConnected = useConnectionStore((s) => s.status === 'connected')
-  const { isHub } = useFleetRole()
+  const { isHub, settled: roleSettled } = useFleetRole()
   const list = usePolling(fleetMembersShared, 30000, { enabled: isConnected && isHub })
+  const base = apiClient.getBaseUrl()
+  if (list.data) lastList = { base, data: list.data }
+  const listData = list.data ?? (lastList && lastList.base === base ? lastList.data : null)
   const listRefresh = list.refresh
   const refreshMembers = useCallback(() => { fleetMembersShared.invalidate(); listRefresh() }, [listRefresh])
   const members: ScopeMember[] = useMemo(
-    () => (list.data?.members ?? []).map((m: FleetMember) => ({ id: m.id, name: m.name, vmid: m.vmid, reachable: m.reachable, version: m.version, url: m.url ?? '' })),
-    [list.data],
+    () => (listData?.members ?? []).map((m: FleetMember) => ({ id: m.id, name: m.name, vmid: m.vmid, reachable: m.reachable, version: m.version, url: m.url ?? '' })),
+    [listData],
   )
   const [choice, setChoice] = useState<FleetScope | null>(() => cached ?? load())
   const setScope = useCallback((s: FleetScope) => { cached = s; save(s); setChoice(s) }, [])
@@ -50,5 +58,10 @@ export function useFleetScope() {
   }, [choice, list.data, members, setScope])
   const member = scopeMember(scope)
   const memberName = member ? (members.find((m) => m.id === member)?.name ?? member) : ''
-  return { scope, setScope, member, memberName, members, hasFleet, isHub, refresh: refreshMembers }
+  // a VM is the remembered choice, but whether this server is a hub with that VM is not known yet (the first answers of
+  // a fresh load): the scope reads "hub" for now and changes once they land. A page that shows one server at a time
+  // waits for this before it asks, rather than showing the hub first
+  const remembered = choice ? scopeMember(choice) : null
+  const pending = !!remembered && isConnected && (!roleSettled || (isHub && !listData && !list.error))
+  return { scope, setScope, member, memberName, members, hasFleet, isHub, pending, refresh: refreshMembers }
 }
