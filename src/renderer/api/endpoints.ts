@@ -165,7 +165,7 @@ import type {
   CrowdSecExportResponse, CrowdSecAlertsResponse, CrowdSecAlertDetail, CrowdSecAllowlistResponse, CrowdSecAllowAddBody, CrowdSecAllowAddResponse,
   CrowdSecBouncersResponse, CrowdSecMachinesResponse, CrowdSecBouncerAddResponse, CrowdSecMetricsResponse, CrowdSecHubResponse, CrowdSecHubAvailableResponse,
   CrowdSecHubChangeResponse, CrowdSecPluginResponse, CrowdSecPluginSettings, CrowdSecLogsResponse, CrowdSecSimulationResponse, CrowdSecSimulationSetResponse, CrowdSecCommunityResponse, CrowdSecCommunityRegisterResponse, CrowdSecConsoleEnrollBody, CrowdSecConsoleEnrollResponse, CrowdSecSettingsResponse,
-  CrowdSecSettingsBody, CrowdSecNotifyResponse, CrowdSecNotifyBody, CrowdSecPreviewResponse, CrowdSecNotifyTestResponse, CrowdSecServiceResponse, CrowdSecFix,
+  CrowdSecSettingsBody, CrowdSecNotifyResponse, CrowdSecNotifyBody, CrowdSecPreviewResponse, CrowdSecNotifyTestResponse, CrowdSecDigestSendResponse, CrowdSecDigestView, CrowdSecServiceResponse, CrowdSecFix,
   PluginInstallResponse,
   PluginDeleteResponse,
   PluginHooksListResponse,
@@ -2113,6 +2113,13 @@ export function crowdsecPreviewNotify(body: { settings?: CrowdSecNotifyBody['set
 }
 export function crowdsecTestNotify(body: { settings?: CrowdSecNotifyBody['settings']; sample?: string; webhook_url?: string; include_mention?: boolean }, member?: string | null): Promise<CrowdSecNotifyTestResponse> {
   return apiClient.post<CrowdSecNotifyTestResponse>(memberPath(member, '/crowdsec/notifications/test'), body, 45000)
+}
+/** the daily summary: send it now (whatever the hour), or set the hour it goes out (0-23, or 'off') */
+export function crowdsecSendDigest(member?: string | null): Promise<CrowdSecDigestSendResponse> {
+  return apiClient.post<CrowdSecDigestSendResponse>(memberPath(member, '/crowdsec/notifications/digest'), {}, 60000)
+}
+export function crowdsecSetDigestHour(hour: number | 'off', member?: string | null): Promise<CrowdSecDigestView> {
+  return apiClient.put<CrowdSecDigestView>(memberPath(member, '/crowdsec/notifications/digest'), { hour })
 }
 export function crowdsecResetNotify(member?: string | null): Promise<CrowdSecNotifyResponse> {
   return apiClient.post<CrowdSecNotifyResponse>(memberPath(member, '/crowdsec/notifications/reset'), undefined, 180000)

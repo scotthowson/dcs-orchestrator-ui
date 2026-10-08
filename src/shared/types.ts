@@ -3672,7 +3672,8 @@ export interface CrowdSecNotifySettings {
   mention: { mode: 'none' | 'role' | 'user' | 'here' | 'everyone'; id: string; text: string }
   events: { bans: boolean; simulated: boolean; detect_only: boolean }
   filters: { min_events: number; only: string[]; ignore: string[] }
-  delivery: { group_wait: number; group_threshold: number; max_retry: number; timeout: number }
+  /** group_by: one embed per source address (default) or one per alert (the layout before); absent on an older server */
+  delivery: { group_by?: 'address' | 'alert'; group_wait: number; group_threshold: number; max_retry: number; timeout: number }
   message: { title: string; description: string; footer: string; link: string; timestamp: boolean; fields: CrowdSecMessageField[] }
 }
 export interface CrowdSecPlaceholder { name: string; group: string; label: string; example: string; description: string }
@@ -3688,14 +3689,17 @@ export interface CrowdSecNotifyResponse {
   defaults: CrowdSecNotifySettings
   placeholders: CrowdSecPlaceholder[]
   samples: string[]
-  state: { enabled: boolean; wired: boolean; plugin_active: boolean; file: 'dcs' | 'other' | 'missing'; profile_mode: string; drift: boolean; working: boolean }
+  /** absent on a server older than the daily summary */
+  digest?: CrowdSecDigestView
+  /** layout: what the live file was written with (2 = grouped by address); layout_outdated: a file of DCS's that predates the grouping */
+  state: { enabled: boolean; wired: boolean; plugin_active: boolean; file: 'dcs' | 'other' | 'missing'; profile_mode: string; drift: boolean; working: boolean; layout?: number; layout_outdated?: boolean }
   status: {
     last_test: { at: number; ok: boolean; http: number; message: string; sample: string } | null
     last_apply: { at: number; ok: boolean; message: string } | null
     delivery_errors: { time: string; message: string }[]
     note: string
   }
-  limits: { title: number; description: number; footer: number; fields: number; group_threshold_max: number }
+  limits: { title: number; description: number; footer: number; fields: number; group_threshold_max: number; embeds_per_message?: number }
   info: { unban: string }
   success?: boolean
   applied?: { changed: boolean; message: string }
@@ -3706,7 +3710,32 @@ export interface CrowdSecPreviewResponse {
   error?: string
   sample?: string
   payload: DiscordWebhookPayload | null
-  alert?: { id: number; scenario: string }
+  /** count: how many alerts the sample stands for (a burst is one batch of many) */
+  alert?: { id: number; scenario: string; count?: number }
+}
+/** one outcome of the daily summary: the day's run (scheduled) or Send now (manual) */
+export interface CrowdSecDigestOutcome { date?: string; at: number; ok: boolean; http?: number; message?: string; attempts?: number; addresses?: number; tries?: number; running?: boolean; skipped?: boolean; kind?: 'scheduled' | 'manual' }
+export interface CrowdSecDigestView {
+  enabled: boolean
+  hour: number | null
+  default_hour: number
+  timezone: string
+  setting: string
+  sent_today: boolean
+  next: 'today' | 'soon' | 'tomorrow' | null
+  scheduled: CrowdSecDigestOutcome | null
+  last: CrowdSecDigestOutcome | null
+  note: string
+  success?: boolean
+}
+export interface CrowdSecDigestSummary {
+  attempts: number; addresses: number; alerts: number; simulated: number; new_bans: number; ended: number; lifted: number; in_force: number; community: number
+  top_addresses: { ip: string; cn: string; as_name: string; n: number; top: string }[]
+  top_attacks: { item: string; n: number; ips: number }[]
+}
+export interface CrowdSecDigestSendResponse {
+  success: boolean; delivered: boolean; http: number; message: string; at: number; webhook: string
+  summary: CrowdSecDigestSummary; payload: DiscordWebhookPayload; digest: CrowdSecDigestView
 }
 export interface DiscordEmbedField { name: string; value: string; inline?: boolean }
 export interface DiscordEmbed { title?: string; description?: string; url?: string; color?: number; fields?: DiscordEmbedField[]; footer?: { text: string }; timestamp?: string }

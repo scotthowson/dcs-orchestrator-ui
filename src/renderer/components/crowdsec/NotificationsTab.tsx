@@ -18,8 +18,8 @@ import { crowdsecNotify, crowdsecPreviewNotify, crowdsecResetNotify, crowdsecSav
 import type { CrowdSecNotifyBody, CrowdSecNotifyResponse, DiscordWebhookPayload } from '../../../shared/types'
 import { BTN_DANGER, BTN_PRIMARY, BTN_QUIET, BTN_WARN, CARD, Chip, CsSheet, Dot, HINT, INPUT, LABEL, Skel, TEXTAREA, errData, errMsg, useCs } from './kit'
 import {
-  LIM, NUM, changeRows, cpLen, deepEqual, describeChanges, diffPatch, draftMemory, mentionTag, orderSamples, approximatePayload, redact, sectionOfError, settingsOf, toForm, validateForm, webhookProblem,
-  type Errors, type Limits, type MentionMode, type NotifyForm, type Settings, type WebhookMode,
+  GROUP_WORD, LIM, NUM, changeRows, cpLen, deepEqual, describeChanges, diffPatch, draftMemory, mentionTag, orderSamples, approximatePayload, redact, sectionOfError, settingsOf, toForm, validateForm, webhookProblem,
+  type Errors, type GroupBy, type Limits, type MentionMode, type NotifyForm, type Settings, type WebhookMode,
 } from './NotifyModel'
 import {
   ChoiceCards, ColorField, Counter, FieldShell, FieldsEditor, Notice, NumberField, PhProvider, PillChoice, PlaceholderInput, PlaceholderPicker, Section, ToggleRow, TokenInput, useMedia, usePhRegistry,
@@ -27,10 +27,11 @@ import {
 } from './NotifyFields'
 import { ApplyProgress, StatusCard, type TestOutcomeData } from './NotifyStatus'
 import PreviewPanel from './NotifyPreview'
+import DigestCard from './NotifyDigest'
 import { ApiError } from '../../api/client'
 import { getRun, setRun, subscribeRun, type Outcome } from './NotifyRun'
 
-const DEFAULT_LIMITS: Limits = { title: 200, description: 1500, footer: 200, fields: 8, group_threshold_max: 10 }
+const DEFAULT_LIMITS: Limits = { title: 200, description: 1500, footer: 200, fields: 8, group_threshold_max: 100 }
 /** viewers get the server's drawing too (it only renders, it never sends); an older server that still refuses them falls back to the local sketch */
 const VIEWER_SERVER_PREVIEW = true
 
@@ -157,7 +158,7 @@ function Editor({ data, refresh, refreshFailed }: { data: CrowdSecNotifyResponse
   const [form, setForm] = useState<NotifyForm>(memo?.form ?? toForm(data.settings))
   const [url, setUrl] = useState(memo?.url ?? '')
   const [showUrl, setShowUrl] = useState(false)
-  const [sample, setSample] = useState(memo?.sample ?? 'probe')
+  const [sample, setSample] = useState(memo?.sample ?? 'burst')
   const [restored, setRestored] = useState(!!memo)
   const patchForm = useCallback((p: Partial<NotifyForm>) => setForm((f) => ({ ...f, ...p })), [])
 
@@ -365,6 +366,17 @@ function Editor({ data, refresh, refreshFailed }: { data: CrowdSecNotifyResponse
     })
   }
 
+  // a file an older DCS wrote (one block per alert): saving the settings as they are writes the grouped layout, the webhook stays
+  const applyLayout = async () => {
+    if (!isAdmin || applying) return
+    if (needsTakeOver && !(await confirmTakeOver('CrowdSec restarts for a few seconds while the new layout is applied.'))) return
+    await execute({
+      what: 'Writing the new message layout', clearDraft: false, call: () => crowdsecSaveNotify({ settings: {}, ...(needsTakeOver ? { take_over: true } : {}) }, member),
+      ok: (res) => ({ kind: 'ok', title: 'The new layout is in use', detail: res.applied?.message, at: Date.now() }),
+      fail: (e) => failure(e, 'The new layout was not applied'),
+    })
+  }
+
   const discard = () => { setBase(server.settings); setForm(toForm(server.settings)); setUrl(''); setRestored(false); setRun(member, { outcome: null }); draftMemory.clear(member) }
 
   const resetShipped = async () => {
@@ -407,7 +419,7 @@ function Editor({ data, refresh, refreshFailed }: { data: CrowdSecNotifyResponse
     appearance: `${form.name || 'no name'} · ${colorWords} · mentions ${MENTION_WORDS[form.mention]}`,
     triggers: `${trig || 'no events'}${settingsNow.filters.min_events > 1 ? ` · at least ${settingsNow.filters.min_events} events` : ''}${form.only.length ? ` · only ${form.only.length}` : ''}${form.ignore.length ? ` · ignoring ${form.ignore.length}` : ''}`,
     message: `${form.fields.length} field${form.fields.length === 1 ? '' : 's'} · ${form.title || 'no title'}`,
-    delivery: `wait ${form.groupWait || '?'} s · up to ${form.groupThreshold || '?'} per message · ${form.maxRetry || '?'} retries · ${form.timeout || '?'} s timeout`,
+    delivery: `${form.groupBy ? `${GROUP_WORD[form.groupBy].toLowerCase()} · ` : ''}wait ${form.groupWait || '?'} s · up to ${form.groupThreshold || '?'} alerts per message · ${form.maxRetry || '?'} retries · ${form.timeout || '?'} s timeout`,
   }
   const suggestions = useScenarios(member)
   const changes = describeChanges(patch, form.mode === 'custom' && urlTyped !== '' ? ['Webhook address'] : [])
@@ -419,6 +431,9 @@ function Editor({ data, refresh, refreshFailed }: { data: CrowdSecNotifyResponse
       lastApply={server.status.last_apply} deliveryErrors={server.status.delivery_errors} />
   )
   const openNotifications = () => setCurrentPage('notifications')
+  const digestCard = server.digest
+    ? <DigestCard digest={server.digest} member={member} isAdmin={isAdmin} alertsOn={server.settings.enabled} webhookReady={server.webhook.configured} onChanged={refresh} />
+    : null
   const statusCard = (
     <StatusCard data={server} isAdmin={isAdmin} enabled={form.enabled} onToggle={(v) => patchForm({ enabled: v })} busy={!!applying} refreshFailed={refreshFailed} onRefresh={refresh} onOpenNotifications={openNotifications} lastTest={lastTest} />
   )
@@ -431,6 +446,7 @@ function Editor({ data, refresh, refreshFailed }: { data: CrowdSecNotifyResponse
     return (
       <div className="space-y-4">
         {statusCard}
+        {digestCard}
         <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_28rem] gap-4 items-start">
           <div className="space-y-3 min-w-0">
             <Notice tone="info" icon={Eye}>You can read these settings. Only an administrator can change them or send a test message.</Notice>
@@ -472,6 +488,7 @@ function Editor({ data, refresh, refreshFailed }: { data: CrowdSecNotifyResponse
             </Section>
             <Section id="notify-delivery" icon={Clock} title="Delivery" summary={summaries.delivery} open={open.delivery} onToggle={() => toggle('delivery')}>
               <dl className="divide-y divide-white/5">
+                {s.delivery.group_by && <KV k="Grouping">{GROUP_WORD[s.delivery.group_by]}</KV>}
                 <KV k="Grouping wait">{s.delivery.group_wait} seconds</KV>
                 <KV k="Group size">{s.delivery.group_threshold} alerts at most in one message</KV>
                 <KV k="Retries">{s.delivery.max_retry}</KV>
@@ -502,9 +519,16 @@ function Editor({ data, refresh, refreshFailed }: { data: CrowdSecNotifyResponse
     <PhProvider value={reg}>
       <div className="space-y-4">
         {statusCard}
+        {digestCard}
 
         <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_28rem] 2xl:grid-cols-[minmax(0,1fr)_32rem] gap-4 items-start">
           <div className="space-y-3 min-w-0">
+            {st.layout_outdated && !dirty && (
+              <Notice tone="info" icon={Info} title="A new message layout is ready"
+                action={<button type="button" className="text-cyan-400 hover:text-cyan-300 text-xs inline-flex items-center gap-1" onClick={applyLayout} disabled={busy}><Save size={12} /> Apply it</button>}>
+                CrowdSec still uses the file of an older DCS: one block per alert. Applying writes the new layout (one block per address, the attempts counted per attack) with the settings you have, and keeps the webhook. CrowdSec restarts for a few seconds.
+              </Notice>
+            )}
             {restored && <Notice tone="info" icon={Info} title="You have unsaved changes from earlier" action={<button type="button" className="text-cyan-400 hover:text-cyan-300 text-xs inline-flex items-center gap-1" onClick={discard}><Undo2 size={12} /> Discard them</button>}>They were kept while you looked at another tab. Nothing has been sent to CrowdSec yet.</Notice>}
             {changedElsewhere && <Notice tone="warn" icon={AlertTriangle} title="The saved settings changed since you started editing" action={<button type="button" className="text-cyan-400 hover:text-cyan-300 text-xs inline-flex items-center gap-1" onClick={discard}><Undo2 size={12} /> Discard my changes and load them</button>}>Someone else saved, or CrowdSec was changed by hand. When you save, only the things you edited are applied on top.</Notice>}
             {needsTakeOver && (form.enabled || dirty) && (
@@ -671,11 +695,22 @@ function Editor({ data, refresh, refreshFailed }: { data: CrowdSecNotifyResponse
               {/* ---------------- delivery ---------------- */}
               <Section id="notify-delivery" icon={Clock} title="Delivery" summary={summaries.delivery} open={open.delivery} onToggle={() => toggle('delivery')} problems={problemCount.delivery} edited={edited.delivery}>
                 <p className="text-xs text-slate-500 leading-relaxed">How CrowdSec hands the messages to Discord. The defaults suit most servers.</p>
+                {form.groupBy && (
+                  <div>
+                    <p className={LABEL}>Blocks in a message</p>
+                    <ChoiceCards<GroupBy> value={form.groupBy} onChange={(g) => patchForm({ groupBy: g })} ariaLabel="One block per address or per alert" disabled={busy}
+                      options={[
+                        { value: 'address', title: 'One per address', text: 'A scanner that fires 50 alerts is one block that counts its attempts per attack. Default.' },
+                        { value: 'alert', title: 'One per alert', text: 'Every alert its own block, as before. Chatty when one address trips many rules.' },
+                      ]} />
+                    <p className={HINT}>With one block per address the placeholders describe the address: {'{attempts}'} adds up its alerts, {'{scenarios}'} lists every attack it tried. Discord shows 10 blocks a message; more addresses are listed in the tenth.</p>
+                  </div>
+                )}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <NumberField id="notify-group-wait" label="Wait before sending" value={form.groupWait} onChange={(v) => patchForm({ groupWait: v })} min={NUM.groupWait.min} max={NUM.groupWait.max} unit="seconds" def={String(def.delivery.group_wait)} error={errors.groupWait} disabled={busy}
                     hint="Alerts that arrive within this time are sent together in one message." />
                   <NumberField id="notify-group-threshold" label="Alerts per message" value={form.groupThreshold} onChange={(v) => patchForm({ groupThreshold: v })} min={NUM.groupThreshold.min} max={limits.group_threshold_max} unit="alerts" def={String(def.delivery.group_threshold)} error={errors.groupThreshold} disabled={busy}
-                    hint="Send at once when this many alerts have piled up. Discord shows at most 10 in a message." />
+                    hint="Send at once when this many alerts have piled up, whatever the wait. They are grouped into blocks first, so a burst from one address stays one block." />
                   <NumberField id="notify-max-retry" label="Retries" value={form.maxRetry} onChange={(v) => patchForm({ maxRetry: v })} min={NUM.maxRetry.min} max={NUM.maxRetry.max} unit="times" def={String(def.delivery.max_retry)} error={errors.maxRetry} disabled={busy}
                     hint="How many times a failed delivery is tried again." />
                   <NumberField id="notify-timeout" label="Give up after" value={form.timeout} onChange={(v) => patchForm({ timeout: v })} min={NUM.timeout.min} max={NUM.timeout.max} unit="seconds" def={String(def.delivery.timeout)} error={errors.timeout} disabled={busy}

@@ -150,8 +150,8 @@ export default function PluginSettings() {
         <Setting title="Update interval" changed={changed('update_interval')} hint={`Default: ${dflt?.update_interval ?? 60} seconds. Used in stream mode.`} help={data.help?.update_interval ?? ''}>
           {num('update_interval', 'Update interval in seconds')}
         </Setting>
-        <Setting title="Remember an answer for" changed={changed('default_decision_seconds')} hint={`Default: ${dflt?.default_decision_seconds ?? 60} seconds. Used in live mode.`} help={data.help?.default_decision_seconds ?? ''}>
-          {num('default_decision_seconds', 'Seconds an answer is remembered')}
+        <Setting title="Cache a clean verdict for" changed={changed('default_decision_seconds')} hint={`Default: ${dflt?.default_decision_seconds ?? 10} seconds. Used in live mode. Shorter means a new ban bites faster.`} help={data.help?.default_decision_seconds ?? 'How long a clean verdict is cached; shorter means a new ban bites faster.'}>
+          {num('default_decision_seconds', 'Seconds a clean verdict is cached')}
         </Setting>
         <Setting title="Timeout" changed={changed('http_timeout')} hint={`Default: ${dflt?.http_timeout ?? 10} seconds`} help={data.help?.http_timeout ?? ''}>
           {num('http_timeout', 'Timeout in seconds')}
