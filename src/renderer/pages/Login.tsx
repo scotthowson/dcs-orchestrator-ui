@@ -9,16 +9,18 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import {
   Shield, User, Lock, ArrowRight, Globe,
   Layers, Loader2, AlertCircle, Sparkles, Clock, KeyRound, UserPlus,
-  Wifi, WifiOff, X,
+  Wifi, WifiOff, X, Server, ArrowLeft,
 } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 import { useSettingsStore } from '../stores/settingsStore'
 import { useBrand } from '../hooks/useBrand'
 import { useConnectionStore } from '../stores/connectionStore'
 import { useServerStore } from '../stores/serverStore'
-import { authRegister, authLogin, authSetup, authVerify, fetchSetupStatus, totpValidate } from '../api/endpoints'
+import { authRegister, authLogin, authSetup, fetchSetupStatus, totpValidate } from '../api/endpoints'
 import { hydrateUser } from '../lib/userSync'
 import { apiClient, ApiError, ApiNetworkError } from '../api/client'
+import { canRememberPasswords } from '../lib/credentials'
+import { ServerAccountList } from '../components/auth/ServerGateScreens'
 import { discoverServer } from '../lib/discover'
 import Hint from '../components/common/Hint'
 import PasswordStrengthMeter from '../components/auth/PasswordStrength'
@@ -33,13 +35,27 @@ const LOGIN_INPUT_PW = LOGIN_INPUT.replace('pr-4', 'pr-12')
 /** a small text button beside a line of words (Change, Have an invite code?) */
 const LINK_BTN = `rounded-md transition-colors ${FOCUS_RING}`
 
+/** what the server answered to a sign-in: the session to keep for this server */
+interface IssuedSession { token: string; username: string; role?: string | null }
+
 export default function Login() {
   const {
     hasAccount, loading, error,
-    register, login, clearError, setApiToken, setUserRole,
+    register, login, clearError,
   } = useAuthStore()
   const { name: projectName, subtitle: projectSubtitle } = useBrand()
-  const lastUsername = useSettingsStore((s) => s.lastUsername)
+  // The sign-in is always for the ACTIVE server (App keys this screen by it): its name and address are on show, its
+  // account is filled in, Cancel goes back to the server left with a confirmed session.
+  const server = useServerStore((s) => s.servers.find((x) => x.id === s.activeServerId) ?? null)
+  const serverCount = useServerStore((s) => s.servers.length)
+  const returnTo = useServerStore((s) => (s.returnToId ? s.servers.find((x) => x.id === s.returnToId) ?? null : null))
+  const signInReason = useServerStore((s) => s.signInReason)
+  const settingsLastUsername = useSettingsStore((s) => s.lastUsername)
+  const lastUsername = server?.lastUsername || server?.session?.username || (serverCount <= 1 ? settingsLastUsername : '') || ''
+  const [canRemember, setCanRemember] = useState(false)
+  const [rememberPw, setRememberPw] = useState(!!server?.remember)
+  const [cancelling, setCancelling] = useState(false)
+  useEffect(() => { void canRememberPasswords().then(setCanRemember) }, [])
   const sessionDurationMinutes = useSettingsStore((s) => s.sessionDurationMinutes)
   const setCurrentPage = useSettingsStore((s) => s.setCurrentPage)
   const { setServerUrl } = useConnectionStore()
@@ -65,7 +81,7 @@ export default function Login() {
   // The reason is read without consuming it: App draws a dark frame between the dashboard and this screen, so
   // this screen mounts twice (and twice in development, StrictMode), and the first mount used to take the reason
   // away from the one that stays. It is forgotten when the screen goes away after having been on show.
-  const [sessionExpiredNotice, setSessionExpiredNotice] = useState(() => sessionStorage.getItem('logout-reason') === 'session-expired')
+  const [sessionExpiredNotice, setSessionExpiredNotice] = useState(() => sessionStorage.getItem('logout-reason') === 'session-expired' || useServerStore.getState().signInReason === 'expired')
   // a password change (Settings → Security) ends every session of the account on the server, this one too: the
   // note to sign in with the new password lands here (this screen sits outside the dashboard's toast provider)
   const [passwordChangedNotice, setPasswordChangedNotice] = useState(() => sessionStorage.getItem('logout-reason') === 'password-changed')
@@ -79,7 +95,7 @@ export default function Login() {
   // When we already have a configured server URL (e.g. returning from logout),
   // start optimistically: skip the loading spinner and show the login form
   // immediately while verifying the server in the background.
-  const hasKnownServer = !!settingsServerUrl
+  const hasKnownServer = !!settingsServerUrl && signInReason !== 'edit-address'
   const [connected, setConnected] = useState(hasKnownServer)
   const [serverInitialized, setServerInitialized] = useState(hasKnownServer)
   const [initialChecking, setInitialChecking] = useState(!hasKnownServer)
@@ -228,90 +244,41 @@ export default function Login() {
   // not set up → the wizard); while it is being checked, Sign In is shown.
   const isSetup = !hasAccount && !serverInitialized && connStatus === 'fail'
 
-  /** Attempt server-side Bearer token auth after local auth succeeds.
-   *  Only network errors (server unreachable) allow offline fallback.
-   *  All other errors (401, 403, 500) are real failures that block login. */
-  const attemptServerAuth = async (user: string, pass: string, isInitialSetup: boolean): Promise<boolean> => {
+  /** Sign in on the server (or create its first admin). The dashboard opens only with a session the server issued:
+   *  a server that does not answer, or answers without a session, is a failure shown here (there is no way in
+   *  without the server). A 2FA account answers with a pending token: the code step takes over. */
+  const attemptServerAuth = async (user: string, pass: string, isInitialSetup: boolean): Promise<IssuedSession | null> => {
     setServerAuthError(null)
     try {
-      // First check if server requires auth
-      try {
-        const verifyRes = await authVerify()
-        // Only a token the server confirms counts as signed in. Older servers
-        // answer 200 with valid:false for a missing or dead token; treating
-        // that as "already authenticated" skipped the login request and left
-        // the dashboard polling with no token ("Session expired" loop).
-        if (verifyRes.valid === false) {
-          throw new ApiError(401, verifyRes.message || 'Token is invalid or expired')
-        }
-        if (verifyRes.role) setUserRole(verifyRes.role as 'admin' | 'user', user)
-        return true
-      } catch (err) {
-        if (err instanceof ApiNetworkError) {
-          // Server unreachable — allow offline/local-only mode
-          return true
-        }
-        if (err instanceof ApiError && err.status === 401) {
-          // Server requires auth — proceed to login/setup below
-        } else if (err instanceof ApiError && err.status === 404) {
-          // Server has no auth endpoint or needs initial setup
-          if (isInitialSetup) {
-            try {
-              const setupRes = await authSetup(user, pass)
-              if (setupRes.success && setupRes.token) {
-                setApiToken(setupRes.token)
-                useServerStore.getState().rememberSession(setupRes.token, user)
-                if (setupRes.role) setUserRole(setupRes.role, user)
-                return true
-              }
-            } catch (setupErr) {
-              if (setupErr instanceof ApiNetworkError) return true
-              setServerAuthError(setupErr instanceof ApiError ? setupErr.message : 'Server setup failed')
-              return false
-            }
-          }
-          return true
-        } else {
-          // Real server error (500, etc.) — block login
-          setServerAuthError(err instanceof ApiError ? err.message : 'Server error')
-          return false
-        }
+      const res = isInitialSetup ? await authSetup(user, pass) : await authLogin(user, pass)
+      if (res.success && res.token) return { token: res.token, username: res.username || user, role: res.role }
+      const r = res as unknown as Record<string, unknown>
+      if (r.requires_totp && r.totp_token) {
+        setTotpToken(r.totp_token as string)
+        setShowTotpInput(true)
+        return null
       }
-
-      // Server requires auth — authenticate
-      try {
-        const loginRes = isInitialSetup
-          ? await authSetup(user, pass)
-          : await authLogin(user, pass)
-        if (loginRes.success && loginRes.token) {
-          setApiToken(loginRes.token)
-          useServerStore.getState().rememberSession(loginRes.token, user)
-          if (loginRes.role) setUserRole(loginRes.role, user)
-          // profile, icon, accent, personal theme and choices, layout: read now so the first page is already theirs (a slow server never holds the sign-in longer than this)
-          await hydrateUser({ user, timeoutMs: 1500 })
-          return true
-        }
-        // Check if 2FA is required
-        if ((loginRes as unknown as Record<string, unknown>).requires_totp && (loginRes as unknown as Record<string, unknown>).totp_token) {
-          setTotpToken((loginRes as unknown as Record<string, unknown>).totp_token as string)
-          setShowTotpInput(true)
-          return false // Don't complete login yet — need TOTP code
-        }
-        setServerAuthError('Server authentication failed')
-        return false
-      } catch (err) {
-        if (err instanceof ApiNetworkError) {
-          // Server unreachable — allow offline fallback
-          return true
-        }
-        setServerAuthError(err instanceof ApiError ? err.message : 'Authentication failed')
-        return false
-      }
+      setServerAuthError('The server did not sign you in')
+      return null
     } catch (err) {
-      if (err instanceof ApiNetworkError) return true
-      setServerAuthError('Unexpected authentication error')
-      return false
+      if (err instanceof ApiNetworkError || (err instanceof ApiError && err.status === 0)) {
+        setServerAuthError(`${server?.name ?? 'The server'} can’t be reached right now. Nothing opens until it answers.`)
+      } else {
+        setServerAuthError(err instanceof ApiError ? err.message : 'Authentication failed')
+      }
+      return null
     }
+  }
+
+  /** The session is kept for this server (and the password, when asked, in the desktop app's keychain): the dashboard opens */
+  const finishSignIn = async (issued: IssuedSession, pass: string) => {
+    await useServerStore.getState().sessionStarted({
+      token: issued.token,
+      username: issued.username,
+      role: issued.role ?? null,
+      password: pass,
+      rememberPassword: canRemember ? rememberPw : undefined,
+    })
   }
 
   /** Switch between login and register modes, resetting form state */
@@ -378,10 +345,7 @@ export default function Login() {
 
       const res = await authRegister(username.trim(), password, inviteCode.trim())
       if (res.success && res.token) {
-        // Store the API Bearer token and role
-        setApiToken(res.token)
-        useServerStore.getState().rememberSession(res.token, username.trim())
-        if (res.role) setUserRole(res.role, username.trim())
+        apiClient.setAuthToken(res.token)
 
         // Persist session — use dynamic duration from settings
         // SECURITY: Do NOT store the API token in auth-session (it's already in api-auth-token)
@@ -400,13 +364,10 @@ export default function Login() {
 
         // Remember username for next session
         useSettingsStore.getState().updateSetting('lastUsername', username.trim())
+        useAuthStore.setState({ hasAccount: true })
 
-        // Update zustand auth state to trigger route change
-        useAuthStore.setState({
-          isAuthenticated: true,
-          currentUser: res.username,
-          hasAccount: true,
-        })
+        // the session is this server's: the dashboard opens
+        await finishSignIn({ token: res.token, username: res.username || username.trim(), role: res.role }, password)
       } else {
         setRegisterError('Registration failed — unexpected response')
       }
@@ -427,9 +388,7 @@ export default function Login() {
     try {
       const res = await totpValidate(totpToken, totpCode)
       if (res.success && res.token) {
-        setApiToken(res.token)
-        useServerStore.getState().rememberSession(res.token, res.username || username)
-        if (res.role) setUserRole(res.role as 'admin' | 'user', res.username || username)
+        apiClient.setAuthToken(res.token)
         await hydrateUser({ user: res.username || username, timeoutMs: 1500 })
         setShowTotpInput(false)
         setTotpCode('')
@@ -443,9 +402,11 @@ export default function Login() {
           token: 'redacted',
         }))
 
-        await login(username, password, rememberMe)
+        // the local copy for the app lock (created, or brought in line with the password the server accepted)
+        if (!(await login(username, password, rememberMe))) { clearError(); await register(username.trim(), password, { overwrite: true }) }
         useSettingsStore.getState().updateSetting('lastUsername', username.trim())
-        useAuthStore.setState({ isAuthenticated: true, currentUser: res.username || username, hasAccount: true })
+        useAuthStore.setState({ hasAccount: true })
+        await finishSignIn({ token: res.token, username: res.username || username.trim(), role: res.role }, password)
       } else {
         setTotpError('Invalid code')
       }
@@ -487,39 +448,32 @@ export default function Login() {
       // Server unreachable — proceed with normal auth
     }
 
+    // The server first: no session from it, no way in. Then the local copy of the account (the app lock), then the
+    // session is kept for this server and the dashboard opens.
+    const issued = await attemptServerAuth(username, password, isSetup)
+    if (!issued) {
+      setSubmitting(false)
+      return
+    }
+    apiClient.setAuthToken(issued.token)
     let success = false
     if (isSetup) {
-      // First-time setup — acquire server token FIRST, then create local account.
-      // This prevents the race where register() sets isAuthenticated → polls fire
-      // → 401 (no token yet) → "Session expired".
-      const serverOk = await attemptServerAuth(username, password, true)
-      if (!serverOk) {
-        setSubmitting(false)
-        return
-      }
       success = await register(username, password)
     } else {
-      // Sign in — acquire server token BEFORE setting isAuthenticated.
-      // This prevents polls from firing before the token is on apiClient.
-      const serverOk = await attemptServerAuth(username, password, false)
-      if (!serverOk) {
-        setSubmitting(false)
-        return
-      }
       success = await login(username, password, rememberMe)
-      if (!success && (serverInitialized || apiClient.getAuthToken())) {
+      if (!success) {
         // The server accepted these credentials: the local copy (used for the
-        // app lock when offline) is created, or brought in line with them when
-        // the same username was used on another server
+        // app lock) is created, or brought in line with them when the same
+        // username was used on another server
         clearError()
         success = await register(username.trim(), password, { overwrite: true })
       }
     }
-
-    if (success) {
-      useSettingsStore.getState().updateSetting('lastUsername', username.trim())
-    }
-
+    clearError()
+    useSettingsStore.getState().updateSetting('lastUsername', username.trim())
+    // profile, icon, accent, personal theme and choices, layout: read now so the first page is already theirs (a slow server never holds the sign-in longer than this)
+    await hydrateUser({ user: issued.username, timeoutMs: 1500 })
+    await finishSignIn(issued, password)
     setSubmitting(false)
   }
 
@@ -861,21 +815,36 @@ export default function Login() {
           {/* ── Sign In mode ── */}
           {!isSetup && mode === 'login' && !showTotpInput && (
             <div key="login-mode" className="animate-fade-in">
-              {/* Connected server display */}
-              <div className="flex items-center justify-between rounded-lg bg-white/[0.03] border border-white/5 px-3 py-2 mb-6">
+              {/* The server this sign-in is for: its name and address, so there is no doubt which account is asked */}
+              <div className="flex items-center justify-between rounded-lg bg-white/[0.03] border border-white/5 px-3 py-2 mb-6" data-testid="signin-server">
                 <div className="flex items-center gap-2 min-w-0">
-                  <Wifi size={12} className="text-emerald-400 shrink-0" />
-                  <span className="text-xs text-slate-400 font-mono truncate">{serverUrl}</span>
+                  <Server size={13} className="text-emerald-400 shrink-0" />
+                  <div className="min-w-0">
+                    {server && <p className="text-xs font-medium text-slate-200 truncate">{server.name}</p>}
+                    <p className="text-[11px] text-slate-400 font-mono truncate">{serverUrl}</p>
+                  </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => { setConnected(false); setServerInitialized(false); setConnStatus('idle') }}
-                  aria-label="Change the server"
+                  aria-label="Change the server address"
                   className={`${LINK_BTN} h-8 px-2.5 -mr-1.5 text-[11px] font-medium text-slate-400 hover:text-cyan-400 hover:bg-white/5 shrink-0 ml-2`}
                 >
                   Change
                 </button>
               </div>
+
+              {/* Why the sign-in is asked again (a remembered password the server refused, a 2FA code) */}
+              {(signInReason === 'password-rejected' || signInReason === 'totp') && (
+                <div role="status" className="flex items-center gap-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 px-3.5 py-3 mb-4">
+                  <KeyRound size={15} className="text-amber-400 shrink-0" />
+                  <p className="text-[11px] text-amber-300">
+                    {signInReason === 'totp'
+                      ? 'This account asks for a 6-digit code: sign in with the password, then the code.'
+                      : 'The saved password was not accepted. Sign in with the current one.'}
+                  </p>
+                </div>
+              )}
 
               {/* Session expired notice */}
               {sessionExpiredNotice && (
@@ -911,9 +880,9 @@ export default function Login() {
 
               {/* Header */}
               <div className="mb-6">
-                <h2 className="text-lg font-semibold text-slate-100">Welcome back</h2>
+                <h2 className="text-lg font-semibold text-slate-100">{server && serverCount > 1 ? `Sign in to ${server.name}` : 'Welcome back'}</h2>
                 <p className="text-xs text-slate-500 mt-1">
-                  Enter your credentials to access the dashboard
+                  {serverCount > 1 ? 'Each server has its own account. Enter the one for this server.' : 'Enter your credentials to access the dashboard'}
                 </p>
               </div>
 
@@ -984,6 +953,32 @@ export default function Login() {
                   </span>
                 </button>
 
+                {/* Desktop app only: the password is kept in the system keychain (safeStorage), for this server alone */}
+                {canRemember && (
+                  <button
+                    type="button"
+                    role="checkbox"
+                    aria-checked={rememberPw}
+                    onClick={() => setRememberPw(!rememberPw)}
+                    className={`${LINK_BTN} flex items-center gap-2 min-h-[2rem] -my-1 py-1 pr-2 text-left`}
+                  >
+                    <span
+                      aria-hidden
+                      className={`flex items-center justify-center w-4 h-4 rounded border transition-all shrink-0 ${rememberPw ? 'bg-emerald-500 border-emerald-500' : 'bg-white/5 border-white/20 hover:border-white/30'}`}
+                    >
+                      {rememberPw && (
+                        <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <KeyRound size={11} className="text-slate-500" />
+                      <span className="text-xs text-slate-400">Remember the password on this device</span>
+                    </span>
+                  </button>
+                )}
+
                 {/* Error */}
                 {(error || serverAuthError) && (
                   <div role="alert" className="flex items-center gap-2 rounded-lg bg-rose-500/10 border border-rose-500/20 px-3 py-2.5">
@@ -1017,6 +1012,22 @@ export default function Login() {
                   Have an invite code? <span className="font-medium text-cyan-400">Register</span>
                 </button>
               </div>
+
+              {/* Cancel: back to the server left signed in, untouched */}
+              {returnTo && (
+                <button
+                  type="button"
+                  disabled={cancelling || submitting}
+                  onClick={async () => { setCancelling(true); const ok = await useServerStore.getState().cancelSignIn(); if (!ok) setCancelling(false) }}
+                  className={`${BTN_TOOLBAR_QUIET} w-full justify-center mt-2`}
+                >
+                  {cancelling ? <Loader2 size={14} className="animate-spin" /> : <ArrowLeft size={14} />}
+                  Cancel — back to {returnTo.name}
+                </button>
+              )}
+
+              {/* the other servers this device knows */}
+              <ServerAccountList excludeId={server?.id} />
             </div>
           )}
 

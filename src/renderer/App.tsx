@@ -16,6 +16,8 @@ import DiscordPresence from './components/DiscordPresence'
 import { useSettingsStore } from './stores/settingsStore'
 import { useConnectionStore } from './stores/connectionStore'
 import { useAuthStore } from './stores/authStore'
+import { useServerStore, endSavedSessionsWithoutDeviceSession } from './stores/serverStore'
+import { ServerCheckingScreen, ServerUnreachableScreen } from './components/auth/ServerGateScreens'
 import { getDefaultServerUrl } from './lib/env'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
@@ -110,7 +112,15 @@ const pageComponents: Record<Exclude<PageId, AliasPageId>, React.ComponentType> 
 export default function App() {
   const { currentPage, loadSettings, setCurrentPage, theme, toggleSidebar, updateSetting, autoLockMinutes, customCSS } = useSettingsStore()
   const { connect, setServerUrl } = useConnectionStore()
-  const { isAuthenticated, loading: authLoading, checkAccountExists, logout } = useAuthStore()
+  const { loading: authLoading, checkAccountExists, logout } = useAuthStore()
+  // Signed in means: a session the ACTIVE server confirmed during this run of the app (serverStore). Anything less
+  // (a session read from storage and not checked yet, a server that does not answer, a sign-in on another server)
+  // shows its own full screen below, never the dashboard.
+  const sessionConfirmed = useAuthStore((s) => s.isAuthenticated && !!s.validatedServerId)
+  const validatedServerId = useAuthStore((s) => s.validatedServerId)
+  const activeServerId = useServerStore((s) => s.activeServerId)
+  const gate = useServerStore((s) => s.gate)
+  const isAuthenticated = sessionConfirmed && validatedServerId === activeServerId && gate === 'open'
   const autoLockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const mainRef = useRef<HTMLDivElement>(null)
   const [transitionPage, setTransitionPage] = useState(currentPage)
@@ -193,6 +203,10 @@ export default function App() {
     async function init() {
       checkAccountExists()
       await loadSettings()
+      // the servers this dashboard knows (and the sessions saved for them); the active one is the server to talk to
+      useServerStore.getState().loadServers()
+      const active = useServerStore.getState().getActiveServer()
+      if (active?.url && active.url !== useSettingsStore.getState().serverUrl) useSettingsStore.getState().updateSetting('serverUrl', active.url)
       // After settings load, sync the persisted server URL to apiClient + connectionStore
       const { serverUrl } = useSettingsStore.getState()
       if (serverUrl) {
@@ -234,7 +248,10 @@ export default function App() {
             localStorage.removeItem('auth-session')
             localStorage.removeItem('api-auth-token')
             apiClient.setAuthToken(null)
-            useAuthStore.setState({ hasAccount: false, isAuthenticated: false, currentUser: null })
+            const fresh = useServerStore.getState().activeServerId
+            if (fresh) useServerStore.getState().updateServer(fresh, { session: null })
+            useAuthStore.setState({ hasAccount: false, isAuthenticated: false, currentUser: null, validatedServerId: null })
+            useServerStore.setState({ gate: 'open' })
             setCurrentPage('setup')
             setSettingsReady(true)
             return
@@ -245,29 +262,11 @@ export default function App() {
         }
       }
 
-      // If user has a valid session, ensure role is resolved
-      const { currentUser, apiToken, setUserRole, userRole } = useAuthStore.getState()
-      if (currentUser && !userRole) {
-        // Try server first (if we have a token)
-        if (apiToken) {
-          try {
-            const { authVerify } = await import('./api/endpoints')
-            const res = await authVerify()
-            if (res.role) {
-              setUserRole(res.role as 'admin' | 'user', currentUser)
-            }
-          } catch {
-            // Server unreachable — fall through to checkAccountExists migration
-          }
-        }
-        // checkAccountExists() already handles the default-role fallback,
-        // but if it ran before accounts were loaded (race), re-trigger it
-        if (!useAuthStore.getState().userRole) {
-          await useAuthStore.getState().checkAccountExists()
-        }
-      }
-
+      // The dashboard opens only for a session the active server confirms now ("Checking your sign-in" meanwhile):
+      // without a device session the saved ones are ended first, so the sign-in shows
+      endSavedSessionsWithoutDeviceSession()
       setSettingsReady(true)
+      await useServerStore.getState().enterActiveServer()
     }
     init()
   }, [checkAccountExists, loadSettings, setServerUrl, setCurrentPage])
@@ -608,7 +607,10 @@ export default function App() {
     if (logoutFading) {
       return <div className="h-screen bg-slate-950" />
     }
-    return <Login />
+    if (gate === 'checking') return <ServerCheckingScreen />
+    if (gate === 'unreachable') return <ServerUnreachableScreen />
+    // keyed by the server: each server's sign-in starts afresh with its own account filled in
+    return <Login key={activeServerId ?? 'none'} />
   }
 
   const ActivePage = pageComponents[transitionPage as Exclude<PageId, AliasPageId>] || Dashboard

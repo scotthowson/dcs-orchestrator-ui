@@ -23,6 +23,18 @@ export class ApiTimeoutError extends ApiError {
   }
 }
 
+/** A request the dashboard dropped itself: the server was switched or the session ended while it was on its way.
+ *  Its answer belonged to the server before, so nobody gets to see it. */
+export class ApiCancelledError extends ApiError {
+  constructor(path: string) {
+    super(0, `Request to ${path} was cancelled`)
+    this.name = 'ApiCancelledError'
+  }
+}
+
+/** detail of the 'api-auth-expired' event: which server and which session the 401 was about */
+export interface AuthExpiredDetail { baseUrl: string; epoch: number; path: string }
+
 export class ApiNetworkError extends ApiError {
   constructor(path: string, cause?: string) {
     super(0, `Network error requesting ${path}${cause ? `: ${cause}` : ''}`)
@@ -63,6 +75,9 @@ export class ApiClient {
   private timeout: number
   private maxRetries: number
   private authToken: string | null = null
+  /** bumped by cancelAll(): a request started before it never delivers its answer (or its 401) */
+  private epoch = 0
+  private inflight = new Set<AbortController>()
 
   constructor(baseUrl = getDefaultServerUrl(), timeout = 30000) {
     this.baseUrl = baseUrl.replace(/\/$/, '')
@@ -91,9 +106,31 @@ export class ApiClient {
     return this.authToken
   }
 
+  /** the server and the session the answers in memory belong to: caches key on it (lib/sharedFetch) */
+  getScopeKey(): string {
+    return `${this.baseUrl}#${this.epoch}`
+  }
+
+  getEpoch(): number {
+    return this.epoch
+  }
+
+  /**
+   * Leaving a server (a switch, a sign-out, a session that ended): every request still on its way is aborted and
+   * whatever answers arrive later are dropped, so nothing from the server before lands in the stores of the next one.
+   */
+  cancelAll(): void {
+    this.epoch++
+    for (const c of this.inflight) c.abort()
+    this.inflight.clear()
+  }
+
   private async requestOnce<T>(method: string, path: string, body?: string, timeoutOverride?: number): Promise<T> {
     const url = `${this.baseUrl}${path}`
+    const epoch = this.epoch
+    const baseUrl = this.baseUrl
     const controller = new AbortController()
+    this.inflight.add(controller)
     const timeoutId = setTimeout(() => controller.abort(), timeoutOverride ?? this.timeout)
 
     const init: RequestInit = {
@@ -111,6 +148,7 @@ export class ApiClient {
     try {
       response = await fetch(url, init)
     } catch (err: unknown) {
+      if (epoch !== this.epoch) throw new ApiCancelledError(path)
       if (err instanceof DOMException && err.name === 'AbortError') {
         throw new ApiTimeoutError(path, timeoutOverride ?? this.timeout)
       }
@@ -118,7 +156,9 @@ export class ApiClient {
       throw new ApiNetworkError(path, message)
     } finally {
       clearTimeout(timeoutId)
+      this.inflight.delete(controller)
     }
+    if (epoch !== this.epoch) throw new ApiCancelledError(path)
 
     if (!response.ok) {
       let errorMessage = response.statusText
@@ -143,9 +183,10 @@ export class ApiClient {
       // request (password, TOTP code, Linux login, terminal session) leave
       // the API session untouched.
       if (response.status === 401) {
+        if (epoch !== this.epoch) throw new ApiCancelledError(path)
         if (!isCredentialCheckPath(path)) {
           this.authToken = null
-          window.dispatchEvent(new CustomEvent('api-auth-expired'))
+          window.dispatchEvent(new CustomEvent<AuthExpiredDetail>('api-auth-expired', { detail: { baseUrl, epoch, path } }))
         }
         throw new ApiError(401, errorMessage, errorData)
       }
@@ -154,6 +195,7 @@ export class ApiClient {
 
     // Read body as text first, then parse — more resilient to encoding issues
     const text = await response.text()
+    if (epoch !== this.epoch) throw new ApiCancelledError(path)
     if (!text || text.trim().length === 0) {
       return {} as T
     }

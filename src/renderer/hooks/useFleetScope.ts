@@ -37,7 +37,7 @@ export function useFleetScope() {
   const isConnected = useConnectionStore((s) => s.status === 'connected')
   const { isHub, settled: roleSettled } = useFleetRole()
   const list = usePolling(fleetMembersShared, 30000, { enabled: isConnected && isHub })
-  const base = apiClient.getBaseUrl()
+  const base = apiClient.getScopeKey()
   if (list.data) lastList = { base, data: list.data }
   const listData = list.data ?? (lastList && lastList.base === base ? lastList.data : null)
   const listRefresh = list.refresh

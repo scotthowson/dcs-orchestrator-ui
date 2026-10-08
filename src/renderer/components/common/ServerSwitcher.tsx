@@ -1,11 +1,15 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Server, Plus, ChevronDown, Check, Trash2, Globe, Loader2, Pencil, AlertCircle, WifiOff } from 'lucide-react'
+import { Server, Plus, ChevronDown, Check, Trash2, Globe, Loader2, Pencil, AlertCircle, WifiOff, LogOut, KeyRound } from 'lucide-react'
 import { useServerStore } from '../../stores/serverStore'
 import { useConnectionStore } from '../../stores/connectionStore'
+import { useAuthStore } from '../../stores/authStore'
+import { accountLine } from '../auth/ServerGateScreens'
 
 export function ServerSwitcher() {
   const { servers, activeServerId, loading, loadServers, addServer, removeServer, updateServer, switchServer } = useServerStore()
   const { status, lastError, reconnectAttempts } = useConnectionStore()
+  const unreachable = useServerStore((s) => s.unreachable)
+  const signedInHere = useAuthStore((s) => s.isAuthenticated && s.validatedServerId === activeServerId)
   const [open, setOpen] = useState(false)
   const [newName, setNewName] = useState('')
   const [newUrl, setNewUrl] = useState('')
@@ -196,6 +200,10 @@ export function ServerSwitcher() {
                           <div className="text-sm text-white truncate">{s.name}</div>
                         )}
                         <div className="text-[11px] text-slate-500 truncate font-mono">{s.url}</div>
+                        {(() => {
+                          const line = accountLine(s, { active: isActive, signedInHere, unreachable: unreachable[s.id] })
+                          return <div className={`text-[10px] truncate ${line.tone === 'ok' ? 'text-emerald-400/90' : line.tone === 'bad' ? 'text-rose-400' : 'text-slate-500'}`}>{line.text}</div>
+                        })()}
                       </div>
                       {isActive && !isSwitching && status === 'connected' && (
                         <Check className="w-4 h-4 text-emerald-400 shrink-0" />
@@ -206,7 +214,27 @@ export function ServerSwitcher() {
                     </button>
 
                     {/* Action buttons */}
-                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity shrink-0">
+                      {s.session?.token && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); void useServerStore.getState().signOutServer(s.id) }}
+                          className="p-1 rounded hover:bg-white/5 text-slate-500 hover:text-amber-300 transition-colors"
+                          title="Sign out here"
+                          aria-label={`Sign out of ${s.name}`}
+                        >
+                          <LogOut className="w-3 h-3" />
+                        </button>
+                      )}
+                      {s.remember && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); void useServerStore.getState().forgetServerPassword(s.id) }}
+                          className="p-1 rounded hover:bg-white/5 text-slate-500 hover:text-amber-300 transition-colors"
+                          title="Forget password"
+                          aria-label={`Forget the password saved for ${s.name}`}
+                        >
+                          <KeyRound className="w-3 h-3" />
+                        </button>
+                      )}
                       {!isEditing && (
                         <button
                           onClick={(e) => handleStartEdit(s.id, s.name, e)}
