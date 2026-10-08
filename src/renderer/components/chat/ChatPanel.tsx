@@ -166,6 +166,7 @@ export default function ChatPanel({ onClose }: { onClose: () => void }) {
     })
     if (!ok) return
     try { await useChatStore.getState().remove(m.id); setActionsFor(null) } catch (err) { setError(chatErrorText(err)) }
+    inputRef.current?.focus()
   }
 
   const clearRoom = async () => {
@@ -189,13 +190,24 @@ export default function ChatPanel({ onClose }: { onClose: () => void }) {
     updateSetting('chatNotify', true)
   }
 
-  const onKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key !== 'Escape') return
-    e.preventDefault(); e.stopPropagation()
+  // Escape anywhere while the panel is the top layer (a confirmation over it takes the key itself): an edit ends first,
+  // then the actions shown by a long press, then the panel closes. On the document, so it also works when the focus was
+  // lost (a deleted message's button)
+  const escRef = useRef<() => void>(() => {})
+  escRef.current = () => {
     if (editing) { setEditing(null); inputRef.current?.focus(); return }
     if (actionsFor !== null) { setActionsFor(null); return }
     onClose()
   }
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || e.defaultPrevented) return
+      e.preventDefault()
+      escRef.current()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [])
 
   const startPress = (id: number) => {
     if (pressTimer.current) clearTimeout(pressTimer.current)
@@ -213,7 +225,6 @@ export default function ChatPanel({ onClose }: { onClose: () => void }) {
       aria-modal="true"
       aria-label="Chat"
       data-chat-panel
-      onKeyDown={onKeyDown}
       className="fixed inset-0 z-[90] flex flex-col bg-slate-950 safe-area-top safe-area-bottom animate-fade-in
         md:inset-auto md:right-8 md:bottom-28 md:w-[380px] md:h-[520px] md:max-h-[calc(100vh-9rem)] md:rounded-2xl md:border md:border-white/10 md:bg-slate-900/95 md:backdrop-blur-xl md:shadow-2xl md:shadow-black/50 md:overflow-hidden"
     >
