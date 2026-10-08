@@ -10,7 +10,7 @@
 // ============================================================================
 
 import { useState } from 'react'
-import { CheckNowButton, EnrolBox, PAUSED_TEXT, REFUSED_TEXT, RegisterAgainButton, capiState, lastContact } from './CommunityActions'
+import { CheckNowButton, EnrolBox, PAUSED_TEXT, enrolRequested, REFUSED_TEXT, RegisterAgainButton, capiState, lastContact } from './CommunityActions'
 import { AlertTriangle, Check, CircleAlert, CircleCheck, Clock, Copy, Info, KeyRound, Loader2, Plug, Plus, RefreshCw, Server, ShieldCheck, Trash2, Users } from 'lucide-react'
 import { usePolling, type UsePollingResult } from '../../hooks/usePolling'
 import { useConnectionStore } from '../../stores/connectionStore'
@@ -572,6 +572,8 @@ function CommunitySection({ poll }: { poll: UsePollingResult<CrowdSecCommunityRe
   const now = useNow()
   // the enrol form stays after a success (the next step is on app.crowdsec.net) even once the refetch says enrolled
   const [keepEnrol, setKeepEnrol] = useState(false)
+  // while the enrolment is not known the form stays behind "Enrol anyway" (open at once when the overview asked for it)
+  const [enrolAnyway, setEnrolAnyway] = useState(enrolRequested)
   const cm = poll.data
   if (!cm && poll.error) return <LoadError what="the community status" error={poll.error} onRetry={poll.refresh} />
 
@@ -584,7 +586,8 @@ function CommunitySection({ poll }: { poll: UsePollingResult<CrowdSecCommunityRe
   // the community link: null on an older server (the rows read needs_register and the flags as before)
   const capi = capiState(cm)
   const refused = capi ? capi === 'refused' : !!cm?.needs_register
-  const checkNow = isAdmin && capi ? <CheckNowButton onDone={poll.refresh} /> : undefined
+  const checkNow = isAdmin && capi ? <CheckNowButton onDone={poll.refresh} availableAt={cm?.capi.check_available_at} /> : undefined
+  const consoleUnknown = !!cm && cm.console.known === false && !cm.console.enrolled
 
   return (
     <section className={`${CARD} p-4`} aria-label="Community and console">
@@ -629,6 +632,18 @@ function CommunitySection({ poll }: { poll: UsePollingResult<CrowdSecCommunityRe
                 {cm.capi.sharing ? 'When CrowdSec catches an attacker it reports the address and the scenario (nothing else), so others can block it too.' : 'Nothing leaves this server: your detections are not reported to the community.'}
               </StatusRow>
             )}
+            {consoleUnknown ? (
+              <StatusRow tone="mute" title="Enrolment not checked yet"
+                action={isAdmin ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <CheckNowButton onDone={poll.refresh} availableAt={cm.capi.check_available_at} />
+                    {!enrolAnyway && <button type="button" className="text-[11px] text-cyan-400 hover:text-cyan-300" onClick={() => setEnrolAnyway(true)}>Enrol anyway</button>}
+                  </div>
+                ) : undefined}>
+                <p>Whether this engine is in the CrowdSec Console is known after a check, an enrolment or a line in CrowdSec’s log.</p>
+                {isAdmin && enrolAnyway && <EnrolBox onDone={poll.refresh} onEnrolled={() => setKeepEnrol(true)} needsRegister={refused} />}
+              </StatusRow>
+            ) : (
             <StatusRow tone={cm.console.enrolled ? 'good' : 'mute'} title={cm.console.enrolled ? `Enrolled in the CrowdSec Console${cm.console.plan ? ` (${cm.console.plan})` : ''}` : 'Not enrolled in the CrowdSec Console'}>
               {(cm.console.enrolled || !isAdmin) && <p>{noteText}</p>}
               {!cm.console.enrolled && !isAdmin && <p className="text-slate-500 mt-1">An admin can enrol it here with a key from app.crowdsec.net.</p>}
@@ -643,6 +658,7 @@ function CommunitySection({ poll }: { poll: UsePollingResult<CrowdSecCommunityRe
                 </div>
               )}
             </StatusRow>
+            )}
           </div>
           <p className="text-[11px] text-slate-500 mt-3 pt-3 border-t border-white/5 leading-relaxed">Registering and enrolling are done here. Sharing and the console options are settings of CrowdSec itself, changed with cscli on the server.</p>
         </>

@@ -21,13 +21,15 @@ import { ApiError } from '../../api/client'
 import { useSystemStore } from '../../stores/systemStore'
 import { serverLabel } from '../../hooks/useBrand'
 import type { CrowdSecCapiState, CrowdSecCommunityResponse, CrowdSecConsoleEnrollResponse } from '../../../shared/types'
-import { BTN_PRIMARY, BTN_QUIET, BTN_WARN, INPUT, LABEL, errData, errMsg, fmtAgo, useCs } from './kit'
+import { BTN_PRIMARY, BTN_QUIET, BTN_WARN, INPUT, LABEL, errData, errMsg, fmtAgo, useCs, useNow } from './kit'
 
 export const CONSOLE_URL = 'https://app.crowdsec.net'
 
 /** the overview's "Enrol in the console" opens the Bouncers tab: the form scrolls into view and takes the focus once */
 let focusEnrolNext = false
 export function focusEnrolOnOpen(): void { focusEnrolNext = true }
+/** whether the overview just asked for the enrol form (the Bouncers tab opens it even while the enrolment is not known) */
+export function enrolRequested(): boolean { return focusEnrolNext }
 
 /**
  * The community link's state. An older server sends no state: null, and the rows fall back to needs_register and the
@@ -48,9 +50,14 @@ export const REFUSED_TEXT = 'The community service has refused this engine’s l
 /** the paused row's text when the server sends no hint */
 export const PAUSED_TEXT = 'The community service limits how often an engine may log in and is pausing this one for now. It lifts by itself, and the community addresses CrowdSec already has keep being blocked. Nothing to do.'
 
-/** the server turned a login down because the community service pauses the engine (409, code "paused"): its hint, else null */
+/** a 409 body that says the community service pauses the engine (reason "paused"; an earlier shape said code "paused") */
+function isPausedBody(d: Record<string, unknown>): boolean {
+  return d.reason === 'paused' || d.code === 'paused'
+}
+
+/** the server turned a login down because the community service pauses the engine (409): its hint, else null */
 function pausedHint(e: unknown): string | null {
-  if (!(e instanceof ApiError) || e.status !== 409 || errData(e).code !== 'paused') return null
+  if (!(e instanceof ApiError) || e.status !== 409 || !isPausedBody(errData(e))) return null
   const hint = errData(e).hint
   return typeof hint === 'string' && hint.trim() ? hint.trim() : 'The community service is pausing this engine for now. It lifts by itself; waiting is the safe choice.'
 }
@@ -112,12 +119,16 @@ export function RegisterAgainButton({ onDone, label = 'Register again' }: { onDo
  * "Check now" (admins): asks the community service once through the server, which allows it every 10 minutes. Never
  * called on a timer. onDone refetches the community status.
  */
-export function CheckNowButton({ onDone }: { onDone: () => void }) {
+export function CheckNowButton({ onDone, availableAt }: { onDone: () => void; availableAt?: string | null }) {
   const { member } = useCs()
   const { addToast } = useToast()
+  const now = useNow()
   const [busy, setBusy] = useState(false)
+  // the server says when the next check is allowed: wait for it here instead of collecting a 429
+  const at = availableAt ? Date.parse(availableAt) : NaN
+  const waitMin = Number.isFinite(at) && at > now ? Math.max(1, Math.ceil((at - now) / 60000)) : 0
   const run = async () => {
-    if (busy) return
+    if (busy || waitMin) return
     setBusy(true)
     try {
       const r = await crowdsecCommunityCheck(member)
@@ -140,8 +151,9 @@ export function CheckNowButton({ onDone }: { onDone: () => void }) {
     } finally { setBusy(false) }
   }
   return (
-    <button type="button" className={BTN_QUIET} disabled={busy} onClick={() => void run()}>
-      {busy ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />} {busy ? 'Checking…' : 'Check now'}
+    <button type="button" className={BTN_QUIET} disabled={busy || !!waitMin} onClick={() => void run()}
+      title={waitMin ? 'The community service is checked at most every 10 minutes' : undefined}>
+      {busy ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />} {busy ? 'Checking…' : waitMin ? `Check now (available in ${waitMin} min)` : 'Check now'}
     </button>
   )
 }
@@ -192,7 +204,7 @@ export function EnrolBox({ onDone, onEnrolled, needsRegister = false }: { onDone
     const n = (name ?? defaultName).trim()
     const settle = (r: Partial<CrowdSecConsoleEnrollResponse>, fallback: string) => {
       const message = scrub(String(r.message || fallback), k)
-      const paused = (r as { code?: unknown }).code === 'paused'
+      const paused = isPausedBody(r as Record<string, unknown>)
       if (paused) {
         const hint = (r as { hint?: unknown }).hint
         setOutcome({ kind: 'paused', message: scrub(typeof hint === 'string' && hint.trim() ? hint.trim() : message, k), overwrite })

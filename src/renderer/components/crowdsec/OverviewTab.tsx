@@ -323,7 +323,7 @@ export default function OverviewTab() {
             <div className="divide-y divide-white/5">
               {refused ? (
                 <StatusRow tone="bad" title="CrowdSec can’t reach the community service"
-                  action={isAdmin ? <div className="flex flex-wrap items-start gap-2"><div><RegisterAgainButton onDone={community.refresh} /></div>{capi && <CheckNowButton onDone={community.refresh} />}</div> : undefined}>
+                  action={isAdmin ? <div className="flex flex-wrap items-start gap-2"><div><RegisterAgainButton onDone={community.refresh} /></div>{capi && <CheckNowButton onDone={community.refresh} availableAt={cm.capi.check_available_at} />}</div> : undefined}>
                   {cm.hint || REFUSED_TEXT}
                 </StatusRow>
               ) : capi === 'disabled' ? (
@@ -333,13 +333,13 @@ export default function OverviewTab() {
                   {cm.hint || PAUSED_TEXT}<span className="block mt-1 text-slate-400">{lastContact(cm, now)}</span>
                 </StatusRow>
               ) : capi === 'unknown' && cm.capi.registered ? (
-                <StatusRow tone="mute" title="Not checked yet" action={isAdmin ? <CheckNowButton onDone={community.refresh} /> : undefined}>
+                <StatusRow tone="mute" title="Not checked yet" action={isAdmin ? <CheckNowButton onDone={community.refresh} availableAt={cm.capi.check_available_at} /> : undefined}>
                   DCS Orchestrator asks the community service only when you check, so it adds no logins of its own.{cm.capi.pulling && (cm.community_decisions || c?.community) ? ` CrowdSec holds ${fmtNum(cm.community_decisions || c?.community)} community addresses.` : ''}
                 </StatusRow>
               ) : (
                 <StatusRow tone={cm.capi.registered && cm.capi.pulling ? 'good' : cm.capi.registered ? 'warn' : 'mute'}
                   title={cm.capi.registered ? (cm.capi.pulling ? `Community blocklist: ${fmtNum(cm.community_decisions || c?.community)} known bad addresses` : 'Community blocklist is not being pulled') : 'Not connected to the community'}
-                  action={!isAdmin ? undefined : !cm.capi.registered ? <RegisterAgainButton onDone={community.refresh} label="Register" /> : capi ? <CheckNowButton onDone={community.refresh} /> : undefined}>
+                  action={!isAdmin ? undefined : !cm.capi.registered ? <RegisterAgainButton onDone={community.refresh} label="Register" /> : capi ? <CheckNowButton onDone={community.refresh} availableAt={cm.capi.check_available_at} /> : undefined}>
                   {cm.capi.error ? cm.capi.error : cm.capi.registered ? 'CrowdSec downloads addresses other people already caught attacking, and the bouncer blocks them too.' : 'Register with CrowdSec’s central API to receive the community blocklist.'}
                 </StatusRow>
               )}
@@ -348,10 +348,22 @@ export default function OverviewTab() {
                   {cm.capi.sharing ? 'Attackers you catch are reported (address and scenario only) so others can block them.' : 'Nothing leaves this server. You can turn sharing on with cscli.'}
                 </StatusRow>
               )}
+              {cm.console.known === false && !cm.console.enrolled ? (
+                <StatusRow tone="mute" title="Enrolment not checked yet"
+                  action={isAdmin ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <CheckNowButton onDone={community.refresh} availableAt={cm.capi.check_available_at} />
+                      <button type="button" className="text-[11px] text-cyan-400 hover:text-cyan-300" onClick={() => { focusEnrolOnOpen(); goTab('bouncers') }}>Enrol anyway</button>
+                    </div>
+                  ) : undefined}>
+                  Whether this engine is in the CrowdSec Console is known after a check, an enrolment or a line in CrowdSec’s log.
+                </StatusRow>
+              ) : (
               <StatusRow tone={cm.console.enrolled ? 'good' : 'mute'} title={cm.console.enrolled ? 'Enrolled in the CrowdSec Console' : 'Not enrolled in the CrowdSec Console'}
                 action={!cm.console.enrolled && isAdmin ? <button type="button" className={BTN_QUIET} onClick={() => { focusEnrolOnOpen(); goTab('bouncers') }}><KeyRound size={13} /> Enrol in the console</button> : undefined}>
                 {cm.console.enrolled ? 'Your alerts also appear in the online console.' : 'Optional: a free web console with more blocklists, enrolled with a key from app.crowdsec.net.'}
               </StatusRow>
+              )}
             </div>
           )}
         </Panel>

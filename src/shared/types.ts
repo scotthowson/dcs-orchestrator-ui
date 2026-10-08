@@ -3624,8 +3624,17 @@ export interface CrowdSecCommunityResponse {
     last_refusal?: string | null
     refused_since?: string | null
     started_at?: string | null
+    /** when Check now is allowed again (ISO; null or past = now) */
+    check_available_at?: string | null
+    /** the last explicit check */
+    last_check?: { at: string; result: string; message?: string | null } | null
   }
-  console: { authenticated: boolean; enrolled: boolean; registered: boolean; decision_management: boolean; plan: string; sharing: Record<string, boolean> }
+  console: {
+    authenticated: boolean; enrolled: boolean; registered: boolean; decision_management: boolean; plan: string; sharing: Record<string, boolean>
+    /** false: the enrolment is not known yet (no check, enrolment or log line has said so); absent on an older server */
+    known?: boolean
+    checked_at?: string | null
+  }
   community_decisions: number
   note: string
   /** registering again is the fix: true only when capi.state is refused (an older server also set it during a pause) */
@@ -3636,7 +3645,7 @@ export interface CrowdSecCommunityResponse {
 /** POST /crowdsec/community/check answers 429 with this when the last check is less than 10 minutes old */
 export interface CrowdSecCommunityCheckBusy { error: string; retry_after?: number }
 /** POST /crowdsec/community/register and /crowdsec/console/enroll answer 409 with this during a pause, unless the body says force */
-export interface CrowdSecCommunityPaused { error: string; code: 'paused'; hint?: string }
+export interface CrowdSecCommunityPaused { error: string; reason?: 'paused'; can_force?: boolean; /** an earlier shape of the answer said code "paused" */ code?: string | number; hint?: string }
 /** POST /crowdsec/community/register: the engine registered with the community again, CrowdSec restarted */
 export interface CrowdSecCommunityRegisterResponse {
   ok: boolean
