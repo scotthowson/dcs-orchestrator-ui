@@ -202,7 +202,7 @@ export function ServerSwitcher() {
                         <div className="text-[11px] text-slate-500 truncate font-mono">{s.url}</div>
                         {(() => {
                           const line = accountLine(s, { active: isActive, signedInHere, unreachable: unreachable[s.id] })
-                          return <div className={`text-[10px] truncate ${line.tone === 'ok' ? 'text-emerald-400/90' : line.tone === 'bad' ? 'text-rose-400' : 'text-slate-500'}`}>{line.text}</div>
+                          return <div className={`text-[10px] truncate ${line.tone === 'ok' ? 'text-emerald-400' : line.tone === 'bad' ? 'text-rose-400' : 'text-slate-500'}`}>{line.text}</div>
                         })()}
                       </div>
                       {isActive && !isSwitching && status === 'connected' && (

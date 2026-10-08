@@ -41,5 +41,6 @@ renderer's bridge) against stubs; Electron's safeStorage itself needs a desktop 
 
 ```bash
 PUPPETEER_DIR=/tmp/dcs-ui-sweep node tests/server-accounts.mjs
+PUPPETEER_DIR=/tmp/dcs-ui-sweep node tests/remember-password.mjs   # the desktop sign-in's remembered password, bridge stubbed
 node tests/credential-vault.mjs
 ```
