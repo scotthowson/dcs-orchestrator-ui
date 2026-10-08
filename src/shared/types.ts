@@ -406,6 +406,12 @@ export interface ImageInfo {
 // GET /config
 export interface ServerConfig {
   environment: string
+  /** the server's chat room (CHAT_ENABLED; an API older than the chat leaves these out) */
+  chat_enabled?: boolean
+  chat_users_can_post?: boolean
+  chat_retention_days?: number
+  chat_retention_max?: number
+  chat_rate_limit?: number
   update_channel?: string
   /** UPDATE_ON_BOOT: pull image updates during an unattended boot (an older API leaves it out) */
   update_on_boot?: boolean
@@ -1068,6 +1074,10 @@ export interface AppSettings {
   use24hClock: boolean
   /** Turn off animations and transitions */
   reduceMotion: boolean
+  /** the chat bubble in the bottom-right corner (this device only; the server can switch the room off for everyone) */
+  chatBubble: boolean
+  /** a browser notification for a chat message while the dashboard is in the background (this device only, off by default) */
+  chatNotify: boolean
 }
 
 // ---------------------------------------------------------------------------
@@ -4665,3 +4675,54 @@ export interface FleetJob {
 }
 export interface FleetJobsResponse { total: number; running: number; jobs: FleetJob[] }
 export interface FleetJoinOutcome { joined: boolean; member?: FleetMember; hub?: { name: string; version: string; url: string }; hub_url?: string; error?: string }
+
+// ---------------------------------------------------------------------------
+// Chat: one room per server (GET/POST /chat/messages, the "chat" event of /stream)
+// ---------------------------------------------------------------------------
+
+/** One message of a room. `server` is null for a message written on this server; a relay between servers (later)
+ *  names the server it came from. A deleted message stays in the list with deleted: true and no text. */
+export interface ChatMessage {
+  id: number
+  /** epoch seconds */
+  ts: number
+  user: string
+  role: 'admin' | 'user' | string
+  text: string
+  server: string | null
+  /** epoch seconds of the last edit */
+  edited?: number
+  deleted?: boolean
+  deleted_by?: string
+  deleted_at?: number
+}
+
+export interface ChatPresence { user: string; role: 'admin' | 'user' | string; seen: number }
+
+export interface ChatRoom {
+  id: string
+  kind: 'server' | string
+  server: string | null
+  name: string
+  members_online: ChatPresence[]
+  online_window: number
+  retention: { days: number; max_messages: number }
+  rate_limit_per_minute: number
+  max_length: number
+  edit_window: number
+  latest_id: number
+  cleared_at?: number | null
+  cleared_by?: string | null
+  me: { user: string; role: string; can_post: boolean; can_moderate: boolean }
+}
+
+export interface ChatMessagesResponse { messages: ChatMessage[]; has_more: boolean; room: ChatRoom }
+export interface ChatMessageResponse { message: ChatMessage }
+export interface ChatPresenceResponse { online: ChatPresence[]; online_window: number }
+
+/** what the "chat" event of the live stream carries */
+export type ChatLiveEvent =
+  | { type: 'message' | 'edit' | 'delete'; message: ChatMessage }
+  | { type: 'clear'; by: string; ts: number }
+  | { type: 'typing'; user: string; ts: number }
+  | { type: 'state'; enabled: boolean }
