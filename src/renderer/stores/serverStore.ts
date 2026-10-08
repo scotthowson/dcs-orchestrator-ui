@@ -502,13 +502,21 @@ useConnectionStore.subscribe((s, prev) => {
   const id = useServerStore.getState().activeServerId
   if (!id || !auth.isAuthenticated || auth.validatedServerId !== id) return
   const epoch = apiClient.getEpoch()
-  void apiClient.testConnection().then((ok) => {
+  const stillHere = () => {
     const a = useAuthStore.getState()
-    if (ok || apiClient.getEpoch() !== epoch || !a.isAuthenticated || a.validatedServerId !== id) return
+    return apiClient.getEpoch() === epoch && a.isAuthenticated && a.validatedServerId === id
+  }
+  // two pings a few seconds apart, both silent: a server that is only busy (a burst of requests) keeps the dashboard
+  void (async () => {
+    for (let i = 0; i < 2; i++) {
+      if (i) await new Promise((r) => setTimeout(r, 4000))
+      if (!stillHere() || (await apiClient.testConnection())) return
+    }
+    if (!stillHere()) return
     leaveServer()
     const detail = 'The server stopped answering'
     useServerStore.setState((st) => ({ gate: 'unreachable', gateDetail: detail, unreachable: { ...st.unreachable, [id]: detail } }))
-  })
+  })()
 })
 
 /**

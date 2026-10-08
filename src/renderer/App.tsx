@@ -109,6 +109,9 @@ const pageComponents: Record<Exclude<PageId, AliasPageId>, React.ComponentType> 
 
 // Ctrl+1…9 and Ctrl+0 open the sidebar's ten sections in order (navSections), each on the tab it was last on
 
+/** the active server's saved session was checked at the start of this run (App's init) */
+let activeServerEntered = false
+
 export default function App() {
   const { currentPage, loadSettings, setCurrentPage, theme, toggleSidebar, updateSetting, autoLockMinutes, customCSS } = useSettingsStore()
   const { connect, setServerUrl } = useConnectionStore()
@@ -264,8 +267,11 @@ export default function App() {
 
       // The dashboard opens only for a session the active server confirms now ("Checking your sign-in" meanwhile):
       // without a device session the saved ones are ended first, so the sign-in shows
-      endSavedSessionsWithoutDeviceSession()
       setSettingsReady(true)
+      // once per run of the app (development runs this effect twice)
+      if (activeServerEntered) return
+      activeServerEntered = true
+      endSavedSessionsWithoutDeviceSession()
       await useServerStore.getState().enterActiveServer()
     }
     init()
