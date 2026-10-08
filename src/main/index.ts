@@ -1,9 +1,10 @@
 import './userData' // first: it decides where the settings and the sign-in live (see the file)
-import { app, BrowserWindow, ipcMain, shell, session, Menu, nativeTheme } from 'electron'
+import { app, BrowserWindow, ipcMain, shell, session, Menu, nativeTheme, safeStorage, type IpcMainInvokeEvent } from 'electron'
 import path from 'path'
 import http from 'http'
 import Store from 'electron-store'
 import { configurePresence, updatePresence, presenceStatus, shutdownPresence, type PresencePayload } from './presence'
+import { createVault, type VaultEntry } from './credentialVault'
 
 // Disable Chromium's Private Network Access preflight checks so the renderer
 // can fetch() to local/private IPs without CORS preflight blocking.
@@ -139,6 +140,27 @@ ipcMain.handle('set-setting', (_event, key: string, value: unknown) => {
   return true
 })
 ipcMain.handle('get-version', () => app.getVersion())
+
+// Passwords remembered per server (the sign-in's "Remember the password on this device"): encrypted with safeStorage,
+// in a file of their own (server-credentials.json in the userData folder) that get-settings never returns. On Linux
+// only a real keyring counts: with Chromium's built-in key ('basic_text') the box stays unchecked and nothing is kept.
+const credentialFile = new Store<{ entries: Record<string, VaultEntry> }>({ name: 'server-credentials', defaults: { entries: {} } })
+const vault = createVault(
+  {
+    available: () => safeStorage.isEncryptionAvailable()
+      && (process.platform !== 'linux' || safeStorage.getSelectedStorageBackend() !== 'basic_text'),
+    encrypt: (plain) => safeStorage.encryptString(plain),
+    decrypt: (cipher) => safeStorage.decryptString(cipher),
+  },
+  { get: () => credentialFile.get('entries'), set: (entries) => credentialFile.set('entries', entries) },
+)
+/** only the app's own window asks (a page it opened in a frame never does) */
+const fromApp = (event: IpcMainInvokeEvent) => !!mainWindow && event.sender === mainWindow.webContents && event.senderFrame === mainWindow.webContents.mainFrame
+ipcMain.handle('credentials-available', (event) => fromApp(event) && vault.available())
+ipcMain.handle('credentials-save', (event, serverId: unknown, url: unknown, username: unknown, password: unknown) => fromApp(event) && vault.save(serverId, url, username, password))
+ipcMain.handle('credentials-get', (event, serverId: unknown, url: unknown) => (fromApp(event) ? vault.get(serverId, url) : null))
+ipcMain.handle('credentials-list', (event) => (fromApp(event) ? vault.list() : []))
+ipcMain.handle('credentials-forget', (event, serverId: unknown) => fromApp(event) && vault.forget(serverId))
 
 // Discord Rich Presence (local Discord client over IPC; off until turned on in Settings)
 function applyPresenceSettings() {
