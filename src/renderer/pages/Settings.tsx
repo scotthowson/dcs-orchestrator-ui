@@ -12,7 +12,7 @@ import {
   Camera, Save, Key, AlertTriangle, XCircle, Plus, FolderPlus,
   Download, Upload, Bell, BellOff, Clock, LockKeyhole,
   Server, Copy, EyeOff, HeartPulse, Wifi, WifiOff, Loader2,
-  Star, CheckCircle, ChevronDown, PanelLeft,
+  Star, CheckCircle, ChevronDown, PanelLeft, LogOut, KeyRound,
 } from 'lucide-react'
 import { isMobile as isMobileDevice } from '../hooks/useMobile'
 import ConnectionForm from '../components/settings/ConnectionForm'
@@ -23,6 +23,8 @@ import { useSystemMode } from '../lib/colorMode'
 import { CSS_SANITIZE_NOTE } from '../lib/cssSanitize'
 import { useConnectionStore } from '../stores/connectionStore'
 import { useServerStore } from '../stores/serverStore'
+import { rememberPassword } from '../lib/credentials'
+import { accountLine } from '../components/auth/ServerGateScreens'
 import { discoverServer } from '../lib/discover'
 import { useToast } from '../components/common/Toast'
 import { useSettingsStore, DEFAULT_SETTINGS } from '../stores/settingsStore'
@@ -1288,8 +1290,15 @@ function SecuritySettings() {
       setPwLoading(false)
       return
     }
-    // the local copy used for the app lock follows the password the server now holds
+    // the local copy used for the app lock follows the password the server now holds, and so does a password the
+    // desktop app remembers for this server (the next sign-in asks for it anyway: the server ended every session)
     await syncLocalPassword(newPw)
+    {
+      const st = useServerStore.getState()
+      const active = st.getActiveServer()
+      const who = useAuthStore.getState().currentUser
+      if (active?.remember && who) await rememberPassword(active.id, active.url, who, newPw)
+    }
     setCurrentPw(''); setNewPw(''); setConfirmPw('')
     sessionStorage.setItem('logout-reason', 'password-changed')
     // the sessions saved for other servers are not this server's business
@@ -1593,6 +1602,7 @@ function ConnectionProfiles() {
   const activeServerId = useServerStore((s) => s.activeServerId)
   const connectionStatus = useConnectionStore((s) => s.status)
   const currentUser = useAuthStore((s) => s.currentUser)
+  const unreachable = useServerStore((s) => s.unreachable)
   const { addToast } = useToast()
 
   const [showAdd, setShowAdd] = useState(false)
@@ -1656,7 +1666,7 @@ function ConnectionProfiles() {
   return (
     <div className="space-y-4">
       <p className="text-[11px] text-slate-500">
-        Save and switch between DCS servers. The list is the same one the server menu in the sidebar shows; each server keeps its own sign-in.
+        Save and switch between DCS servers. The list is the same one the server menu in the sidebar shows; each server keeps its own account and sign-in, and a server without one asks you to sign in when you pick it.
       </p>
 
       {/* Active server */}
@@ -1699,10 +1709,13 @@ function ConnectionProfiles() {
                     <div className="flex items-center gap-1.5 min-w-0">
                       <span className="text-xs font-medium text-slate-200 truncate">{profile.name}</span>
                       {profile.isDefault && <span className="rounded-full bg-white/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-slate-300 shrink-0">default</span>}
-                      {profile.apiToken && <span className="rounded-full bg-white/5 px-1.5 py-0.5 text-[9px] text-slate-400 shrink-0" title="A session is saved for this server">signed in{profile.username ? ` as ${profile.username}` : ''}</span>}
                     </div>
                   )}
                   <div className="text-[10px] text-slate-500 font-mono truncate">{profile.url}{profile.lastConnected ? ` · last connected ${new Date(profile.lastConnected).toLocaleString()}` : ''}</div>
+                  {(() => {
+                    const line = accountLine(profile, { active: isActive, signedInHere: isActive, unreachable: unreachable[profile.id] })
+                    return <div className={`text-[10px] ${line.tone === 'ok' ? 'text-emerald-400' : line.tone === 'bad' ? 'text-rose-400' : 'text-slate-500'}`}>{line.text}</div>
+                  })()}
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   {!isActive || connectionStatus !== 'connected' ? (
@@ -1716,6 +1729,18 @@ function ConnectionProfiles() {
                     </button>
                   ) : (
                     <span className="flex items-center gap-1 px-2 py-1 text-[11px] text-emerald-400"><CheckCircle size={12} /> Connected</span>
+                  )}
+                  {profile.session?.token && (
+                    <button onClick={() => void useServerStore.getState().signOutServer(profile.id)} className={`${BTN_CARD} ${TONE_GHOST}`}>
+                      <LogOut size={12} />
+                      Sign out here
+                    </button>
+                  )}
+                  {profile.remember && (
+                    <button onClick={() => void useServerStore.getState().forgetServerPassword(profile.id)} className={`${BTN_CARD} ${TONE_GHOST}`}>
+                      <KeyRound size={12} />
+                      Forget password
+                    </button>
                   )}
                   <Hint label="Rename">
                     <button onClick={() => { setEditingId(profile.id); setEditName(profile.name) }} aria-label={`Rename ${profile.name}`} className={`${BTN_ICON_SM} ${TONE_GHOST}`}>

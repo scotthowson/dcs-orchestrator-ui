@@ -69,11 +69,14 @@ export default function ConnectionForm() {
   const handleSave = useCallback(() => {
     setServerUrl(urlInput)
     updateSetting('serverUrl', urlInput)
-    // The sidebar's active profile is this connection: keep them the same
-    const { activeServerId, updateServer } = useServerStore.getState()
+    // The sidebar's active profile is this connection: keep them the same. Another address is another server: the
+    // session (and a remembered password) of the old one is not sent there, its sign-in asks
+    const { activeServerId, updateServer, getActiveServer, enterActiveServer } = useServerStore.getState()
+    const moved = !!activeServerId && getActiveServer()?.url !== urlInput
     if (activeServerId) updateServer(activeServerId, { url: urlInput })
     setDirty(false)
-    connect()
+    if (moved) void enterActiveServer({ leave: true })
+    else connect()
   }, [urlInput, setServerUrl, updateSetting, connect])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {

@@ -15,6 +15,14 @@ export interface ElectronAPI {
   presenceStatus: () => Promise<{ enabled: boolean; connected: boolean; clientId: string; error: string; lastSentAt: number; user: string }>
   /** Re-read the discord* settings and reconnect */
   presenceConfigure: () => Promise<{ enabled: boolean; connected: boolean; clientId: string; error: string; lastSentAt: number; user: string }>
+  /** passwords remembered per server, encrypted by safeStorage in the main process (see main/credentialVault.ts) */
+  credentials: {
+    available: () => Promise<boolean>
+    save: (serverId: string, url: string, username: string, password: string) => Promise<boolean>
+    get: (serverId: string, url: string) => Promise<{ username: string; password: string } | null>
+    list: () => Promise<string[]>
+    forget: (serverId: string) => Promise<boolean>
+  }
 }
 
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -27,4 +35,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   presenceUpdate: (payload: Record<string, unknown>) => ipcRenderer.invoke('presence-update', payload),
   presenceStatus: () => ipcRenderer.invoke('presence-status'),
   presenceConfigure: () => ipcRenderer.invoke('presence-configure'),
+  credentials: {
+    available: () => ipcRenderer.invoke('credentials-available'),
+    save: (serverId: string, url: string, username: string, password: string) => ipcRenderer.invoke('credentials-save', serverId, url, username, password),
+    get: (serverId: string, url: string) => ipcRenderer.invoke('credentials-get', serverId, url),
+    list: () => ipcRenderer.invoke('credentials-list'),
+    forget: (serverId: string) => ipcRenderer.invoke('credentials-forget', serverId),
+  },
 } satisfies ElectronAPI)

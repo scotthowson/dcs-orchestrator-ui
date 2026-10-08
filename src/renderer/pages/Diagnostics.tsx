@@ -32,6 +32,7 @@ import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_SHEET, BTN_SHEET_QUIET, BTN_SHEET_D
 import { CARD, FOCUS_RING } from '../lib/pageKit'
 import { useSettingsStore, DEFAULT_SETTINGS } from '../stores/settingsStore'
 import { useAuthStore } from '../stores/authStore'
+import { useServerStore } from '../stores/serverStore'
 import { containerState, isAsleep, STATE_META } from '../lib/containerState'
 import type {
   ServerStatus, HealthReport, ContainerInfo, ImageInfo,
@@ -920,7 +921,11 @@ async function performClientReset(redirectToSetup = false): Promise<void> {
     currentUser: null,
     hasAccount: false,
     apiToken: null,
+    validatedServerId: null,
   })
+  // the server forgot every account: the sessions saved for it are gone too
+  const { activeServerId, updateServer } = useServerStore.getState()
+  if (activeServerId) updateServer(activeServerId, { session: null })
 }
 
 /** Perform server-side factory reset via dedicated endpoint */

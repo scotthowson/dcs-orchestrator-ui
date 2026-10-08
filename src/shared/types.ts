@@ -17,6 +17,23 @@ export interface ElectronAPI {
   presenceUpdate?: (payload: DiscordPresencePayload) => Promise<boolean>
   presenceStatus?: () => Promise<DiscordPresenceStatus>
   presenceConfigure?: () => Promise<DiscordPresenceStatus>
+  /** Passwords remembered per server (desktop app only): encrypted by Electron safeStorage (the system keychain) in the
+   *  main process, kept in a file of their own that the settings calls above never return. Optional: an older desktop
+   *  build and the browser have none. */
+  credentials?: ElectronCredentialsAPI
+}
+
+export interface ElectronCredentialsAPI {
+  /** true when the system keychain encrypts (on Linux not when Chromium fell back to its built-in, plain key) */
+  available: () => Promise<boolean>
+  /** keep the password for this server (and the address it belongs to); false when it could not be encrypted */
+  save: (serverId: string, url: string, username: string, password: string) => Promise<boolean>
+  /** the password for this server, only while the server's address is still the one it was saved for */
+  get: (serverId: string, url: string) => Promise<{ username: string; password: string } | null>
+  /** the servers that have a password kept (no secrets) */
+  list: () => Promise<string[]>
+  /** forget the password of one server, or of every server ('*') */
+  forget: (serverId: string) => Promise<boolean>
 }
 
 export interface DiscordPresencePayload {
@@ -2987,12 +3004,32 @@ export interface DependencyGraphResponse {
   edges: { from: string; to: string }[]
 }
 
+/** The sign-in kept for one server on this device (the token is the server's own session token) */
+export interface ServerSession {
+  token: string
+  username: string
+  role: 'admin' | 'user' | 'bot' | null
+  /** when the token was obtained (ms); the server decides when it ends, GET /auth/verify says whether it still works */
+  savedAt: number
+  /** when the server said it ends (ms), if it did */
+  expiresAt?: number
+}
+
 export interface ServerProfile {
   id: string
   name: string
   url: string
-  /** Session saved for this server, so switching back needs no sign-in */
+  /** the account last used here: the sign-in for this server opens with it */
+  lastUsername?: string
+  /** the session saved for this server, so switching back needs no sign-in */
+  session?: ServerSession | null
+  /** a password for this server is kept on this device (desktop app only, encrypted by the system keychain) */
+  remember?: boolean
+  /** signed out of this server on purpose: a remembered password does not sign in again by itself until the next sign-in */
+  signedOut?: boolean
+  /** @deprecated before 4.0.35 the session lived here; carried into `session` once (serverStore.loadServers) */
   apiToken?: string
+  /** @deprecated see apiToken */
   username?: string
   lastConnected?: number
   color?: string

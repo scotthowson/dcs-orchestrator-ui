@@ -204,6 +204,13 @@ function setPersistedSession(username: string): void {
   localStorage.setItem(SESSION_KEY, JSON.stringify(session))
 }
 
+/** the device session keeps its end, and names the account of the server now in use */
+function setPersistedSessionUser(username: string): void {
+  const session = getPersistedSession()
+  if (!session) return
+  localStorage.setItem(SESSION_KEY, JSON.stringify({ ...session, username }))
+}
+
 function clearPersistedSession(): void {
   localStorage.removeItem(SESSION_KEY)
   sessionStorage.removeItem('currentUser')
@@ -299,34 +306,20 @@ function determineDefaultRole(username: string, accounts: UserAccount[]): 'admin
   return accounts[0].username.toLowerCase() === username.toLowerCase() ? 'admin' : 'user'
 }
 
-const API_TOKEN_KEY = 'api-auth-token'
+/** Where the session token lived before 4.0.35 (one token for whichever server was active). Read once by
+ *  serverStore.loadServers, which carries it into the active server's profile, then removed. */
+export const LEGACY_API_TOKEN_KEY = 'api-auth-token'
+const TOKEN_MAX_AGE_MS = 24 * 60 * 60 * 1000 // the server's default token lifetime
 
-/** Persist API token to localStorage */
-function persistApiToken(token: string | null): void {
-  if (token) {
-    // Store token with timestamp for client-side expiry validation
-    localStorage.setItem(API_TOKEN_KEY, JSON.stringify({ token, storedAt: Date.now() }))
-  } else {
-    localStorage.removeItem(API_TOKEN_KEY)
-  }
-}
-
-/** Restore API token from localStorage with expiry check */
-const TOKEN_MAX_AGE_MS = 24 * 60 * 60 * 1000 // 24 hours — client-side safety net
-
-function getPersistedApiToken(): string | null {
+export function takeLegacyApiToken(): string | null {
   try {
-    const raw = localStorage.getItem(API_TOKEN_KEY)
+    const raw = localStorage.getItem(LEGACY_API_TOKEN_KEY)
+    localStorage.removeItem(LEGACY_API_TOKEN_KEY)
     if (!raw) return null
-    // Handle legacy format (plain string token)
     if (!raw.startsWith('{')) return raw
     const { token, storedAt } = JSON.parse(raw)
-    // Reject tokens older than 24h on client side
-    if (storedAt && Date.now() - storedAt > TOKEN_MAX_AGE_MS) {
-      localStorage.removeItem(API_TOKEN_KEY)
-      return null
-    }
-    return token
+    if (storedAt && Date.now() - storedAt > TOKEN_MAX_AGE_MS) return null
+    return typeof token === 'string' ? token : null
   } catch {
     return null
   }
@@ -349,9 +342,12 @@ interface AuthState {
   login: (username: string, password: string, rememberMe: boolean) => Promise<boolean>
   /** keepOtherServers: an expired token on one server leaves the sessions saved for other servers alone */
   logout: (opts?: { keepOtherServers?: boolean }) => Promise<void>
-  /** Continue as this user with a token saved for the active server (server switch) */
-  adoptSession: (username: string, token: string) => void
-  /** Drop the current session locally without telling the server (server switch to one with no saved session) */
+  /** The server (profile id) whose session was checked with that server during this run of the app. The dashboard
+   *  is shown only while it is the active server: a session read from storage counts once GET /auth/verify said yes. */
+  validatedServerId: string | null
+  /** Continue as this user with a session the server just confirmed or issued (serverStore only) */
+  adoptSession: (username: string, token: string, role: 'admin' | 'user' | 'bot' | null, serverId: string) => void
+  /** Leave the current server's session locally without telling the server (a switch, a session that ended) */
   suspendSession: () => void
   clearError: () => void
   /** Set the API Bearer token (from server auth) */
@@ -364,42 +360,32 @@ interface AuthState {
   syncLocalPassword: (newPassword: string) => Promise<void>
 }
 
-// Restore API token on startup
-const _initialApiToken = getPersistedApiToken()
-if (_initialApiToken) {
-  apiClient.setAuthToken(_initialApiToken)
+/** whether this device still holds a dashboard session ("Remember me for …" on the sign-in, or this tab's) */
+export function hasLocalSession(): boolean {
+  return !!getActiveSession()
 }
 
+// Nobody is signed in when the app starts: the session saved for the active server is checked with that server
+// first (serverStore.enterServer), and only its yes opens the dashboard.
 export const useAuthStore = create<AuthState>((set, get) => ({
-  isAuthenticated: !!getActiveSession(),
-  currentUser: getActiveSession(),
-  userRole: getPersistedUserRole(getActiveSession()),
+  isAuthenticated: false,
+  currentUser: null,
+  userRole: null,
+  validatedServerId: null,
   hasAccount: false,
   loading: true,
   initialized: false,
   error: null,
-  apiToken: _initialApiToken,
+  apiToken: null,
 
   checkAccountExists: async () => {
     if (!get().initialized) {
       set({ loading: true })
     }
     const accounts = await getAccounts()
-    const session = getActiveSession()
-
-    // Resolve role: persisted > default by account order.
-    // Automatically persists the result so this migration runs only once.
-    let role = getPersistedUserRole(session)
-    if (session && !role) {
-      role = determineDefaultRole(session, accounts)
-      persistUserRole(session, role)
-    }
-
+    // whether someone is signed in, and as what, is the server's to say (serverStore.enterServer), not this device's
     set({
       hasAccount: accounts.length > 0,
-      isAuthenticated: !!session,
-      currentUser: session,
-      userRole: role,
       loading: false,
       initialized: true,
     })
@@ -564,7 +550,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   setApiToken: (token: string | null) => {
     apiClient.setAuthToken(token)
-    persistApiToken(token)
     set({ apiToken: token })
   },
 
@@ -573,35 +558,36 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ userRole: role })
   },
 
-  adoptSession: (username, token) => {
+  adoptSession: (username, token, role, serverId) => {
     apiClient.setAuthToken(token)
-    persistApiToken(token)
-    setPersistedSession(username)
+    // the device session ("Remember me for …") is kept as it was chosen at the last sign-in; only a device with
+    // none starts one for this tab
+    setPersistedSessionUser(username)
     sessionStorage.setItem('currentUser', username)
-    set({ isAuthenticated: true, currentUser: username, apiToken: token, userRole: getPersistedUserRole(username), error: null })
+    const effective = role || getPersistedUserRole(username)
+    if (role) persistUserRole(username, role)
+    set({ isAuthenticated: true, currentUser: username, apiToken: token, userRole: effective, validatedServerId: serverId, error: null })
   },
 
   suspendSession: () => {
     apiClient.setAuthToken(null)
-    persistApiToken(null)
-    clearPersistedSession()
-    sessionStorage.removeItem('currentUser')
-    set({ isAuthenticated: false, currentUser: null, userRole: null, apiToken: null, error: null })
+    set({ isAuthenticated: false, currentUser: null, userRole: null, apiToken: null, validatedServerId: null })
   },
 
   logout: async (opts) => {
     // ── SYNCHRONOUS cleanup first — prevents api-auth-expired race ──
     // Setting isAuthenticated=false immediately ensures that any 401
     // responses from in-flight requests won't trigger a second logout.
+    const token = apiClient.getAuthToken()
     set({
       isAuthenticated: false,
       currentUser: null,
       userRole: null,
       apiToken: null,
+      validatedServerId: null,
       error: null,
     })
     clearPersistedSession()
-    persistApiToken(null)
 
     // Reset navigation to dashboard so the next user doesn't land
     // on an admin-only or context-specific page
@@ -610,28 +596,22 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     // Stop heartbeat, reconnect timers, and all polling
     useConnectionStore.getState().disconnect()
 
-    // SECURITY: Clear API tokens from stored server profiles to prevent token reuse.
-    // A token that merely expired on the active server leaves the other
-    // servers' saved sessions in place (keepOtherServers).
-    try {
-      const raw = localStorage.getItem('dcs-servers')
-      if (raw) {
-        const data = JSON.parse(raw)
-        if (data?.servers) {
-          const activeId = data.activeServerId
-          data.servers = data.servers.map((s: Record<string, unknown>) =>
-            opts?.keepOtherServers && s.id !== activeId ? s : { ...s, apiToken: null })
-          localStorage.setItem('dcs-servers', JSON.stringify(data))
-        }
-      }
-    } catch { /* ignore parse errors */ }
+    // The sessions saved per server (serverStore): signing out ends every one of them — the active server's and,
+    // best effort, each other server's on that server too — unless only the active server's session ended by
+    // itself (keepOtherServers: an expired token, a password change)
+    for (const fn of signOutHooks) {
+      try { fn({ everywhere: !opts?.keepOtherServers }) } catch { /* the profiles are cleared below anyway */ }
+    }
 
     // ── ASYNC: best-effort server-side token invalidation ──
     // apiClient still has the token briefly for this call
-    try {
-      await authLogout()
-    } catch {
-      // Network error or server unreachable — local logout already done
+    if (token) {
+      try {
+        apiClient.setAuthToken(token)
+        await authLogout()
+      } catch {
+        // Network error or server unreachable — local logout already done
+      }
     }
     apiClient.setAuthToken(null)
   },
@@ -656,16 +636,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   clearError: () => set({ error: null }),
 }))
 
-// Listen for API auth expiry (dispatched by ApiClient on 401)
-// Guard: only act if the user is still authenticated — prevents duplicate
-// logouts from stale in-flight requests during manual sign-out.
-window.addEventListener('api-auth-expired', () => {
-  const { isAuthenticated } = useAuthStore.getState()
-  if (isAuthenticated) {
-    // This is a genuine server-side token expiry (not a manual logout)
-    useAuthStore.getState().logout({ keepOtherServers: true })
-    // Show expiry notice AFTER logout sets isAuthenticated=false,
-    // so subsequent api-auth-expired events are no-ops.
-    useAuthStore.setState({ error: 'Session expired — please sign in again' })
-  }
-})
+/** serverStore registers here what signing out means for the saved server sessions (it imports this store, so the
+ *  call goes this way round) */
+const signOutHooks: ((o: { everywhere: boolean }) => void)[] = []
+export function onSignOut(fn: (o: { everywhere: boolean }) => void): void {
+  signOutHooks.push(fn)
+}
+
+// A 401 from the active server (ApiClient's 'api-auth-expired') is handled by serverStore: it asks for a sign-in
+// to that server only, and leaves the sessions saved for the other servers alone.

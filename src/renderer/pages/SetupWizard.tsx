@@ -19,6 +19,7 @@ import {
 import { useAuthStore } from '../stores/authStore'
 import { useSettingsStore } from '../stores/settingsStore'
 import { useConnectionStore } from '../stores/connectionStore'
+import { useServerStore } from '../stores/serverStore'
 import {
   fetchSetupDefaults, fetchSetupStatus, setupConfigure, setupComplete, renameStack,
   authSetup, authLogin, deployTemplate, setSecret, setupRestore, proxmoxTest, fetchFleetStatus,
@@ -624,6 +625,8 @@ export default function SetupWizard({ onComplete }: WizardProps) {
           setLocalApiToken(res.token)
           apiClient.setAuthToken(res.token)
           setStoreApiToken(res.token)
+          // the session this server just issued is kept for it (serverStore): the dashboard opens with it after the wizard
+          await useServerStore.getState().sessionStarted({ token: res.token, username: res.username || adminUsername.trim(), role: res.role })
 
           // Register locally so the app has a local account session
           const registered = await register(adminUsername.trim(), adminPassword)
@@ -947,11 +950,9 @@ export default function SetupWizard({ onComplete }: WizardProps) {
       // 4. Ensure authenticated before redirect (safety net)
       const authState = useAuthStore.getState()
       if (!authState.isAuthenticated && adminUsername && adminPassword) {
-        const ok = await login(adminUsername.trim(), adminPassword, true)
-        if (!ok) {
-          // Last resort: force auth state so we reach dashboard
-          useAuthStore.setState({ isAuthenticated: true, currentUser: adminUsername.trim(), hasAccount: true })
-        }
+        await login(adminUsername.trim(), adminPassword, true)
+        // the dashboard opens only with a session the server issued (serverStore); without one, the sign-in follows
+        if (apiToken) await useServerStore.getState().sessionStarted({ token: apiToken, username: adminUsername.trim(), role: 'admin' })
       }
 
       // 5. Show success + set session flag for welcome toast
