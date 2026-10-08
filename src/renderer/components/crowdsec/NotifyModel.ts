@@ -12,6 +12,7 @@ export type Settings = CrowdSecNotifySettings
 export type WebhookMode = Settings['webhook']['mode']
 export type MentionMode = Settings['mention']['mode']
 export type ColorMode = Settings['embed']['color_mode']
+export type GroupBy = NonNullable<Settings['delivery']['group_by']>
 export type Limits = { title: number; description: number; footer: number; fields: number; group_threshold_max: number }
 
 /** the numbers the API checks that GET /crowdsec/notifications does not list (they live in _CS_JQ_NOTIFY_VALIDATE) */
@@ -19,7 +20,7 @@ export const LIM = { name: 80, avatar: 300, mentionText: 300, link: 300, fieldNa
 export const NUM = {
   minEvents: { min: 0, max: 1000 },
   groupWait: { min: 1, max: 600 },
-  groupThreshold: { min: 1, max: 10 },
+  groupThreshold: { min: 1, max: 100 },
   maxRetry: { min: 0, max: 10 },
   timeout: { min: 1, max: 60 },
 } as const
@@ -45,6 +46,8 @@ export interface NotifyForm {
   minEvents: string
   only: string[]
   ignore: string[]
+  /** undefined: the server has no such setting (older than the grouped messages) */
+  groupBy: GroupBy | undefined
   groupWait: string
   groupThreshold: string
   maxRetry: string
@@ -77,6 +80,7 @@ export function toForm(s: Settings): NotifyForm {
     minEvents: String(s.filters.min_events),
     only: [...s.filters.only],
     ignore: [...s.filters.ignore],
+    groupBy: s.delivery.group_by,
     groupWait: String(s.delivery.group_wait),
     groupThreshold: String(s.delivery.group_threshold),
     maxRetry: String(s.delivery.max_retry),
@@ -106,7 +110,7 @@ export function settingsOf(f: NotifyForm, v = 1): Settings {
     mention: { mode: f.mention, id: withId ? f.mentionId.trim() : '', text: f.mentionText },
     events: { bans: f.bans, simulated: f.simulated, detect_only: f.detectOnly },
     filters: { min_events: whole(f.minEvents), only: uniqSorted(f.only), ignore: uniqSorted(f.ignore) },
-    delivery: { group_wait: whole(f.groupWait), group_threshold: whole(f.groupThreshold), max_retry: whole(f.maxRetry), timeout: whole(f.timeout) },
+    delivery: { ...(f.groupBy ? { group_by: f.groupBy } : {}), group_wait: whole(f.groupWait), group_threshold: whole(f.groupThreshold), max_retry: whole(f.maxRetry), timeout: whole(f.timeout) },
     message: {
       title: f.title,
       description: f.description,
@@ -238,7 +242,7 @@ export function validateForm(f: NotifyForm, known: Set<string> | null, limits: L
   }
   // delivery
   put('groupWait', numRule(f.groupWait, 'The grouping wait (seconds)', NUM.groupWait))
-  put('groupThreshold', numRule(f.groupThreshold, `The group size (Discord shows at most ${limits.group_threshold_max} embeds in a message)`, { min: 1, max: limits.group_threshold_max }))
+  put('groupThreshold', numRule(f.groupThreshold, 'The number of alerts in one message', { min: 1, max: limits.group_threshold_max }))
   put('maxRetry', numRule(f.maxRetry, 'The number of retries', NUM.maxRetry))
   put('timeout', numRule(f.timeout, 'The request timeout (seconds)', NUM.timeout))
   // the message
@@ -290,13 +294,15 @@ export function redact(text: string): string {
 // ---------------------------------------------------------------------------
 
 export const SAMPLE_INFO: Record<string, { label: string; hint: string }> = {
+  burst: { label: 'Burst from one address', hint: 'One scanner firing 47 alerts in 7 seconds: one block that counts what it tried' },
+  crowd: { label: 'Three addresses at once', hint: 'Three attackers in the same batch: one block each' },
   probe: { label: 'Web probing', hint: 'A scanner looking for weak spots on your websites' },
   ssh: { label: 'SSH brute force', hint: 'Repeated SSH logins guessing a password' },
   exploit: { label: 'Exploit attempt', hint: 'A request for a known vulnerable path' },
   manual: { label: 'Manual ban', hint: 'An address banned by hand from DCS' },
   simulated: { label: 'Simulated ban', hint: 'A scenario in simulation mode: an alert, but nothing is banned' },
 }
-const SAMPLE_ORDER = ['probe', 'ssh', 'exploit', 'manual', 'simulated']
+const SAMPLE_ORDER = ['burst', 'crowd', 'probe', 'ssh', 'exploit', 'manual', 'simulated']
 export const sampleLabel = (s: string): string => SAMPLE_INFO[s]?.label ?? (s ? s.charAt(0).toUpperCase() + s.slice(1) : s)
 export function orderSamples(list: string[]): string[] {
   return [...list].sort((a, b) => {
@@ -373,6 +379,7 @@ const onOff = (b: boolean): string => (b ? 'on' : 'off')
 const WEBHOOK_WORD: Record<WebhookMode, string> = { global: 'Global webhook', custom: 'Custom webhook', keep: 'Keep the current one' }
 const MENTION_WORD: Record<MentionMode, string> = { none: 'Nobody', role: 'A role', user: 'A user', here: '@here', everyone: '@everyone' }
 const listWord = (l: string[]): string => (l.length ? l.join(', ') : 'none')
+export const GROUP_WORD: Record<GroupBy, string> = { address: 'One block per address', alert: 'One block per alert' }
 
 /** what saving would change, in the words of the page (the same differences the request carries) */
 export function changeRows(a: Settings, b: Settings, newAddress: boolean): ChangeRow[] {
@@ -393,6 +400,7 @@ export function changeRows(a: Settings, b: Settings, newAddress: boolean): Chang
   put('Minimum events', String(a.filters.min_events), String(b.filters.min_events))
   put('Only these scenarios', listWord(a.filters.only), listWord(b.filters.only))
   put('Never for these scenarios', listWord(a.filters.ignore), listWord(b.filters.ignore))
+  put('Grouping', GROUP_WORD[a.delivery.group_by ?? 'address'], GROUP_WORD[b.delivery.group_by ?? 'address'])
   put('Wait before sending', `${a.delivery.group_wait} s`, `${b.delivery.group_wait} s`)
   put('Alerts per message', String(a.delivery.group_threshold), String(b.delivery.group_threshold))
   put('Retries', String(a.delivery.max_retry), String(b.delivery.max_retry))
