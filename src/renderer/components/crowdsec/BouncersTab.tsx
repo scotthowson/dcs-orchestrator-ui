@@ -10,8 +10,8 @@
 // ============================================================================
 
 import { useState } from 'react'
-import { EnrolBox, RegisterAgainButton } from './CommunityActions'
-import { AlertTriangle, Check, CircleAlert, CircleCheck, Copy, Info, KeyRound, Loader2, Plug, Plus, RefreshCw, Server, ShieldCheck, Trash2, Users } from 'lucide-react'
+import { CheckNowButton, EnrolBox, PAUSED_TEXT, REFUSED_TEXT, RegisterAgainButton, capiState, lastContact } from './CommunityActions'
+import { AlertTriangle, Check, CircleAlert, CircleCheck, Clock, Copy, Info, KeyRound, Loader2, Plug, Plus, RefreshCw, Server, ShieldCheck, Trash2, Users } from 'lucide-react'
 import { usePolling, type UsePollingResult } from '../../hooks/usePolling'
 import { useConnectionStore } from '../../stores/connectionStore'
 import { useToast } from '../common/Toast'
@@ -80,8 +80,8 @@ function CheckRow({ tone, label, children }: { tone: Tone; label: string; childr
 }
 
 /** a status row of the community card: a symbol, a headline, a line of explanation, an optional action */
-function StatusRow({ tone, title, children, action }: { tone: Tone; title: string; children?: React.ReactNode; action?: React.ReactNode }) {
-  const Icon = tone === 'good' ? CircleCheck : tone === 'mute' || tone === 'info' ? Info : CircleAlert
+function StatusRow({ tone, title, children, action, icon }: { tone: Tone; title: string; children?: React.ReactNode; action?: React.ReactNode; icon?: React.ElementType }) {
+  const Icon = icon ?? (tone === 'good' ? CircleCheck : tone === 'mute' || tone === 'info' ? Info : CircleAlert)
   return (
     <div className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
       <Icon size={16} className={`${TONE_TEXT[tone]} shrink-0 mt-0.5`} aria-hidden="true" />
@@ -569,6 +569,7 @@ const CONSOLE_SHARING: Record<string, string> = { custom: 'your own scenarios', 
 
 function CommunitySection({ poll }: { poll: UsePollingResult<CrowdSecCommunityResponse> }) {
   const { isAdmin } = useCs()
+  const now = useNow()
   // the enrol form stays after a success (the next step is on app.crowdsec.net) even once the refetch says enrolled
   const [keepEnrol, setKeepEnrol] = useState(false)
   const cm = poll.data
@@ -580,6 +581,10 @@ function CommunitySection({ poll }: { poll: UsePollingResult<CrowdSecCommunityRe
     ? (cm.note.replace(/\s*\(cscli [^)]+\)/, '').replace(/^(Not enrolled in|This engine is enrolled in) the CrowdSec console\.?\s*/i, '').trim() || (cm.console.enrolled ? 'Your alerts also appear in the online console.' : ''))
     : ''
   const capiError = cm?.capi.error ? cm.capi.error.replace(/^Error:\s*(cscli [a-z ]+:\s*)?/i, '') : ''
+  // the community link: null on an older server (the rows read needs_register and the flags as before)
+  const capi = capiState(cm)
+  const refused = capi ? capi === 'refused' : !!cm?.needs_register
+  const checkNow = isAdmin && capi ? <CheckNowButton onDone={poll.refresh} /> : undefined
 
   return (
     <section className={`${CARD} p-4`} aria-label="Community and console">
@@ -589,23 +594,35 @@ function CommunitySection({ poll }: { poll: UsePollingResult<CrowdSecCommunityRe
         <>
           {poll.error && <div className="mb-3"><Notice>The last refresh failed ({poll.error.message}). Showing what was loaded before.</Notice></div>}
           <div className="divide-y divide-white/5">
-            {cm.needs_register ? (
-              <StatusRow tone="bad" title="CrowdSec can’t reach the community service" action={isAdmin ? <RegisterAgainButton onDone={poll.refresh} /> : undefined}>
-                <span className="break-words">{cm.hint || 'The community service refuses this engine’s login, so the community blocklist is not updated. Registering the engine again fixes it.'}</span>
+            {refused ? (
+              <StatusRow tone="bad" title="CrowdSec can’t reach the community service"
+                action={isAdmin ? <div className="flex flex-wrap items-start gap-2"><div><RegisterAgainButton onDone={poll.refresh} /></div>{checkNow}</div> : undefined}>
+                <span className="break-words">{cm.hint || REFUSED_TEXT}</span>
                 {!isAdmin && <p className="text-slate-500 mt-1">An admin can register it again here.</p>}
+              </StatusRow>
+            ) : capi === 'disabled' ? (
+              <StatusRow tone="mute" title="The community connection is switched off">CrowdSec is set to run without the community service, so it neither receives the community blocklist nor shares what it sees.</StatusRow>
+            ) : capi === 'paused' ? (
+              <StatusRow tone="warn" icon={Clock} title="Community service pausing this engine">
+                <span className="break-words">{cm.hint || PAUSED_TEXT}</span>
+                <p className="text-slate-400 mt-1">{lastContact(cm, now)}</p>
               </StatusRow>
             ) : !cm.capi.registered ? (
               <StatusRow tone="mute" title="Not connected to the community" action={isAdmin ? <RegisterAgainButton onDone={poll.refresh} label="Register" /> : undefined}>CrowdSec is not registered with the central API, so it neither receives the community blocklist nor shares what it sees.</StatusRow>
+            ) : capi === 'unknown' ? (
+              <StatusRow tone="mute" title="Not checked yet" action={checkNow}>
+                DCS Orchestrator asks the community service only when you check, so it adds no logins of its own.{cm.capi.pulling && cm.community_decisions > 0 ? ` CrowdSec holds ${fmtNum(cm.community_decisions)} community addresses.` : ''}
+              </StatusRow>
             ) : cm.capi.error ? (
-              <StatusRow tone="warn" title="The community service does not answer"><span className="break-words">{capiError}</span></StatusRow>
+              <StatusRow tone="warn" title="The community service does not answer" action={checkNow}><span className="break-words">{capiError}</span></StatusRow>
             ) : cm.capi.pulling ? (
-              <StatusRow tone="good" title={cm.community_decisions > 0 ? `Pulling the community blocklist: ${fmtNum(cm.community_decisions)} known bad addresses` : 'Pulling the community blocklist: nothing received yet'}>
+              <StatusRow tone="good" title={cm.community_decisions > 0 ? `Pulling the community blocklist: ${fmtNum(cm.community_decisions)} known bad addresses` : 'Pulling the community blocklist: nothing received yet'} action={checkNow}>
                 CrowdSec downloads the addresses other people already caught attacking, and the Traefik bouncer blocks them too. They are not listed on the Bans page.
               </StatusRow>
             ) : (
-              <StatusRow tone="warn" title="Not pulling the community blocklist">CrowdSec is registered with the central API, but the download of the blocklist is switched off, so only your own bans are enforced.</StatusRow>
+              <StatusRow tone="warn" title="Not pulling the community blocklist" action={checkNow}>CrowdSec is registered with the central API, but the download of the blocklist is switched off, so only your own bans are enforced.</StatusRow>
             )}
-            {cm.needs_register || (cm.capi.registered && cm.capi.error) ? (
+            {capi === 'disabled' ? null : refused || (cm.capi.registered && cm.capi.error && capi !== 'paused') ? (
               <StatusRow tone="mute" title="Sharing not known">CrowdSec could not reach the central service, so it cannot tell whether your detections are shared.</StatusRow>
             ) : (
               <StatusRow tone={cm.capi.sharing ? 'good' : 'mute'} title={cm.capi.sharing ? 'Sharing your detections' : 'Not sharing your detections'}>
@@ -615,7 +632,7 @@ function CommunitySection({ poll }: { poll: UsePollingResult<CrowdSecCommunityRe
             <StatusRow tone={cm.console.enrolled ? 'good' : 'mute'} title={cm.console.enrolled ? `Enrolled in the CrowdSec Console${cm.console.plan ? ` (${cm.console.plan})` : ''}` : 'Not enrolled in the CrowdSec Console'}>
               {(cm.console.enrolled || !isAdmin) && <p>{noteText}</p>}
               {!cm.console.enrolled && !isAdmin && <p className="text-slate-500 mt-1">An admin can enrol it here with a key from app.crowdsec.net.</p>}
-              {isAdmin && (!cm.console.enrolled || keepEnrol) && <EnrolBox onDone={poll.refresh} onEnrolled={() => setKeepEnrol(true)} needsRegister={!!cm.needs_register} />}
+              {isAdmin && (!cm.console.enrolled || keepEnrol) && <EnrolBox onDone={poll.refresh} onEnrolled={() => setKeepEnrol(true)} needsRegister={refused} />}
               {cm.console.enrolled && (
                 <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
                   <span className="text-slate-500">Sent to the console:</span>

@@ -383,7 +383,8 @@ export default function Dashboard() {
     enabled: isConnected,
     onError: onPollError,
   })
-  // --- Poll /crowdsec/community every 10 min (admins, while CrowdSec runs): "Needs your attention" says when the community refuses the engine ---
+  // --- Poll /crowdsec/community every 10 min (admins, while CrowdSec runs): "Needs your attention" says when the community has refused
+  // the engine for hours. The GET reads what the server already knows and never logs in to the community service ---
   const crowdsecCommunityPoll = usePolling(() => crowdsecCommunity(), 600000, {
     enabled: isConnected && isAdmin && !!crowdsecPoll.data?.running,
   })

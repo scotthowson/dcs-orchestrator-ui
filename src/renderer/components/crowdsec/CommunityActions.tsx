@@ -1,21 +1,27 @@
 // =============================================================================
-// The two things a person can do about the community from the page instead of
-// a terminal:
-//   Register again   when the central API refuses this engine (HTTP 403), give
-//                    it a new registration; CrowdSec restarts, bans stay
+// The things a person can do about the community from the page instead of a
+// terminal:
+//   Check now        ask the community service once (the server allows it every
+//                    10 minutes; nothing checks it on a timer, because every
+//                    check is a login and too many logins get the engine paused)
+//   Register again   when the central API has refused this engine for hours,
+//                    give it a new registration; CrowdSec restarts, bans stay
 //   Enrol            put this engine in the free CrowdSec Console with a key
 //                    copied from app.crowdsec.net (the key is never shown back)
+// During a pause the server turns down Register again and Enrol (one more login
+// may extend it); "Do it anyway" sends them with force after a confirm.
 // =============================================================================
 
 import { useEffect, useRef, useState } from 'react'
-import { ExternalLink, KeyRound, Loader2, RotateCw } from 'lucide-react'
+import { ExternalLink, KeyRound, Loader2, RefreshCw, RotateCw } from 'lucide-react'
 import { useToast } from '../common/Toast'
 import { useConfirm } from '../common/ConfirmDialog'
-import { crowdsecCommunityRegister, crowdsecConsoleEnroll } from '../../api/endpoints'
+import { crowdsecCommunityCheck, crowdsecCommunityRegister, crowdsecConsoleEnroll } from '../../api/endpoints'
+import { ApiError } from '../../api/client'
 import { useSystemStore } from '../../stores/systemStore'
 import { serverLabel } from '../../hooks/useBrand'
-import type { CrowdSecConsoleEnrollResponse } from '../../../shared/types'
-import { BTN_PRIMARY, BTN_QUIET, BTN_WARN, INPUT, LABEL, errData, errMsg, useCs } from './kit'
+import type { CrowdSecCapiState, CrowdSecCommunityResponse, CrowdSecConsoleEnrollResponse } from '../../../shared/types'
+import { BTN_PRIMARY, BTN_QUIET, BTN_WARN, INPUT, LABEL, errData, errMsg, fmtAgo, useCs } from './kit'
 
 export const CONSOLE_URL = 'https://app.crowdsec.net'
 
@@ -23,32 +29,119 @@ export const CONSOLE_URL = 'https://app.crowdsec.net'
 let focusEnrolNext = false
 export function focusEnrolOnOpen(): void { focusEnrolNext = true }
 
-/** "Register again": asks first, then re-registers and calls onDone (refetch) */
+/**
+ * The community link's state. An older server sends no state: null, and the rows fall back to needs_register and the
+ * capi flags as before.
+ */
+export function capiState(cm: CrowdSecCommunityResponse | null | undefined): CrowdSecCapiState | null {
+  return cm?.capi.state ?? null
+}
+
+/** "Last successful contact: 3h ago" for the paused row */
+export function lastContact(cm: CrowdSecCommunityResponse, now: number): string {
+  const t = cm.capi.last_success
+  return `Last successful contact: ${t ? fmtAgo(t, now) : 'none recorded yet'}`
+}
+
+/** the red row's text when the server sends no hint */
+export const REFUSED_TEXT = 'The community service has refused this engine’s login for hours, so the community blocklist is not updated. Registering the engine again fixes it.'
+/** the paused row's text when the server sends no hint */
+export const PAUSED_TEXT = 'The community service limits how often an engine may log in and is pausing this one for now. It lifts by itself, and the community addresses CrowdSec already has keep being blocked. Nothing to do.'
+
+/** the server turned a login down because the community service pauses the engine (409, code "paused"): its hint, else null */
+function pausedHint(e: unknown): string | null {
+  if (!(e instanceof ApiError) || e.status !== 409 || errData(e).code !== 'paused') return null
+  const hint = errData(e).hint
+  return typeof hint === 'string' && hint.trim() ? hint.trim() : 'The community service is pausing this engine for now. It lifts by itself; waiting is the safe choice.'
+}
+
+const FORCE_MESSAGE = 'This is one more login while the community service is already pausing this engine. It may extend the pause.'
+
+/** the server's "paused" answer under a button, with a secondary way to send it anyway */
+function PausedNotice({ hint, busy, onForce }: { hint: string; busy: boolean; onForce: () => void }) {
+  return (
+    <div className="mt-2 rounded-lg bg-white/[0.04] border border-white/10 px-3 py-2" role="status">
+      <p className="text-xs text-slate-300 break-words leading-relaxed">{hint}</p>
+      <button type="button" className={`${BTN_QUIET} mt-2`} disabled={busy} onClick={onForce}>Do it anyway</button>
+    </div>
+  )
+}
+
+/** "Register again": asks first, then re-registers and calls onDone (refetch); during a pause it says so and offers "Do it anyway" */
 export function RegisterAgainButton({ onDone, label = 'Register again' }: { onDone: () => void; label?: string }) {
   const { member, refreshStatus } = useCs()
   const { addToast } = useToast()
   const confirm = useConfirm()
   const [busy, setBusy] = useState(false)
-  const run = async () => {
+  const [paused, setPaused] = useState<string | null>(null)
+  const run = async (force: boolean) => {
     if (busy) return
-    if (!(await confirm({
+    if (!(await confirm(force ? {
+      title: 'Register while the pause lasts?',
+      message: FORCE_MESSAGE,
+      confirmLabel: 'Do it anyway',
+    } : {
       title: 'Register with the community again?',
       message: 'Re-registers this engine with the CrowdSec community. Bans and settings stay; if the engine was enrolled in the console, enrol it again afterwards.',
       confirmLabel: label,
     }))) return
     setBusy(true)
     try {
-      const r = await crowdsecCommunityRegister(member)
+      const r = await crowdsecCommunityRegister(member, force)
+      setPaused(null)
       addToast({ type: r.ok === false ? 'warning' : 'success', message: r.message || 'Registered with the CrowdSec community again', duration: 8000 })
       onDone(); refreshStatus()
     } catch (e) {
-      addToast({ type: 'error', message: errMsg(e, 'Could not register with the community'), duration: 9000 })
+      const hint = pausedHint(e)
+      if (hint) setPaused(hint)
+      else addToast({ type: 'error', message: errMsg(e, 'Could not register with the community'), duration: 9000 })
       onDone()
     } finally { setBusy(false) }
   }
   return (
-    <button type="button" className={BTN_WARN} disabled={busy} onClick={run}>
-      {busy ? <Loader2 size={13} className="animate-spin" /> : <RotateCw size={13} />} {busy ? 'Registering…' : label}
+    <>
+      <button type="button" className={BTN_WARN} disabled={busy} onClick={() => void run(false)}>
+        {busy ? <Loader2 size={13} className="animate-spin" /> : <RotateCw size={13} />} {busy ? 'Registering…' : label}
+      </button>
+      {paused && <PausedNotice hint={paused} busy={busy} onForce={() => void run(true)} />}
+    </>
+  )
+}
+
+/**
+ * "Check now" (admins): asks the community service once through the server, which allows it every 10 minutes. Never
+ * called on a timer. onDone refetches the community status.
+ */
+export function CheckNowButton({ onDone }: { onDone: () => void }) {
+  const { member } = useCs()
+  const { addToast } = useToast()
+  const [busy, setBusy] = useState(false)
+  const run = async () => {
+    if (busy) return
+    setBusy(true)
+    try {
+      const r = await crowdsecCommunityCheck(member)
+      const st = capiState(r)
+      const message = st === 'ok' ? 'The community service answered: the link works.'
+        : st === 'paused' ? 'The community service is still pausing this engine. It lifts by itself.'
+        : st === 'refused' ? 'The community service refused this engine’s login.'
+        : st === 'disabled' ? 'CrowdSec runs without the community service.'
+        : 'Checked the community service.'
+      addToast({ type: st === 'refused' ? 'warning' : st === 'ok' ? 'success' : 'info', message, duration: 7000 })
+      onDone()
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 429) {
+        const after = Number(errData(e).retry_after)
+        const min = Number.isFinite(after) && after > 0 ? Math.max(1, Math.ceil(after / 60)) : 10
+        addToast({ type: 'info', message: `Checked less than 10 minutes ago; try again in ${min} min.`, duration: 7000 })
+      } else {
+        addToast({ type: 'error', message: errMsg(e, 'Could not check the community service'), duration: 8000 })
+      }
+    } finally { setBusy(false) }
+  }
+  return (
+    <button type="button" className={BTN_QUIET} disabled={busy} onClick={() => void run()}>
+      {busy ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />} {busy ? 'Checking…' : 'Check now'}
     </button>
   )
 }
@@ -58,7 +151,7 @@ function scrub(text: string, key: string): string {
   return key ? text.split(key).join('[key]') : text
 }
 
-type Outcome = { kind: 'done' | 'already' | 'register'; message: string; accept?: boolean }
+type Outcome = { kind: 'done' | 'already' | 'register' | 'paused'; message: string; accept?: boolean; overwrite?: boolean }
 
 /**
  * The enrol form, for admins on a server that is not enrolled. needsRegister: the community refuses the engine, so the
@@ -86,9 +179,11 @@ export function EnrolBox({ onDone, onEnrolled, needsRegister = false }: { onDone
   const k = key.trim()
   const keyProblem = k && /\s/.test(k) ? 'The key is one word, without spaces.' : ''
 
-  const send = async (overwrite: boolean) => {
+  const send = async (overwrite: boolean, force = false) => {
     if (!k || keyProblem || busy) return
-    if (overwrite && !(await confirm({
+    if (force && !(await confirm({ title: 'Enrol while the pause lasts?', message: FORCE_MESSAGE, confirmLabel: 'Do it anyway' }))) return
+    // a forced resend repeats a request whose overwrite was confirmed already
+    if (overwrite && !force && !(await confirm({
       title: 'Replace the existing enrolment?',
       message: 'This engine leaves the console account it is enrolled in now and joins the one this key belongs to. Accept it on app.crowdsec.net afterwards.',
       confirmLabel: 'Replace it',
@@ -97,12 +192,18 @@ export function EnrolBox({ onDone, onEnrolled, needsRegister = false }: { onDone
     const n = (name ?? defaultName).trim()
     const settle = (r: Partial<CrowdSecConsoleEnrollResponse>, fallback: string) => {
       const message = scrub(String(r.message || fallback), k)
+      const paused = (r as { code?: unknown }).code === 'paused'
+      if (paused) {
+        const hint = (r as { hint?: unknown }).hint
+        setOutcome({ kind: 'paused', message: scrub(typeof hint === 'string' && hint.trim() ? hint.trim() : message, k), overwrite })
+        return
+      }
       if (r.already_enrolled || r.needs_overwrite || r.reason === 'already_enrolled') { setOutcome({ kind: 'already', message }); return }
       if (r.needs_register) { setOutcome({ kind: 'register', message }); return }
       return message
     }
     try {
-      const r = await crowdsecConsoleEnroll({ key: k, ...(n ? { name: n } : {}), ...(overwrite ? { overwrite: true } : {}) }, member)
+      const r = await crowdsecConsoleEnroll({ key: k, ...(n ? { name: n } : {}), ...(overwrite ? { overwrite: true } : {}), ...(force ? { force: true } : {}) }, member)
       const message = settle(r, r.ok ? 'Enrolled' : 'CrowdSec did not enrol this engine')
       if (message !== undefined) {
         if (r.ok === false) {
@@ -163,6 +264,7 @@ export function EnrolBox({ onDone, onEnrolled, needsRegister = false }: { onDone
           <button type="button" className={`${BTN_WARN} mt-2`} disabled={busy || !k || !!keyProblem} onClick={() => void send(true)}>Replace the existing enrolment</button>
         </div>
       )}
+      {outcome?.kind === 'paused' && <PausedNotice hint={outcome.message} busy={busy || !k || !!keyProblem} onForce={() => void send(!!outcome.overwrite, true)} />}
       {outcome?.kind === 'register' && (
         <p className="text-xs text-amber-300 rounded-lg bg-amber-500/10 border border-amber-500/20 px-3 py-2 break-words" role="status">{outcome.message} Use Register again above, then enrol.</p>
       )}

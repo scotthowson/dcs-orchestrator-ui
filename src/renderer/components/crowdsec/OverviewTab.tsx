@@ -18,7 +18,7 @@ import { BarRow, TimelineChart } from './charts'
 import BanSheet from './BanSheet'
 import { AlertSheet } from './AlertsTab'
 import WorldMap from './WorldMap'
-import { RegisterAgainButton, focusEnrolOnOpen } from './CommunityActions'
+import { CheckNowButton, PAUSED_TEXT, REFUSED_TEXT, RegisterAgainButton, capiState, focusEnrolOnOpen, lastContact } from './CommunityActions'
 
 type Win = '24h' | '7d' | '30d'
 const WIN_LABEL: Record<Win, string> = { '24h': 'the last 24 hours', '7d': 'the last 7 days', '30d': 'the last 30 days' }
@@ -41,8 +41,8 @@ function Quiet({ children }: { children: React.ReactNode }) {
 }
 
 /** a row in the protection / community cards: a dot, a headline, a line of explanation, an optional action */
-function StatusRow({ tone, title, children, action }: { tone: Tone; title: string; children?: React.ReactNode; action?: React.ReactNode }) {
-  const Icon = tone === 'good' ? CircleCheck : tone === 'mute' ? Info : CircleAlert
+function StatusRow({ tone, title, children, action, icon }: { tone: Tone; title: string; children?: React.ReactNode; action?: React.ReactNode; icon?: React.ElementType }) {
+  const Icon = icon ?? (tone === 'good' ? CircleCheck : tone === 'mute' ? Info : CircleAlert)
   const cls = tone === 'good' ? 'text-emerald-400' : tone === 'warn' ? 'text-amber-400' : tone === 'bad' ? 'text-rose-400' : tone === 'info' ? 'text-cyan-400' : 'text-slate-500'
   return (
     <div className="flex items-start gap-3 py-2.5 first:pt-0 last:pb-0">
@@ -134,6 +134,9 @@ export default function OverviewTab() {
   const clientIp = s?.client_ip
   const covered = !!clientIp && ((s?.whitelist?.addresses ?? []).includes(clientIp) || (s?.trusted ?? []).includes(clientIp))
   const cm = community.data
+  // the community link: null on an older server (the rows read needs_register and the flags as before)
+  const capi = capiState(cm)
+  const refused = capi ? capi === 'refused' : !!cm?.needs_register
 
   const activityHead = (
     <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -318,18 +321,29 @@ export default function OverviewTab() {
         <Panel title="Community" icon={Users} right={<button type="button" className="text-[11px] text-cyan-400 hover:text-cyan-300 inline-flex items-center gap-1" onClick={() => goTab('bouncers')}>Details <ArrowRight size={11} /></button>}>
           {!cm ? <div className="space-y-2"><Skel className="h-10" /><Skel className="h-10" /><Skel className="h-10" /></div> : (
             <div className="divide-y divide-white/5">
-              {cm.needs_register ? (
-                <StatusRow tone="bad" title="CrowdSec can’t reach the community service" action={isAdmin ? <RegisterAgainButton onDone={community.refresh} /> : undefined}>
-                  {cm.hint || 'The community service refuses this engine’s login, so the community blocklist is not updated. Registering the engine again fixes it.'}
+              {refused ? (
+                <StatusRow tone="bad" title="CrowdSec can’t reach the community service"
+                  action={isAdmin ? <div className="flex flex-wrap items-start gap-2"><div><RegisterAgainButton onDone={community.refresh} /></div>{capi && <CheckNowButton onDone={community.refresh} />}</div> : undefined}>
+                  {cm.hint || REFUSED_TEXT}
+                </StatusRow>
+              ) : capi === 'disabled' ? (
+                <StatusRow tone="mute" title="The community connection is switched off">CrowdSec is set to run without the community service, so it neither receives the community blocklist nor shares what it sees.</StatusRow>
+              ) : capi === 'paused' ? (
+                <StatusRow tone="warn" icon={Clock} title="Community service pausing this engine">
+                  {cm.hint || PAUSED_TEXT}<span className="block mt-1 text-slate-400">{lastContact(cm, now)}</span>
+                </StatusRow>
+              ) : capi === 'unknown' && cm.capi.registered ? (
+                <StatusRow tone="mute" title="Not checked yet" action={isAdmin ? <CheckNowButton onDone={community.refresh} /> : undefined}>
+                  DCS Orchestrator asks the community service only when you check, so it adds no logins of its own.{cm.capi.pulling && (cm.community_decisions || c?.community) ? ` CrowdSec holds ${fmtNum(cm.community_decisions || c?.community)} community addresses.` : ''}
                 </StatusRow>
               ) : (
                 <StatusRow tone={cm.capi.registered && cm.capi.pulling ? 'good' : cm.capi.registered ? 'warn' : 'mute'}
                   title={cm.capi.registered ? (cm.capi.pulling ? `Community blocklist: ${fmtNum(cm.community_decisions || c?.community)} known bad addresses` : 'Community blocklist is not being pulled') : 'Not connected to the community'}
-                  action={!cm.capi.registered && isAdmin ? <RegisterAgainButton onDone={community.refresh} label="Register" /> : undefined}>
+                  action={!isAdmin ? undefined : !cm.capi.registered ? <RegisterAgainButton onDone={community.refresh} label="Register" /> : capi ? <CheckNowButton onDone={community.refresh} /> : undefined}>
                   {cm.capi.error ? cm.capi.error : cm.capi.registered ? 'CrowdSec downloads addresses other people already caught attacking, and the bouncer blocks them too.' : 'Register with CrowdSec’s central API to receive the community blocklist.'}
                 </StatusRow>
               )}
-              {!cm.needs_register && (
+              {!refused && capi !== 'disabled' && (
                 <StatusRow tone={cm.capi.sharing ? 'good' : 'mute'} title={cm.capi.sharing ? 'Sharing your detections' : 'Not sharing your detections'}>
                   {cm.capi.sharing ? 'Attackers you catch are reported (address and scenario only) so others can block them.' : 'Nothing leaves this server. You can turn sharing on with cscli.'}
                 </StatusRow>

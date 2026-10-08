@@ -2084,9 +2084,16 @@ export function crowdsecSetSimulation(body: { scenario?: string; global?: boolea
 export function crowdsecCommunity(member?: string | null): Promise<CrowdSecCommunityResponse> {
   return apiClient.get<CrowdSecCommunityResponse>(memberPath(member, '/crowdsec/community'))
 }
-/** POST /crowdsec/community/register — register the engine with the community again (CrowdSec restarts, so the timeout is long) */
-export function crowdsecCommunityRegister(member?: string | null): Promise<CrowdSecCommunityRegisterResponse> {
-  return apiClient.post<CrowdSecCommunityRegisterResponse>(memberPath(member, '/crowdsec/community/register'), undefined, 180000)
+/** POST /crowdsec/community/check — ask the community service once (admin, at most every 10 minutes: 429 with retry_after); answers the GET body */
+export function crowdsecCommunityCheck(member?: string | null): Promise<CrowdSecCommunityResponse> {
+  return apiClient.post<CrowdSecCommunityResponse>(memberPath(member, '/crowdsec/community/check'), undefined, 60000)
+}
+/**
+ * POST /crowdsec/community/register — register the engine with the community again (CrowdSec restarts, so the timeout is long).
+ * During a pause the server answers 409 code "paused" unless force is set.
+ */
+export function crowdsecCommunityRegister(member?: string | null, force = false): Promise<CrowdSecCommunityRegisterResponse> {
+  return apiClient.post<CrowdSecCommunityRegisterResponse>(memberPath(member, '/crowdsec/community/register'), force ? { force: true } : undefined, 180000)
 }
 /** POST /crowdsec/console/enroll — enrol the engine in the CrowdSec Console with a key from app.crowdsec.net */
 export function crowdsecConsoleEnroll(body: CrowdSecConsoleEnrollBody, member?: string | null): Promise<CrowdSecConsoleEnrollResponse> {
