@@ -107,6 +107,24 @@ export const OLD_DEFAULT_SUBTITLES = ['', 'DCS Orchestrator', 'Docker Compose Sk
 /** pages a refresh never returns to */
 const TRANSIENT_PAGES: ReadonlySet<string> = new Set(['setup', 'login'])
 
+/** an admin-only page saved as the last one, waiting for the role the server confirms (settlePageForRole) */
+let deferredAdminPage: { page: PageId; payload: Record<string, unknown> | null } | null = null
+
+/**
+ * A server confirmed the session, with this role: an admin returns to the admin-only page they were on when the app
+ * was closed; anyone else on an admin-only page (a switch from a server where they are admin) goes to the dashboard.
+ */
+export function settlePageForRole(role: string | null): void {
+  const st = useSettingsStore.getState()
+  const deferred = deferredAdminPage
+  deferredAdminPage = null
+  if (role === 'admin') {
+    if (deferred && st.currentPage === 'dashboard') st.setCurrentPage(deferred.page, deferred.payload ?? undefined)
+  } else if (ADMIN_ONLY_PAGES.has(st.currentPage)) {
+    useSettingsStore.setState({ currentPage: 'dashboard', navigationPayload: null, pendingNavigationPayload: null })
+  }
+}
+
 export const useSettingsStore = create<SettingsState>((set, get) => ({
   ...DEFAULT_SETTINGS,
   settingsLoaded: false,
@@ -168,6 +186,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         try {
           const role = useAuthStore.getState().userRole
           restoredPage = role === 'admin' ? lastPage : undefined
+          // the role is known once the server confirmed the session (serverStore): the page waits for it
+          if (!restoredPage) deferredAdminPage = { page: lastPage, payload: restoredPayload }
         } catch {
           restoredPage = undefined
         }

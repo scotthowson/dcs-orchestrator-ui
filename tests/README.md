@@ -31,3 +31,15 @@ local copy of such an account to the rules of choosing a password and refused th
 ```bash
 PUPPETEER_DIR=/tmp/dcs-ui-sweep node tests/signin-plain-password.mjs
 ```
+
+`tests/server-accounts.mjs` checks the accounts kept per server against the same lab: the member API serves as a second,
+independent server with an admin of its own. Switching to a server without a session shows its sign-in with nothing of
+the previous server in the page, Cancel goes back, a token ended on the server mid-use asks for that server only, a server
+that does not answer gets its own screen, and the app's start shows the dashboard only after the server confirmed the
+session. `tests/credential-vault.mjs` checks the desktop app's remembered passwords (the main process's vault and the
+renderer's bridge) against stubs; Electron's safeStorage itself needs a desktop session.
+
+```bash
+PUPPETEER_DIR=/tmp/dcs-ui-sweep node tests/server-accounts.mjs
+node tests/credential-vault.mjs
+```

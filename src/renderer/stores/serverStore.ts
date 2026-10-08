@@ -17,7 +17,7 @@ import type { ServerProfile, ServerSession, ConnectionProfile } from '../../shar
 import { apiClient, ApiCancelledError, ApiError, type AuthExpiredDetail } from '../api/client'
 import { authLogin, authVerify } from '../api/endpoints'
 import { useConnectionStore } from './connectionStore'
-import { useSettingsStore } from './settingsStore'
+import { useSettingsStore, settlePageForRole } from './settingsStore'
 import { useContainerStore } from './containerStore'
 import { useStackStore } from './stackStore'
 import { useHealthStore } from './healthStore'
@@ -174,6 +174,7 @@ export const useServerStore = create<ServerState>((set, get) => {
     try { sessionStorage.removeItem('logout-reason') } catch { /* storage unavailable */ }
     set({ gate: 'open', gateDetail: null, returnToId: null, signInReason: null })
     useAuthStore.getState().adoptSession(session.username, session.token, session.role, id)
+    settlePageForRole(useAuthStore.getState().userRole)
   }
 
   /**
