@@ -3,8 +3,8 @@
 // each with the page that fixes it, worst first. Nothing to do → one calm line.
 // The rules are lib/needs.ts; this card draws them from what the Dashboard
 // already polls (stacks, image updates, backup status, disks, each server's
-// look at its OS updates) and the health report, and asks the server nothing
-// itself.
+// look at its OS updates, CrowdSec's community link) and the health report,
+// and asks the server nothing itself.
 //
 // "Hide" puts an item away on this device until it changes (another stack
 // stops, the backup fails again): the key is what it is, the fingerprint what
@@ -21,7 +21,7 @@ import { useHealthStore } from '../../stores/healthStore'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { useConnectionStore } from '../../stores/connectionStore'
 import { pageLabel } from '../../constants/pageTitles'
-import type { BackupStatusResponse, DiskInfo, ImageCheckResponse, OsUpdatesResponse, StackInfo } from '../../../shared/types'
+import type { BackupStatusResponse, CrowdSecCommunityResponse, DiskInfo, ImageCheckResponse, OsUpdatesResponse, StackInfo } from '../../../shared/types'
 import { collectNeeds, plural, type NeedItem } from '../../lib/needs'
 import { Card, CardLoading, CardOffline } from './cardShared'
 
@@ -40,9 +40,11 @@ interface Props {
   disks: DiskInfo[] | null
   /** OS updates and restarts, every server (polled for admins only: the System page that installs them is theirs) */
   osUpdates?: OsUpdatesResponse | null
+  /** CrowdSec's community link (polled for admins only, every 10 min, while CrowdSec runs) */
+  crowdsecCommunity?: CrowdSecCommunityResponse | null
 }
 
-export default function NeedsYouCard({ stacks, stacksError, images, backup, disks, osUpdates }: Props) {
+export default function NeedsYouCard({ stacks, stacksError, images, backup, disks, osUpdates, crowdsecCommunity }: Props) {
   const health = useHealthStore((s) => s.report)
   // the DCS update count is what an admin's check found (kept on this device): no item for anyone else, who cannot install it
   const isAdmin = useAuthStore((s) => s.userRole) === 'admin'
@@ -72,7 +74,8 @@ export default function NeedsYouCard({ stacks, stacksError, images, backup, disk
   }
 
   const os = isAdmin ? osUpdates ?? null : null
-  const items = useMemo(() => collectNeeds({ stacks, health, images, backup, disks, dcsUpdates, osUpdates: os }), [stacks, health, images, backup, disks, dcsUpdates, os])
+  const cs = isAdmin ? crowdsecCommunity ?? null : null
+  const items = useMemo(() => collectNeeds({ stacks, health, images, backup, disks, dcsUpdates, osUpdates: os, crowdsecCommunity: cs }), [stacks, health, images, backup, disks, dcsUpdates, os, cs])
   const shown = items.filter((i) => hidden[i.key] !== i.fingerprint)
   const hiddenNow = items.length - shown.length
 

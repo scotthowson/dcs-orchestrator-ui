@@ -12,7 +12,7 @@ import {
   fetchDisks, fetchSystemInfo,
   fetchStacks, fetchImageUpdates, fetchBackupStatus, fetchOsUpdates,
   fetchLogStats, fetchMaintenanceReport, fetchNotificationHistory,
-  fetchAutomations, fetchSchedules, fetchMetricsTrends, crowdsecStatus,
+  fetchAutomations, fetchSchedules, fetchMetricsTrends, crowdsecStatus, crowdsecCommunity,
 } from '../api/endpoints'
 import { useConnectionStore } from '../stores/connectionStore'
 import { useAuthStore } from '../stores/authStore'
@@ -383,6 +383,10 @@ export default function Dashboard() {
     enabled: isConnected,
     onError: onPollError,
   })
+  // --- Poll /crowdsec/community every 10 min (admins, while CrowdSec runs): "Needs your attention" says when the community refuses the engine ---
+  const crowdsecCommunityPoll = usePolling(() => crowdsecCommunity(), 600000, {
+    enabled: isConnected && isAdmin && !!crowdsecPoll.data?.running,
+  })
 
   // --- Poll /metrics/trends every 60s ---
   const fetchTrends1h = React.useCallback(() => fetchMetricsTrends('1h'), [])
@@ -446,7 +450,7 @@ export default function Dashboard() {
             cardConfig={dashLayout.cardConfig}
             onSaveCardConfig={dashLayout.saveCardConfig}
             cardProps={{
-              'needs-you': { stacks: stacksPoll.data?.stacks ?? null, stacksError: stacksPoll.error, images: imageUpdatesPoll.data ?? null, backup: backupStatusPoll.data ?? null, disks: disksPoll.data?.disks ?? null, osUpdates: osUpdatesPoll.data ?? null },
+              'needs-you': { stacks: stacksPoll.data?.stacks ?? null, stacksError: stacksPoll.error, images: imageUpdatesPoll.data ?? null, backup: backupStatusPoll.data ?? null, disks: disksPoll.data?.disks ?? null, osUpdates: osUpdatesPoll.data ?? null, crowdsecCommunity: crowdsecCommunityPoll.data ?? null },
               'stack-controls': { stacks: stacksPoll.data?.stacks ?? null, error: stacksPoll.error, onRetry: stacksPoll.refresh, onRefresh: stacksPoll.refresh },
               'stack-grid': { stacks: stacksPoll.data?.stacks ?? null, error: stacksPoll.error, onRetry: stacksPoll.refresh },
               'resource-chart': { history: resourceHistoryRef.current },

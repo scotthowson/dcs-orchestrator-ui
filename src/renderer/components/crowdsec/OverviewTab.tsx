@@ -5,7 +5,7 @@
 // =============================================================================
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Activity, Globe2, Crosshair, Radar, Network, ShieldCheck, Users, Cpu, Ban, RotateCw, RefreshCw, ArrowRight, Plug, UserCheck, Loader2, CircleAlert, CircleCheck, Info, Clock, TriangleAlert, ShieldOff } from 'lucide-react'
+import { Activity, Globe2, Crosshair, Radar, Network, ShieldCheck, Users, Cpu, Ban, RotateCw, RefreshCw, ArrowRight, Plug, UserCheck, Loader2, CircleAlert, CircleCheck, Info, Clock, TriangleAlert, ShieldOff, KeyRound } from 'lucide-react'
 import { usePolling } from '../../hooks/usePolling'
 import { useConnectionStore } from '../../stores/connectionStore'
 import { useToast } from '../common/Toast'
@@ -18,6 +18,7 @@ import { BarRow, TimelineChart } from './charts'
 import BanSheet from './BanSheet'
 import { AlertSheet } from './AlertsTab'
 import WorldMap from './WorldMap'
+import { RegisterAgainButton, focusEnrolOnOpen } from './CommunityActions'
 
 type Win = '24h' | '7d' | '30d'
 const WIN_LABEL: Record<Win, string> = { '24h': 'the last 24 hours', '7d': 'the last 7 days', '30d': 'the last 30 days' }
@@ -317,15 +318,25 @@ export default function OverviewTab() {
         <Panel title="Community" icon={Users} right={<button type="button" className="text-[11px] text-cyan-400 hover:text-cyan-300 inline-flex items-center gap-1" onClick={() => goTab('bouncers')}>Details <ArrowRight size={11} /></button>}>
           {!cm ? <div className="space-y-2"><Skel className="h-10" /><Skel className="h-10" /><Skel className="h-10" /></div> : (
             <div className="divide-y divide-white/5">
-              <StatusRow tone={cm.capi.registered && cm.capi.pulling ? 'good' : cm.capi.registered ? 'warn' : 'mute'}
-                title={cm.capi.registered ? (cm.capi.pulling ? `Community blocklist: ${fmtNum(cm.community_decisions || c?.community)} known bad addresses` : 'Community blocklist is not being pulled') : 'Not connected to the community'}>
-                {cm.capi.error ? cm.capi.error : cm.capi.registered ? 'CrowdSec downloads addresses other people already caught attacking, and the bouncer blocks them too.' : 'Register with CrowdSec’s central API to receive the community blocklist.'}
-              </StatusRow>
-              <StatusRow tone={cm.capi.sharing ? 'good' : 'mute'} title={cm.capi.sharing ? 'Sharing your detections' : 'Not sharing your detections'}>
-                {cm.capi.sharing ? 'Attackers you catch are reported (address and scenario only) so others can block them.' : 'Nothing leaves this server. You can turn sharing on with cscli.'}
-              </StatusRow>
-              <StatusRow tone={cm.console.enrolled ? 'good' : 'mute'} title={cm.console.enrolled ? 'Enrolled in the CrowdSec Console' : 'Not enrolled in the CrowdSec Console'}>
-                {cm.console.enrolled ? 'Your alerts also appear in the online console.' : 'Optional: a free web console with more blocklists. Enrol with a key from app.crowdsec.net.'}
+              {cm.needs_register ? (
+                <StatusRow tone="bad" title="CrowdSec can’t reach the community service" action={isAdmin ? <RegisterAgainButton onDone={community.refresh} /> : undefined}>
+                  {cm.hint || 'The community service refuses this engine’s login, so the community blocklist is not updated. Registering the engine again fixes it.'}
+                </StatusRow>
+              ) : (
+                <StatusRow tone={cm.capi.registered && cm.capi.pulling ? 'good' : cm.capi.registered ? 'warn' : 'mute'}
+                  title={cm.capi.registered ? (cm.capi.pulling ? `Community blocklist: ${fmtNum(cm.community_decisions || c?.community)} known bad addresses` : 'Community blocklist is not being pulled') : 'Not connected to the community'}
+                  action={!cm.capi.registered && isAdmin ? <RegisterAgainButton onDone={community.refresh} label="Register" /> : undefined}>
+                  {cm.capi.error ? cm.capi.error : cm.capi.registered ? 'CrowdSec downloads addresses other people already caught attacking, and the bouncer blocks them too.' : 'Register with CrowdSec’s central API to receive the community blocklist.'}
+                </StatusRow>
+              )}
+              {!cm.needs_register && (
+                <StatusRow tone={cm.capi.sharing ? 'good' : 'mute'} title={cm.capi.sharing ? 'Sharing your detections' : 'Not sharing your detections'}>
+                  {cm.capi.sharing ? 'Attackers you catch are reported (address and scenario only) so others can block them.' : 'Nothing leaves this server. You can turn sharing on with cscli.'}
+                </StatusRow>
+              )}
+              <StatusRow tone={cm.console.enrolled ? 'good' : 'mute'} title={cm.console.enrolled ? 'Enrolled in the CrowdSec Console' : 'Not enrolled in the CrowdSec Console'}
+                action={!cm.console.enrolled && isAdmin ? <button type="button" className={BTN_QUIET} onClick={() => { focusEnrolOnOpen(); goTab('bouncers') }}><KeyRound size={13} /> Enrol in the console</button> : undefined}>
+                {cm.console.enrolled ? 'Your alerts also appear in the online console.' : 'Optional: a free web console with more blocklists, enrolled with a key from app.crowdsec.net.'}
               </StatusRow>
             </div>
           )}

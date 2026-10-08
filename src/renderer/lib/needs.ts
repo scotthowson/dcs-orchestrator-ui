@@ -5,7 +5,7 @@
 // =============================================================================
 
 import { pageLabel } from '../constants/pageTitles'
-import type { BackupStatusResponse, DiskInfo, HealthReport, ImageCheckResponse, OsUpdatesInfo, OsUpdatesResponse, PageId, StackInfo } from '../../shared/types'
+import type { BackupStatusResponse, CrowdSecCommunityResponse, DiskInfo, HealthReport, ImageCheckResponse, OsUpdatesInfo, OsUpdatesResponse, PageId, StackInfo } from '../../shared/types'
 import { containerState, isAsleep } from './containerState'
 
 export type Severity = 'problem' | 'attention'
@@ -50,6 +50,8 @@ export function collectNeeds(input: {
   dcsUpdates: number
   /** the servers' own look at their OS updates (admins only: the card passes null to anyone else) */
   osUpdates?: OsUpdatesResponse | null
+  /** CrowdSec's community link (admins only, and only while CrowdSec runs: the card passes null otherwise) */
+  crowdsecCommunity?: CrowdSecCommunityResponse | null
   now?: number
 }): NeedItem[] {
   const { stacks, health, images, backup, disks, dcsUpdates } = input
@@ -163,6 +165,13 @@ export function collectNeeds(input: {
   }
 
   out.push(...osUpdateNeeds(input.osUpdates ?? null, now))
+
+  // the central API refuses this engine's login: the community blocklist goes stale until it registers again (one click on the page)
+  if (input.crowdsecCommunity?.needs_register) {
+    out.push({ key: 'crowdsec-community', severity: 'attention', title: 'CrowdSec can’t reach the community service',
+      detail: 'The community blocklist is not updated. Register the engine again on the CrowdSec overview.',
+      page: 'crowdsec', payload: { tab: 'overview' }, fingerprint: 'needs-register' })
+  }
 
   // worst first, then the order above
   return out.sort((a, b) => (a.severity === b.severity ? 0 : a.severity === 'problem' ? -1 : 1))

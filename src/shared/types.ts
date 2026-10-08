@@ -3608,6 +3608,29 @@ export interface CrowdSecCommunityResponse {
   console: { authenticated: boolean; enrolled: boolean; registered: boolean; decision_management: boolean; plan: string; sharing: Record<string, boolean> }
   community_decisions: number
   note: string
+  /** the central API refuses this engine's login (HTTP 403): registering it again fixes it (absent on an older server) */
+  needs_register?: boolean
+  /** what is wrong and what fixes it, in plain words */
+  hint?: string
+}
+/** POST /crowdsec/community/register: the engine registered with the community again, CrowdSec restarted */
+export interface CrowdSecCommunityRegisterResponse {
+  ok: boolean
+  message: string
+  capi?: Partial<CrowdSecCommunityResponse['capi']>
+  console?: Partial<CrowdSecCommunityResponse['console']>
+}
+/** POST /crowdsec/console/enroll */
+export interface CrowdSecConsoleEnrollBody { key: string; name?: string; overwrite?: boolean }
+export interface CrowdSecConsoleEnrollResponse {
+  ok: boolean
+  message: string
+  /** enrolled: the engine waits to be accepted on app.crowdsec.net */
+  needs_acceptance?: boolean
+  /** the community service refuses the engine: register it again first */
+  needs_register?: boolean
+  /** already enrolled: send overwrite to replace that enrolment */
+  already_enrolled?: boolean
 }
 
 /** The ban profile: how long CrowdSec bans by itself */

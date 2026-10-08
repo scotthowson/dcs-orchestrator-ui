@@ -164,7 +164,7 @@ import type {
   CrowdSecUnbanResponse, CrowdSecDecisionQuery, CrowdSecDecisionsResponse, CrowdSecBanBody, CrowdSecBanResponse, CrowdSecBulkDeleteResponse, CrowdSecImportResponse,
   CrowdSecExportResponse, CrowdSecAlertsResponse, CrowdSecAlertDetail, CrowdSecAllowlistResponse, CrowdSecAllowAddBody, CrowdSecAllowAddResponse,
   CrowdSecBouncersResponse, CrowdSecMachinesResponse, CrowdSecBouncerAddResponse, CrowdSecMetricsResponse, CrowdSecHubResponse, CrowdSecHubAvailableResponse,
-  CrowdSecHubChangeResponse, CrowdSecPluginResponse, CrowdSecPluginSettings, CrowdSecLogsResponse, CrowdSecSimulationResponse, CrowdSecSimulationSetResponse, CrowdSecCommunityResponse, CrowdSecSettingsResponse,
+  CrowdSecHubChangeResponse, CrowdSecPluginResponse, CrowdSecPluginSettings, CrowdSecLogsResponse, CrowdSecSimulationResponse, CrowdSecSimulationSetResponse, CrowdSecCommunityResponse, CrowdSecCommunityRegisterResponse, CrowdSecConsoleEnrollBody, CrowdSecConsoleEnrollResponse, CrowdSecSettingsResponse,
   CrowdSecSettingsBody, CrowdSecNotifyResponse, CrowdSecNotifyBody, CrowdSecPreviewResponse, CrowdSecNotifyTestResponse, CrowdSecServiceResponse, CrowdSecFix,
   PluginInstallResponse,
   PluginDeleteResponse,
@@ -2083,6 +2083,14 @@ export function crowdsecSetSimulation(body: { scenario?: string; global?: boolea
 /** GET /crowdsec/community — community blocklist and console */
 export function crowdsecCommunity(member?: string | null): Promise<CrowdSecCommunityResponse> {
   return apiClient.get<CrowdSecCommunityResponse>(memberPath(member, '/crowdsec/community'))
+}
+/** POST /crowdsec/community/register — register the engine with the community again (CrowdSec restarts, so the timeout is long) */
+export function crowdsecCommunityRegister(member?: string | null): Promise<CrowdSecCommunityRegisterResponse> {
+  return apiClient.post<CrowdSecCommunityRegisterResponse>(memberPath(member, '/crowdsec/community/register'), undefined, 180000)
+}
+/** POST /crowdsec/console/enroll — enrol the engine in the CrowdSec Console with a key from app.crowdsec.net */
+export function crowdsecConsoleEnroll(body: CrowdSecConsoleEnrollBody, member?: string | null): Promise<CrowdSecConsoleEnrollResponse> {
+  return apiClient.post<CrowdSecConsoleEnrollResponse>(memberPath(member, '/crowdsec/console/enroll'), body, 120000)
 }
 
 /** GET /crowdsec/settings and PUT — the ban profile (restarts CrowdSec, so the timeout is long) */
