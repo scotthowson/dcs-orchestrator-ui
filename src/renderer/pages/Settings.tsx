@@ -9,7 +9,7 @@ import {
   Cog, Info, HardDrive, Pencil, Check, X, Trash2,
   Keyboard, Timer, Image, Sun, Moon, Palette, Eye, TerminalSquare,
   Monitor, Shield, Lock, User, UserCircle, Mail,
-  Camera, Save, Key, AlertTriangle, XCircle, Plus, FolderPlus,
+  Camera, Save, Key, AlertTriangle, XCircle, ShieldOff, Plus, FolderPlus,
   Download, Upload, Bell, BellOff, Clock, LockKeyhole,
   Server, Copy, EyeOff, HeartPulse, Wifi, WifiOff, Loader2,
   Star, CheckCircle, ChevronDown, PanelLeft, LogOut, KeyRound,
@@ -25,7 +25,7 @@ import { useConnectionStore } from '../stores/connectionStore'
 import { useServerStore } from '../stores/serverStore'
 import { rememberPassword } from '../lib/credentials'
 import { accountLine } from '../components/auth/ServerGateScreens'
-import { discoverServer } from '../lib/discover'
+import { discoverServerVerdict, blockedText, type DiscoveredServer } from '../lib/discover'
 import { useToast } from '../components/common/Toast'
 import { useSettingsStore, DEFAULT_SETTINGS } from '../stores/settingsStore'
 import { useAuthStore } from '../stores/authStore'
@@ -1603,12 +1603,15 @@ function ConnectionProfiles() {
   const connectionStatus = useConnectionStore((s) => s.status)
   const currentUser = useAuthStore((s) => s.currentUser)
   const unreachable = useServerStore((s) => s.unreachable)
+  const blocked = useServerStore((s) => s.blocked)
   const { addToast } = useToast()
 
   const [showAdd, setShowAdd] = useState(false)
   const [newName, setNewName] = useState('')
   const [newUrl, setNewUrl] = useState('')
   const [addError, setAddError] = useState('')
+  // a server that answers but does not let this web dashboard's address in: it can still be saved (the desktop app has no such limit)
+  const [blockedFind, setBlockedFind] = useState<DiscoveredServer | null>(null)
   const [testing, setTesting] = useState(false)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -1626,16 +1629,18 @@ function ConnectionProfiles() {
     const name = newName.trim()
     let url = newUrl.trim()
     setAddError('')
+    setBlockedFind(null)
     if (!name) { setAddError('Name is required'); return }
     if (!url) { setAddError('Address is required'); return }
     if (!/^https?:\/\//i.test(url) && !url.startsWith('/')) url = `http://${url}`
     if (servers.some((s) => s.url === url)) { setAddError('A profile with this address already exists'); return }
     setTesting(true)
-    const found = await discoverServer(url)
+    const { found, blocked: refused } = await discoverServerVerdict(url)
     setTesting(false)
+    if (!found && refused) { setAddError(blockedText(refused.url)); setBlockedFind(refused); return }
     if (!found) { setAddError('No DCS API answered there — check the address and that the server is running'); return }
     const profile = useServerStore.getState().addServer({ name, url: found.url })
-    setShowAdd(false); setNewName(''); setNewUrl(''); setAddError('')
+    setShowAdd(false); setNewName(''); setNewUrl(''); setAddError(''); setBlockedFind(null)
     addToast({ type: 'success', message: `Saved ${name} (${found.url})` })
     if (connectNow) {
       setBusyId(profile.id)
@@ -1644,6 +1649,17 @@ function ConnectionProfiles() {
       if (!ok) addToast({ type: 'error', message: `Could not connect to ${name}` })
     }
   }, [newName, newUrl, servers, addToast])
+
+  /** Save a server that answers but does not let this dashboard in: the profile works in the desktop app */
+  const handleSaveBlocked = useCallback(() => {
+    const name = newName.trim()
+    if (!blockedFind || !name) return
+    const detail = blockedText(blockedFind.url)
+    const profile = useServerStore.getState().addServer({ name, url: blockedFind.url })
+    useServerStore.getState().markBlocked(profile.id, detail)
+    setShowAdd(false); setNewName(''); setNewUrl(''); setAddError(''); setBlockedFind(null)
+    addToast({ type: 'info', message: `Saved ${name} (${blockedFind.url}); this browser can’t use it until its admin allows this address` })
+  }, [newName, blockedFind, addToast])
 
   const handleSwitch = useCallback(async (id: string) => {
     if (id === activeServerId && connectionStatus === 'connected') return
@@ -1713,7 +1729,7 @@ function ConnectionProfiles() {
                   )}
                   <div className="text-[10px] text-slate-500 font-mono truncate">{profile.url}{profile.lastConnected ? ` · last connected ${new Date(profile.lastConnected).toLocaleString()}` : ''}</div>
                   {(() => {
-                    const line = accountLine(profile, { active: isActive, signedInHere: isActive, unreachable: unreachable[profile.id] })
+                    const line = accountLine(profile, { active: isActive, signedInHere: isActive, unreachable: unreachable[profile.id], blocked: blocked[profile.id] })
                     return <div className={`text-[10px] ${line.tone === 'ok' ? 'text-emerald-400' : line.tone === 'bad' ? 'text-rose-400' : 'text-slate-500'}`}>{line.text}</div>
                   })()}
                 </div>
@@ -1779,7 +1795,7 @@ function ConnectionProfiles() {
               id="server-new-name"
               type="text"
               value={newName}
-              onChange={(e) => { setNewName(e.target.value); setAddError('') }}
+              onChange={(e) => { setNewName(e.target.value); setAddError(''); setBlockedFind(null) }}
               placeholder="Home server"
               autoFocus
               className={INPUT}
@@ -1792,7 +1808,7 @@ function ConnectionProfiles() {
               type="text"
               inputMode="url"
               value={newUrl}
-              onChange={(e) => { setNewUrl(e.target.value); setAddError('') }}
+              onChange={(e) => { setNewUrl(e.target.value); setAddError(''); setBlockedFind(null) }}
               onKeyDown={(e) => { if (e.key === 'Enter') void handleAdd(true) }}
               placeholder="192.168.1.10:9876 or https://ui.example.com"
               spellCheck={false}
@@ -1801,9 +1817,9 @@ function ConnectionProfiles() {
             <p className="text-[10px] text-slate-500 mt-1">The API port, or the dashboard address behind Traefik — the address that answers is kept.</p>
           </div>
           {addError && (
-            <div className="flex items-center gap-2 rounded-lg bg-rose-500/10 border border-rose-500/20 px-3 py-2 text-[11px] text-rose-400">
-              <XCircle size={12} />
-              {addError}
+            <div role="alert" className={`flex items-start gap-2 rounded-lg px-3 py-2 text-[11px] ${blockedFind ? 'bg-amber-500/10 border border-amber-500/20 text-amber-300' : 'bg-rose-500/10 border border-rose-500/20 text-rose-400'}`}>
+              {blockedFind ? <ShieldOff size={12} className="shrink-0 mt-px" /> : <XCircle size={12} className="shrink-0 mt-px" />}
+              <span className="min-w-0 break-words">{addError}</span>
             </div>
           )}
           <div className="flex flex-wrap items-center gap-2 pt-1">
@@ -1823,8 +1839,14 @@ function ConnectionProfiles() {
               <Plus size={14} />
               Save for later
             </button>
+            {blockedFind && (
+              <button onClick={handleSaveBlocked} disabled={!newName.trim() || testing} className={BTN_TOOLBAR_QUIET}>
+                <Plus size={14} />
+                Save anyway
+              </button>
+            )}
             <button
-              onClick={() => { setShowAdd(false); setNewName(''); setNewUrl(''); setAddError('') }}
+              onClick={() => { setShowAdd(false); setNewName(''); setNewUrl(''); setAddError(''); setBlockedFind(null) }}
               className={BTN_TOOLBAR_QUIET}
             >
               Cancel

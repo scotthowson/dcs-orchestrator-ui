@@ -21,7 +21,7 @@ import { hydrateUser } from '../lib/userSync'
 import { apiClient, ApiError, ApiNetworkError } from '../api/client'
 import { canRememberPasswords } from '../lib/credentials'
 import { ServerAccountList } from '../components/auth/ServerGateScreens'
-import { discoverServer } from '../lib/discover'
+import { discoverServerVerdict, blockedText } from '../lib/discover'
 import Hint from '../components/common/Hint'
 import PasswordStrengthMeter from '../components/auth/PasswordStrength'
 import ShowPasswordButton from '../components/auth/ShowPasswordButton'
@@ -144,8 +144,10 @@ export default function Login() {
       // API port directly, the dashboard's /api proxy behind Traefik, http or
       // https, with or without a scheme — the same in Electron, the Android
       // app and the browser.
-      const found = await discoverServer(typed)
+      const { found, blocked } = await discoverServerVerdict(typed)
       if (!found) {
+        // it answers, but does not let this web dashboard's address in: say so instead of "unreachable"
+        if (blocked) setConnDetail(blockedText(blocked.url))
         if (!isInitial) {
           setConnected(false)
           setServerInitialized(false)
@@ -592,7 +594,7 @@ export default function Login() {
                     : 'text-slate-500'
                   }`}>
                     {connStatus === 'ok' ? `Connected${connDetail ? ` — ${connDetail}` : ''}`
-                    : connStatus === 'fail' ? 'Server unreachable — tried the address as typed, with /api and on port 9876. Behind Traefik use https://ui.yourdomain/api; on the LAN, host:9876'
+                    : connStatus === 'fail' ? connDetail || 'Server unreachable — tried the address as typed, with /api and on port 9876. Behind Traefik use https://ui.yourdomain/api; on the LAN, host:9876'
                     : connStatus === 'testing' ? 'Connecting…'
                     : 'Dashboard address (https://ui.example.com) or the API on the LAN (192.168.1.10:9876)'}
                   </p>

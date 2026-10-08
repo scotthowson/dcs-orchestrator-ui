@@ -9,6 +9,7 @@ export function ServerSwitcher() {
   const { servers, activeServerId, loading, loadServers, addServer, removeServer, updateServer, switchServer } = useServerStore()
   const { status, lastError, reconnectAttempts } = useConnectionStore()
   const unreachable = useServerStore((s) => s.unreachable)
+  const blocked = useServerStore((s) => s.blocked)
   const signedInHere = useAuthStore((s) => s.isAuthenticated && s.validatedServerId === activeServerId)
   const [open, setOpen] = useState(false)
   const [newName, setNewName] = useState('')
@@ -93,7 +94,8 @@ export function ServerSwitcher() {
       setSwitchError(null)
       setOpen(false)
     } else {
-      setAddError('Could not connect — check the URL and ensure the server is running')
+      // a server that answers but does not let this web dashboard's address in says so (the store's probe)
+      setAddError(useServerStore.getState().blocked[s.id] ?? 'Could not connect — check the URL and ensure the server is running')
       setSwitchError(s.id)
     }
   }, [newName, newUrl, addServer, switchServer])
@@ -201,7 +203,7 @@ export function ServerSwitcher() {
                         )}
                         <div className="text-[11px] text-slate-500 truncate font-mono">{s.url}</div>
                         {(() => {
-                          const line = accountLine(s, { active: isActive, signedInHere, unreachable: unreachable[s.id] })
+                          const line = accountLine(s, { active: isActive, signedInHere, unreachable: unreachable[s.id], blocked: blocked[s.id] })
                           return <div className={`text-[10px] truncate ${line.tone === 'ok' ? 'text-emerald-400' : line.tone === 'bad' ? 'text-rose-400' : 'text-slate-500'}`}>{line.text}</div>
                         })()}
                       </div>

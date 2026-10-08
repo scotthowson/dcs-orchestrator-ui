@@ -33,6 +33,7 @@ import { useSecretsStore } from './secretsStore'
 import { usePluginStore } from './pluginStore'
 import { useAuthStore, hasLocalSession, onSignOut, takeLegacyApiToken } from './authStore'
 import { getDefaultServerUrl } from '../lib/env'
+import { corsBlocked, blockedText } from '../lib/discover'
 import { sseClient } from '../lib/sse'
 import { resetUserSync } from '../lib/userSync'
 import { rememberPassword, rememberedPassword, forgetPassword, rememberedServers } from '../lib/credentials'
@@ -61,6 +62,11 @@ interface ServerState {
   signInReason: SignInReason
   /** the last try of a server that did not answer, per server (this run only) */
   unreachable: Record<string, string>
+  /** servers that answer but do not let this web dashboard's address in (API_CORS_ORIGINS), with the explanation; each
+   *  is in `unreachable` too (this run only; never in the desktop app) */
+  blocked: Record<string, string>
+  /** Mark a server as answering-but-blocked (Settings → Save anyway), or clear it */
+  markBlocked: (id: string, detail: string | null) => void
   loadServers: () => void
   /** One-time import of the profiles the Settings page used to keep on its own */
   importLegacyProfiles: () => void
@@ -162,11 +168,24 @@ export const useServerStore = create<ServerState>((set, get) => {
     if (useSettingsStore.getState().serverUrl !== server.url) useSettingsStore.getState().updateSetting('serverUrl', server.url)
   }
 
-  const setUnreachable = (id: string, detail: string | null) => {
+  const setUnreachable = (id: string, detail: string | null, isBlocked = false) => {
     const unreachable = { ...get().unreachable }
+    const blocked = { ...get().blocked }
     if (detail) unreachable[id] = detail
     else delete unreachable[id]
-    set({ unreachable })
+    if (detail && isBlocked) blocked[id] = detail
+    else delete blocked[id]
+    set({ unreachable, blocked })
+  }
+
+  /** A server that did not let this dashboard through: when it answers but refuses this web dashboard's address
+   *  (CORS), it says so instead of "can’t be reached". Nothing changes when another server was picked meanwhile. */
+  const refuse = async (id: string, url: string, detail: string, stale: () => boolean): Promise<void> => {
+    const isBlocked = await corsBlocked(url)
+    if (stale()) return
+    const text = isBlocked ? blockedText(url) : detail
+    setUnreachable(id, text, isBlocked)
+    set({ gate: 'unreachable', gateDetail: text })
   }
 
   const adopt = (id: string, session: ServerSession) => {
@@ -209,8 +228,7 @@ export const useServerStore = create<ServerState>((set, get) => {
           get().updateServer(id, { session: null })
           if (!get().signInReason) set({ signInReason: 'expired' })
         } else {
-          setUnreachable(id, errorText(err))
-          set({ gate: 'unreachable', gateDetail: errorText(err) })
+          await refuse(id, server.url, errorText(err), stale)
           return false
         }
       }
@@ -237,8 +255,7 @@ export const useServerStore = create<ServerState>((set, get) => {
             get().updateServer(id, { lastUsername: cred.username })
             set({ signInReason: 'password-rejected' })
           } else if (!(err instanceof ApiError) || err.status === 0 || err.status >= 500) {
-            setUnreachable(id, errorText(err))
-            set({ gate: 'unreachable', gateDetail: errorText(err) })
+            await refuse(id, fresh.url, errorText(err), stale)
             return false
           }
         }
@@ -255,6 +272,15 @@ export const useServerStore = create<ServerState>((set, get) => {
         set({ gate: 'unreachable', gateDetail: detail })
         return false
       }
+      // its heartbeat answers every origin; the sign-in only works when it lets this web dashboard's address in
+      if (await corsBlocked(server.url)) {
+        if (stale()) return false
+        const detail = blockedText(server.url)
+        setUnreachable(id, detail, true)
+        set({ gate: 'unreachable', gateDetail: detail })
+        return false
+      }
+      if (stale()) return false
     }
     setUnreachable(id, null)
     set({ gate: 'open', gateDetail: null })
@@ -270,6 +296,9 @@ export const useServerStore = create<ServerState>((set, get) => {
     returnToId: null,
     signInReason: null,
     unreachable: {},
+    blocked: {},
+
+    markBlocked: (id, detail) => setUnreachable(id, detail, !!detail),
 
     loadServers: () => {
       if (loaded) return

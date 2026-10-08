@@ -5,14 +5,16 @@
 // =============================================================================
 
 import { useEffect, useState } from 'react'
-import { Layers, Loader2, WifiOff, RotateCw, Globe, Server, Pencil } from 'lucide-react'
+import { Layers, Loader2, WifiOff, RotateCw, Globe, Server, Pencil, ShieldOff } from 'lucide-react'
 import { useServerStore } from '../../stores/serverStore'
 import type { ServerProfile } from '../../../shared/types'
 import { BTN_SHEET_PRIMARY, BTN_TOOLBAR_QUIET } from '../../lib/ui'
 import { FOCUS_RING } from '../../lib/fieldStyles'
 
-/** The account line of a server: "signed in as scott · admin", "needs sign-in", "can't be reached" */
-export function accountLine(p: ServerProfile, opts: { active: boolean; signedInHere: boolean; unreachable?: string }): { text: string; tone: 'ok' | 'quiet' | 'bad' } {
+/** The account line of a server: "signed in as scott · admin", "needs sign-in", "can't be reached", "blocked by this
+ *  browser" (it answers, but does not let this web dashboard's address in) */
+export function accountLine(p: ServerProfile, opts: { active: boolean; signedInHere: boolean; unreachable?: string; blocked?: string }): { text: string; tone: 'ok' | 'quiet' | 'bad' } {
+  if (opts.blocked && !(opts.active && opts.signedInHere)) return { text: 'blocked by this browser', tone: 'bad' }
   if (opts.unreachable && !(opts.active && opts.signedInHere)) return { text: 'can’t be reached', tone: 'bad' }
   if (p.session?.token && (!opts.active || opts.signedInHere)) {
     const role = p.session.role
@@ -27,6 +29,7 @@ const TONE_TEXT = { ok: 'text-emerald-400', quiet: 'text-slate-500', bad: 'text-
 export function ServerAccountList({ excludeId }: { excludeId?: string | null }) {
   const servers = useServerStore((s) => s.servers)
   const unreachable = useServerStore((s) => s.unreachable)
+  const blocked = useServerStore((s) => s.blocked)
   const [busy, setBusy] = useState<string | null>(null)
   const others = servers.filter((s) => s.id !== excludeId)
   if (others.length === 0) return null
@@ -35,7 +38,7 @@ export function ServerAccountList({ excludeId }: { excludeId?: string | null }) 
       <p className="text-[11px] font-medium text-slate-500 mb-2">Other servers</p>
       <ul className="space-y-1.5" aria-label="Other servers">
         {others.map((s) => {
-          const line = accountLine(s, { active: false, signedInHere: false, unreachable: unreachable[s.id] })
+          const line = accountLine(s, { active: false, signedInHere: false, unreachable: unreachable[s.id], blocked: blocked[s.id] })
           return (
             <li key={s.id}>
               <button
@@ -107,6 +110,8 @@ const AUTO_RETRY_MS = 10000
 export function ServerUnreachableScreen() {
   const server = useServerStore((s) => s.servers.find((x) => x.id === s.activeServerId) ?? null)
   const detail = useServerStore((s) => s.gateDetail)
+  // it answers, but does not let this web dashboard's address in (the detail says what to do)
+  const isBlocked = useServerStore((s) => !!s.activeServerId && !!s.blocked[s.activeServerId])
   const [retrying, setRetrying] = useState(false)
 
   // it tries again by itself every few seconds: a server that comes back is entered without a click
@@ -128,11 +133,11 @@ export function ServerUnreachableScreen() {
       <div className="flex flex-col gap-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center shrink-0">
-            <WifiOff size={18} className="text-rose-400" />
+            {isBlocked ? <ShieldOff size={18} className="text-rose-400" /> : <WifiOff size={18} className="text-rose-400" />}
           </div>
           <div className="min-w-0">
-            <h2 className="text-lg font-semibold text-slate-100 truncate">{server?.name ?? 'The server'} can’t be reached</h2>
-            <p className="text-xs text-slate-500 mt-0.5">Nothing is shown until it answers and your sign-in is confirmed.</p>
+            <h2 className="text-lg font-semibold text-slate-100 truncate">{server?.name ?? 'The server'} {isBlocked ? 'is blocked by this browser' : 'can’t be reached'}</h2>
+            <p className="text-xs text-slate-500 mt-0.5">{isBlocked ? 'It answers, but this browser may not read its answers on this dashboard’s address.' : 'Nothing is shown until it answers and your sign-in is confirmed.'}</p>
           </div>
         </div>
         <ServerBadge server={server} />
