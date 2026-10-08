@@ -97,7 +97,7 @@ export function EnrolBox({ onDone, onEnrolled, needsRegister = false }: { onDone
     const n = (name ?? defaultName).trim()
     const settle = (r: Partial<CrowdSecConsoleEnrollResponse>, fallback: string) => {
       const message = scrub(String(r.message || fallback), k)
-      if (r.already_enrolled) { setOutcome({ kind: 'already', message }); return }
+      if (r.already_enrolled || r.needs_overwrite || r.reason === 'already_enrolled') { setOutcome({ kind: 'already', message }); return }
       if (r.needs_register) { setOutcome({ kind: 'register', message }); return }
       return message
     }

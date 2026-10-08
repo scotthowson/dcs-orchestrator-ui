@@ -3629,8 +3629,10 @@ export interface CrowdSecConsoleEnrollResponse {
   needs_acceptance?: boolean
   /** the community service refuses the engine: register it again first */
   needs_register?: boolean
-  /** already enrolled: send overwrite to replace that enrolment */
+  /** already enrolled: send overwrite to replace that enrolment (the server says it as reason + needs_overwrite) */
   already_enrolled?: boolean
+  needs_overwrite?: boolean
+  reason?: string
 }
 
 /** The ban profile: how long CrowdSec bans by itself */
