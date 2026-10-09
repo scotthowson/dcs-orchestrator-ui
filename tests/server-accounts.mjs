@@ -143,7 +143,7 @@ s = await waitFor((x) => hasAny(x.html, A_DATA).length > 0, 60000)
 
 // 1. add B (no session) → its sign-in, with no shell and nothing of A behind it, sampled while it happens
 await openSwitcher()
-await clickText('Add Server', { within: 'aside' })
+await clickText('Add a server', { within: 'aside' })
 await page.type('aside input[placeholder="Server name"]', 'Austin hub')
 await page.type('aside input[placeholder="http://192.168.1.100:9876"]', B)
 let leaked = []
@@ -229,15 +229,15 @@ await clickText('Local Server')
 s = await waitFor((x) => x.main && hasAny(x.html, A_DATA).length > 0)
 check('from B’s sign-in to A: straight in', s.main && !s.signin)
 
-// 6. unreachable server → its own screen (Retry, other servers), never the shell
+// 6. unreachable server → its own screen (Try again, other servers), never the shell
 await openSwitcher()
-await clickText('Add Server', { within: 'aside' })
+await clickText('Add a server', { within: 'aside' })
 await page.type('aside input[placeholder="Server name"]', 'Gone box')
 await page.type('aside input[placeholder="http://192.168.1.100:9876"]', C)
 await clickText('Add & Connect', { within: 'aside' })
-s = await waitFor((x) => x.text.includes('can’t be reached') && x.text.includes('Retry'), 40000)
+s = await waitFor((x) => x.text.includes('can’t be reached') && x.text.includes('Try again'), 40000)
 await page.screenshot({ path: `${OUT}/5-unreachable.png` })
-check('unreachable server: its screen with Retry', s.text.includes('Gone box can’t be reached') && s.text.includes('Retry'))
+check('unreachable server: its screen with Try again', s.text.includes('Gone box can’t be reached') && s.text.includes('Try again'))
 check('…no shell, no data', !s.main && !s.aside && hasAny(s.html, A_DATA).length === 0)
 await clickText('Local Server')
 s = await waitFor((x) => x.main)
