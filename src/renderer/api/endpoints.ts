@@ -1567,9 +1567,9 @@ export function crowdsecCloudflare(member?: string | null): Promise<CloudflareBo
 export function crowdsecCloudflareVerify(token: string | undefined, member?: string | null): Promise<CloudflareBouncerVerifyResponse> {
   return apiClient.post<CloudflareBouncerVerifyResponse>(memberPath(member, '/crowdsec/cloudflare/verify'), token ? { token } : {}, 60000)
 }
-/** POST /crowdsec/cloudflare/enable — check the token, register the bouncer, make the list and the rule, push once (up to two minutes) */
+/** POST /crowdsec/cloudflare/enable — check the token, register the bouncer, make the list and the rule; the first push runs after the answer */
 export function crowdsecCloudflareEnable(body: CloudflareBouncerEnableBody, member?: string | null): Promise<CloudflareBouncerEnableResponse> {
-  return apiClient.post<CloudflareBouncerEnableResponse>(memberPath(member, '/crowdsec/cloudflare/enable'), body, 180000)
+  return apiClient.post<CloudflareBouncerEnableResponse>(memberPath(member, '/crowdsec/cloudflare/enable'), body, 90000)
 }
 /** POST /crowdsec/cloudflare/disable — stop the sync, delete the bouncer; cleanup also removes the rule and the list at Cloudflare */
 export function crowdsecCloudflareDisable(body: { cleanup?: boolean; forget_token?: boolean }, member?: string | null): Promise<CloudflareBouncerDisableResponse> {

@@ -3622,6 +3622,7 @@ export interface CloudflareBouncerBrief {
   last_sync?: number | null
   last_pull?: number | null
   items?: number
+  running?: { since: number; rows: number } | null
   error?: CloudflareBouncerError | null
   left_at_cloudflare?: boolean
 }
@@ -3634,6 +3635,10 @@ export interface CloudflareBouncerStatus {
   sync: {
     last_attempt: number | null; last_pull: number | null; last_push: number | null; last_sync: number | null; last_verify: number | null
     pulled: number | null; items: number; dropped: number; skipped: number; repaired: { at: number; what: string[] } | null; enabled_at: number | null
+    /** a sync working now: since when, through how many addresses */
+    running: { since: number; rows: number } | null
+    /** the last sync the loop had to stop (it held the lock for 10 minutes) */
+    stuck: { at: number; minutes: number; pid: string; kind: string } | null
   }
   cloudflare: {
     /** the addresses on Cloudflare's list, read back from Cloudflare (null: not read yet, or the read failed) */
@@ -3650,7 +3655,8 @@ export interface CloudflareBouncerStatus {
 export interface CloudflareBouncerZone { domain: string; domains?: string[]; name: string; id: string; account: string; account_name: string; plan: string; rule?: boolean; rules?: number }
 export interface CloudflareBouncerVerifyResponse { ok: boolean; success: boolean; message: string; zones: CloudflareBouncerZone[]; token: { kind: 'user' | 'account'; status: string }; warnings: string[]; permissions: CloudflarePermission[] }
 export interface CloudflareBouncerEnableBody { token?: string; capacity?: number; community?: boolean; domains?: string[] }
-export interface CloudflareBouncerEnableResponse { success: boolean; enabled: true; synced: boolean; zones: string[]; items: number; error: CloudflareBouncerError | null; warnings: string[]; message: string }
+/** the first sync runs after the answer (first_sync "running"): the status says when it is done */
+export interface CloudflareBouncerEnableResponse { success: boolean; enabled: true; first_sync: 'running'; zones: string[]; warnings: string[]; message: string }
 export interface CloudflareBouncerDisableResponse {
   success: boolean; enabled: false; was_enabled: boolean; bouncer: 'deleted' | 'kept'
   cleanup: { ok: boolean; removed: string[]; failed: string[] } | null
