@@ -5,6 +5,7 @@ import http from 'http'
 import Store from 'electron-store'
 import { configurePresence, updatePresence, presenceStatus, shutdownPresence, type PresencePayload } from './presence'
 import { createVault, type VaultEntry } from './credentialVault'
+import { isSafeExternalUrl } from './externalLinks'
 
 // Disable Chromium's Private Network Access preflight checks so the renderer
 // can fetch() to local/private IPs without CORS preflight blocking.
@@ -109,7 +110,8 @@ function createWindow() {
   })
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url)
+    if (isSafeExternalUrl(url)) void shell.openExternal(url)
+    else console.warn(`[links] not opened (only http and https leave the app): ${url.slice(0, 200)}`)
     return { action: 'deny' }
   })
 
