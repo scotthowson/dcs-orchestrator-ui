@@ -11,13 +11,14 @@ import { usePolling } from '../../hooks/usePolling'
 import { useToast } from '../common/Toast'
 import { useAuthStore } from '../../stores/authStore'
 import VmCapsule from '../fleet/VmCapsule'
-import { CopyChip } from '../fleet/fleetShared'
 import { pageLabel } from '../../constants/pageTitles'
 import { BTN_CARD, BTN_CARD_QUIET, TONE_OK } from '../../lib/ui'
-import { Pill, Fact, CardIcon, StatusLine } from './updateBits'
+import { Fact, CardIcon, FreshnessLine } from './updateBits'
 import { fetchDockerEngine, fetchDockerEngineStatus, updateDockerEngine, updateFleetDockerEngine, terminalAuth } from '../../api/endpoints'
 import type { DockerEngineInfo, DockerEngineFleet, DockerEngineStatus } from '../../../shared/types'
 
+import { Pill } from '../common/Pill'
+import { CopyButton } from '../common/CopyButton'
 const SOURCE_LABEL: Record<string, string> = {
   'docker-ce': "Docker's packages",
   'docker.io': "Debian's packages",
@@ -175,22 +176,22 @@ export default function DockerEngineCard({ enabled, isHub }: { enabled: boolean;
           </Fact>
           <Fact label="Status">
             {running ? (
-              <Pill tone="cyan" icon={<Loader2 size={10} className="animate-spin" />}>Updating</Pill>
+              <Pill tone="info" icon={<Loader2 size={10} className="animate-spin" />}>Updating</Pill>
             ) : own.upgradable ? (
-              <Pill tone="cyan" icon={<Download size={10} />}>Update available</Pill>
+              <Pill tone="info" icon={<Download size={10} />}>Update available</Pill>
             ) : own.version ? (
-              <Pill tone="emerald" icon={<CheckCircle size={10} />}>Current</Pill>
+              <Pill tone="ok" icon={<CheckCircle size={10} />}>Current</Pill>
             ) : (
-              <Pill tone="rose" icon={<AlertTriangle size={10} />}>Not answering</Pill>
+              <Pill tone="problem" icon={<AlertTriangle size={10} />}>Not answering</Pill>
             )}
           </Fact>
 
           {/* the one-line status, like the other cards: up to date · checked · last updated */}
-          <StatusLine
+          <FreshnessLine
             ok={uptodate}
             okText={own.checking ? 'Engine running' : 'Engine up to date'}
             warnText={own.version ? `${own.candidate || 'A newer engine'} available` : 'Docker is not answering'}
-            tone={own.version ? 'cyan' : 'rose'}
+            tone={own.version ? 'info' : 'problem'}
             checkedAt={checkedAt || null}
             updatedAt={last && last.status !== 'running' ? last.finished_at : null}
             updatedLabel={last?.status === 'failed' ? 'Last update failed' : 'Last updated'}
@@ -202,7 +203,7 @@ export default function DockerEngineCard({ enabled, isHub }: { enabled: boolean;
               {own.switch_command && (
                 <div className="flex items-center gap-2">
                   <code className="text-[10px] font-mono text-slate-300 bg-black/30 rounded px-2 py-1 truncate">{own.switch_command}</code>
-                  <CopyChip text={own.switch_command} label="Copy" />
+                  <CopyButton variant="chip" text={own.switch_command} label="Copy" />
                 </div>
               )}
             </div>
@@ -270,11 +271,11 @@ export default function DockerEngineCard({ enabled, isHub }: { enabled: boolean;
                         <>
                           <span className="font-mono text-slate-300">{m.version || '—'}</span>
                           {m.upgradable ? (
-                            <Pill tone="cyan">{m.candidate} available</Pill>
+                            <Pill tone="info">{m.candidate} available</Pill>
                           ) : m.source === 'docker.io' ? (
-                            <Pill tone="amber" title={m.note}>Debian's docker.io</Pill>
+                            <Pill tone="attention" title={m.note}>Debian's docker.io</Pill>
                           ) : (
-                            <Pill tone="emerald">Current</Pill>
+                            <Pill tone="ok">Current</Pill>
                           )}
                         </>
                       )}

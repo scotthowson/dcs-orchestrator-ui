@@ -6,8 +6,9 @@ import { useState } from 'react'
 import { Cpu } from 'lucide-react'
 import { useContainerStore } from '../../stores/containerStore'
 import { useConnectionStore } from '../../stores/connectionStore'
-import { Card, CardBody, CardEmpty, CardOffline, CardSwitch, pctTone, TONE_FILL } from './cardShared'
-
+import { Card, CardBody, CardOffline, CardSwitch } from './cardShared'
+import { pctTone, TONE_FILL } from '../../lib/tone'
+import { EmptyState } from '../common/PageState'
 function parsePercent(val: string): number {
   const n = parseFloat(val)
   return isNaN(n) ? 0 : n
@@ -32,7 +33,7 @@ export default function TopResourceConsumers() {
       actions={<CardSwitch label="Rank by" value={mode} onChange={setMode} data={[{ value: 'cpu', label: 'CPU' }, { value: 'mem', label: 'MEM' }]} />}
     >
       {entries.length === 0 ? (
-        <CardEmpty icon={<Cpu size={22} />} title="No container stats yet" hint="They appear once containers are running." />
+        <EmptyState card icon={<Cpu size={22} />} title="No container stats yet" hint="They appear once containers are running." />
       ) : (
         <CardBody className="space-y-2">
           {entries.map((e) => {

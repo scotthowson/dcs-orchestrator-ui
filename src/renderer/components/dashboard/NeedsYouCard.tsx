@@ -23,8 +23,8 @@ import { useConnectionStore } from '../../stores/connectionStore'
 import { pageLabel } from '../../constants/pageTitles'
 import type { BackupStatusResponse, CrowdSecCommunityResponse, DiskInfo, ImageCheckResponse, OsUpdatesResponse, StackInfo } from '../../../shared/types'
 import { collectNeeds, plural, type NeedItem } from '../../lib/needs'
-import { Card, CardLoading, CardOffline } from './cardShared'
-
+import { Card, CardOffline } from './cardShared'
+import { Skeleton } from '../common/PageState'
 const HIDDEN_KEY = 'dcs-needs-you-hidden'
 
 function loadHidden(): Record<string, string> {
@@ -91,7 +91,7 @@ export default function NeedsYouCard({ stacks, stacksError, images, backup, disk
 
   if (!isConnected && !stacks && !health) return <Card card="needs-you" dim><CardOffline /></Card>
   // half a list would say "all good" too early: wait for the stacks (most of what can need you) unless they failed
-  if (!stacks && !stacksError) return <Card card="needs-you"><CardLoading label="Checking what needs you…" rows={2} /></Card>
+  if (!stacks && !stacksError) return <Card card="needs-you"><Skeleton label="Checking what needs you…" rows={2} /></Card>
 
   const problems = shown.filter((i) => i.severity === 'problem').length
   const badge = shown.length

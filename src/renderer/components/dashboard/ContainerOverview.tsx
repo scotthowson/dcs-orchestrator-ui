@@ -8,10 +8,11 @@ import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts'
 import { useConnectionStore } from '../../stores/connectionStore'
 import { useContainerStore } from '../../stores/containerStore'
 import type { ContainerInfo } from '../../../shared/types'
-import { Card, CardBody, CardEmpty, CardLoading, CardOffline } from './cardShared'
+import { Card, CardBody, CardOffline } from './cardShared'
 import { StateDot, AsleepCount } from '../common/StateChip'
 import { containerState, countStates, fineCount, isAsleep, statesLine, STATE_META } from '../../lib/containerState'
 
+import { Skeleton, EmptyState } from '../common/PageState'
 // ---------------------------------------------------------------------------
 // Status helpers
 // ---------------------------------------------------------------------------
@@ -103,8 +104,8 @@ export default function ContainerOverview({ containers }: { containers: Containe
     return (
       <Card card="container-overview" open="containers">
         {loading
-          ? <CardLoading label="Loading the containers…" rows={5} />
-          : <CardEmpty icon={<Box size={22} />} title="No containers yet" hint="Start a stack or deploy a template and its containers appear here." />}
+          ? <Skeleton label="Loading the containers…" rows={5} />
+          : <EmptyState card icon={<Box size={22} />} title="No containers yet" hint="Start a stack or deploy a template and its containers appear here." />}
       </Card>
     )
   }

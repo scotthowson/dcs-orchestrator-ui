@@ -16,10 +16,12 @@ import { useStackCounts } from '../../hooks/useStackCounts'
 import VmCapsule from '../fleet/VmCapsule'
 import Hint from '../common/Hint'
 import type { HealthContainer, HealthScoreResponse } from '../../../shared/types'
-import { Card, CardBody, CardError, CardOffline, pctTone, TONE_TEXT, type CardTone } from './cardShared'
+import { Card, CardBody, CardOffline, type CardTone } from './cardShared'
 import { StateDot } from '../common/StateChip'
 import { containerState, countStates, fineCount, isAsleep, statesLine, STATE_META } from '../../lib/containerState'
 
+import { pctTone, TONE_TEXT } from '../../lib/tone'
+import { ErrorState } from '../common/PageState'
 // ---------------------------------------------------------------------------
 // Score gauge colors: a grade is a scale from fine to a problem
 // ---------------------------------------------------------------------------
@@ -218,7 +220,7 @@ export default function HealthSummary() {
   }, [isConnected, scope])
 
   // The poll failed before anything loaded: say why instead of a skeleton that never resolves
-  if (!report && error) return <Card card="health-summary"><CardError title="Could not load the health report" error={error} onRetry={() => window.dispatchEvent(new Event('app-refresh'))} /></Card>
+  if (!report && error) return <Card card="health-summary"><ErrorState card title="Could not load the health report" error={error} onRetry={() => window.dispatchEvent(new Event('app-refresh'))} /></Card>
 
   // Skeleton: the shape of the card once it is filled
   if (!report && isConnected) {

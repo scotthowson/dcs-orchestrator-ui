@@ -11,8 +11,9 @@ import { useSettingsStore } from '../../stores/settingsStore'
 import { pageLabel } from '../../constants/pageTitles'
 import { BTN_CARD, TONE_OK } from '../../lib/ui'
 import { fetchProxmoxStatus, fetchProxmoxVms, fetchProxmoxNodes, fetchFleetStatus, fetchFleetOverview } from '../../api/endpoints'
-import { Card, CardBody, CardEmpty, CardError, CardLoading, pctTone, TONE_FILL } from './cardShared'
-
+import { Card, CardBody } from './cardShared'
+import { pctTone, TONE_FILL } from '../../lib/tone'
+import { Skeleton, EmptyState, ErrorState } from '../common/PageState'
 function fmtGb(n: number): string { return n ? `${(n / 1073741824).toFixed(n >= 10737418240 ? 0 : 1)} GB` : '0' }
 
 export default function ProxmoxCard() {
@@ -37,18 +38,18 @@ export default function ProxmoxCard() {
       badge={ready && s?.version ? <Badge component="span" color="slate">PVE {s.version}</Badge> : undefined}
     >
       {status.error && !s ? (
-        <CardError title={`Could not reach ${pageLabel('proxmox')}`} error={status.error} onRetry={status.refresh} />
+        <ErrorState card title={`Could not reach ${pageLabel('proxmox')}`} error={status.error} onRetry={status.refresh} />
       ) : !s ? (
-        <CardLoading label="Checking Proxmox…" rows={4} />
+        <Skeleton label="Checking Proxmox…" rows={4} />
       ) : !s.configured ? (
-        <CardEmpty
+        <EmptyState card
           icon={<Server size={20} />}
           title="Not linked"
           hint={`Add the Proxmox URL and an API token in ${pageLabel('config')} → Proxmox`}
           action={<button type="button" onClick={() => setCurrentPage('config')} className={`${BTN_CARD} ${TONE_OK}`}>Open {pageLabel('config')}</button>}
         />
       ) : !s.reachable ? (
-        <CardEmpty
+        <EmptyState card
           icon={<Server size={20} />}
           title="Proxmox does not answer"
           hint={s.error || s.hints?.[0] || ''}

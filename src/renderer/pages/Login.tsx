@@ -25,9 +25,7 @@ import { discoverServerVerdict, blockedText } from '../lib/discover'
 import Hint from '../components/common/Hint'
 import PasswordStrengthMeter from '../components/auth/PasswordStrength'
 import ShowPasswordButton from '../components/auth/ShowPasswordButton'
-import { BTN_ICON_SM, BTN_TOOLBAR_QUIET, BTN_SHEET_PRIMARY } from '../lib/ui'
-import { FOCUS_RING } from '../lib/fieldStyles'
-
+import { BTN_ICON_SM, BTN_TOOLBAR_QUIET, BTN_SHEET_PRIMARY, FOCUS_RING } from '../lib/ui'
 /** the fields of the sign-in card: 48 px, an icon on the left */
 const LOGIN_INPUT = 'w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-lg text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all duration-300'
 /** …with a button on the right (show the password) */

@@ -31,9 +31,9 @@ import type {
 import { LoadingState, ErrorState, EmptyState } from '../components/common/PageState'
 import ModalOverlay from '../components/common/ModalOverlay'
 import PageHeader from '../components/common/PageHeader'
-import { BTN_TOOLBAR_QUIET, BTN_CARD_QUIET, BTN_ICON } from '../lib/ui'
-import { CARD, FIELD, FOCUS_RING } from '../lib/pageKit'
-
+import { BTN_TOOLBAR_QUIET, BTN_CARD_QUIET, BTN_ICON, FOCUS_RING } from '../lib/ui'
+import { CARD } from '../lib/pageKit'
+import { INPUT } from '../lib/fieldStyles'
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -411,7 +411,7 @@ export default function FileBrowser() {
             value={selectedContainer}
             onChange={(e) => handleContainerChange(e.target.value)}
             disabled={containersLoading}
-            className={`${FIELD} !pl-9 !pr-9 !py-2.5 !text-xs appearance-none cursor-pointer`}
+            className={`${INPUT} !pl-9 !pr-9 !py-2.5 !text-xs appearance-none cursor-pointer`}
           >
             <option value="" className="bg-slate-900 text-slate-400">
               {containersLoading

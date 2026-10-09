@@ -9,9 +9,16 @@
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
 import { ArrowDown, ArrowUp, Braces, ChevronDown, Plus, Search, Trash2, X, RotateCcw } from 'lucide-react'
 import type { CrowdSecPlaceholder } from '../../../shared/types'
-import { BTN_QUIET, CARD, Chip, CsSheet, HINT, ICON_BTN, INPUT, TEXTAREA, Segmented, Switch, useOutside } from './kit'
+import { useOutside } from './kit'
 import { AUTO_COLORS, COLOR_PRESETS, LIM, cpLen, patternProblem, newFieldKey, type ColorMode, type Errors, type FormField } from './NotifyModel'
 
+import { BTN_ICON_QUIET, BTN_TOOLBAR_QUIET } from '../../lib/ui'
+import { HINT, INPUT } from '../../lib/fieldStyles'
+import { CARD } from '../../lib/pageKit'
+import { Pill } from '../common/Pill'
+import Segmented from '../common/Segmented'
+import Sheet from '../common/Sheet'
+import { Toggle } from '../common/Toggle'
 // ---------------------------------------------------------------------------
 // Small things
 // ---------------------------------------------------------------------------
@@ -23,25 +30,6 @@ export function useMedia(query: string): boolean {
     return () => m.removeEventListener('change', cb)
   }, [query])
   return useSyncExternalStore(subscribe, () => window.matchMedia(query).matches, () => false)
-}
-
-/** a banner: what happened, in a sentence or two */
-export function Notice({ tone, icon: Icon, title, children, action, role }: { tone: 'warn' | 'bad' | 'info' | 'good'; icon: React.ElementType; title?: ReactNode; children?: ReactNode; action?: ReactNode; role?: 'alert' | 'status' }) {
-  const cls = tone === 'bad' ? 'bg-rose-500/[0.08] border-rose-500/25 text-rose-300'
-    : tone === 'warn' ? 'bg-amber-500/10 border-amber-500/20 text-amber-300'
-    : tone === 'good' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'
-    : 'bg-white/[0.03] border-white/10 text-slate-300'
-  const ic = tone === 'info' ? 'text-cyan-400' : ''
-  return (
-    <div role={role} className={`rounded-lg border px-3 py-2.5 text-xs flex items-start gap-2.5 ${cls}`}>
-      <Icon size={15} className={`shrink-0 mt-0.5 ${ic}`} aria-hidden="true" />
-      <div className="min-w-0 flex-1 leading-relaxed">
-        {title && <p className="text-sm font-medium leading-snug">{title}</p>}
-        {children && <div className={title ? 'mt-0.5 opacity-90' : ''}>{children}</div>}
-        {action && <div className="mt-2 flex flex-wrap items-center gap-2">{action}</div>}
-      </div>
-    </div>
-  )
 }
 
 /** 12/200: amber near the limit, rose beyond it */
@@ -80,18 +68,6 @@ export function FieldShell({ id, label, right, counter, hint, def, onDefault, er
 }
 
 /** a switch with its words: label, one sentence, the default */
-export function ToggleRow({ id, label, help, checked, onChange, disabled, def }: { id: string; label: string; help: ReactNode; checked: boolean; onChange: (v: boolean) => void; disabled?: boolean; def?: string }) {
-  return (
-    <div className="flex items-start gap-3">
-      <div className="pt-0.5"><Switch id={id} checked={checked} onChange={onChange} label={label} disabled={disabled} /></div>
-      <div className="min-w-0 flex-1">
-        <label htmlFor={id} className="block text-sm text-slate-200 cursor-pointer">{label}</label>
-        <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">{help}{def !== undefined && <span className="text-slate-500"> Default: {def}.</span>}</p>
-      </div>
-    </div>
-  )
-}
-
 /** a collapsible block of the editor */
 export function Section({ id, icon: Icon, title, summary, open, onToggle, problems = 0, edited = false, children }: {
   id: string; icon: React.ElementType; title: string; summary?: ReactNode; open: boolean; onToggle: () => void; problems?: number; edited?: boolean; children: ReactNode
@@ -104,8 +80,8 @@ export function Section({ id, icon: Icon, title, summary, open, onToggle, proble
           <span className="block text-sm font-semibold text-slate-100">{title}</span>
           {summary && <span className="block text-xs text-slate-500 truncate">{summary}</span>}
         </span>
-        {problems > 0 && <Chip tone="bad">{problems} to fix</Chip>}
-        {edited && problems === 0 && <Chip tone="warn">edited</Chip>}
+        {problems > 0 && <Pill tone="problem">{problems} to fix</Pill>}
+        {edited && problems === 0 && <Pill tone="attention">edited</Pill>}
         <ChevronDown size={16} className={`shrink-0 text-slate-500 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       <div id={`${id}-body`} hidden={!open} className="px-4 pb-4 pt-4 space-y-4 border-t border-white/5">{children}</div>
@@ -230,7 +206,7 @@ export function PlaceholderPicker({ items, onPick, target, label = 'Placeholders
       <button ref={trigger} type="button" disabled={disabled || items.length === 0} onClick={toggle} aria-haspopup="dialog" aria-expanded={open}
         aria-label={compact ? `Insert a placeholder: ${label}` : undefined} title="Insert a placeholder such as {ip} or {country_tag}"
         onMouseDown={(e) => e.preventDefault()}
-        className={compact ? 'h-8 sm:h-7 px-2 rounded-md text-[11px] text-slate-500 hover:text-slate-100 hover:bg-white/10 inline-flex items-center gap-1 transition-colors disabled:opacity-40' : `${BTN_QUIET} !h-8`}>
+        className={compact ? 'h-8 sm:h-7 px-2 rounded-md text-[11px] text-slate-500 hover:text-slate-100 hover:bg-white/10 inline-flex items-center gap-1 transition-colors disabled:opacity-40' : `${BTN_TOOLBAR_QUIET} !h-8`}>
         <Braces size={compact ? 12 : 13} /> {compact ? 'Insert' : label}
       </button>
       {open && wide && (
@@ -239,9 +215,9 @@ export function PlaceholderPicker({ items, onPick, target, label = 'Placeholders
         </div>
       )}
       {open && !wide && (
-        <CsSheet title="Insert a placeholder" subtitle="It is added where your cursor was." icon={<Braces size={18} />} tone="info" onClose={() => setOpen(false)}>
+        <Sheet title="Insert a placeholder" subtitle="It is added where your cursor was." icon={<Braces size={18} />} tone="info" onClose={() => setOpen(false)}>
           <PlaceholderList items={items} onPick={pick} target={target()} />
-        </CsSheet>
+        </Sheet>
       )}
     </div>
   )
@@ -367,7 +343,7 @@ export function PlaceholderInput({ id, label, value, onChange, max, placeholders
       right={<PlaceholderPicker items={placeholders} compact label={label} disabled={disabled} target={() => targetName} onPick={(name) => insertText(`{${name}}`)} />}>
       <div className="relative">
         {multiline
-          ? <textarea {...common} rows={rows} className={`${TEXTAREA} resize-y min-h-[4.5rem] ${cls}`} />
+          ? <textarea {...common} rows={rows} className={`${INPUT} resize-y min-h-[4.5rem] ${cls}`} />
           : <input {...common} type="text" className={`${INPUT} ${cls}`} />}
         {open && sug && (
           <div id={`${id}-sug`} role="listbox" aria-label="Placeholders" onMouseDown={(e) => e.preventDefault()}
@@ -611,13 +587,13 @@ export function FieldsEditor({ fields, onChange, errors, max, placeholders, disa
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs font-semibold text-slate-300 mr-auto">Field {i + 1}</span>
             <div className="flex items-center gap-2">
-              <Switch id={`notify-field-${f.key}-inline`} checked={f.inline} onChange={(v) => set(i, { inline: v })} label={`Field ${i + 1} side by side`} disabled={disabled} />
+              <Toggle id={`notify-field-${f.key}-inline`} checked={f.inline} onChange={(v) => set(i, { inline: v })} label={`Field ${i + 1} side by side`} disabled={disabled} />
               <label htmlFor={`notify-field-${f.key}-inline`} className="text-xs text-slate-500 cursor-pointer" title="Inline fields sit next to each other, up to three in a row">Side by side</label>
             </div>
             <div className="flex items-center gap-1.5">
-              <button type="button" className={ICON_BTN} disabled={disabled || i === 0} onClick={() => move(i, -1)} aria-label={`Move field ${i + 1} up`} title="Move up"><ArrowUp size={14} /></button>
-              <button type="button" className={ICON_BTN} disabled={disabled || i === fields.length - 1} onClick={() => move(i, 1)} aria-label={`Move field ${i + 1} down`} title="Move down"><ArrowDown size={14} /></button>
-              <button type="button" className={`${ICON_BTN} hover:!bg-rose-500/15 hover:!text-rose-300`} disabled={disabled} onClick={() => onChange(fields.filter((_, j) => j !== i))} aria-label={`Remove field ${i + 1}`} title="Remove this field"><Trash2 size={14} /></button>
+              <button type="button" className={BTN_ICON_QUIET} disabled={disabled || i === 0} onClick={() => move(i, -1)} aria-label={`Move field ${i + 1} up`} title="Move up"><ArrowUp size={14} /></button>
+              <button type="button" className={BTN_ICON_QUIET} disabled={disabled || i === fields.length - 1} onClick={() => move(i, 1)} aria-label={`Move field ${i + 1} down`} title="Move down"><ArrowDown size={14} /></button>
+              <button type="button" className={`${BTN_ICON_QUIET} hover:!bg-rose-500/15 hover:!text-rose-300`} disabled={disabled} onClick={() => onChange(fields.filter((_, j) => j !== i))} aria-label={`Remove field ${i + 1}`} title="Remove this field"><Trash2 size={14} /></button>
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-3">
@@ -628,7 +604,7 @@ export function FieldsEditor({ fields, onChange, errors, max, placeholders, disa
       ))}
       {errors.fields && <p role="alert" className="text-[11px] text-rose-300">{errors.fields}</p>}
       <div className="flex items-center gap-3 flex-wrap">
-        <button type="button" className={BTN_QUIET} disabled={disabled || fields.length >= max} onClick={() => { const k = newFieldKey(); focusKey.current = k; onChange([...fields, { key: k, name: '', value: '', inline: true }]) }}><Plus size={13} /> Add a field</button>
+        <button type="button" className={BTN_TOOLBAR_QUIET} disabled={disabled || fields.length >= max} onClick={() => { const k = newFieldKey(); focusKey.current = k; onChange([...fields, { key: k, name: '', value: '', inline: true }]) }}><Plus size={13} /> Add a field</button>
         <span className="text-[11px] text-slate-500 tabular-nums">{fields.length} of {max} fields{fields.length >= max ? '. That is the most Discord shows.' : ''}</span>
       </div>
       <p className="text-[11px] text-slate-500 leading-relaxed">A field whose name or value ends up empty in a message (for example the first request of an SSH attack) is left out of that message.</p>

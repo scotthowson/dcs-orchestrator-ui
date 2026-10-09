@@ -12,8 +12,9 @@ import { pageLabel } from '../../constants/pageTitles'
 import { fetchPower } from '../../api/endpoints'
 import type { PowerStatus } from '../../../shared/types'
 import { BTN_CARD, TONE_OK } from '../../lib/ui'
-import { Card, CardBody, CardEmpty, CardError, CardLoading, TONE_FILL, TONE_TEXT, type CardCommonProps, type Tone } from './cardShared'
-
+import { Card, CardBody, type CardCommonProps } from './cardShared'
+import { TONE_FILL, TONE_TEXT, type Tone } from '../../lib/tone'
+import { Skeleton, EmptyState, ErrorState } from '../common/PageState'
 function fmtRuntime(s: number | null | undefined): string {
   if (s === null || s === undefined) return '—'
   if (s >= 3600) return `${Math.floor(s / 3600)} h ${Math.round((s % 3600) / 60)} min`
@@ -49,13 +50,13 @@ export default function PowerCard(_props: CardCommonProps) {
   const setCurrentPage = useSettingsStore((s) => s.setCurrentPage)
   const { data, error, refresh } = usePolling(fetchPower, 15000, { enabled: isConnected })
 
-  if (!data && error) return <Card card="power" tone="attention"><CardError title="Could not read the power status" error={error} onRetry={refresh} /></Card>
-  if (!data) return <Card card="power"><CardLoading label="Reading the power status…" rows={3} /></Card>
+  if (!data && error) return <Card card="power" tone="attention"><ErrorState card title="Could not read the power status" error={error} onRetry={refresh} /></Card>
+  if (!data) return <Card card="power"><Skeleton label="Reading the power status…" rows={3} /></Card>
 
   if (!data.enabled) {
     return (
       <Card card="power">
-        <CardEmpty
+        <EmptyState card
           icon={<BatteryCharging size={22} />}
           title="No UPS is watched"
           hint="Point DCS at a NUT server (the nut-upsd template serves a USB unit), apcupsd or a CyberPower unit (pwrstat), and it will alert you and stop the stacks cleanly before the battery runs out."

@@ -9,11 +9,11 @@ import { Server } from 'lucide-react'
 import { Badge, Tooltip } from '@mantine/core'
 import VmCapsule from '../fleet/VmCapsule'
 import { EmptyState } from '../common/PageState'
-import { TONE_TEXT } from '../dashboard/cardShared'
 import { WINDOW_MIN, availabilityText, availabilityTone, type Minute, type SegStatus, type Timeline, type UptimeRow } from './uptimeModel'
 import { StateChip } from '../common/StateChip'
 import { containerState } from '../../lib/containerState'
 
+import { TONE_TEXT } from '../../lib/tone'
 export interface TimelineRow extends UptimeRow {
   key: string
   image?: string

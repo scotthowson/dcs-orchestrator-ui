@@ -37,8 +37,8 @@ import { LoadingState, ErrorState, EmptyState } from '../components/common/PageS
 import ModalOverlay from '../components/common/ModalOverlay'
 import PageHeader from '../components/common/PageHeader'
 import Hint from '../components/common/Hint'
-import { BTN_TOOLBAR_QUIET, BTN_ICON, BTN_ICON_SM, TONE_GHOST } from '../lib/ui'
-import { CARD, FOCUS_RING } from '../lib/pageKit'
+import { BTN_TOOLBAR_QUIET, BTN_ICON, BTN_ICON_SM, TONE_GHOST, FOCUS_RING } from '../lib/ui'
+import { CARD } from '../lib/pageKit'
 import { STATE_META } from '../lib/containerState'
 
 // ---------------------------------------------------------------------------

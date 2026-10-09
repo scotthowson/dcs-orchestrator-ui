@@ -9,8 +9,12 @@ import { Upload, Loader2, FileUp, CheckCircle2, AlertTriangle } from 'lucide-rea
 import { useToast } from '../common/Toast'
 import { crowdsecImportBans } from '../../api/endpoints'
 import type { CrowdSecImportResponse } from '../../../shared/types'
-import { BTN_PRIMARY, BTN_QUIET, Chip, CsSheet, DurationPicker, HINT, INPUT, LABEL, PERMANENT, Segmented, TEXTAREA, errMsg, useCs } from './kit'
-
+import { DurationPicker, PERMANENT, errMsg, useCs } from './kit'
+import { BTN_TOOLBAR_OK, BTN_TOOLBAR_QUIET } from '../../lib/ui'
+import { HINT, INPUT, LABEL } from '../../lib/fieldStyles'
+import { Pill } from '../common/Pill'
+import Segmented from '../common/Segmented'
+import Sheet from '../common/Sheet'
 type Fmt = 'auto' | 'values' | 'csv' | 'json'
 const MAX_BYTES = 512 * 1024
 
@@ -45,12 +49,12 @@ export default function ImportSheet({ onClose, onDone }: { onClose: () => void; 
   }
 
   return (
-    <CsSheet title="Import bans" subtitle="A list of addresses to ban in one go" icon={<Upload size={18} />} onClose={onClose} wide
+    <Sheet title="Import bans" subtitle="A list of addresses to ban in one go" icon={<Upload size={18} />} onClose={onClose} wide
       footer={
         <div className="flex gap-2 justify-end flex-wrap">
-          <button type="button" onClick={onClose} className={BTN_QUIET}>{result ? 'Close' : 'Cancel'}</button>
-          {!result && <button type="button" onClick={submit} disabled={!text.trim() || busy} className={BTN_PRIMARY}>{busy ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />} Import{lines ? ` ${lines} entr${lines === 1 ? 'y' : 'ies'}` : ''}</button>}
-          {result && <button type="button" onClick={() => setResult(null)} className={BTN_QUIET}>Import more</button>}
+          <button type="button" onClick={onClose} className={BTN_TOOLBAR_QUIET}>{result ? 'Close' : 'Cancel'}</button>
+          {!result && <button type="button" onClick={submit} disabled={!text.trim() || busy} className={BTN_TOOLBAR_OK}>{busy ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />} Import{lines ? ` ${lines} entr${lines === 1 ? 'y' : 'ies'}` : ''}</button>}
+          {result && <button type="button" onClick={() => setResult(null)} className={BTN_TOOLBAR_QUIET}>Import more</button>}
         </div>
       }>
       {result ? (
@@ -82,11 +86,11 @@ export default function ImportSheet({ onClose, onDone }: { onClose: () => void; 
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <Segmented<Fmt> value={fmt} onChange={setFmt} ariaLabel="Format" options={[{ value: 'auto', label: 'Detect' }, { value: 'values', label: 'One per line' }, { value: 'csv', label: 'CSV' }, { value: 'json', label: 'JSON' }]} />
             <input ref={file} type="file" accept=".csv,.json,.txt,text/plain,text/csv,application/json" className="hidden" aria-label="Choose a file to import" onChange={(e) => { void load(e.target.files?.[0]); e.target.value = '' }} />
-            <button type="button" onClick={() => file.current?.click()} className={BTN_QUIET}><FileUp size={13} /> Choose a file…</button>
+            <button type="button" onClick={() => file.current?.click()} className={BTN_TOOLBAR_QUIET}><FileUp size={13} /> Choose a file…</button>
           </div>
           <div>
             <label className={LABEL} htmlFor="import-text">The list</label>
-            <textarea id="import-text" className={`${TEXTAREA} font-mono text-xs`} rows={8} value={text} onChange={(e) => setText(e.target.value)} spellCheck={false} placeholder={'203.0.113.7\n198.51.100.0/24   # a comment\n2001:db8::/32'} />
+            <textarea id="import-text" className={`${INPUT} font-mono text-xs`} rows={8} value={text} onChange={(e) => setText(e.target.value)} spellCheck={false} placeholder={'203.0.113.7\n198.51.100.0/24   # a comment\n2001:db8::/32'} />
             <p className={HINT}>One address or network per line (a # starts a comment), or a CSV with a header line (value, duration, reason), or a JSON list of objects. Bans lasting longer than 10 years, private ranges, your own address and already banned ones are skipped.</p>
           </div>
           <div>
@@ -98,9 +102,9 @@ export default function ImportSheet({ onClose, onDone }: { onClose: () => void; 
             <input id="import-reason" className={INPUT} value={reason} maxLength={200} onChange={(e) => setReason(e.target.value)} placeholder="Imported from DCS" />
           </div>
           {error && <p className="text-sm text-rose-300 flex gap-2" role="alert"><AlertTriangle size={15} className="shrink-0 mt-0.5" /> {error}</p>}
-          {lines > 2000 && <Chip tone="warn">Only 2000 entries per import</Chip>}
+          {lines > 2000 && <Pill tone="attention">Only 2000 entries per import</Pill>}
         </div>
       )}
-    </CsSheet>
+    </Sheet>
   )
 }

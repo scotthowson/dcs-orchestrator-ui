@@ -28,9 +28,10 @@ import { StorageSummary, ProxmoxStorage, VmDisks, fmtBytes } from '../components
 import { ErrorState, EmptyState } from '../components/common/PageState'
 import PageHeader from '../components/common/PageHeader'
 import Hint from '../components/common/Hint'
-import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_ICON_SM, TONE_DANGER, TONE_GHOST, TONE_GHOST_OK } from '../lib/ui'
-import { CARD, FIELD, FOCUS_RING, REVEAL } from '../lib/pageKit'
-
+import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_ICON_SM, TONE_DANGER, TONE_GHOST, TONE_GHOST_OK, FOCUS_RING } from '../lib/ui'
+import { CARD, REVEAL } from '../lib/pageKit'
+import { INPUT } from '../lib/fieldStyles'
+import StatTile from '../components/common/StatTile'
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
@@ -115,21 +116,6 @@ function CardTitle({ icon, children, aside }: { icon: React.ReactNode; children:
         <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">{children}</h2>
       </div>
       {aside}
-    </div>
-  )
-}
-
-/** one of the four figures above the drives */
-function StatTile({ icon, value, label, children }: { icon: React.ReactNode; value: React.ReactNode; label: string; children?: React.ReactNode }) {
-  return (
-    <div className={`${CARD} hover:border-white/10 transition-colors p-3 sm:p-4`}>
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-lg bg-cyan-500/10 border border-cyan-500/15 flex items-center justify-center shrink-0">{icon}</div>
-        <div className="min-w-0">
-          <p className="text-lg font-bold text-slate-100 font-mono tabular-nums truncate">{value}{children}</p>
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">{label}</p>
-        </div>
-      </div>
     </div>
   )
 }
@@ -396,34 +382,16 @@ export default function DiskAnalysis() {
           {/* Overview stat cards                                                */}
           {/* ----------------------------------------------------------------- */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 stagger-children">
+            <StatTile icon={Database} label="App data" value={disk?.total_app_data && disk.total_app_data !== 'N/A' ? disk.total_app_data : '—'} />
+            <StatTile icon={HardDrive} label="Total storage" value={storageTotals?.total ?? disk?.host_disk?.total ?? '—'} />
             <StatTile
-              icon={<Database size={18} className="text-cyan-400" aria-hidden />}
-              value={disk?.total_app_data && disk.total_app_data !== 'N/A' ? disk.total_app_data : '—'}
-              label="App data"
-            />
-            <StatTile
-              icon={<HardDrive size={18} className="text-cyan-400" aria-hidden />}
-              value={storageTotals?.total ?? disk?.host_disk?.total ?? '—'}
-              label="Total storage"
-            />
-            <StatTile
-              icon={<PieChart size={18} className="text-cyan-400" aria-hidden />}
-              value={storageTotals?.used ?? disk?.host_disk?.used ?? '—'}
+              icon={PieChart}
               label="Used"
-            >
-              {(storageTotals || disk?.host_disk?.percent) && (
-                <span className={`text-xs ml-1.5 ${
-                  (storageTotals?.percent ?? parseInt(disk?.host_disk?.percent ?? '0')) > 80 ? 'text-amber-400' : 'text-slate-500'
-                }`}>
-                  {storageTotals ? `${storageTotals.percent}%` : disk?.host_disk?.percent}
-                </span>
-              )}
-            </StatTile>
-            <StatTile
-              icon={<Archive size={18} className="text-cyan-400" aria-hidden />}
-              value={storageTotals?.free ?? disk?.host_disk?.available ?? '—'}
-              label="Available"
+              value={storageTotals?.used ?? disk?.host_disk?.used ?? '—'}
+              tone={(storageTotals?.percent ?? parseInt(disk?.host_disk?.percent ?? '0')) > 80 ? 'attention' : 'neutral'}
+              sub={storageTotals || disk?.host_disk?.percent ? `${storageTotals ? `${storageTotals.percent}%` : disk?.host_disk?.percent} of the disk` : undefined}
             />
+            <StatTile icon={Archive} label="Available" value={storageTotals?.free ?? disk?.host_disk?.available ?? '—'} />
           </div>
 
           {/* Every machine: one bar with a segment per machine */}
@@ -512,7 +480,7 @@ export default function DiskAnalysis() {
                                   autoFocus
                                   aria-label={`Name for ${d.mount}`}
                                   placeholder={d.mount}
-                                  className={`${FIELD} flex-1 min-w-0 !px-2 !py-1 !text-xs`}
+                                  className={`${INPUT} flex-1 min-w-0 !px-2 !py-1 !text-xs`}
                                 />
                                 <Hint label="Save the name">
                                   <button type="button" aria-label="Save" onClick={() => handleRenameLabel(d.mount, renameValue.trim())} className={`${BTN_ICON_SM} ${TONE_GHOST_OK} ${FOCUS_RING}`}><Check size={13} /></button>

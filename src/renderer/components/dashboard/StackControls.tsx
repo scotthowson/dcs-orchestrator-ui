@@ -15,10 +15,11 @@ import { useConfirm } from '../common/ConfirmDialog'
 import Hint from '../common/Hint'
 import { BTN_ICON_SM, TONE_GHOST, TONE_GHOST_DANGER, TONE_GHOST_OK } from '../../lib/ui'
 import { activityOutcome, opGerund, startedInBackground, waitForStackActivity, type StackOp } from '../../lib/stackActivity'
-import { Card, CardBody, CardEmpty, CardError, CardLoading } from './cardShared'
+import { Card, CardBody } from './cardShared'
 import { StackDot } from '../common/StateChip'
 import { stackIsFine, stackLine, stackLineTone, stackState, STACK_META } from '../../lib/containerState'
 
+import { Skeleton, EmptyState, ErrorState } from '../common/PageState'
 type Op = StackOp
 
 export default function StackControls({ stacks, error, onRetry, onRefresh }: {
@@ -67,11 +68,11 @@ export default function StackControls({ stacks, error, onRetry, onRefresh }: {
   return (
     <Card card="stack-controls" meta={stacks ? `${running}/${stacks.length} up` : undefined} open="stacks" clickable={false}>
       {error && !stacks ? (
-        <CardError title="Could not load the stacks" error={error} onRetry={onRetry} />
+        <ErrorState card title="Could not load the stacks" error={error} onRetry={onRetry} />
       ) : stacks === null ? (
-        <CardLoading label="Loading the stacks…" rows={4} />
+        <Skeleton label="Loading the stacks…" rows={4} />
       ) : stacks.length === 0 ? (
-        <CardEmpty icon={<Boxes size={22} />} title="No stacks yet" hint={`Deploy a template or create a stack on the ${pageLabel('stacks')} page.`} />
+        <EmptyState card icon={<Boxes size={22} />} title="No stacks yet" hint={`Deploy a template or create a stack on the ${pageLabel('stacks')} page.`} />
       ) : (
         <CardBody className="space-y-1">
           {stacks.map((s) => {

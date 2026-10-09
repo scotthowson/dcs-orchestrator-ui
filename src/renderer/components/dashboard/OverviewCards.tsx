@@ -14,8 +14,7 @@ import { useHealthStore } from '../../stores/healthStore'
 import { useApiLink } from '../../hooks/useApiLink'
 import { useConnectionStore } from '../../stores/connectionStore'
 import { useSettingsStore } from '../../stores/settingsStore'
-import { pctTone } from './cardShared'
-
+import { pctTone } from '../../lib/tone'
 // ---------------------------------------------------------------------------
 // AnimatedCounter — Smoothly animates between numeric values using rAF
 // ---------------------------------------------------------------------------
@@ -234,7 +233,7 @@ function StatCard({ icon, label, value, subtitle, accentColor, trend, loading, i
   )
   // a tile that leads to a page is a button (a keyboard reaches it); the others are plain boxes
   return onClick
-    ? <button type="button" onClick={onClick} className={`${className} flex flex-col justify-start`} style={style}>{content}</button>
+    ? <button type="button" onClick={onClick} aria-label={loading ? `${label}: loading` : undefined} aria-busy={loading || undefined} className={`${className} flex flex-col justify-start`} style={style}>{content}</button>
     : <div className={className} style={style}>{content}</div>
 }
 

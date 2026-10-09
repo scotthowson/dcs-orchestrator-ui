@@ -20,9 +20,8 @@ import { sseClient, fleetTagOf, type SSEMessage, type SSEEventType, type FleetTa
 import type { ScopeMember } from '../../hooks/useFleetScope'
 import VmCapsule from '../fleet/VmCapsule'
 import { EmptyState } from '../common/PageState'
-import { BTN_TOOLBAR, TONE_QUIET } from '../../lib/ui'
-import { CARD, CARD_HOVER, FOCUS_RING } from '../../lib/pageKit'
-
+import { BTN_TOOLBAR, TONE_QUIET, FOCUS_RING } from '../../lib/ui'
+import { CARD, CARD_HOVER } from '../../lib/pageKit'
 const MAX_EVENTS = 500
 
 type FilterKey = SSEEventType | 'all'

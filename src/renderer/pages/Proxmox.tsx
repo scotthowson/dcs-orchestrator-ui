@@ -38,7 +38,7 @@ import FleetLinkPanel from '../components/fleet/FleetLinkPanel'
 import JoinHubPanel from '../components/fleet/JoinHubPanel'
 import JoinCodeCard from '../components/fleet/JoinCodeCard'
 import MemberSheet, { type MemberSheetPrefill } from '../components/fleet/MemberSheet'
-import { Sheet, MATCH_LABEL, hostOf, TONE_ATTN, inputCls, labelCls } from '../components/fleet/fleetShared'
+import { MATCH_LABEL, hostOf } from '../components/fleet/fleetShared'
 import { proxmoxVmResize } from '../api/endpoints'
 import { FleetJobCard, JobsSummary, orderJobs } from '../components/fleet/FleetJobsPanel'
 import NewVmSheet, { CapabilityNote, settingsFromDefaults, loadVmSettings, osLabel } from '../components/fleet/NewVmSheet'
@@ -47,16 +47,14 @@ import HostFoldersSheet from '../components/fleet/HostFoldersSheet'
 import SshAccessSheet from '../components/fleet/SshAccessSheet'
 import PageHeader from '../components/common/PageHeader'
 import { pageLabel } from '../constants/pageTitles'
-import {
-  BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD, BTN_CARD_QUIET, BTN_ICON, BTN_ICON_SM, BTN_ICON_QUIET, BTN_ICON_SM_QUIET,
-  BTN_SHEET, BTN_SHEET_QUIET, BTN_SHEET_PRIMARY, BTN_SHEET_DANGER,
-  TONE_QUIET, TONE_OK, TONE_DANGER, TONE_GHOST, TONE_GHOST_OK, TONE_GHOST_DANGER,
-} from '../lib/ui'
+import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD, BTN_CARD_QUIET, BTN_ICON, BTN_ICON_SM, BTN_ICON_QUIET, BTN_ICON_SM_QUIET, BTN_SHEET, BTN_SHEET_QUIET, BTN_SHEET_PRIMARY, BTN_SHEET_DANGER, TONE_QUIET, TONE_OK, TONE_DANGER, TONE_GHOST, TONE_GHOST_OK, TONE_GHOST_DANGER, TONE_ATTN } from '../lib/ui'
 import { useModalA11y } from '../hooks/useModalA11y'
 import Hint from '../components/common/Hint'
 import { StateDot, StackDot, AsleepCount } from '../components/common/StateChip'
 import { containerState, countStates, countsFrom, statesLine, fineCount, problemCount, stackIsFine, stackState, STATE_META, STACK_META, type StateCounts } from '../lib/containerState'
 
+import Sheet from '../components/common/Sheet'
+import { INPUT_FLEET, LABEL } from '../lib/fieldStyles'
 const STATUS_POLL = 20_000
 const LIST_POLL = 15_000
 const TASK_POLL = 30_000
@@ -934,7 +932,7 @@ function VmSheet({ vm, member, live, isAdmin, busyKey, pveUrl, refreshTick = 0, 
     if (d.config.description) facts.push(['Description', <span className="whitespace-pre-line break-words">{d.config.description}</span>])
   }
   return (
-    <Sheet title={vm.name} subtitle={<>
+    <Sheet tone="fleet" title={vm.name} subtitle={<>
       {`${vm.type === 'qemu' ? 'VM' : 'Container'} ${vm.vmid} on ${vm.node} · ${shown.status}${running ? ` · up ${fmtUptime(d?.uptime ?? vm.uptime)}` : ''}`}
       {vm.tags.length > 0 && <span className="flex flex-wrap items-center gap-1 mt-1.5"><TagChips tags={vm.tags} /></span>}
     </>} icon={<Server size={18} />} onClose={onClose} wide footer={(isAdmin || pveUrl) ? (
@@ -1068,9 +1066,9 @@ function ResizePanel({ vm, running, cores, memoryMb, diskBytes, onDone }: { vm: 
       {open && (
         <div className="mt-3 space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div><label htmlFor={`rs-disk-${vm.vmid}`} className={labelCls}>Add disk (GB)</label><input id={`rs-disk-${vm.vmid}`} type="number" min={0} max={4096} value={addGb} onChange={(e) => setAddGb(e.target.value)} className={`${inputCls} tabular-nums`} disabled={busy} /></div>
-            <div><label htmlFor={`rs-cores-${vm.vmid}`} className={labelCls}>Cores</label><input id={`rs-cores-${vm.vmid}`} type="number" min={1} max={128} value={c} onChange={(e) => setC(e.target.value)} className={`${inputCls} tabular-nums`} disabled={busy} /></div>
-            <div><label htmlFor={`rs-mem-${vm.vmid}`} className={labelCls}>Memory (GB)</label><input id={`rs-mem-${vm.vmid}`} type="number" min={0.5} step={0.5} value={memGb} onChange={(e) => setMemGb(e.target.value)} className={`${inputCls} tabular-nums`} disabled={busy} /></div>
+            <div><label htmlFor={`rs-disk-${vm.vmid}`} className={LABEL}>Add disk (GB)</label><input id={`rs-disk-${vm.vmid}`} type="number" min={0} max={4096} value={addGb} onChange={(e) => setAddGb(e.target.value)} className={`${INPUT_FLEET} tabular-nums`} disabled={busy} /></div>
+            <div><label htmlFor={`rs-cores-${vm.vmid}`} className={LABEL}>Cores</label><input id={`rs-cores-${vm.vmid}`} type="number" min={1} max={128} value={c} onChange={(e) => setC(e.target.value)} className={`${INPUT_FLEET} tabular-nums`} disabled={busy} /></div>
+            <div><label htmlFor={`rs-mem-${vm.vmid}`} className={LABEL}>Memory (GB)</label><input id={`rs-mem-${vm.vmid}`} type="number" min={0.5} step={0.5} value={memGb} onChange={(e) => setMemGb(e.target.value)} className={`${INPUT_FLEET} tabular-nums`} disabled={busy} /></div>
           </div>
           <p className="text-[11px] text-slate-500">A disk only grows. The filesystem of a VM the hub manages grows at once; other guests grow theirs at the next boot. Cores and memory take effect after a reboot.</p>
           {running && (coresChanged || memChanged) && (
@@ -1137,7 +1135,7 @@ function MemberMenuSheet({ member, vms, onClose, onEdit, onChanged }: { member: 
   const guest = vms.find((v) => v.vmid === member.vmid)
   const canDestroy = !!member.vmid && member.type !== 'lxc'
   return (
-    <Sheet title={member.name} subtitle={`${member.url} · account ${member.username}${guest ? ` · ${guest.type === 'qemu' ? 'VM' : 'LXC'} ${guest.vmid} ${guest.name}` : member.vmid ? ` · guest ${member.vmid}` : ' · no guest yet'}`} icon={<Satellite size={18} />} onClose={onClose}>
+    <Sheet tone="fleet" title={member.name} subtitle={`${member.url} · account ${member.username}${guest ? ` · ${guest.type === 'qemu' ? 'VM' : 'LXC'} ${guest.vmid} ${guest.name}` : member.vmid ? ` · guest ${member.vmid}` : ' · no guest yet'}`} icon={<Satellite size={18} />} onClose={onClose}>
       <div className="space-y-2">
         <p className="text-[11px] text-slate-500">Added {new Date(member.added_at * 1000).toLocaleString()} by {member.added_by} ({member.source === 'join' ? 'joined with a code' : 'added by address'}) · last answered {member.last_seen ? ago(member.last_seen) : 'never'}{member.last_error ? ` · ${member.last_error}` : ''}</p>
         {note && <p className="text-xs text-slate-300 bg-white/[0.03] border border-white/5 rounded-lg px-3 py-2">{note}</p>}
@@ -1151,8 +1149,8 @@ function MemberMenuSheet({ member, vms, onClose, onEdit, onChanged }: { member: 
           <div role="group" aria-label="Confirm destroying the VM" className="rounded-xl border border-rose-500/25 bg-rose-500/[0.06] p-3 space-y-3 animate-fade-in">
             <p className="text-xs text-rose-200">Stop and destroy VM {member.vmid} ({member.name}) on Proxmox, with its disks? Everything in it is lost.</p>
             <div>
-              <label htmlFor="destroy-vm-name" className={labelCls}>Type the stack name <span className="font-mono text-slate-200">{member.name}</span> to confirm</label>
-              <input id="destroy-vm-name" value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={member.name} autoComplete="off" spellCheck={false} autoFocus disabled={busy === 'remove'} className={`${inputCls} font-mono`} />
+              <label htmlFor="destroy-vm-name" className={LABEL}>Type the stack name <span className="font-mono text-slate-200">{member.name}</span> to confirm</label>
+              <input id="destroy-vm-name" value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={member.name} autoComplete="off" spellCheck={false} autoFocus disabled={busy === 'remove'} className={`${INPUT_FLEET} font-mono`} />
             </div>
             <div className="flex gap-2">
               <button type="button" onClick={cancelDestroy} disabled={busy === 'remove'} className={`${BTN_SHEET_QUIET} flex-1`}>Cancel</button>
@@ -1545,12 +1543,12 @@ export default function Proxmox() {
       })()}
       {pending && <ConfirmSheet vm={pending.vm} action={pending.action} onClose={() => setPending(null)} onDone={() => { setTimeout(() => { vms.refresh(); tasks.refresh(); status.refresh(); setRefreshTick((t) => t + 1) }, 1500) }} />}
       {sheet === 'link' && (
-        <Sheet title="Link the VMs" subtitle="Scan the guests for DCS installs and link them; VMs without one get the join code" icon={<Radar size={18} />} onClose={() => setSheet(null)} wide>
+        <Sheet tone="fleet" title="Link the VMs" subtitle="Scan the guests for DCS installs and link them; VMs without one get the join code" icon={<Radar size={18} />} onClose={() => setSheet(null)} wide>
           <FleetLinkPanel vms={vms.data?.vms} onChanged={refreshFleet} />
         </Sheet>
       )}
       {sheet === 'code' && (
-        <Sheet title="Join code" subtitle="What a Docker VM runs to become a member of this hub" icon={<KeyRound size={18} />} onClose={() => setSheet(null)} wide>
+        <Sheet tone="fleet" title="Join code" subtitle="What a Docker VM runs to become a member of this hub" icon={<KeyRound size={18} />} onClose={() => setSheet(null)} wide>
           <JoinCodeCard />
         </Sheet>
       )}

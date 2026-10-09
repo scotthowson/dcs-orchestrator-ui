@@ -23,9 +23,8 @@ import { useToast } from '../common/Toast'
 import { useConfirm } from '../common/ConfirmDialog'
 import { fetchAutheliaSecondStep, setAutheliaSecondStep, repairAutheliaSecondStep, fetchAutheliaVerificationCode } from '../../api/endpoints'
 import type { AutheliaSecondStep, AutheliaStepMode, AutheliaVerificationCode } from '../../../shared/types'
-import { BTN_CARD, BTN_CARD_QUIET, TONE_OK } from '../../lib/ui'
-import { CHOICE, CHOICE_ON, CHOICE_OFF, SUBHEAD, FOCUS_RING } from '../../lib/fieldStyles'
-
+import { BTN_CARD, BTN_CARD_QUIET, TONE_OK, SECTION_LABEL, FOCUS_RING } from '../../lib/ui'
+import { CHOICE, CHOICE_ON, CHOICE_OFF } from '../../lib/fieldStyles'
 const MODES: { id: AutheliaStepMode; label: string; hint: string }[] = [
   { id: 'off', label: 'Password only', hint: 'Authelia asks for the password alone (how every server starts).' },
   { id: 'all', label: 'Every app', hint: 'Every app behind Authelia asks for a code or a passkey after the password.' },
@@ -179,7 +178,7 @@ export default function AppSignInCard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* 1. register a device */}
         <div className="rounded-lg border border-white/5 bg-white/[0.02] p-3 space-y-2.5">
-          <p className={SUBHEAD}>1 · Register a device first</p>
+          <p className={SECTION_LABEL}>1 · Register a device first</p>
           {live?.managed && live.enrol === false && (
             <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-2.5 flex items-start gap-2 flex-wrap" role="status">
               <ShieldAlert size={14} className="text-amber-300 shrink-0 mt-0.5" aria-hidden />
@@ -245,7 +244,7 @@ export default function AppSignInCard() {
 
         {/* 2. choose */}
         <div className="rounded-lg border border-white/5 bg-white/[0.02] p-3 space-y-3">
-          <p className={SUBHEAD} id="second-step-label">2 · Second step at sign-in</p>
+          <p className={SECTION_LABEL} id="second-step-label">2 · Second step at sign-in</p>
           <div role="radiogroup" aria-labelledby="second-step-label" className="flex gap-2 flex-wrap">
             {MODES.map((m) => (
               <button key={m.id} type="button" role="radio" aria-checked={mode === m.id} onClick={() => setMode(m.id)}

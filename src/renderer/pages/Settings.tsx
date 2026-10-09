@@ -39,11 +39,8 @@ import ChatSettingsPanel from '../components/settings/ChatSettingsPanel'
 import { MessageCircle } from 'lucide-react'
 import { DEFAULT_APP_NAME } from '../hooks/useBrand'
 import { OLD_DEFAULT_SUBTITLES } from '../stores/settingsStore'
-import {
-  BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD, BTN_CARD_QUIET, BTN_ICON_SM,
-  TONE_OK, TONE_DANGER, TONE_GHOST, TONE_GHOST_OK, TONE_GHOST_DANGER,
-} from '../lib/ui'
-import { FIELD, INPUT, LABEL, FOCUS_RING as FOCUS, CHOICE, CHOICE_ON, CHOICE_OFF, SUBHEAD } from '../lib/fieldStyles'
+import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD, BTN_CARD_QUIET, BTN_ICON_SM, TONE_OK, TONE_DANGER, TONE_GHOST, TONE_GHOST_OK, TONE_GHOST_DANGER, SECTION_LABEL, FOCUS_RING as FOCUS } from '../lib/ui'
+import { FIELD, INPUT, LABEL, CHOICE, CHOICE_ON, CHOICE_OFF } from '../lib/fieldStyles'
 import { usePolling } from '../hooks/usePolling'
 import { FloatingSaveBar } from '../components/common/FloatingSaveBar'
 import { fetchVersion, fetchDisks, fetchAlertConfig, updateAlertConfig, updateConfig, fetchConfig, authVerify, authChangePassword } from '../api/endpoints'
@@ -538,7 +535,7 @@ function DiskLabelManager() {
       <div>
         <div className="flex items-center gap-2 mb-2">
           <HardDrive size={14} className="text-cyan-400" />
-          <h3 className={SUBHEAD}>Detected drives</h3>
+          <h3 className={SECTION_LABEL}>Detected drives</h3>
         </div>
         <p className="text-[11px] text-slate-500 mb-3">
           Rename the drives the server found; the new names show on the {pageLabel('dashboard')} page.
@@ -632,7 +629,7 @@ function DiskLabelManager() {
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <FolderPlus size={14} className="text-cyan-400" />
-            <h3 className={SUBHEAD}>Custom locations</h3>
+            <h3 className={SECTION_LABEL}>Custom locations</h3>
           </div>
           {!showAddForm && (
             <button
@@ -903,7 +900,7 @@ function AppearanceSettings() {
       <div>
         <div className="flex items-center gap-2 mb-3">
           <Cog size={14} className="text-emerald-400" />
-          <h3 className={SUBHEAD}>Branding</h3>
+          <h3 className={SECTION_LABEL}>Branding</h3>
         </div>
         <p className="text-[11px] text-slate-500 mb-3">
           The name in the sidebar and on the sign-in screen, and the line under it. Leave the line empty to show the server&apos;s name.
@@ -941,7 +938,7 @@ function AppearanceSettings() {
       <div>
         <div className="flex items-center gap-2 mb-3">
           <Palette size={14} className="text-emerald-400" />
-          <h3 className={SUBHEAD}>Mode</h3>
+          <h3 className={SECTION_LABEL}>Mode</h3>
         </div>
         <div className="flex flex-wrap items-center gap-2" role="radiogroup" aria-label="Mode">
           {([
@@ -971,7 +968,7 @@ function AppearanceSettings() {
       <div>
         <div className="flex items-center gap-2 mb-3">
           <Image size={14} className="text-cyan-400" />
-          <h3 className={SUBHEAD}>Background image</h3>
+          <h3 className={SECTION_LABEL}>Background image</h3>
         </div>
         <p className="text-[11px] text-slate-500 mb-3">
           Set a custom background image URL (Unsplash, direct URL, etc.)
@@ -1471,7 +1468,7 @@ function AutoLockSettings() {
       <div>
         <div className="flex items-center gap-2 mb-3">
           <LockKeyhole size={14} className="accent-text" />
-          <h3 id="autolock-label" className={SUBHEAD}>Auto-lock</h3>
+          <h3 id="autolock-label" className={SECTION_LABEL}>Auto-lock</h3>
         </div>
         <p className="text-[11px] text-slate-500 mb-3">
           Automatically lock the app after a period of inactivity. You'll need to sign in again.
@@ -1505,7 +1502,7 @@ function AutoLockSettings() {
       <div>
         <div className="flex items-center gap-2 mb-3">
           <Clock size={14} className="accent-text" />
-          <h3 id="session-duration-label" className={SUBHEAD}>Session duration</h3>
+          <h3 id="session-duration-label" className={SECTION_LABEL}>Session duration</h3>
         </div>
         <p className="text-[11px] text-slate-500 mb-3">
           How long your "Remember me" session stays active before requiring sign-in again.
@@ -1546,7 +1543,7 @@ function AutoLockSettings() {
           <div className="flex items-center gap-2">
             <User size={14} className={rememberUsername ? 'text-emerald-400' : 'text-slate-500'} />
             <div>
-              <h3 className={SUBHEAD}>Remember username</h3>
+              <h3 className={SECTION_LABEL}>Remember username</h3>
               <p className="text-[10px] text-slate-500 mt-0.5">Pre-fill your username on the login screen</p>
             </div>
           </div>
@@ -1575,7 +1572,7 @@ function AutoLockSettings() {
               <BellOff size={14} className="text-slate-500" />
             )}
             <div>
-              <h3 className={SUBHEAD}>Toast notifications</h3>
+              <h3 className={SECTION_LABEL}>Toast notifications</h3>
               <p className="text-[10px] text-slate-500 mt-0.5">Show in-app notifications for actions and events</p>
             </div>
           </div>
@@ -2050,7 +2047,7 @@ function SessionInfo() {
     <div className="space-y-2 mb-4">
       <div className="flex items-center gap-2 mb-2">
         <Clock size={14} className="accent-text" />
-        <h3 className={SUBHEAD}>Session</h3>
+        <h3 className={SECTION_LABEL}>Session</h3>
       </div>
       <div className="space-y-1.5">
         <div className="flex items-center justify-between py-1.5">

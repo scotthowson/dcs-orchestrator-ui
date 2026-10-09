@@ -10,8 +10,8 @@ import { useLogStore } from '../../stores/logStore'
 import { useConnectionStore } from '../../stores/connectionStore'
 import VmCapsule from '../fleet/VmCapsule'
 import type { EventEntry } from '../../../shared/types'
-import { Card, CardBody, CardEmpty, CardLoading, CardOffline } from './cardShared'
-
+import { Card, CardBody, CardOffline } from './cardShared'
+import { Skeleton, EmptyState } from '../common/PageState'
 /** what kind of thing it happened to: an icon, never a status colour */
 function eventTypeIcon(type: string): React.ReactNode {
   switch (type) {
@@ -97,13 +97,13 @@ export default function RecentEvents() {
   // The latest events, most recent first: as many as the card is tall (the body scrolls beyond that)
   const recentEvents = [...events].slice(-60).reverse()
 
-  if (loading && events.length === 0) return <Card card="recent-events"><CardLoading label="Loading the events…" rows={5} /></Card>
+  if (loading && events.length === 0) return <Card card="recent-events"><Skeleton label="Loading the events…" rows={5} /></Card>
   if (!isConnected && events.length === 0) return <Card card="recent-events" dim><CardOffline /></Card>
 
   return (
     <Card card="recent-events" open="activity" clickable={false} meta={recentEvents.length > 0 ? `${recentEvents.length} events` : undefined}>
       {recentEvents.length === 0 ? (
-        <CardEmpty icon={<Activity size={22} />} title="No recent events" hint="Events appear here as Docker activity happens." />
+        <EmptyState card icon={<Activity size={22} />} title="No recent events" hint="Events appear here as Docker activity happens." />
       ) : (
         <CardBody>
           <div className="space-y-0.5">

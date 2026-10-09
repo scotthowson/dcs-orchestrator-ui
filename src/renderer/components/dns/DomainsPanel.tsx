@@ -16,8 +16,7 @@ import { useConfirm } from '../common/ConfirmDialog'
 import Hint from '../common/Hint'
 import VmCapsule from '../fleet/VmCapsule'
 import { BTN_CARD, BTN_ICON_SM, TONE_OK, TONE_GHOST_DANGER } from '../../lib/ui'
-import { FIELD } from '../../lib/pageKit'
-
+import { INPUT } from '../../lib/fieldStyles'
 const DOMAIN_RE = /^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?)+$/
 
 function StatusChip({ ok, label, offLabel, title }: { ok: boolean | null; label: string; offLabel: string; title: string }) {
@@ -132,7 +131,7 @@ export default function DomainsPanel({ data, isAdmin, onChanged }: { data: Domai
             <input
               type="text" value={value} onChange={(e) => setValue(e.target.value)} placeholder="another domain, e.g. example.org"
               aria-label="A domain to add" autoComplete="off" spellCheck={false}
-              className={`${FIELD} !pl-8 font-mono !py-2`}
+              className={`${INPUT} !pl-8 font-mono !py-2`}
             />
           </div>
           <button type="submit" disabled={!valid || adding} className={`${BTN_CARD} ${TONE_OK} !h-9 justify-center`}>

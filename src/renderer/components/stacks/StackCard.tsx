@@ -18,6 +18,7 @@ import { AsleepCount } from '../common/StateChip'
 import { STACK_META } from '../../lib/containerState'
 import { serverHostname, memberHost, portUrl } from '../../lib/hosts'
 
+import { REVEAL } from '../../lib/pageKit'
 function formatRelativeTime(timestamp: number): string {
   const seconds = Math.floor((Date.now() - timestamp) / 1000)
   if (seconds < 60) return 'just now'
@@ -217,7 +218,7 @@ export default function StackCard({ stack, isActionLoading, onAction, onSelect, 
               </div>
               <p className="text-xs text-slate-500 truncate mt-0.5 font-mono flex items-center gap-1">
                 {stack.name}
-                <CopyButton text={stack.name} className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100" size={10} />
+                <CopyButton text={stack.name} label="Copy the stack name" className={REVEAL} />
               </p>
             </div>
           </div>
@@ -288,7 +289,7 @@ export default function StackCard({ stack, isActionLoading, onAction, onSelect, 
             <span className="inline-flex items-center gap-1 text-[10px] font-mono text-slate-400" title={`The VM's address: ${vmHost}`}>
               <Globe size={10} className="text-violet-300/70" aria-hidden />
               {vmHost}
-              <CopyButton text={vmHost} className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100" size={9} />
+              <CopyButton text={vmHost} label="Copy the address" className={REVEAL} />
             </span>
           )}
           </div>

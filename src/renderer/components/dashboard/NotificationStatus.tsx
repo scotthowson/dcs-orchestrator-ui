@@ -7,8 +7,8 @@ import { Badge } from '@mantine/core'
 import { useConnectionStore } from '../../stores/connectionStore'
 import { pageLabel } from '../../constants/pageTitles'
 import type { NotificationHistoryResponse } from '../../../shared/types'
-import { Card, CardBody, CardEmpty, CardError, CardLoading, CardOffline } from './cardShared'
-
+import { Card, CardBody, CardOffline } from './cardShared'
+import { Skeleton, EmptyState, ErrorState } from '../common/PageState'
 interface Props {
   data: NotificationHistoryResponse | null
   error?: Error | null
@@ -19,8 +19,8 @@ export default function NotificationStatus({ data, error, onRetry }: Props) {
   const isConnected = useConnectionStore((s) => s.status === 'connected')
 
   if (!isConnected && !data) return <Card card="notifications" dim><CardOffline /></Card>
-  if (!data && error) return <Card card="notifications"><CardError title="Could not load the notifications" error={error} onRetry={onRetry} /></Card>
-  if (!data) return <Card card="notifications"><CardLoading label="Loading the notifications…" rows={2} /></Card>
+  if (!data && error) return <Card card="notifications"><ErrorState card title="Could not load the notifications" error={error} onRetry={onRetry} /></Card>
+  if (!data) return <Card card="notifications"><Skeleton label="Loading the notifications…" rows={2} /></Card>
 
   const history = data.history
   const recent = history.slice(0, 30)   // as many as the card is tall: the body scrolls beyond that
@@ -30,7 +30,7 @@ export default function NotificationStatus({ data, error, onRetry }: Props) {
   return (
     <Card card="notifications" meta={`${recentCount} in 24h`} open="notifications">
       {recent.length === 0 ? (
-        <CardEmpty icon={<Bell size={22} />} title="No notifications sent" hint={`Set up webhooks and rules on the ${pageLabel('notifications')} page.`} />
+        <EmptyState card icon={<Bell size={22} />} title="No notifications sent" hint={`Set up webhooks and rules on the ${pageLabel('notifications')} page.`} />
       ) : (
         <CardBody className="space-y-1.5">
           {recent.map((h) => {

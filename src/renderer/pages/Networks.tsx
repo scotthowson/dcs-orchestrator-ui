@@ -37,12 +37,10 @@ import { LoadingState, ErrorState, EmptyState } from '../components/common/PageS
 import ModalOverlay from '../components/common/ModalOverlay'
 import PageHeader from '../components/common/PageHeader'
 import Hint from '../components/common/Hint'
-import {
-  BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD, BTN_CARD_QUIET, BTN_ICON, BTN_ICON_SM,
-  BTN_SHEET_QUIET, BTN_SHEET_PRIMARY, TONE_QUIET, TONE_OK, TONE_DANGER, TONE_GHOST, TONE_GHOST_DANGER,
-} from '../lib/ui'
-import { CARD, SEARCH_FIELD, FIELD, FOCUS_RING, REVEAL } from '../lib/pageKit'
-
+import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD, BTN_CARD_QUIET, BTN_ICON, BTN_ICON_SM, BTN_SHEET_QUIET, BTN_SHEET_PRIMARY, TONE_QUIET, TONE_OK, TONE_DANGER, TONE_GHOST, TONE_GHOST_DANGER, FOCUS_RING } from '../lib/ui'
+import { CARD, REVEAL } from '../lib/pageKit'
+import { SEARCH_FIELD, INPUT } from '../lib/fieldStyles'
+import StatTile from '../components/common/StatTile'
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -203,7 +201,7 @@ function NetworkFormModal({ initial, onClose, onSaved }: {
               autoFocus={!editing}
               disabled={editing}
               spellCheck={false}
-              className={`${FIELD} font-mono disabled:opacity-60 disabled:cursor-not-allowed`}
+              className={`${INPUT} font-mono disabled:opacity-60 disabled:cursor-not-allowed`}
             />
           </div>
 
@@ -230,11 +228,11 @@ function NetworkFormModal({ initial, onClose, onSaved }: {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label htmlFor={`${uid}-subnet`} className="block text-xs font-medium text-slate-400 mb-1.5">Subnet <span className="text-slate-500">(optional)</span></label>
-              <input id={`${uid}-subnet`} type="text" value={subnet} onChange={(e) => setSubnet(e.target.value)} placeholder="172.20.0.0/16" spellCheck={false} className={`${FIELD} font-mono`} />
+              <input id={`${uid}-subnet`} type="text" value={subnet} onChange={(e) => setSubnet(e.target.value)} placeholder="172.20.0.0/16" spellCheck={false} className={`${INPUT} font-mono`} />
             </div>
             <div>
               <label htmlFor={`${uid}-gateway`} className="block text-xs font-medium text-slate-400 mb-1.5">Gateway <span className="text-slate-500">(optional)</span></label>
-              <input id={`${uid}-gateway`} type="text" value={gateway} onChange={(e) => setGateway(e.target.value)} placeholder="172.20.0.1" spellCheck={false} className={`${FIELD} font-mono`} />
+              <input id={`${uid}-gateway`} type="text" value={gateway} onChange={(e) => setGateway(e.target.value)} placeholder="172.20.0.1" spellCheck={false} className={`${INPUT} font-mono`} />
             </div>
           </div>
 
@@ -249,7 +247,7 @@ function NetworkFormModal({ initial, onClose, onSaved }: {
             <div className="space-y-4 animate-fade-in rounded-lg border border-white/5 bg-white/[0.02] p-4">
               <div>
                 <label htmlFor={`${uid}-range`} className="block text-xs font-medium text-slate-400 mb-1.5">IP range <span className="text-slate-500">(optional)</span></label>
-                <input id={`${uid}-range`} type="text" value={ipRange} onChange={(e) => setIpRange(e.target.value)} placeholder="172.20.5.0/24" spellCheck={false} className={`${FIELD} font-mono`} />
+                <input id={`${uid}-range`} type="text" value={ipRange} onChange={(e) => setIpRange(e.target.value)} placeholder="172.20.5.0/24" spellCheck={false} className={`${INPUT} font-mono`} />
                 <p className="text-[11px] text-slate-500 mt-1">Containers get addresses from this part of the subnet only</p>
               </div>
               <OptionToggle on={attachable} onToggle={() => setAttachable(!attachable)} icon={<Link2 size={12} className="text-slate-500" />} label="Attachable" hint="Standalone containers may join with docker network connect (overlay networks need this)" />
@@ -265,9 +263,9 @@ function NetworkFormModal({ initial, onClose, onSaved }: {
                   <div className="space-y-1.5">
                     {labels.map((l, i) => (
                       <div key={i} className="flex items-center gap-1.5">
-                        <input aria-label={`Label ${i + 1} key`} type="text" value={l.key} onChange={(e) => setLabels((prev) => prev.map((x, j) => (j === i ? { ...x, key: e.target.value } : x)))} placeholder="key" spellCheck={false} className={`${FIELD} font-mono !py-1.5 !text-xs`} />
+                        <input aria-label={`Label ${i + 1} key`} type="text" value={l.key} onChange={(e) => setLabels((prev) => prev.map((x, j) => (j === i ? { ...x, key: e.target.value } : x)))} placeholder="key" spellCheck={false} className={`${INPUT} font-mono !py-1.5 !text-xs`} />
                         <span className="text-slate-500">=</span>
-                        <input aria-label={`Label ${i + 1} value`} type="text" value={l.value} onChange={(e) => setLabels((prev) => prev.map((x, j) => (j === i ? { ...x, value: e.target.value } : x)))} placeholder="value" spellCheck={false} className={`${FIELD} font-mono !py-1.5 !text-xs`} />
+                        <input aria-label={`Label ${i + 1} value`} type="text" value={l.value} onChange={(e) => setLabels((prev) => prev.map((x, j) => (j === i ? { ...x, value: e.target.value } : x)))} placeholder="value" spellCheck={false} className={`${INPUT} font-mono !py-1.5 !text-xs`} />
                         <Hint label="Remove label">
                           <button type="button" aria-label={`Remove label ${i + 1}`} onClick={() => setLabels((prev) => prev.filter((_, j) => j !== i))} className={`${BTN_ICON_SM} ${TONE_GHOST_DANGER} ${FOCUS_RING}`}><X size={12} /></button>
                         </Hint>
@@ -527,7 +525,7 @@ function NetworkDetailPanel({ network, onClose, onRefresh, onEdit, isAdmin }: {
                           <p className="text-sm text-slate-200 font-mono truncate">{c.name}</p>
                           <span className="inline-flex items-center gap-1">
                             <span className="text-[11px] text-slate-500 font-mono">{c.ipv4 || 'No IP assigned'}</span>
-                            {c.ipv4 && <CopyButton text={c.ipv4} size={10} />}
+                            {c.ipv4 && <CopyButton text={c.ipv4} label="Copy the address" />}
                           </span>
                         </div>
                       </div>
@@ -561,7 +559,7 @@ function NetworkDetailPanel({ network, onClose, onRefresh, onEdit, isAdmin }: {
                       value={connectTarget}
                       onChange={(e) => setConnectTarget(e.target.value)}
                       disabled={connectable.length === 0}
-                      className={`${FIELD} flex-1 min-w-0 !px-3 !py-2 !text-xs disabled:opacity-60`}
+                      className={`${INPUT} flex-1 min-w-0 !px-3 !py-2 !text-xs disabled:opacity-60`}
                     >
                       <option value="">{connectable.length ? 'Choose a container…' : 'Every container is already connected'}</option>
                       {connectable.map((n) => <option key={n} value={n}>{n}</option>)}
@@ -725,21 +723,6 @@ function NetworkCardSkeleton() {
   )
 }
 
-/** one of the three counts above the list */
-function StatTile({ icon, label, short, value }: { icon: ReactNode; label: string; /** the label on a phone, where three tiles share a row */ short?: string; value: number }) {
-  return (
-    <div className={`${CARD} hover:border-white/10 transition-colors p-3 sm:p-4`}>
-      <div className="flex items-center gap-2 mb-1.5">
-        {icon}
-        <span className="text-[10px] text-slate-500 uppercase tracking-wider truncate">
-          {short ? <><span className="sm:hidden">{short}</span><span className="hidden sm:inline">{label}</span></> : label}
-        </span>
-      </div>
-      <p className="text-xl md:text-2xl font-bold text-slate-100 tabular-nums">{value}</p>
-    </div>
-  )
-}
-
 // ---------------------------------------------------------------------------
 // Main Component
 // ---------------------------------------------------------------------------
@@ -885,9 +868,9 @@ export default function Networks() {
 
       {/* Stats row — 3 columns */}
       <div className="grid grid-cols-3 gap-2 sm:gap-3">
-        <StatTile icon={<Network size={14} className="text-cyan-400 shrink-0" aria-hidden />} label="Total networks" short="Total" value={networks.length} />
-        <StatTile icon={<Plus size={14} className="text-cyan-400 shrink-0" aria-hidden />} label="Custom networks" short="Custom" value={userNetworks.length} />
-        <StatTile icon={<Plug size={14} className="text-cyan-400 shrink-0" aria-hidden />} label="Connections" short="Links" value={totalContainers} />
+        <StatTile icon={Network} label="Total networks" short="Total" value={networks.length} />
+        <StatTile icon={Plus} label="Custom networks" short="Custom" value={userNetworks.length} />
+        <StatTile icon={Plug} label="Connections" short="Links" value={totalContainers} />
       </div>
 
       {/* Search + sort bar */}

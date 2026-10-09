@@ -9,10 +9,10 @@ import { useEffect, useState } from 'react'
 import { KeyRound, Loader2, RefreshCw, Trash2 } from 'lucide-react'
 import { createFleetJoinToken, fetchFleetJoinTokens, revokeFleetJoinToken } from '../../api/endpoints'
 import type { FleetJoinToken } from '../../../shared/types'
-import { CopyChip } from './fleetShared'
 import Hint from '../common/Hint'
 import { BTN_CARD_QUIET } from '../../lib/ui'
 
+import { CopyButton } from '../common/CopyButton'
 export default function JoinCodeCard({ compact = false, autoMint = true }: { compact?: boolean; autoMint?: boolean }) {
   const [hubUrl, setHubUrl] = useState('')
   const [tokens, setTokens] = useState<FleetJoinToken[]>([])
@@ -52,21 +52,21 @@ export default function JoinCodeCard({ compact = false, autoMint = true }: { com
         <>
           <div className="flex items-center gap-2 flex-wrap">
             <code className="text-sm font-mono tracking-wider text-slate-100 bg-black/30 rounded-lg px-2.5 py-1">{latest.token}</code>
-            <CopyChip text={latest.token} label="Copy" />
+            <CopyButton variant="chip" text={latest.token} label="Copy" />
             <span className="text-[11px] text-slate-500">valid until {new Date(latest.expires_at * 1000).toLocaleString()}{latest.uses ? ` · used ${latest.uses}×` : ''}</span>
           </div>
           <div className="space-y-1.5">
             <p className="text-[11px] text-slate-400">On any Debian, Ubuntu, Fedora or Arch VM, as a user with sudo — installs Docker and DCS as a node of this hub and joins it:</p>
             <div className="flex items-start gap-2">
               <pre className="flex-1 min-w-0 text-[11px] font-mono text-slate-300 bg-black/30 rounded-lg p-2.5 overflow-x-auto whitespace-pre-wrap break-all">{nodeCmd}</pre>
-              <CopyChip text={nodeCmd} label="Copy" />
+              <CopyButton variant="chip" text={nodeCmd} label="Copy" />
             </div>
             {!compact && (
               <>
                 <p className="text-[11px] text-slate-400">On a VM that already runs a full DCS (it keeps its own dashboard and accounts):</p>
                 <div className="flex items-start gap-2">
                   <pre className="flex-1 min-w-0 text-[11px] font-mono text-slate-300 bg-black/30 rounded-lg p-2.5 overflow-x-auto whitespace-pre-wrap break-all">{joinCmd}</pre>
-                  <CopyChip text={joinCmd} label="Copy" />
+                  <CopyButton variant="chip" text={joinCmd} label="Copy" />
                 </div>
               </>
             )}

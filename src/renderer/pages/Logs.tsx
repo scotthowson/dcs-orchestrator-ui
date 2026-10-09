@@ -25,9 +25,9 @@ import { ErrorState, EmptyState, LoadingState } from '../components/common/PageS
 import PageHeader from '../components/common/PageHeader'
 import Hint from '../components/common/Hint'
 import { pageLabel } from '../constants/pageTitles'
-import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD_QUIET, BTN_ICON_SM, TONE_QUIET, TONE_GHOST } from '../lib/ui'
-import { CARD, SEARCH_FIELD, FOCUS_RING } from '../lib/pageKit'
-
+import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD_QUIET, BTN_ICON_SM, TONE_QUIET, TONE_GHOST, FOCUS_RING } from '../lib/ui'
+import { CARD } from '../lib/pageKit'
+import { SEARCH_FIELD } from '../lib/fieldStyles'
 // ---------------------------------------------------------------------------
 // Log level config
 // ---------------------------------------------------------------------------

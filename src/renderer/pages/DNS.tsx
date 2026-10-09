@@ -42,13 +42,9 @@ import { useToast } from '../components/common/Toast'
 import { DisconnectedBanner } from '../components/common/DisconnectedBanner'
 import VmCapsule from '../components/fleet/VmCapsule'
 import PageHeader from '../components/common/PageHeader'
-import { TONE_ATTN } from '../components/fleet/fleetShared'
 import Hint from '../components/common/Hint'
 import { pageLabel } from '../constants/pageTitles'
-import {
-  BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD, BTN_CARD_QUIET, BTN_ICON_SM, BTN_SHEET_QUIET, BTN_SHEET_PRIMARY, BTN_SHEET_DANGER,
-  TONE_OK, TONE_GHOST_OK,
-} from '../lib/ui'
+import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD, BTN_CARD_QUIET, BTN_ICON_SM, BTN_SHEET_QUIET, BTN_SHEET_PRIMARY, BTN_SHEET_DANGER, TONE_OK, TONE_GHOST_OK, TONE_ATTN } from '../lib/ui'
 import { apiClient } from '../api/client'
 import { memberPath } from '../api/endpoints'
 // a route the hub's Traefik serves for a VM (from fleet-members.yml): the file lives on that VM

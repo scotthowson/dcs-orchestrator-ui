@@ -8,10 +8,15 @@
 import { useEffect, useState } from 'react'
 import { CircleAlert, CircleCheck, FileCheck2, Info, Loader2, MessageSquare, Radio, RefreshCw, Send, ShieldCheck, TriangleAlert, Webhook } from 'lucide-react'
 import type { CrowdSecNotifyResponse } from '../../../shared/types'
-import { CARD, Chip, Dot, ICON_BTN, Switch, fmtAgo, fmtTime, useNow, type Tone } from './kit'
+import { fmtAgo, fmtTime, useNow } from './kit'
 import { redact, sampleLabel } from './NotifyModel'
-import { Notice } from './NotifyFields'
-
+import { BTN_ICON_QUIET } from '../../lib/ui'
+import { CARD } from '../../lib/pageKit'
+import { type Tone } from '../../lib/tone'
+import { Pill, Dot } from '../common/Pill'
+import { Toggle } from '../common/Toggle'
+import StatusLine from '../common/StatusLine'
+import Notice from '../common/Notice'
 export interface TestOutcomeData { at: number; ok: boolean; http: number; message: string; sample: string }
 
 const MODE_SHORT: Record<string, string> = { global: 'Global', custom: 'Custom', keep: 'Kept from file' }
@@ -20,13 +25,13 @@ const MODE_SHORT: Record<string, string> = { global: 'Global', custom: 'Custom',
 export function healthOf(v: CrowdSecNotifyResponse): { tone: Tone; title: string; detail: string } {
   const st = v.state
   const problems = v.status.delivery_errors.length
-  if (!st.enabled && !st.wired) return { tone: 'mute', title: 'Discord alerts are off', detail: 'CrowdSec detects and bans as usual. Nothing is sent to Discord.' }
-  if (!st.enabled && st.wired) return { tone: 'warn', title: 'Off in the settings, but CrowdSec still sends alerts', detail: 'The profile in CrowdSec still points at the Discord plugin. Save and apply to write the profile again.' }
-  if (!v.webhook.configured) return { tone: 'warn', title: 'Turned on, but there is no webhook to post to', detail: `The ${MODE_SHORT[v.webhook.mode]?.toLowerCase() ?? 'chosen'} webhook source has no address. Choose a webhook below.` }
-  if (!st.wired) return { tone: 'warn', title: 'Turned on, but CrowdSec does not send alerts yet', detail: 'Save and apply writes the profile and the notification file, then restarts CrowdSec.' }
-  if (!st.plugin_active) return { tone: 'warn', title: 'The Discord plugin is not active in CrowdSec', detail: 'CrowdSec did not load the notification. Save and apply again, or look at the CrowdSec log.' }
-  if (problems > 0) return { tone: 'warn', title: 'Set up, but CrowdSec reported delivery problems', detail: `${problems} problem${problems === 1 ? '' : 's'} in the last 24 hours, listed below.` }
-  return { tone: 'good', title: 'Discord alerts are working', detail: 'Alerts are wired into CrowdSec, the plugin is active and a webhook is set. Send a test message to see it arrive.' }
+  if (!st.enabled && !st.wired) return { tone: 'neutral', title: 'Discord alerts are off', detail: 'CrowdSec detects and bans as usual. Nothing is sent to Discord.' }
+  if (!st.enabled && st.wired) return { tone: 'attention', title: 'Off in the settings, but CrowdSec still sends alerts', detail: 'The profile in CrowdSec still points at the Discord plugin. Save and apply to write the profile again.' }
+  if (!v.webhook.configured) return { tone: 'attention', title: 'Turned on, but there is no webhook to post to', detail: `The ${MODE_SHORT[v.webhook.mode]?.toLowerCase() ?? 'chosen'} webhook source has no address. Choose a webhook below.` }
+  if (!st.wired) return { tone: 'attention', title: 'Turned on, but CrowdSec does not send alerts yet', detail: 'Save and apply writes the profile and the notification file, then restarts CrowdSec.' }
+  if (!st.plugin_active) return { tone: 'attention', title: 'The Discord plugin is not active in CrowdSec', detail: 'CrowdSec did not load the notification. Save and apply again, or look at the CrowdSec log.' }
+  if (problems > 0) return { tone: 'attention', title: 'Set up, but CrowdSec reported delivery problems', detail: `${problems} problem${problems === 1 ? '' : 's'} in the last 24 hours, listed below.` }
+  return { tone: 'ok', title: 'Discord alerts are working', detail: 'Alerts are wired into CrowdSec, the plugin is active and a webhook is set. Send a test message to see it arrive.' }
 }
 
 function Check({ label, value, tone, title }: { label: string; value: string; tone: Tone; title?: string }) {
@@ -35,21 +40,6 @@ function Check({ label, value, tone, title }: { label: string; value: string; to
       <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 truncate">{label}</p>
       <p className="mt-0.5 sm:mt-1 flex items-center gap-1.5 text-[13px] sm:text-sm text-slate-200 min-w-0"><Dot tone={tone} /><span className="truncate">{value}</span></p>
     </div>
-  )
-}
-
-function Outcome({ icon: Icon, tone, title, children }: { icon: React.ElementType; tone: Tone; title: string; children: React.ReactNode }) {
-  const cls = tone === 'good' ? 'text-emerald-400' : tone === 'bad' ? 'text-rose-400' : tone === 'warn' ? 'text-amber-400' : 'text-slate-500'
-  // a quiet line is just its title; a problem always says what it is
-  const show = tone === 'bad' || tone === 'warn'
-  return (
-    <li className="flex items-start gap-2.5 py-1.5 first:pt-0 last:pb-0 min-w-0">
-      <Icon size={15} className={`shrink-0 mt-0.5 ${cls}`} aria-hidden="true" />
-      <div className="min-w-0 flex-1">
-        <p className="text-sm text-slate-200 leading-snug">{title}</p>
-        {show && <div className="text-xs text-slate-500 mt-0.5 leading-relaxed break-words">{children}</div>}
-      </div>
-    </li>
   )
 }
 
@@ -69,33 +59,33 @@ export function StatusCard({ data, isAdmin, enabled, onToggle, busy, refreshFail
   const st = data.state
   const wh = data.webhook
   const h = healthOf(data)
-  const file = st.file === 'dcs' ? { v: 'Written by DCS', tone: 'good' as Tone, t: 'The notification file was written by this page' }
-    : st.file === 'other' ? { v: 'Set up elsewhere', tone: 'warn' as Tone, t: 'The notification file was not written by this page: it is CrowdSec’s own sample, comes from a stack template or was edited by hand. Saving here replaces it (a copy is kept).' }
-    : { v: 'Not created', tone: (st.enabled ? 'warn' : 'mute') as Tone, t: 'There is no notification file yet' }
+  const file = st.file === 'dcs' ? { v: 'Written by DCS', tone: 'ok' as Tone, t: 'The notification file was written by this page' }
+    : st.file === 'other' ? { v: 'Set up elsewhere', tone: 'attention' as Tone, t: 'The notification file was not written by this page: it is CrowdSec’s own sample, comes from a stack template or was edited by hand. Saving here replaces it (a copy is kept).' }
+    : { v: 'Not created', tone: (st.enabled ? 'attention' : 'neutral') as Tone, t: 'There is no notification file yet' }
   const t = lastTest
   const la = data.status.last_apply
   const errs = data.status.delivery_errors
   return (
     <section className={`${CARD} p-4`} aria-label="Status of the Discord alerts">
       <div className="flex items-start gap-3">
-        <div className={`h-10 w-10 rounded-xl border border-white/5 flex items-center justify-center shrink-0 ${h.tone === 'good' ? 'bg-emerald-500/15 text-emerald-400' : h.tone === 'warn' ? 'bg-amber-500/15 text-amber-400' : 'bg-white/[0.05] text-slate-500'}`}><MessageSquare size={18} /></div>
+        <div className={`h-10 w-10 rounded-xl border border-white/5 flex items-center justify-center shrink-0 ${h.tone === 'ok' ? 'bg-emerald-500/15 text-emerald-400' : h.tone === 'attention' ? 'bg-amber-500/15 text-amber-400' : 'bg-white/[0.05] text-slate-500'}`}><MessageSquare size={18} /></div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
             <h2 className="text-sm font-semibold text-slate-100">{h.title}</h2>
-            <Chip tone={h.tone} className="hidden sm:inline-flex">{h.tone === 'good' ? 'working' : h.tone === 'warn' ? 'needs attention' : 'off'}</Chip>
-            {refreshFailed && <Chip tone="warn" title="The last refresh failed. What you see is the last answer.">could not refresh</Chip>}
+            <Pill tone={h.tone} className="hidden sm:inline-flex">{h.tone === 'ok' ? 'working' : h.tone === 'attention' ? 'needs attention' : 'off'}</Pill>
+            {refreshFailed && <Pill tone="attention" title="The last refresh failed. What you see is the last answer.">could not refresh</Pill>}
           </div>
           <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">{h.detail}</p>
           {isAdmin && !st.enabled && !st.wired && !data.status.last_apply && (
             <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">To start: choose where the messages go (Webhook), turn the switch below on, press Save and apply, then send a test message.</p>
           )}
         </div>
-        <button type="button" className={ICON_BTN} onClick={onRefresh} aria-label="Refresh the status" title="Ask CrowdSec again"><RefreshCw size={14} /></button>
+        <button type="button" className={BTN_ICON_QUIET} onClick={onRefresh} aria-label="Refresh the status" title="Ask CrowdSec again"><RefreshCw size={14} /></button>
       </div>
 
       {isAdmin && (
         <div className="mt-4 flex items-start gap-3 rounded-lg border border-white/5 bg-white/[0.02] px-3 py-3">
-          <div className="pt-0.5"><Switch id="notify-enabled" checked={enabled} onChange={onToggle} label="Send CrowdSec's alerts to Discord" disabled={busy} /></div>
+          <div className="pt-0.5"><Toggle id="notify-enabled" checked={enabled} onChange={onToggle} label="Send CrowdSec's alerts to Discord" disabled={busy} /></div>
           <div className="min-w-0 flex-1">
             <label htmlFor="notify-enabled" className="block text-sm text-slate-100 cursor-pointer">Send CrowdSec’s alerts to Discord</label>
             <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">When on, CrowdSec posts a message to your channel for each ban it makes.<span className="hidden sm:inline"> Applying a change restarts CrowdSec for a few seconds; bans stay in place.</span> Default: on for a new setup.</p>
@@ -104,35 +94,35 @@ export function StatusCard({ data, isAdmin, enabled, onToggle, busy, refreshFail
       )}
 
       <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2">
-        <Check label="Alerts" value={st.enabled ? 'On' : 'Off'} tone={st.enabled ? 'good' : 'mute'} title="Whether the saved settings send alerts" />
-        <Check label="Webhook" value={wh.configured ? (MODE_SHORT[wh.mode] ?? 'Set') : 'Not set'} tone={wh.configured ? 'good' : st.enabled ? 'warn' : 'mute'} title={wh.configured ? undefined : 'No address for the chosen webhook source'} />
-        <Check label="In the profile" value={st.wired ? 'Yes' : 'No'} tone={st.wired ? 'good' : st.enabled ? 'warn' : 'mute'} title="Whether CrowdSec’s profile hands alerts to the Discord plugin" />
-        <Check label="Plugin" value={st.plugin_active ? 'Active' : 'Not active'} tone={st.plugin_active ? 'good' : st.enabled ? 'warn' : 'mute'} title="Whether CrowdSec loaded the http_default notification" />
+        <Check label="Alerts" value={st.enabled ? 'On' : 'Off'} tone={st.enabled ? 'ok' : 'neutral'} title="Whether the saved settings send alerts" />
+        <Check label="Webhook" value={wh.configured ? (MODE_SHORT[wh.mode] ?? 'Set') : 'Not set'} tone={wh.configured ? 'ok' : st.enabled ? 'attention' : 'neutral'} title={wh.configured ? undefined : 'No address for the chosen webhook source'} />
+        <Check label="In the profile" value={st.wired ? 'Yes' : 'No'} tone={st.wired ? 'ok' : st.enabled ? 'attention' : 'neutral'} title="Whether CrowdSec’s profile hands alerts to the Discord plugin" />
+        <Check label="Plugin" value={st.plugin_active ? 'Active' : 'Not active'} tone={st.plugin_active ? 'ok' : st.enabled ? 'attention' : 'neutral'} title="Whether CrowdSec loaded the http_default notification" />
         <Check label="Notification file" value={file.v} tone={file.tone} title={file.t} />
-        <Check label="Delivering" value={st.working ? (errs.length > 0 ? 'With problems' : 'Yes') : 'Not yet'} tone={st.working ? (errs.length > 0 ? 'warn' : 'good') : 'mute'} title="On, wired, plugin active and a webhook set" />
+        <Check label="Delivering" value={st.working ? (errs.length > 0 ? 'With problems' : 'Yes') : 'Not yet'} tone={st.working ? (errs.length > 0 ? 'attention' : 'ok') : 'neutral'} title="On, wired, plugin active and a webhook set" />
       </div>
       {st.drift && (
-        <div className="mt-3"><Notice tone="warn" icon={TriangleAlert} title="The notification file was changed by hand after DCS wrote it">Saving here writes it again from the settings on this page.</Notice></div>
+        <div className="mt-3"><Notice tone="attention" icon={TriangleAlert} title="The notification file was changed by hand after DCS wrote it">Saving here writes it again from the settings on this page.</Notice></div>
       )}
 
       <ul className="mt-4 divide-y divide-white/5 border-t border-white/5 pt-3" aria-label="Recent outcomes">
         {la
-          ? <Outcome icon={la.ok ? ShieldCheck : CircleAlert} tone={la.ok ? 'good' : 'bad'} title={la.ok ? `Last change applied ${fmtAgo(la.at, now)}` : `The last change failed ${fmtAgo(la.at, now)}`}>{redact(la.message)}</Outcome>
-          : <Outcome icon={ShieldCheck} tone="mute" title="No change has been applied from this page yet">Settings you save here are written to CrowdSec, which restarts to load them.</Outcome>}
+          ? <StatusLine as="li" icon={la.ok ? ShieldCheck : CircleAlert} tone={la.ok ? 'ok' : 'problem'} title={la.ok ? `Last change applied ${fmtAgo(la.at, now)}` : `The last change failed ${fmtAgo(la.at, now)}`}>{!la.ok && redact(la.message)}</StatusLine>
+          : <StatusLine as="li" icon={ShieldCheck} tone="neutral" title="No change has been applied from this page yet" />}
         {t
-          ? <Outcome icon={t.ok ? Send : CircleAlert} tone={t.ok ? 'good' : 'bad'} title={t.ok ? `Last test message delivered ${fmtAgo(t.at, now)}` : `The last test message failed ${fmtAgo(t.at, now)}`}>
-              {redact(t.message)} <span className="text-slate-500">· {sampleLabel(t.sample)}{t.http ? ` · HTTP ${t.http}` : ''}</span>
-            </Outcome>
-          : <Outcome icon={Send} tone="mute" title="No test message has been sent yet">{isAdmin ? 'Use “Send test message” next to the preview to see one arrive in your channel.' : 'An administrator can send a test message.'}</Outcome>}
+          ? <StatusLine as="li" icon={t.ok ? Send : CircleAlert} tone={t.ok ? 'ok' : 'problem'} title={t.ok ? `Last test message delivered ${fmtAgo(t.at, now)}` : `The last test message failed ${fmtAgo(t.at, now)}`}>
+              {!t.ok && <>{redact(t.message)} <span className="text-slate-500">· {sampleLabel(t.sample)}{t.http ? ` · HTTP ${t.http}` : ''}</span></>}
+            </StatusLine>
+          : <StatusLine as="li" icon={Send} tone="neutral" title="No test message has been sent yet" />}
         {errs.length > 0
-          ? <Outcome icon={Radio} tone="warn" title={`${errs.length} delivery problem${errs.length === 1 ? '' : 's'} reported by CrowdSec in the last 24 hours`}>
+          ? <StatusLine as="li" icon={Radio} tone="attention" title={`${errs.length} delivery problem${errs.length === 1 ? '' : 's'} reported by CrowdSec in the last 24 hours`}>
               <ul className="space-y-1 mt-1">
                 {errs.map((e) => (
                   <li key={`${e.time}-${e.message}`} className="min-w-0"><span className="text-slate-500 tabular-nums" title={fmtTime(e.time)}>{fmtAgo(e.time, now)}</span> <span className="font-mono text-[11px] text-amber-300 break-words">{redact(e.message)}</span></li>
                 ))}
               </ul>
-            </Outcome>
-          : <Outcome icon={Radio} tone="mute" title="No delivery problems reported">{null}</Outcome>}
+            </StatusLine>
+          : <StatusLine as="li" icon={Radio} tone="neutral" title="No delivery problems reported" />}
       </ul>
 
       <div className="mt-3 pt-3 border-t border-white/5 space-y-1.5">

@@ -13,9 +13,11 @@ import { useConfirm } from '../common/ConfirmDialog'
 import { useAuthStore } from '../../stores/authStore'
 import { fetchSshAccess, createSshKey, deleteSshKey, fetchSshKeyConfig, addSshKeyVms } from '../../api/endpoints'
 import type { SshAccess, SshKeyCreated, SshKeyInfo } from '../../../shared/types'
-import { Sheet, inputCls, labelCls } from './fleetShared'
 import { BTN_SHEET_PRIMARY, BTN_CARD, BTN_CARD_QUIET, TONE_OK, TONE_GHOST_DANGER } from '../../lib/ui'
 
+import Sheet from '../common/Sheet'
+import { INPUT_FLEET, LABEL } from '../../lib/fieldStyles'
+import { CopyBlock } from '../common/CopyButton'
 const NAME_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,31}$/
 const HOST_RE = /^[A-Za-z0-9._:-]{1,253}$/
 const checkCls = 'h-4 w-4 rounded border-white/20 bg-slate-800 accent-emerald-500 shrink-0'
@@ -27,19 +29,6 @@ function saveText(name: string, text: string) {
   const a = document.createElement('a')
   a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove()
   setTimeout(() => URL.revokeObjectURL(url), 2000)
-}
-
-function CopyLine({ text, label }: { text: string; label: string }) {
-  const [done, setDone] = useState(false)
-  return (
-    <div className="relative">
-      <pre className="rounded-lg bg-black/30 border border-white/10 px-3 py-2 pr-10 text-[11px] font-mono text-slate-300 whitespace-pre-wrap break-all">{text}</pre>
-      <button type="button" aria-label={`Copy ${label}`} className={`${BTN_CARD_QUIET} absolute top-1.5 right-1.5`}
-        onClick={() => { navigator.clipboard?.writeText(text).then(() => { setDone(true); setTimeout(() => setDone(false), 1500) }).catch(() => {}) }}>
-        {done ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
-      </button>
-    </div>
-  )
 }
 
 export default function SshAccessSheet({ focus, onClose }: { focus?: string; onClose: () => void }) {
@@ -113,7 +102,7 @@ export default function SshAccessSheet({ focus, onClose }: { focus?: string; onC
   if (made) {
     const first = made.results.find((r) => r.ok)?.name
     return (
-      <Sheet title="Your key is ready" subtitle="It is shown once: the hub keeps no copy of the private half" icon={<KeyRound size={18} />} onClose={onClose} wide
+      <Sheet tone="fleet" title="Your key is ready" subtitle="It is shown once: the hub keeps no copy of the private half" icon={<KeyRound size={18} />} onClose={onClose} wide
         footer={<button type="button" onClick={onClose} className={`${BTN_SHEET_PRIMARY} w-full`}>Done</button>}>
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -121,12 +110,12 @@ export default function SshAccessSheet({ focus, onClose }: { focus?: string; onC
             <button type="button" onClick={() => saveText(made.config_file, made.config)} className={`${BTN_CARD} ${TONE_OK} justify-center py-2.5`}><Download size={14} /> 2 · Download the ssh config <span className="font-mono text-[11px] opacity-80">{made.config_file}</span></button>
           </div>
           <div>
-            <p className={labelCls}>3 · Put them in place (paste into a terminal on your computer)</p>
-            <CopyLine text={setup} label="the setup commands" />
+            <p className={LABEL}>3 · Put them in place (paste into a terminal on your computer)</p>
+            <CopyBlock text={setup} label="the setup commands" />
           </div>
           <div>
-            <p className={labelCls}>4 · Connect</p>
-            <CopyLine text={`ssh ${first ?? '<stack>'}`} label="the ssh command" />
+            <p className={LABEL}>4 · Connect</p>
+            <CopyBlock text={`ssh ${first ?? '<stack>'}`} label="the ssh command" />
           </div>
           <ul className="rounded-lg border border-white/5 divide-y divide-white/5">
             {made.results.map((r) => (
@@ -144,7 +133,7 @@ export default function SshAccessSheet({ focus, onClose }: { focus?: string; onC
 
   // ─── the form ──────────────────────────────────────────────────────────────
   return (
-    <Sheet title="SSH into your VMs" subtitle="A key of your own: the hub makes it, puts its public half on the VMs you tick and gives you the private half once" icon={<TerminalSquare size={18} />} onClose={busy ? () => {} : onClose} wide
+    <Sheet tone="fleet" title="SSH into your VMs" subtitle="A key of your own: the hub makes it, puts its public half on the VMs you tick and gives you the private half once" icon={<TerminalSquare size={18} />} onClose={busy ? () => {} : onClose} wide
       footer={<>
         {err && <p role="alert" className="text-xs text-rose-300 mb-3">{err}</p>}
         <button type="submit" form="ssh-make" disabled={!canMake} className={`${BTN_SHEET_PRIMARY} w-full`}>
@@ -157,7 +146,7 @@ export default function SshAccessSheet({ focus, onClose }: { focus?: string; onC
       {data && data.vms.length > 0 && (
         <form id="ssh-make" onSubmit={make} className="space-y-4">
           <div>
-            <p className={labelCls}>Which VMs <span className="normal-case font-normal text-slate-500">· you sign in as <span className="font-mono">{data.vm_user}</span></span></p>
+            <p className={LABEL}>Which VMs <span className="normal-case font-normal text-slate-500">· you sign in as <span className="font-mono">{data.vm_user}</span></span></p>
             <ul className="rounded-lg border border-white/5 divide-y divide-white/5">
               {data.vms.map((v) => (
                 <li key={v.id}>
@@ -173,14 +162,14 @@ export default function SshAccessSheet({ focus, onClose }: { focus?: string; onC
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label htmlFor="ssh-name" className={labelCls}>Name of the key</label>
-              <input id="ssh-name" value={name} onChange={(e) => setName(e.target.value)} className={`${inputCls} font-mono`} disabled={!!busy} autoComplete="off" />
+              <label htmlFor="ssh-name" className={LABEL}>Name of the key</label>
+              <input id="ssh-name" value={name} onChange={(e) => setName(e.target.value)} className={`${INPUT_FLEET} font-mono`} disabled={!!busy} autoComplete="off" />
               {name && !NAME_RE.test(name) && <p className="mt-1 text-[11px] text-rose-300">Letters, digits, dots, dashes and underscores.</p>}
               {nameTaken && <p className="mt-1 text-[11px] text-rose-300">A key with that name exists already.</p>}
             </div>
             <div>
-              <label htmlFor="ssh-hub" className={labelCls}>The hub's address, as you reach it</label>
-              <input id="ssh-hub" value={hubHost} onChange={(e) => setHubHost(e.target.value)} className={`${inputCls} font-mono`} disabled={!!busy || direct} placeholder={data.hub.host} autoComplete="off" />
+              <label htmlFor="ssh-hub" className={LABEL}>The hub's address, as you reach it</label>
+              <input id="ssh-hub" value={hubHost} onChange={(e) => setHubHost(e.target.value)} className={`${INPUT_FLEET} font-mono`} disabled={!!busy || direct} placeholder={data.hub.host} autoComplete="off" />
             </div>
           </div>
           <div className="space-y-2 text-xs text-slate-300">
@@ -190,15 +179,15 @@ export default function SshAccessSheet({ focus, onClose }: { focus?: string; onC
               <span>Let this key into the hub too, as <span className="font-mono">{data.hub.user}</span> (one key for the whole way). A shell on the hub holds every VM's key: leave it off if you already have a way in.</span></label>
           </div>
           <div>
-            <label htmlFor="ssh-pw" className={labelCls}>Your dashboard password <span className="normal-case font-normal text-slate-500">· asked again before a key is made</span></label>
-            <input id="ssh-pw" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className={inputCls} disabled={!!busy} autoComplete="current-password" />
+            <label htmlFor="ssh-pw" className={LABEL}>Your dashboard password <span className="normal-case font-normal text-slate-500">· asked again before a key is made</span></label>
+            <input id="ssh-pw" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className={INPUT_FLEET} disabled={!!busy} autoComplete="current-password" />
           </div>
         </form>
       )}
 
       {data && data.keys.length > 0 && (
         <div className="mt-5">
-          <p className={labelCls}>Keys made so far</p>
+          <p className={LABEL}>Keys made so far</p>
           <ul className="rounded-lg border border-white/5 divide-y divide-white/5">
             {data.keys.map((k) => {
               const missing = data.vms.filter((v) => v.reachable && !k.members.includes(v.id)).length

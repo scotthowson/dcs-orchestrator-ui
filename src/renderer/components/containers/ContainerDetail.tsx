@@ -1367,13 +1367,13 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
                   <div className="min-w-0 flex-1">
                     <span className="inline-flex items-center gap-1.5">
                       <span className="text-sm font-semibold text-slate-200 font-mono truncate">{img.name}</span>
-                      <CopyButton text={containerInfo.image} size={12} />
+                      <CopyButton text={containerInfo.image} label="Copy the image" />
                     </span>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/15">{img.tag}</span>
                       <span className="inline-flex items-center gap-1">
                         <span className="text-[10px] text-slate-500 font-mono truncate" title={containerInfo.image_id}>{containerInfo.image_id ? containerInfo.image_id.slice(0, 16) : '--'}</span>
-                        {containerInfo.image_id && <CopyButton text={containerInfo.image_id} size={10} />}
+                        {containerInfo.image_id && <CopyButton text={containerInfo.image_id} label="Copy the image ID" />}
                       </span>
                     </div>
                   </div>
@@ -1436,7 +1436,7 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
                       <Network className="h-3 w-3 text-purple-400 flex-shrink-0" />
                       <span className="text-[10px] text-slate-500">{entry.network}</span>
                       <span className="text-xs font-mono text-cyan-400">{entry.ip}</span>
-                      <CopyButton text={entry.ip} size={10} />
+                      <CopyButton text={entry.ip} label="Copy the address" />
                     </div>
                   ))}
                 </div>

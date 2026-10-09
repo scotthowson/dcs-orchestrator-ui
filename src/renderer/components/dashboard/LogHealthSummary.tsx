@@ -5,8 +5,8 @@
 import { Badge } from '@mantine/core'
 import { useConnectionStore } from '../../stores/connectionStore'
 import type { LogStatsResponse } from '../../../shared/types'
-import { Card, CardError, CardLoading, CardOffline } from './cardShared'
-
+import { Card, CardOffline } from './cardShared'
+import { Skeleton, ErrorState } from '../common/PageState'
 interface Props {
   data: LogStatsResponse | null
   error?: Error | null
@@ -17,8 +17,8 @@ export default function LogHealthSummary({ data, error, onRetry }: Props) {
   const isConnected = useConnectionStore((s) => s.status === 'connected')
 
   if (!isConnected && !data) return <Card card="log-health" dim><CardOffline /></Card>
-  if (!data && error) return <Card card="log-health"><CardError title="Could not load the log statistics" error={error} onRetry={onRetry} /></Card>
-  if (!data) return <Card card="log-health"><CardLoading label="Loading the log statistics…" rows={2} /></Card>
+  if (!data && error) return <Card card="log-health"><ErrorState card title="Could not load the log statistics" error={error} onRetry={onRetry} /></Card>
+  if (!data) return <Card card="log-health"><Skeleton label="Loading the log statistics…" rows={2} /></Card>
 
   const { levels, total_lines, file_size } = data
   const clean = levels.critical === 0 && levels.error === 0 && levels.warning === 0

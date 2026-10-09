@@ -14,9 +14,10 @@ import { retryFleetJob, deleteFleetJob, fetchFleetJob } from '../../api/endpoint
 import type { FleetJob, FleetJobStep } from '../../../shared/types'
 import { useConfirm } from '../common/ConfirmDialog'
 import Hint from '../common/Hint'
-import { ago, CopyChip } from './fleetShared'
+import { ago } from './fleetShared'
 import { BTN_CARD, BTN_CARD_QUIET, BTN_ICON_QUIET, TONE_OK } from '../../lib/ui'
 
+import { CopyButton } from '../common/CopyButton'
 // the theme's status colours (lib/themeEngine sets them; the fallbacks are the stock dark look); a template's own
 // steps wear the fleet's violet (Mantine's violet, which every theme keeps)
 const C = { done: 'var(--dcs-success, #34d399)', running: 'var(--dcs-info, #22d3ee)', failed: 'var(--dcs-danger, #fb7185)', pending: 'color-mix(in srgb, var(--dcs-text-muted, #94a3b8) 20%, transparent)', template: 'var(--mantine-color-violet-5)' }
@@ -197,7 +198,7 @@ export function FleetJobCard({ job, onChanged, compact = false }: { job: FleetJo
           <p className="text-xs text-amber-300 font-medium">Finish by hand: open VM #{job.vmid} in the Proxmox console and install the system — give it {job.ip}/{job.cidr} via {job.gateway}. Then run on the VM, as a user with sudo (it installs Docker and DCS as a node of this hub and joins):</p>
           <div className="flex items-start gap-2">
             <code className="text-[11px] font-mono text-slate-200 bg-black/30 rounded-lg px-2 py-1.5 break-all flex-1 select-all">{joinLine(job)}</code>
-            <CopyChip text={joinLine(job)} label="Copy" />
+            <CopyButton variant="chip" text={joinLine(job)} label="Copy" />
           </div>
           <p className="text-[10px] text-slate-500">The join code is valid 48 h; the build closes by itself when the VM joins.</p>
         </div>

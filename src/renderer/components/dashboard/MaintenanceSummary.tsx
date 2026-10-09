@@ -5,8 +5,8 @@
 import { Badge } from '@mantine/core'
 import { useConnectionStore } from '../../stores/connectionStore'
 import type { MaintenanceReport } from '../../../shared/types'
-import { Card, CardError, CardLoading, CardOffline } from './cardShared'
-
+import { Card, CardOffline } from './cardShared'
+import { Skeleton, ErrorState } from '../common/PageState'
 interface Props {
   data: MaintenanceReport | null
   error?: Error | null
@@ -26,8 +26,8 @@ export default function MaintenanceSummary({ data, error, onRetry }: Props) {
   const isConnected = useConnectionStore((s) => s.status === 'connected')
 
   if (!isConnected && !data) return <Card card="maintenance" dim><CardOffline /></Card>
-  if (!data && error) return <Card card="maintenance"><CardError title="Could not load the cleanup report" error={error} onRetry={onRetry} /></Card>
-  if (!data) return <Card card="maintenance"><CardLoading label="Loading the cleanup report…" variant="tiles" rows={2} /></Card>
+  if (!data && error) return <Card card="maintenance"><ErrorState card title="Could not load the cleanup report" error={error} onRetry={onRetry} /></Card>
+  if (!data) return <Card card="maintenance"><Skeleton label="Loading the cleanup report…" variant="tiles" rows={2} /></Card>
 
   const { images, volumes } = data
   const hasDangling = images.dangling > 0 || volumes.dangling > 0

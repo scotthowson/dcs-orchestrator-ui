@@ -14,8 +14,8 @@ import { crowdsecUnbanMe, crowdsecTrust, crowdsecUnban } from '../../api/endpoin
 import type { CrowdSecStatusResponse } from '../../../shared/types'
 import { pageLabel } from '../../constants/pageTitles'
 import { BTN_CARD, BTN_CARD_QUIET, TONE_OK } from '../../lib/ui'
-import { Card, CardBody, CardEmpty, CardError, CardLoading, CardOffline } from './cardShared'
-
+import { Card, CardBody, CardOffline } from './cardShared'
+import { Skeleton, EmptyState, ErrorState } from '../common/PageState'
 interface Props {
   data: CrowdSecStatusResponse | null
   error?: Error | null
@@ -43,13 +43,13 @@ export default function CrowdSecStatus({ data, error, onRetry }: Props) {
   }
 
   if (!isConnected && !data) return <Card card="crowdsec" dim><CardOffline /></Card>
-  if (!data && error) return <Card card="crowdsec" tone="attention"><CardError title={`Could not load ${pageLabel('crowdsec')}'s state`} error={error} onRetry={onRetry} /></Card>
-  if (!data) return <Card card="crowdsec"><CardLoading label={`Asking ${pageLabel('crowdsec')}…`} rows={3} /></Card>
+  if (!data && error) return <Card card="crowdsec" tone="attention"><ErrorState card title={`Could not load ${pageLabel('crowdsec')}'s state`} error={error} onRetry={onRetry} /></Card>
+  if (!data) return <Card card="crowdsec"><Skeleton label={`Asking ${pageLabel('crowdsec')}…`} rows={3} /></Card>
   // deployed but not running well (stopped, restarting, Docker down): say so, and send the person to the page that fixes it
   if (!data.installed && data.state && data.state !== 'not_deployed') {
     return (
       <Card card="crowdsec" icon={ShieldAlert} tone="attention" open="crowdsec">
-        <CardEmpty
+        <EmptyState card
           title={data.title || 'CrowdSec needs attention'}
           hint={data.detail || `Open the ${pageLabel('crowdsec')} page for the reason and the one-click fix.`}
         />
@@ -59,7 +59,7 @@ export default function CrowdSecStatus({ data, error, onRetry }: Props) {
   if (!data.installed) {
     return (
       <Card card="crowdsec" icon={ShieldOff} open="crowdsec">
-        <CardEmpty
+        <EmptyState card
           icon={<ShieldOff size={22} />}
           title="CrowdSec is not running"
           hint="Deploy the crowdsec template to block scanners and brute-force attempts at the reverse proxy."

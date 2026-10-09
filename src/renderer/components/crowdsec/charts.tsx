@@ -7,6 +7,7 @@
 
 import { useMemo, useState, type ReactNode } from 'react'
 
+import { type Tone } from '../../lib/tone'
 export interface TimelinePoint { t: number; alerts: number; events: number }
 
 /** epoch seconds → the axis label that suits the bucket size */
@@ -68,11 +69,11 @@ export function TimelineChart({ points, bucketSeconds, height = 132, empty }: { 
 }
 
 /** a ranked row: [label] ████░░░ [value]; the bar is a share of `max` */
-export function BarRow({ label, sub, value, max, valueLabel, tone = 'good', onClick, title, extra }: {
-  label: ReactNode; sub?: ReactNode; value: number; max: number; valueLabel?: ReactNode; tone?: 'good' | 'bad' | 'warn' | 'info' | 'mute'; onClick?: () => void; title?: string; extra?: ReactNode
+export function BarRow({ label, sub, value, max, valueLabel, tone = 'ok', onClick, title, extra }: {
+  label: ReactNode; sub?: ReactNode; value: number; max: number; valueLabel?: ReactNode; tone?: Tone; onClick?: () => void; title?: string; extra?: ReactNode
 }) {
   const pct = max > 0 ? Math.max(value > 0 ? 3 : 0, Math.round((value / max) * 100)) : 0
-  const fill = tone === 'bad' ? 'bg-rose-500/45' : tone === 'warn' ? 'bg-amber-500/45' : tone === 'info' ? 'bg-cyan-500/45' : tone === 'mute' ? 'bg-slate-500/40' : 'bg-emerald-500/45'
+  const fill = tone === 'problem' ? 'bg-rose-500/45' : tone === 'attention' ? 'bg-amber-500/45' : tone === 'info' ? 'bg-cyan-500/45' : tone === 'neutral' || tone === 'fleet' ? 'bg-slate-500/40' : 'bg-emerald-500/45'
   const inner = (
     <>
       <div className="flex items-center justify-between gap-3 min-w-0">

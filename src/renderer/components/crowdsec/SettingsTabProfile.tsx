@@ -20,13 +20,18 @@ import { useConfirm } from '../common/ConfirmDialog'
 import { crowdsecSettings, crowdsecSaveSettings } from '../../api/endpoints'
 import { ApiError } from '../../api/client'
 import type { CrowdSecSettingsBody, CrowdSecSettingsResponse } from '../../../shared/types'
-import { BTN_PRIMARY, BTN_QUIET, BTN_WARN, Chip, CopyIcon, ICON_BTN, LABEL, SectionHead, Skel, Switch, errData, errMsg, fmtAgo, fmtTime, parseDuration, useCs, useNow, type Tone } from './kit'
-import {
-  CAP_PRESETS, CompactLength, LengthPicker, MANUAL_DEFAULT, Notice, Panel, ProfileSentence, ScenarioInput, Setting, TEN_YEARS_SECONDS, YEAR_SECONDS,
-  changedFields, checkDraft, draftFrom, fmtBytes, ladderWords, lengthWords, matchCount, newRowId, profileOf, sameDraft, sameLength, sameProfile, scenarioLabel, shortName,
-  type Draft, type Field, type OverrideRow, type Problems, type RowProblem, type ScenarioInfo,
-} from './SettingsTabParts'
-
+import { errData, errMsg, fmtAgo, fmtTime, parseDuration, useCs, useNow, Ago } from './kit'
+import { CAP_PRESETS, CompactLength, LengthPicker, MANUAL_DEFAULT, ProfileSentence, ScenarioInput, Setting, TEN_YEARS_SECONDS, YEAR_SECONDS, changedFields, checkDraft, draftFrom, fmtBytes, ladderWords, lengthWords, matchCount, newRowId, profileOf, sameDraft, sameLength, sameProfile, scenarioLabel, shortName, type Draft, type Field, type OverrideRow, type Problems, type RowProblem, type ScenarioInfo } from './SettingsTabParts'
+import { BTN_ICON_QUIET, BTN_TOOLBAR_ATTN, BTN_TOOLBAR_OK, BTN_TOOLBAR_QUIET } from '../../lib/ui'
+import { LABEL } from '../../lib/fieldStyles'
+import { type Tone } from '../../lib/tone'
+import { Pill } from '../common/Pill'
+import SectionHeader from '../common/SectionHeader'
+import { SkeletonBlock } from '../common/PageState'
+import { CopyButton } from '../common/CopyButton'
+import { Toggle } from '../common/Toggle'
+import Notice from '../common/Notice'
+import { Panel } from '../dashboard/cardShared'
 const POLL_MS = 30_000
 
 type Result =
@@ -41,15 +46,15 @@ function explainFailure(e: unknown): Extract<Result, { kind: 'fail' }> {
   const reason = typeof d.reason === 'string' ? d.reason : ''
   const stage = typeof d.stage === 'string' ? d.stage : ''
   const output = typeof d.output === 'string' && d.output.trim() ? `\n${d.output.trim()}` : ''
-  if (reason === 'custom_profile') return { kind: 'fail', tone: 'warn', custom: true, title: 'The ban profile was edited by hand in the meantime', body: 'profiles.yaml now holds profiles DCS did not write, so DCS changed nothing. Read the file, and take it over if you want DCS to manage it.', detail: '' }
-  if (status === 0) return { kind: 'fail', tone: 'warn', unknown: true, title: 'The server did not answer', body: 'The request timed out or the connection dropped, so it is not known whether the change went through: CrowdSec may still be restarting. Check in a moment.', detail: msg }
-  if (status === 403) return { kind: 'fail', tone: 'bad', title: 'Only an admin can change this', body: 'Nothing was changed.', detail: '' }
-  if (stage === 'validation') return { kind: 'fail', tone: 'bad', title: 'CrowdSec would not accept the new profile', body: 'DCS had CrowdSec check the file before touching anything. Nothing was changed: the old profile is still in force.', detail: msg + output }
-  if (stage === 'busy') return { kind: 'fail', tone: 'warn', title: 'Another change is still running', body: 'Only one configuration change can run at a time. Nothing was changed. Try again in a minute.', detail: '' }
-  if (stage === 'apply' && d.rolled_back === true) return { kind: 'fail', tone: 'bad', title: 'CrowdSec did not come back with the new profile, so DCS put the old one back', body: 'CrowdSec was rolled back to the previous file and is healthy again. Your edits are still in the form: fix them and try again.', detail: msg + output }
-  if (stage === 'apply') return { kind: 'fail', tone: 'bad', title: 'CrowdSec is not healthy and could not be rolled back', body: 'The new profile failed, and CrowdSec did not come back even with the previous file restored. Open the Logs tab to see why. The previous files are under Backups.', detail: msg + output }
-  if (status === 400) return { kind: 'fail', tone: 'bad', title: 'The server refused these values', body: msg, detail: '' }
-  return { kind: 'fail', tone: 'bad', title: 'The change was not applied', body: msg, detail: output.trim() }
+  if (reason === 'custom_profile') return { kind: 'fail', tone: 'attention', custom: true, title: 'The ban profile was edited by hand in the meantime', body: 'profiles.yaml now holds profiles DCS did not write, so DCS changed nothing. Read the file, and take it over if you want DCS to manage it.', detail: '' }
+  if (status === 0) return { kind: 'fail', tone: 'attention', unknown: true, title: 'The server did not answer', body: 'The request timed out or the connection dropped, so it is not known whether the change went through: CrowdSec may still be restarting. Check in a moment.', detail: msg }
+  if (status === 403) return { kind: 'fail', tone: 'problem', title: 'Only an admin can change this', body: 'Nothing was changed.', detail: '' }
+  if (stage === 'validation') return { kind: 'fail', tone: 'problem', title: 'CrowdSec would not accept the new profile', body: 'DCS had CrowdSec check the file before touching anything. Nothing was changed: the old profile is still in force.', detail: msg + output }
+  if (stage === 'busy') return { kind: 'fail', tone: 'attention', title: 'Another change is still running', body: 'Only one configuration change can run at a time. Nothing was changed. Try again in a minute.', detail: '' }
+  if (stage === 'apply' && d.rolled_back === true) return { kind: 'fail', tone: 'problem', title: 'CrowdSec did not come back with the new profile, so DCS put the old one back', body: 'CrowdSec was rolled back to the previous file and is healthy again. Your edits are still in the form: fix them and try again.', detail: msg + output }
+  if (stage === 'apply') return { kind: 'fail', tone: 'problem', title: 'CrowdSec is not healthy and could not be rolled back', body: 'The new profile failed, and CrowdSec did not come back even with the previous file restored. Open the Logs tab to see why. The previous files are under Backups.', detail: msg + output }
+  if (status === 400) return { kind: 'fail', tone: 'problem', title: 'The server refused these values', body: msg, detail: '' }
+  return { kind: 'fail', tone: 'problem', title: 'The change was not applied', body: msg, detail: output.trim() }
 }
 
 // What an apply is doing lives outside the component. While CrowdSec restarts, the page swaps its tabs for a
@@ -102,11 +107,6 @@ function ApplyingPanel({ since }: { since: number }) {
       <p className="text-[11px] text-slate-500 mt-2 leading-relaxed">It takes 10 to 40 seconds, and DCS cannot see which step it is on. Bans stay in place. If CrowdSec does not come back healthy, DCS puts the old file back by itself.</p>
     </div>
   )
-}
-
-function Ago({ t }: { t: string }) {
-  const now = useNow()
-  return <>{fmtAgo(t, now)}</>
 }
 
 /** the read-only face of a length (a viewer, or a plain line of text) */
@@ -338,12 +338,12 @@ export default function ProfileCard({ scenarios }: { scenarios: ScenarioInfo[] }
             <div className="min-w-0 flex-1">
               <p className="text-sm text-slate-100">Could not read the ban profile</p>
               <p className="text-xs text-slate-300 mt-1 break-words">{poll.error.message}</p>
-              <button type="button" onClick={poll.refresh} className={`${BTN_QUIET} mt-2`}><RefreshCw size={13} /> Try again</button>
+              <button type="button" onClick={poll.refresh} className={`${BTN_TOOLBAR_QUIET} mt-2`}><RefreshCw size={13} /> Try again</button>
             </div>
           </div>
         ) : (
           <div className="space-y-3" aria-busy="true" aria-label="Loading the ban profile">
-            <Skel className="h-16" /><Skel className="h-20" /><Skel className="h-20" /><Skel className="h-28" />
+            <SkeletonBlock className="h-16" /><SkeletonBlock className="h-20" /><SkeletonBlock className="h-20" /><SkeletonBlock className="h-28" />
           </div>
         )}
       </Panel>
@@ -353,10 +353,10 @@ export default function ProfileCard({ scenarios }: { scenarios: ScenarioInfo[] }
   const live = server.live
   const maxRows = server.limits.overrides_max
   const modeChip: { tone: Tone; text: string; title: string } =
-    mode === 'dcs' ? { tone: 'good', text: 'Managed by DCS', title: 'DCS wrote this file and can change it' }
+    mode === 'dcs' ? { tone: 'ok', text: 'Managed by DCS', title: 'DCS wrote this file and can change it' }
     : mode === 'stock' ? { tone: 'info', text: 'Default file', title: 'The file CrowdSec (or the DCS installer) shipped, not changed since' }
-    : mode === 'custom' ? { tone: 'warn', text: 'Edited by hand', title: 'The file has profiles DCS did not write' }
-    : { tone: 'bad', text: 'No profile file', title: 'CrowdSec has no ban profile' }
+    : mode === 'custom' ? { tone: 'attention', text: 'Edited by hand', title: 'The file has profiles DCS did not write' }
+    : { tone: 'problem', text: 'No profile file', title: 'CrowdSec has no ban profile' }
   const nChanges = draft && base ? changedFields(draft, base).size : 0
   const errorCount = problems.hard
   const ladder = draft.escalate.enabled ? ladderWords(draft.duration, draft.escalate.max) : null
@@ -368,9 +368,9 @@ export default function ProfileCard({ scenarios }: { scenarios: ScenarioInfo[] }
       icon={Timer}
       title="How long CrowdSec bans"
       sub="Every address CrowdSec catches is banned for the length you choose here. A ban you add by hand chooses its own length."
-      right={<>
-        {edited && <Chip tone="warn">unsaved changes</Chip>}
-        <Chip tone={modeChip.tone} title={modeChip.title}>{modeChip.text}</Chip>
+      actions={<>
+        {edited && <Pill tone="attention">unsaved changes</Pill>}
+        <Pill tone={modeChip.tone} title={modeChip.title}>{modeChip.text}</Pill>
       </>}
     >
       {/* the result in words */}
@@ -387,17 +387,17 @@ export default function ProfileCard({ scenarios }: { scenarios: ScenarioInfo[] }
       <div className="mt-4 space-y-2">
         {elsewhere && (
           <Notice tone="info" icon={Info} role="status" title="These settings changed on the server while you were editing"
-            action={isAdmin ? <button type="button" className={BTN_QUIET} onClick={discard}><Undo2 size={13} /> Load the new values (drops your edits)</button> : undefined}>
+            action={isAdmin ? <button type="button" className={BTN_TOOLBAR_QUIET} onClick={discard}><Undo2 size={13} /> Load the new values (drops your edits)</button> : undefined}>
             Someone else saved, or the file was changed by hand. Saving now would overwrite that.
           </Notice>
         )}
         {mode === 'custom' && (
-          <Notice tone="warn" icon={locked ? Lock : LockOpen} title={locked ? 'This ban profile was edited by hand' : 'DCS will replace the hand-written profile when you save'}
+          <Notice tone="attention" icon={locked ? Lock : LockOpen} title={locked ? 'This ban profile was edited by hand' : 'DCS will replace the hand-written profile when you save'}
             action={isAdmin ? (
               <>
-                {locked && <button type="button" className={BTN_WARN} onClick={takeOverFile} disabled={busy}><LockOpen size={13} /> Let DCS manage it</button>}
-                {!locked && <button type="button" className={BTN_QUIET} onClick={discard} disabled={busy}><Lock size={13} /> Keep my file</button>}
-                {server.raw && <button type="button" className={BTN_QUIET} onClick={() => setShowRaw((v) => !v)} aria-expanded={showRaw}><FileCode size={13} /> {showRaw ? 'Hide the file' : 'Show the file'}</button>}
+                {locked && <button type="button" className={BTN_TOOLBAR_ATTN} onClick={takeOverFile} disabled={busy}><LockOpen size={13} /> Let DCS manage it</button>}
+                {!locked && <button type="button" className={BTN_TOOLBAR_QUIET} onClick={discard} disabled={busy}><Lock size={13} /> Keep my file</button>}
+                {server.raw && <button type="button" className={BTN_TOOLBAR_QUIET} onClick={() => setShowRaw((v) => !v)} aria-expanded={showRaw}><FileCode size={13} /> {showRaw ? 'Hide the file' : 'Show the file'}</button>}
               </>
             ) : undefined}>
             {locked
@@ -408,7 +408,7 @@ export default function ProfileCard({ scenarios }: { scenarios: ScenarioInfo[] }
         {mode === 'custom' && isAdmin && showRaw && server.raw && (
           <div className="relative">
             <pre tabIndex={0} aria-label="profiles.yaml as it is now" className="max-h-72 overflow-auto scrollbar-thin rounded-lg bg-slate-950/60 border border-white/5 p-3 pr-9 text-[11px] leading-relaxed font-mono text-slate-300 whitespace-pre">{server.raw}</pre>
-            <div className="absolute top-1.5 right-1.5"><CopyIcon text={server.raw} label="Copy the file" /></div>
+            <div className="absolute top-1.5 right-1.5"><CopyButton text={server.raw} label="Copy the file" /></div>
           </div>
         )}
         {mode === 'stock' && (
@@ -417,13 +417,13 @@ export default function ProfileCard({ scenarios }: { scenarios: ScenarioInfo[] }
           </Notice>
         )}
         {mode === 'missing' && (
-          <Notice tone="warn" icon={AlertTriangle} title="CrowdSec has no ban profile">
+          <Notice tone="attention" icon={AlertTriangle} title="CrowdSec has no ban profile">
             profiles.yaml is missing or empty, so CrowdSec raises alerts but does not ban anyone by itself.{isAdmin && ' Saving here writes a working one.'}
           </Notice>
         )}
         {server.drift && (
-          <Notice tone="warn" icon={AlertTriangle} title="The live file no longer matches what DCS wrote"
-            action={isAdmin ? <button type="button" className={BTN_WARN} onClick={applyAgain} disabled={busy}><RefreshCw size={13} /> Apply again</button> : undefined}>
+          <Notice tone="attention" icon={AlertTriangle} title="The live file no longer matches what DCS wrote"
+            action={isAdmin ? <button type="button" className={BTN_TOOLBAR_ATTN} onClick={applyAgain} disabled={busy}><RefreshCw size={13} /> Apply again</button> : undefined}>
             Someone edited profiles.yaml after DCS applied it, or an update replaced it. The values below are the ones DCS saved.
             {live.ip_duration && <> The file itself says {lengthWords(live.ip_duration)} for an address{live.range_duration ? ` and ${lengthWords(live.range_duration)} for a network` : ''}.</>}
             {' '}Applying again puts DCS’s version back; the current file is backed up first.
@@ -454,7 +454,7 @@ export default function ProfileCard({ scenarios }: { scenarios: ScenarioInfo[] }
           hint={`Default: off${server.defaults.escalate.max ? `, with a maximum of ${lengthWords(server.defaults.escalate.max)}` : ''}.`}>
           {isAdmin ? (
             <div className="flex items-center gap-3">
-              <Switch checked={draft.escalate.enabled} onChange={(v) => upd({ escalate: { ...draft.escalate, enabled: v } })} label="Ban repeat offenders for longer" disabled={disabled} />
+              <Toggle checked={draft.escalate.enabled} onChange={(v) => upd({ escalate: { ...draft.escalate, enabled: v } })} label="Ban repeat offenders for longer" disabled={disabled} />
               <span className="text-sm text-slate-300">{draft.escalate.enabled ? 'On' : 'Off'}</span>
             </div>
           ) : <Static>{draft.escalate.enabled ? `On, up to ${lengthWords(draft.escalate.max)}` : 'Off'}</Static>}
@@ -494,16 +494,16 @@ export default function ProfileCard({ scenarios }: { scenarios: ScenarioInfo[] }
       {isAdmin && (
         <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between gap-x-4 gap-y-2 flex-wrap">
           <p className="text-xs text-slate-500 leading-relaxed min-w-0 flex-1 basis-64">Want to start over? Every value goes back to how DCS ships it: {lengthWords(server.defaults.duration)} for addresses and networks, no escalation, no lengths for particular attacks, {lengthWords(MANUAL_DEFAULT)} for a manual ban.</p>
-          <button type="button" className={BTN_QUIET} onClick={restore} disabled={busy || (atDefaults && mode !== 'custom' && !takeOver)} title={atDefaults && mode !== 'custom' ? 'Everything is at its default already' : 'Set every value back to the DCS default and apply it'}><RotateCcw size={13} /> Restore DCS defaults</button>
+          <button type="button" className={BTN_TOOLBAR_QUIET} onClick={restore} disabled={busy || (atDefaults && mode !== 'custom' && !takeOver)} title={atDefaults && mode !== 'custom' ? 'Everything is at its default already' : 'Set every value back to the DCS default and apply it'}><RotateCcw size={13} /> Restore DCS defaults</button>
         </div>
       )}
 
       {/* what is really in the file */}
       <div className="mt-5 pt-4 border-t border-white/5">
-        <SectionHead icon={FileCode} title="The file on the server" />
+        <SectionHeader icon={FileCode} title="The file on the server" />
         <dl className="mt-3 grid grid-cols-1 sm:grid-cols-[11rem_minmax(0,1fr)] gap-x-4 gap-y-1.5 sm:gap-y-2.5 text-xs">
           <dt className="text-slate-500">File</dt>
-          <dd className="text-slate-200 min-w-0 flex items-center gap-1"><span className="font-mono truncate" title={live.file}>{live.file}</span><CopyIcon text={live.file} label="Copy the file path" /></dd>
+          <dd className="text-slate-200 min-w-0 flex items-center gap-1"><span className="font-mono truncate" title={live.file}>{live.file}</span><CopyButton text={live.file} label="Copy the file path" /></dd>
           <dt className="text-slate-500">Who manages it</dt>
           <dd className="text-slate-200">
             {mode === 'dcs' && 'DCS wrote it, and can change it from here.'}
@@ -517,12 +517,12 @@ export default function ProfileCard({ scenarios }: { scenarios: ScenarioInfo[] }
           <dt className="text-slate-500">Repeat offenders</dt>
           <dd className="text-slate-200">{live.escalate ? 'The file makes each new ban longer' : 'Every ban has the same length'}</dd>
           <dt className="text-slate-500">Profiles</dt>
-          <dd className="flex flex-wrap gap-1.5 min-w-0">{live.profiles.length ? live.profiles.map((p) => <Chip key={p} tone="mute"><span className="font-mono">{p}</span></Chip>) : <span className="text-slate-500">none</span>}</dd>
+          <dd className="flex flex-wrap gap-1.5 min-w-0">{live.profiles.length ? live.profiles.map((p) => <Pill key={p} tone="neutral"><span className="font-mono">{p}</span></Pill>) : <span className="text-slate-500">none</span>}</dd>
           <dt className="text-slate-500">Discord alerts</dt>
           <dd className="text-slate-200 min-w-0">
             {live.notified
-              ? <><Chip tone="good">wired in</Chip> <span className="text-slate-500">Bans are sent to Discord. DCS keeps this wired when it saves.</span></>
-              : <><Chip tone="mute">not connected</Chip> <span className="text-slate-500">Bans are not sent to Discord.</span> <button type="button" className="text-cyan-400 hover:text-cyan-300" onClick={() => goTab('notifications')}>Set it up</button></>}
+              ? <><Pill tone="ok">wired in</Pill> <span className="text-slate-500">Bans are sent to Discord. DCS keeps this wired when it saves.</span></>
+              : <><Pill tone="neutral">not connected</Pill> <span className="text-slate-500">Bans are not sent to Discord.</span> <button type="button" className="text-cyan-400 hover:text-cyan-300" onClick={() => goTab('notifications')}>Set it up</button></>}
           </dd>
         </dl>
 
@@ -530,7 +530,7 @@ export default function ProfileCard({ scenarios }: { scenarios: ScenarioInfo[] }
           <button type="button" onClick={() => setShowBackups((v) => !v)} aria-expanded={showBackups} className="flex items-center gap-2 text-xs text-slate-500 hover:text-slate-200 transition-colors">
             {showBackups ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
             <Archive size={12} aria-hidden="true" /> Backups <span className="text-slate-500 tabular-nums">{server.backups.length}</span>
-            {server.backups[0] && <span className="text-slate-500">· newest <Ago t={server.backups[0].created_at} /></span>}
+            {server.backups[0] && <span className="text-slate-500">· newest <Ago at={server.backups[0].created_at} /></span>}
           </button>
           {showBackups && (
             <div className="mt-2.5">
@@ -546,7 +546,7 @@ export default function ProfileCard({ scenarios }: { scenarios: ScenarioInfo[] }
                         <tr key={b.name} className="text-slate-500">
                           <td className="py-1.5 pr-3 font-mono text-[11px] text-slate-300 break-all">{b.name}</td>
                           <td className="py-1.5 pr-3">{b.kind === 'http' ? 'Discord message' : 'Ban profile'}</td>
-                          <td className="py-1.5 pr-3 whitespace-nowrap" title={fmtTime(b.created_at)}>{fmtTime(b.created_at)} <span className="text-slate-500">· <Ago t={b.created_at} /></span></td>
+                          <td className="py-1.5 pr-3 whitespace-nowrap" title={fmtTime(b.created_at)}>{fmtTime(b.created_at)} <span className="text-slate-500">· <Ago at={b.created_at} /></span></td>
                           <td className="py-1.5 text-right tabular-nums">{fmtBytes(b.size)}</td>
                         </tr>
                       ))}
@@ -556,7 +556,7 @@ export default function ProfileCard({ scenarios }: { scenarios: ScenarioInfo[] }
                     {server.backups.map((b) => (
                       <li key={b.name} className="py-2 text-xs text-slate-500">
                         <p className="font-mono text-[11px] text-slate-300 break-all">{b.name}</p>
-                        <p className="mt-0.5">{b.kind === 'http' ? 'Discord message' : 'Ban profile'} · {fmtTime(b.created_at)} · <Ago t={b.created_at} /> · <span className="tabular-nums">{fmtBytes(b.size)}</span></p>
+                        <p className="mt-0.5">{b.kind === 'http' ? 'Discord message' : 'Ban profile'} · {fmtTime(b.created_at)} · <Ago at={b.created_at} /> · <span className="tabular-nums">{fmtBytes(b.size)}</span></p>
                       </li>
                     ))}
                   </ul>
@@ -582,8 +582,8 @@ export default function ProfileCard({ scenarios }: { scenarios: ScenarioInfo[] }
                 : 'Not saved yet. This one is saved right away, without restarting CrowdSec.'}
             </p>
             <div className="w-full sm:w-auto grid grid-cols-2 sm:flex sm:items-center gap-2">
-              <button type="button" className={BTN_QUIET} onClick={discard} disabled={busy || (!edited && !elsewhere)}><Undo2 size={13} /> Discard changes</button>
-              <button type="button" className={BTN_PRIMARY} onClick={save} disabled={!canSave}>{busy ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />} Save and apply</button>
+              <button type="button" className={BTN_TOOLBAR_QUIET} onClick={discard} disabled={busy || (!edited && !elsewhere)}><Undo2 size={13} /> Discard changes</button>
+              <button type="button" className={BTN_TOOLBAR_OK} onClick={save} disabled={!canSave}>{busy ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />} Save and apply</button>
             </div>
           </div>
         )}
@@ -632,9 +632,9 @@ function OverridesEditor({ rows, problems, scenarios, presets, rev, editing, dis
                   <div className="flex items-center justify-between gap-2 lg:contents">
                     <CompactLength value={r.duration} onChange={(v) => onPatch(r.id, { duration: v })} presets={presets} ariaLabel={`Ban length, row ${i + 1}`} disabled={disabled} invalid={!!pr.length} />
                     <div className="flex items-center gap-1 shrink-0">
-                      <button type="button" className={ICON_BTN} aria-label={`Move row ${i + 1} up`} title="Check this one earlier" disabled={disabled || i === 0} onClick={() => onMove(i, -1)}><ArrowUp size={13} /></button>
-                      <button type="button" className={ICON_BTN} aria-label={`Move row ${i + 1} down`} title="Check this one later" disabled={disabled || i === rows.length - 1} onClick={() => onMove(i, 1)}><ArrowDown size={13} /></button>
-                      <button type="button" className={`${ICON_BTN} hover:!bg-rose-500/15 hover:!text-rose-300`} aria-label={`Remove row ${i + 1}`} title="Remove this row" disabled={disabled} onClick={() => onRemove(r.id)}><Trash2 size={13} /></button>
+                      <button type="button" className={BTN_ICON_QUIET} aria-label={`Move row ${i + 1} up`} title="Check this one earlier" disabled={disabled || i === 0} onClick={() => onMove(i, -1)}><ArrowUp size={13} /></button>
+                      <button type="button" className={BTN_ICON_QUIET} aria-label={`Move row ${i + 1} down`} title="Check this one later" disabled={disabled || i === rows.length - 1} onClick={() => onMove(i, 1)}><ArrowDown size={13} /></button>
+                      <button type="button" className={`${BTN_ICON_QUIET} hover:!bg-rose-500/15 hover:!text-rose-300`} aria-label={`Remove row ${i + 1}`} title="Remove this row" disabled={disabled} onClick={() => onRemove(r.id)}><Trash2 size={13} /></button>
                     </div>
                   </div>
                 </div>
@@ -652,7 +652,7 @@ function OverridesEditor({ rows, problems, scenarios, presets, rev, editing, dis
         </ol>
       )}
       <div className="mt-2.5 flex items-center gap-3 flex-wrap">
-        <button type="button" className={BTN_QUIET} onClick={onAdd} disabled={disabled || rows.length >= maxRows}><Plus size={13} /> Add a length for an attack</button>
+        <button type="button" className={BTN_TOOLBAR_QUIET} onClick={onAdd} disabled={disabled || rows.length >= maxRows}><Plus size={13} /> Add a length for an attack</button>
         <span className="text-[11px] text-slate-500 tabular-nums">{rows.length} of {maxRows}</span>
       </div>
     </div>
@@ -673,7 +673,7 @@ function ResultPanel({ result, onDismiss, onCheck, onOpenFile }: { result: Resul
   if (result.kind === 'ok') {
     return (
       <div className="rounded-xl bg-slate-900 shadow-lg">
-        <Notice tone="good" icon={CircleCheck} role="status" title={result.message} onDismiss={onDismiss}>
+        <Notice tone="ok" icon={CircleCheck} role="status" title={result.message} onDismiss={onDismiss}>
           {result.restarted && (
             <ol className="mt-0.5 flex flex-wrap gap-x-4 gap-y-0.5 text-[11px] text-slate-500" aria-label="What was done">
               {APPLY_STEPS.map((st) => <li key={st.short} className="flex items-center gap-1"><CircleCheck size={11} className="text-emerald-400 shrink-0" aria-hidden="true" /><StepLabel step={st} /></li>)}
@@ -686,10 +686,10 @@ function ResultPanel({ result, onDismiss, onCheck, onOpenFile }: { result: Resul
   }
   return (
     <div className="rounded-xl bg-slate-900 shadow-lg">
-      <Notice tone={result.tone} icon={result.tone === 'warn' ? AlertTriangle : CircleAlert} role="alert" title={result.title} onDismiss={onDismiss}
+      <Notice tone={result.tone} icon={result.tone === 'attention' ? AlertTriangle : CircleAlert} role="alert" title={result.title} onDismiss={onDismiss}
         action={<>
-          {result.unknown && <button type="button" className={BTN_QUIET} onClick={onCheck}><RefreshCw size={13} /> Check now</button>}
-          {onOpenFile && <button type="button" className={BTN_QUIET} onClick={onOpenFile}><FileCode size={13} /> Show the file</button>}
+          {result.unknown && <button type="button" className={BTN_TOOLBAR_QUIET} onClick={onCheck}><RefreshCw size={13} /> Check now</button>}
+          {onOpenFile && <button type="button" className={BTN_TOOLBAR_QUIET} onClick={onOpenFile}><FileCode size={13} /> Show the file</button>}
         </>}>
         <p>{result.body}</p>
         {result.detail && (

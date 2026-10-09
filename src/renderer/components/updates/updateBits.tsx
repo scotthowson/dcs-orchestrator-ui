@@ -1,30 +1,14 @@
 // =============================================================================
-// Small pieces the Updates page and its cards share: the status pill (the
-// dashboard's Mantine badge), a label/value row, the icon tile of a card and
-// the amber tone of a button that says "look at this".
-//
-// Colour: emerald = up to date, cyan = an update is available (information; the
-// button that takes it is the emerald "go"), amber = needs attention, rose =
-// failed, violet = the fleet (a VM), slate = neutral.
+// Small pieces the Updates page and its cards share: a label/value row, the
+// icon tile of a card and the freshness line every card ends with. The pill is
+// common/Pill; tones (lib/tone): ok = up to date, info = an update is available
+// (the button that takes it is the emerald "go"), attention = needs a look,
+// problem = failed, fleet = a VM, neutral = nothing known.
 // =============================================================================
 
 import type { ReactNode } from 'react'
-import { Badge } from '@mantine/core'
-
-export type Tone = 'emerald' | 'cyan' | 'amber' | 'rose' | 'slate' | 'violet'
-
-const DOT: Record<Tone, string> = {
-  emerald: 'bg-emerald-400', cyan: 'bg-cyan-400', amber: 'bg-amber-400', rose: 'bg-rose-400', slate: 'bg-slate-400', violet: 'bg-violet-400',
-}
-
-/** a status: a coloured pill, with a dot or an icon in front */
-export function Pill({ tone, icon, dot = false, title, children }: { tone: Tone; icon?: ReactNode; dot?: boolean; title?: string; children: ReactNode }) {
-  return (
-    <Badge component="span" color={tone} title={title} leftSection={dot ? <span className={`w-1.5 h-1.5 rounded-full ${DOT[tone]}`} /> : icon}>
-      {children}
-    </Badge>
-  )
-}
+import { Pill } from '../common/Pill'
+import type { Tone } from '../../lib/tone'
 
 /** one fact of a card: what it is (small capitals) on the left, its value on the right */
 export function Fact({ label, children }: { label: string; children: ReactNode }) {
@@ -37,19 +21,16 @@ export function Fact({ label, children }: { label: string; children: ReactNode }
 }
 
 /** the tile at the head of a card: neutral, or violet where the card is about the fleet */
-export function CardIcon({ tone = 'slate', children }: { tone?: 'slate' | 'violet'; children: ReactNode }) {
+export function CardIcon({ tone = 'neutral', children }: { tone?: Extract<Tone, 'neutral' | 'fleet'>; children: ReactNode }) {
   return (
     <div
       aria-hidden
-      className={`w-9 h-9 shrink-0 rounded-lg border flex items-center justify-center ${tone === 'violet' ? 'bg-violet-500/10 border-violet-500/20 text-violet-300' : 'bg-white/5 border-white/10 text-slate-300'}`}
+      className={`w-9 h-9 shrink-0 rounded-lg border flex items-center justify-center ${tone === 'fleet' ? 'bg-violet-500/10 border-violet-500/20 text-violet-300' : 'bg-white/5 border-white/10 text-slate-300'}`}
     >
       {children}
     </div>
   )
 }
-
-/** a button that says "look at this": amber is for what needs attention (a rollback, a container on an old copy) */
-export const TONE_ATTN = 'bg-amber-500/10 border border-amber-500/25 text-amber-300 hover:bg-amber-500/20'
 
 /** "just now", "5m ago", "2h ago", "3d ago" for a time in milliseconds */
 export function formatRelativeTime(ts: number): string {
@@ -61,11 +42,11 @@ export function formatRelativeTime(ts: number): string {
   return `${Math.floor(diff / 86400)}d ago`
 }
 
-/** One line every card shares: up to date or not, when it was checked, when it last changed (okTone slate: nothing is
+/** One line every card shares: up to date or not, when it was checked, when it last changed (okTone neutral: nothing is
  *  known to be wrong, but nobody checked either — no green for a claim nobody made) */
-export function StatusLine({ ok, okText, warnText, checkedAt, updatedAt, updatedLabel = 'Last updated', tone = 'cyan', okTone = 'emerald' }: {
+export function FreshnessLine({ ok, okText, warnText, checkedAt, updatedAt, updatedLabel = 'Last updated', tone = 'info', okTone = 'ok' }: {
   ok: boolean; okText: string; warnText: string
-  checkedAt?: number | string | null; updatedAt?: number | string | null; updatedLabel?: string; tone?: 'cyan' | 'amber' | 'rose'; okTone?: 'emerald' | 'slate'
+  checkedAt?: number | string | null; updatedAt?: number | string | null; updatedLabel?: string; tone?: Extract<Tone, 'info' | 'attention' | 'problem'>; okTone?: Extract<Tone, 'ok' | 'neutral'>
 }) {
   const toMs = (v?: number | string | null) => (!v ? 0 : typeof v === 'number' ? (v < 1e12 ? v * 1000 : v) : Date.parse(v) || 0)
   const c = toMs(checkedAt); const u = toMs(updatedAt)

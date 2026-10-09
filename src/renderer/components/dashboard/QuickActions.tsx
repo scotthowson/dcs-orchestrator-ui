@@ -31,11 +31,12 @@ import type { PageId } from '../../../shared/types'
 import { ADMIN_ONLY_PAGES } from '../../../shared/types'
 import { pageLabel, pageTitles } from '../../constants/pageTitles'
 import { activityOutcome, opGerund, startedInBackground, waitForStackActivity, type StackOp } from '../../lib/stackActivity'
-import { Card, CardBody, CardEmpty, ACCENTS, ACCENT_NAMES, type CardCommonProps } from './cardShared'
+import { Card, CardBody, ACCENTS, ACCENT_NAMES, type CardCommonProps } from './cardShared'
 import ModalOverlay from '../common/ModalOverlay'
 import Hint from '../common/Hint'
 import { BTN_CARD, BTN_CARD_QUIET, BTN_ICON_SM, BTN_SHEET_PRIMARY, BTN_SHEET_QUIET, BTN_TOOLBAR_QUIET, TONE_GHOST, TONE_GHOST_DANGER, TONE_OK } from '../../lib/ui'
 
+import { EmptyState } from '../common/PageState'
 export type ActionKind = 'page' | 'url' | 'stack' | 'container' | 'maintenance' | 'schedule' | 'automation'
 export interface ActionDef {
   id: string
@@ -177,7 +178,7 @@ export default function QuickActions({ cardConfig, onSaveConfig, dashboardEditMo
       ) : undefined}
     >
       {visible.length === 0 ? (
-        <CardEmpty
+        <EmptyState card
           icon={<Rocket size={22} />}
           title="No actions"
           hint="Add the shortcuts you use most."

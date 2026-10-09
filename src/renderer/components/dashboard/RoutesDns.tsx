@@ -7,8 +7,8 @@ import { Badge } from '@mantine/core'
 import { usePolling } from '../../hooks/usePolling'
 import { useConnectionStore } from '../../stores/connectionStore'
 import { fetchRoutes, fetchDnsStatus } from '../../api/endpoints'
-import { Card, CardBody, CardEmpty, CardError, CardLoading } from './cardShared'
-
+import { Card, CardBody } from './cardShared'
+import { Skeleton, EmptyState, ErrorState } from '../common/PageState'
 export default function RoutesDns() {
   const isConnected = useConnectionStore((s) => s.status === 'connected')
   const routes = usePolling(fetchRoutes, 60000, { enabled: isConnected })
@@ -30,11 +30,11 @@ export default function RoutesDns() {
       ) : undefined}
     >
       {routes.error && !routes.data ? (
-        <CardError title="Could not load the routes" error={routes.error} onRetry={routes.refresh} />
+        <ErrorState card title="Could not load the routes" error={routes.error} onRetry={routes.refresh} />
       ) : !routes.data ? (
-        <CardLoading label="Loading the routes…" rows={4} />
+        <Skeleton label="Loading the routes…" rows={4} />
       ) : list.length === 0 ? (
-        <CardEmpty icon={<Globe size={22} />} title="No routes yet" hint={domain ? `Deploy a template with HTTPS routing to publish it under ${domain}.` : 'Deploy Traefik and set a domain to publish services.'} />
+        <EmptyState card icon={<Globe size={22} />} title="No routes yet" hint={domain ? `Deploy a template with HTTPS routing to publish it under ${domain}.` : 'Deploy Traefik and set a domain to publish services.'} />
       ) : (
         <CardBody className="space-y-1">
           {list.map((r) => {

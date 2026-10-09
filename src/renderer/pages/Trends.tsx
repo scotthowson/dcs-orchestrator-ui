@@ -44,9 +44,11 @@ import { EmptyState, ErrorState } from '../components/common/PageState'
 import ModalOverlay from '../components/common/ModalOverlay'
 import PageHeader from '../components/common/PageHeader'
 import Hint from '../components/common/Hint'
-import { Panel, StatTile, METRIC_HEX, pctTone, quiet } from '../components/dashboard/cardShared'
+import { Panel, METRIC_HEX } from '../components/dashboard/cardShared'
 import { BTN_ICON_SM, BTN_SHEET_PRIMARY, BTN_SHEET_QUIET, BTN_TOOLBAR, BTN_TOOLBAR_QUIET, TONE_GHOST, TONE_OK, TONE_QUIET } from '../lib/ui'
 
+import { pctTone, quiet } from '../lib/tone'
+import StatTile from '../components/common/StatTile'
 // ---------------------------------------------------------------------------
 // Types & Constants
 // ---------------------------------------------------------------------------

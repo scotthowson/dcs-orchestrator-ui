@@ -17,6 +17,7 @@ import { BTN_ICON_SM, TONE_GHOST, TONE_GHOST_OK, TONE_GHOST_DANGER } from '../..
 import { StateChip, StateDot } from '../common/StateChip'
 import { containerState, isAsleep, STATE_META } from '../../lib/containerState'
 
+import { REVEAL } from '../../lib/pageKit'
 // one pill shape for a container's state, whatever it says (sleeping included): same height, never on two lines
 const STATE_PILL = 'inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full text-xs font-medium leading-none ring-1 whitespace-nowrap'
 const ON_DEMAND_TAG = 'text-[10px] font-normal text-indigo-300/80'
@@ -469,7 +470,7 @@ function ContainerNameWithPopover({ container, formatUptime, onOpen }: { contain
         >
           {container.name}
         </button>
-        <CopyButton text={container.name} className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100" size={10} />
+        <CopyButton text={container.name} label="Copy the container name" className={REVEAL} />
       </div>
       {show && createPortal(
         <div

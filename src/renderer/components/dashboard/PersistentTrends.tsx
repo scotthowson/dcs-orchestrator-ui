@@ -5,8 +5,9 @@
 import { TrendingUp } from 'lucide-react'
 import { useConnectionStore } from '../../stores/connectionStore'
 import type { MetricsTrendsResponse } from '../../../shared/types'
-import { Card, CardEmpty, CardError, CardLoading, CardOffline, METRIC_HEX, pctTone, TONE_TEXT } from './cardShared'
-
+import { Card, CardOffline, METRIC_HEX } from './cardShared'
+import { pctTone, TONE_TEXT } from '../../lib/tone'
+import { Skeleton, EmptyState, ErrorState } from '../common/PageState'
 function MiniChart({ points, color, height = 48 }: { points: number[]; color: string; height?: number }) {
   if (points.length < 2) return null
   const max = Math.max(...points, 1)
@@ -44,8 +45,8 @@ export default function PersistentTrends({ data, error, onRetry }: Props) {
   const isConnected = useConnectionStore((s) => s.status === 'connected')
 
   if (!isConnected && !data) return <Card card="trends" dim><CardOffline /></Card>
-  if (!data && error) return <Card card="trends"><CardError title="Could not load the trends" error={error} onRetry={onRetry} /></Card>
-  if (!data) return <Card card="trends"><CardLoading label="Loading the trends…" variant="chart" /></Card>
+  if (!data && error) return <Card card="trends"><ErrorState card title="Could not load the trends" error={error} onRetry={onRetry} /></Card>
+  if (!data) return <Card card="trends"><Skeleton label="Loading the trends…" variant="chart" /></Card>
 
   const pts = data.points
   const series = [
@@ -57,7 +58,7 @@ export default function PersistentTrends({ data, error, onRetry }: Props) {
   return (
     <Card card="trends" meta={`${data.range} · ${pts.length} point${pts.length === 1 ? '' : 's'}`} open="trends">
       {pts.length < 2 ? (
-        <CardEmpty icon={<TrendingUp size={22} />} title="Not enough history yet" hint="The charts fill in as the server records snapshots." />
+        <EmptyState card icon={<TrendingUp size={22} />} title="Not enough history yet" hint="The charts fill in as the server records snapshots." />
       ) : (
         <div className="space-y-2">
           {series.map((s) => {

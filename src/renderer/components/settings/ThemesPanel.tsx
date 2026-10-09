@@ -24,11 +24,8 @@ import { CSS_SANITIZE_NOTE, sanitizeCss } from '../../lib/cssSanitize'
 import { ApiError } from '../../api/client'
 import { useModalA11y } from '../../hooks/useModalA11y'
 import Hint from '../common/Hint'
-import {
-  BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD, BTN_CARD_QUIET, BTN_ICON, BTN_ICON_SM,
-  BTN_SHEET_QUIET, BTN_SHEET_PRIMARY, TONE_OK, TONE_GHOST, TONE_GHOST_DANGER,
-} from '../../lib/ui'
-import { INPUT, LABEL, FOCUS_RING } from '../../lib/fieldStyles'
+import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD, BTN_CARD_QUIET, BTN_ICON, BTN_ICON_SM, BTN_SHEET_QUIET, BTN_SHEET_PRIMARY, TONE_OK, TONE_GHOST, TONE_GHOST_DANGER, FOCUS_RING } from '../../lib/ui'
+import { INPUT, LABEL } from '../../lib/fieldStyles'
 import {
   type ContrastCheck,
   type PaletteKey,
@@ -54,6 +51,7 @@ import {
   withBothLooks,
 } from '../../../shared/themes'
 
+import Sheet from '../common/Sheet'
 // ---------------------------------------------------------------------------
 // Bits
 // ---------------------------------------------------------------------------
@@ -166,34 +164,6 @@ function SourceChip({ source }: { source: ThemeSource }) {
   if (source === 'server') return <span className="inline-flex items-center gap-1 text-[10px] text-cyan-400"><Server size={10} /> Server</span>
   if (source === 'local') return <span className="inline-flex items-center gap-1 text-[10px] text-slate-400"><Smartphone size={10} /> This device</span>
   return <span className="inline-flex items-center gap-1 text-[10px] text-slate-500"><Sparkles size={10} /> Built in</span>
-}
-
-/** a sheet: a bottom sheet on the phone, a right-hand drawer on the desktop so the dashboard stays visible behind it */
-function Sheet({ title, icon, onClose, children, footer, wide, keepOnBackdrop }: { title: string; icon: React.ReactNode; onClose: () => void; children: React.ReactNode; footer?: React.ReactNode; wide?: boolean; keepOnBackdrop?: boolean }) {
-  const panelRef = useRef<HTMLDivElement>(null)
-  useModalA11y(panelRef, onClose)
-  return createPortal(
-    <div className="fixed inset-0 z-[9998] flex items-end sm:items-stretch sm:justify-end bg-black/30 animate-fade-in" onClick={keepOnBackdrop ? undefined : onClose}>
-      <div
-        ref={panelRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-        onClick={(e) => e.stopPropagation()}
-        className={`relative w-full ${wide ? 'sm:max-w-2xl' : 'sm:max-w-xl'} max-h-[92vh] sm:max-h-none sm:h-full flex flex-col bg-slate-900/95 backdrop-blur-2xl border border-white/10 sm:border-y-0 sm:border-r-0 rounded-t-3xl sm:rounded-none sm:rounded-l-2xl shadow-2xl shadow-black/50 animate-slide-up`}
-      >
-        <div className="sm:hidden pt-2 flex justify-center"><span className="h-1.5 w-12 rounded-full bg-white/15" /></div>
-        <div className="flex items-center gap-2.5 px-5 py-3.5 border-b border-white/5 shrink-0">
-          {icon}
-          <h3 className="text-sm font-semibold text-slate-100 flex-1 truncate">{title}</h3>
-          <button type="button" onClick={onClose} className={`${BTN_ICON} ${TONE_GHOST}`} aria-label="Close"><X size={16} /></button>
-        </div>
-        <div className="flex-1 overflow-y-auto overscroll-contain scrollbar-thin px-5 py-4">{children}</div>
-        {footer && <div className="px-5 py-3 border-t border-white/5 shrink-0 safe-area-bottom">{footer}</div>}
-      </div>
-    </div>,
-    document.body,
-  )
 }
 
 // ---------------------------------------------------------------------------
@@ -377,7 +347,7 @@ function ThemeStudio({ initial, editing, isAdmin, serverOk, onClose, onSaved }: 
   }
 
   return (
-    <Sheet title={editing ? `Edit ${initial.title || initial.name}` : 'New theme'} icon={<Palette size={16} className="accent-text" />} onClose={onClose} footer={footer} wide keepOnBackdrop>
+    <Sheet placement="side" tone="neutral" title={editing ? `Edit ${initial.title || initial.name}` : 'New theme'} icon={<Palette size={16} className="accent-text" />} onClose={onClose} footer={footer} wide keepOnBackdrop>
       <div className="space-y-5">
         {/* Identity */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -700,7 +670,7 @@ function InstallSheet({ isAdmin, serverOk, onClose, onInstalled }: InstallProps)
   )
 
   return (
-    <Sheet title="Install a theme" icon={<Download size={16} className="text-cyan-400" />} onClose={onClose} footer={footer}>
+    <Sheet placement="side" tone="neutral" title="Install a theme" icon={<Download size={16} className="text-cyan-400" />} onClose={onClose} footer={footer}>
       <div className="space-y-4">
         <div className={`${SEG} w-full`} role="tablist">
           {tabs.map((t) => (

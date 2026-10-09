@@ -12,9 +12,10 @@ import { FolderInput, FolderPlus, Loader2, Check, X, Minus, AlertTriangle, HardD
 import { useToast } from '../common/Toast'
 import { fetchMemberFolders, fetchMemberFolderOperation, shareMemberFolder, removeMemberFolder, mountMemberFolder, attachMemberFolder } from '../../api/endpoints'
 import type { FleetMemberBase, MemberFolders, HostFolder, HostFolderOperation } from '../../../shared/types'
-import { Sheet, CopyChip, TONE_ATTN, inputCls, labelCls } from './fleetShared'
-import { BTN_SHEET, BTN_SHEET_PRIMARY, BTN_SHEET_DANGER, BTN_CARD, BTN_CARD_QUIET, TONE_QUIET, TONE_OK, TONE_DANGER } from '../../lib/ui'
-
+import { BTN_SHEET, BTN_SHEET_PRIMARY, BTN_SHEET_DANGER, BTN_CARD, BTN_CARD_QUIET, TONE_QUIET, TONE_OK, TONE_DANGER, TONE_ATTN } from '../../lib/ui'
+import { CopyButton } from '../common/CopyButton'
+import Sheet from '../common/Sheet'
+import { INPUT_FLEET, LABEL } from '../../lib/fieldStyles'
 const NAME_RE = /^[A-Za-z][A-Za-z0-9_-]{0,35}$/
 const MOUNT_RE = /^\/(mnt|srv|media|data)(\/[A-Za-z0-9_-]+)+$/
 const HOST_PATH_RE = /^\/[A-Za-z0-9/._@+-]+$/
@@ -94,20 +95,20 @@ function UseForm({ member, folder, data, onDone, onCancel }: { member: FleetMemb
     <div role="group" aria-label={`Use ${folder.id} in a container`} className="rounded-lg border border-white/10 bg-white/[0.03] p-3 space-y-3 animate-fade-in">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-          <label htmlFor={`hf-stack-${folder.id}`} className={labelCls}>Stack</label>
-          <select id={`hf-stack-${folder.id}`} value={stack} onChange={(e) => setStack(e.target.value)} className={inputCls}>{stacks.map((s) => <option key={s} value={s}>{s}</option>)}</select>
+          <label htmlFor={`hf-stack-${folder.id}`} className={LABEL}>Stack</label>
+          <select id={`hf-stack-${folder.id}`} value={stack} onChange={(e) => setStack(e.target.value)} className={INPUT_FLEET}>{stacks.map((s) => <option key={s} value={s}>{s}</option>)}</select>
         </div>
         <div>
-          <label htmlFor={`hf-svc-${folder.id}`} className={labelCls}>Container (service)</label>
-          <select id={`hf-svc-${folder.id}`} value={service} onChange={(e) => setService(e.target.value)} className={inputCls}>{services.map((s) => <option key={s} value={s}>{s}</option>)}</select>
+          <label htmlFor={`hf-svc-${folder.id}`} className={LABEL}>Container (service)</label>
+          <select id={`hf-svc-${folder.id}`} value={service} onChange={(e) => setService(e.target.value)} className={INPUT_FLEET}>{services.map((s) => <option key={s} value={s}>{s}</option>)}</select>
         </div>
         <div>
-          <label htmlFor={`hf-target-${folder.id}`} className={labelCls}>Path inside the container</label>
-          <input id={`hf-target-${folder.id}`} value={target} onChange={(e) => setTarget(e.target.value)} placeholder="/media" spellCheck={false} autoComplete="off" className={`${inputCls} font-mono`} />
+          <label htmlFor={`hf-target-${folder.id}`} className={LABEL}>Path inside the container</label>
+          <input id={`hf-target-${folder.id}`} value={target} onChange={(e) => setTarget(e.target.value)} placeholder="/media" spellCheck={false} autoComplete="off" className={`${INPUT_FLEET} font-mono`} />
         </div>
         <div>
-          <label htmlFor={`hf-sub-${folder.id}`} className={labelCls}>Only a subfolder (optional)</label>
-          <input id={`hf-sub-${folder.id}`} value={sub} onChange={(e) => setSub(e.target.value)} placeholder="Movies" spellCheck={false} autoComplete="off" className={`${inputCls} font-mono`} />
+          <label htmlFor={`hf-sub-${folder.id}`} className={LABEL}>Only a subfolder (optional)</label>
+          <input id={`hf-sub-${folder.id}`} value={sub} onChange={(e) => setSub(e.target.value)} placeholder="Movies" spellCheck={false} autoComplete="off" className={`${INPUT_FLEET} font-mono`} />
         </div>
       </div>
       <label className="flex items-center gap-2 text-xs text-slate-300"><input type="checkbox" checked={ro} onChange={(e) => setRo(e.target.checked)} className={checkCls} /> Read-only for this container (enough for Jellyfin; Sonarr and Radarr need to write)</label>
@@ -208,7 +209,7 @@ export default function HostFoldersSheet({ member, onClose }: { member: FleetMem
   const locked = running || !!busy
 
   return (
-    <Sheet wide title="Host folders" subtitle={`${member.name} · folders of the Proxmox host inside this VM, for its containers`} icon={<FolderInput size={18} />} onClose={onClose}>
+    <Sheet tone="fleet" wide title="Host folders" subtitle={`${member.name} · folders of the Proxmox host inside this VM, for its containers`} icon={<FolderInput size={18} />} onClose={onClose}>
       <div className="space-y-3">
         {loading && <p className="flex items-center gap-2 text-sm text-slate-400 py-6 justify-center"><Loader2 size={16} className="animate-spin" /> Asking Proxmox and the VM…</p>}
         {!loading && loadErr && (
@@ -226,7 +227,7 @@ export default function HostFoldersSheet({ member, onClose }: { member: FleetMem
             {data.hint && (
               <div className={`rounded-xl p-3 text-xs space-y-2 ${TONE_ATTN} hover:bg-amber-500/10`}>
                 <p className="flex items-start gap-2"><AlertTriangle size={14} className="shrink-0 mt-0.5" /><span>The Proxmox API token lacks {data.missing?.join(', ') || 'a permission'}. It needs the role <span className="font-semibold">PVEMappingAdmin</span> on <span className="font-mono">/mapping/dir</span> (Datacenter → Permissions → Add), or run this on the Proxmox host:</span></p>
-                {pveum && <div className="flex items-center gap-2 flex-wrap"><code className="font-mono text-[11px] text-amber-100 break-all min-w-0">{pveum}</code><CopyChip text={pveum} label="Copy" /></div>}
+                {pveum && <div className="flex items-center gap-2 flex-wrap"><code className="font-mono text-[11px] text-amber-100 break-all min-w-0">{pveum}</code><CopyButton variant="chip" text={pveum} label="Copy" /></div>}
               </div>
             )}
             {data.restart_needed && !running && (
@@ -280,8 +281,8 @@ export default function HostFoldersSheet({ member, onClose }: { member: FleetMem
               <div role="group" aria-label="Share a folder of the host" className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.04] p-3 space-y-3 animate-fade-in">
                 {free.length > 0 && (
                   <div>
-                    <label htmlFor="hf-pick" className={labelCls}>Folder</label>
-                    <select id="hf-pick" value={pick} onChange={(e) => setPick(e.target.value)} className={inputCls}>
+                    <label htmlFor="hf-pick" className={LABEL}>Folder</label>
+                    <select id="hf-pick" value={pick} onChange={(e) => setPick(e.target.value)} className={INPUT_FLEET}>
                       {free.map((m) => <option key={m.id} value={m.id}>{m.id} — {m.path}</option>)}
                       {data.can?.create && <option value="">A new folder…</option>}
                     </select>
@@ -290,14 +291,14 @@ export default function HostFoldersSheet({ member, onClose }: { member: FleetMem
                 {!pick && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label htmlFor="hf-name" className={labelCls}>Name</label>
-                      <input id="hf-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="media" spellCheck={false} autoComplete="off" className={`${inputCls} font-mono`} />
+                      <label htmlFor="hf-name" className={LABEL}>Name</label>
+                      <input id="hf-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="media" spellCheck={false} autoComplete="off" className={`${INPUT_FLEET} font-mono`} />
                       {name && !NAME_RE.test(name.trim()) && <p className="text-[11px] text-rose-300 mt-1">A letter, then letters, digits, - or _</p>}
                       {(nameTaken || attached.has(effName)) && <p className="text-[11px] text-rose-300 mt-1">Proxmox already has a folder with this name</p>}
                     </div>
                     <div>
-                      <label htmlFor="hf-path" className={labelCls}>Folder on the Proxmox host</label>
-                      <input id="hf-path" value={path} onChange={(e) => setPath(e.target.value)} placeholder="/mnt/media" spellCheck={false} autoComplete="off" className={`${inputCls} font-mono`} />
+                      <label htmlFor="hf-path" className={LABEL}>Folder on the Proxmox host</label>
+                      <input id="hf-path" value={path} onChange={(e) => setPath(e.target.value)} placeholder="/mnt/media" spellCheck={false} autoComplete="off" className={`${INPUT_FLEET} font-mono`} />
                       {path && !HOST_PATH_RE.test(path.trim()) && <p className="text-[11px] text-rose-300 mt-1">An absolute path without spaces or commas</p>}
                     </div>
                     {data.suggestions.length > 0 && (
@@ -308,8 +309,8 @@ export default function HostFoldersSheet({ member, onClose }: { member: FleetMem
                   </div>
                 )}
                 <div>
-                  <label htmlFor="hf-mount" className={labelCls}>Where the VM mounts it</label>
-                  <input id="hf-mount" value={mount} onChange={(e) => setMount(e.target.value)} placeholder={effName ? `/mnt/${effName}` : '/mnt/media'} spellCheck={false} autoComplete="off" className={`${inputCls} font-mono`} />
+                  <label htmlFor="hf-mount" className={LABEL}>Where the VM mounts it</label>
+                  <input id="hf-mount" value={mount} onChange={(e) => setMount(e.target.value)} placeholder={effName ? `/mnt/${effName}` : '/mnt/media'} spellCheck={false} autoComplete="off" className={`${INPUT_FLEET} font-mono`} />
                   {mount.trim() && !MOUNT_RE.test(mount.trim()) && <p className="text-[11px] text-rose-300 mt-1">Below /mnt, /srv, /media or /data — letters, digits, - and _</p>}
                 </div>
                 <label className="flex items-center gap-2 text-xs text-slate-300"><input type="checkbox" checked={ro} onChange={(e) => setRo(e.target.checked)} className={checkCls} /> Read-only for the whole VM (leave off when Sonarr or Radarr must write)</label>

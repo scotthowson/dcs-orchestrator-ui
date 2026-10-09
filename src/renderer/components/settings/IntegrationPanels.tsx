@@ -19,20 +19,10 @@ import { useConfirm } from '../common/ConfirmDialog'
 import { useToast } from '../common/Toast'
 import Hint from '../common/Hint'
 import { pageLabel } from '../../constants/pageTitles'
-import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD_QUIET, TONE_OK, TONE_DANGER } from '../../lib/ui'
-import { FOCUS_RING } from '../../lib/fieldStyles'
+import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD_QUIET, TONE_OK, TONE_DANGER, FOCUS_RING } from '../../lib/ui'
 import type { ProxmoxStatus } from '../../../shared/types'
 
-function CopyChip({ text, label }: { text: string; label: string }) {
-  const [done, setDone] = useState(false)
-  return (
-    <button type="button" onClick={() => { navigator.clipboard?.writeText(text).then(() => { setDone(true); setTimeout(() => setDone(false), 1500) }).catch(() => {}) }}
-      className={BTN_CARD_QUIET}>
-      {done ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />} {done ? 'Copied' : label}
-    </button>
-  )
-}
-
+import { CopyButton } from '../common/CopyButton'
 export function ProxmoxTestPanel({ url, tokenId, tokenSecret, verifyTls, secretSource = '', onOpenSecrets }: { url: string; tokenId: string; tokenSecret: string; verifyTls: boolean; secretSource?: string; onOpenSecrets?: () => void }) {
   const [busy, setBusy] = useState(false)
   const [res, setRes] = useState<ProxmoxStatus | null>(null)
@@ -105,7 +95,7 @@ export function TraefikFeedPanel({ enabled }: { enabled: boolean }) {
         <>
           <div className="flex items-center gap-2 flex-wrap">
             <code className="text-[11px] font-mono text-slate-300 bg-black/30 rounded-lg px-2 py-1 break-all">{f.token}</code>
-            <CopyChip text={f.token} label="Copy token" />
+            <CopyButton variant="chip" text={f.token} label="Copy token" />
             <button type="button" onClick={rotate} disabled={rotating} className={BTN_CARD_QUIET}>
               <RefreshCw size={12} className={rotating ? 'animate-spin' : ''} /> Rotate
             </button>
@@ -113,7 +103,7 @@ export function TraefikFeedPanel({ enabled }: { enabled: boolean }) {
           <div>
             <div className="flex items-center justify-between mb-1">
               <span className="text-[11px] text-slate-400">Paste into that Traefik's static config (traefik.yml), then restart it:</span>
-              <CopyChip text={f.snippet} label="Copy snippet" />
+              <CopyButton variant="chip" text={f.snippet} label="Copy snippet" />
             </div>
             <pre className="text-[11px] font-mono text-slate-300 bg-black/30 rounded-lg p-2.5 overflow-x-auto whitespace-pre">{f.snippet}</pre>
             <div className="text-[11px] text-slate-500 mt-1">Through the dashboard instead of the API port: <code className="font-mono">https://&lt;dashboard&gt;/api/traefik/dynamic?token=…</code>. Traefik v3 can send the token as a header instead: <code className="font-mono">headers: {'{'} Authorization: "Bearer …" {'}'}</code>.</div>

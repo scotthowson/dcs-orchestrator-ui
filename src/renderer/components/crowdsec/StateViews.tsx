@@ -15,8 +15,14 @@ import { useToast } from '../common/Toast'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { deployTemplate, fetchStackActivity, crowdsecStatus, crowdsecLogs, crowdsecRunFix } from '../../api/endpoints'
 import type { CrowdSecFix, CrowdSecIssue, CrowdSecPreflight, CrowdSecStatusResponse, StackActivityResponse } from '../../../shared/types'
-import { CARD, BTN_PRIMARY, BTN_QUIET, BTN_WARN, Chip, INPUT, LABEL, HINT, Switch, errMsg, useCs, type Tone } from './kit'
-
+import { errMsg, useCs } from './kit'
+import { BTN_TOOLBAR_ATTN, BTN_TOOLBAR_OK, BTN_TOOLBAR_QUIET, SECTION_LABEL } from '../../lib/ui'
+import { HINT, INPUT, LABEL } from '../../lib/fieldStyles'
+import { CARD } from '../../lib/pageKit'
+import { type Tone } from '../../lib/tone'
+import { Pill } from '../common/Pill'
+import { Toggle } from '../common/Toggle'
+import StatusLine from '../common/StatusLine'
 // ---------------------------------------------------------------------------
 // Fix buttons
 // ---------------------------------------------------------------------------
@@ -61,7 +67,7 @@ export function FixButton({ fix, busy, onRun }: { fix: CrowdSecFix; busy: boolea
       onClick={onRun}
       disabled={busy || (needsAdmin && !isAdmin)}
       title={needsAdmin && !isAdmin ? 'Only an admin can do this' : undefined}
-      className={fix.primary ? BTN_PRIMARY : BTN_QUIET}
+      className={fix.primary ? BTN_TOOLBAR_OK : BTN_TOOLBAR_QUIET}
     >
       {busy ? <Loader2 size={13} className="animate-spin" /> : fixIcon(fix.id)} {fix.label}
     </button>
@@ -79,11 +85,11 @@ export function IssueBanners({ issues, onOpenTab }: { issues: CrowdSecIssue[]; o
   return (
     <div className="space-y-2" role="region" aria-label="Things that need attention">
       {issues.map((i) => {
-        const tone: Tone = i.severity === 'warning' ? 'warn' : i.severity === 'error' ? 'bad' : 'info'
+        const tone: Tone = i.severity === 'warning' ? 'attention' : i.severity === 'error' ? 'problem' : 'info'
         const Icon = i.severity === 'info' ? Info : AlertTriangle
         return (
-          <div key={i.code} className={`rounded-xl border px-4 py-3 flex items-start gap-3 flex-wrap ${tone === 'warn' ? 'bg-amber-500/[0.06] border-amber-500/20' : tone === 'bad' ? 'bg-rose-500/[0.06] border-rose-500/20' : 'bg-cyan-500/[0.05] border-cyan-500/15'}`}>
-            <Icon size={16} className={`shrink-0 mt-0.5 ${tone === 'warn' ? 'text-amber-400' : tone === 'bad' ? 'text-rose-400' : 'text-cyan-400'}`} />
+          <div key={i.code} className={`rounded-xl border px-4 py-3 flex items-start gap-3 flex-wrap ${tone === 'attention' ? 'bg-amber-500/[0.06] border-amber-500/20' : tone === 'problem' ? 'bg-rose-500/[0.06] border-rose-500/20' : 'bg-cyan-500/[0.05] border-cyan-500/15'}`}>
+            <Icon size={16} className={`shrink-0 mt-0.5 ${tone === 'attention' ? 'text-amber-400' : tone === 'problem' ? 'text-rose-400' : 'text-cyan-400'}`} />
             <div className="min-w-0 flex-1 basis-56">
               <p className="text-sm font-medium text-slate-100">{i.title}</p>
               <p className="text-xs text-slate-500 mt-0.5">{i.detail}</p>
@@ -101,12 +107,12 @@ export function IssueBanners({ issues, onOpenTab }: { issues: CrowdSecIssue[]; o
 // ---------------------------------------------------------------------------
 
 const PROBLEM_LOOK: Record<string, { icon: React.ElementType; tone: Tone; hint: string }> = {
-  docker_unavailable: { icon: Container, tone: 'bad', hint: 'DCS talks to Docker to see and manage CrowdSec. Start the Docker service on this server (or check that DCS may use the Docker socket), then check again.' },
-  stopped: { icon: ShieldOff, tone: 'warn', hint: 'Nothing is watching the logs while CrowdSec is stopped. The bouncer in Traefik keeps enforcing the bans it already has until they expire.' },
-  crash_loop: { icon: ShieldAlert, tone: 'bad', hint: 'A container that keeps restarting almost always has a configuration problem. The log below shows the last thing it said before it died.' },
+  docker_unavailable: { icon: Container, tone: 'problem', hint: 'DCS talks to Docker to see and manage CrowdSec. Start the Docker service on this server (or check that DCS may use the Docker socket), then check again.' },
+  stopped: { icon: ShieldOff, tone: 'attention', hint: 'Nothing is watching the logs while CrowdSec is stopped. The bouncer in Traefik keeps enforcing the bans it already has until they expire.' },
+  crash_loop: { icon: ShieldAlert, tone: 'problem', hint: 'A container that keeps restarting almost always has a configuration problem. The log below shows the last thing it said before it died.' },
   starting: { icon: Loader2, tone: 'info', hint: 'This page refreshes on its own and opens as soon as CrowdSec reports healthy.' },
-  unhealthy: { icon: ShieldAlert, tone: 'warn', hint: 'The container runs, but Docker cannot get an answer from cscli. A restart usually clears it.' },
-  lapi_unreachable: { icon: Network, tone: 'warn', hint: 'CrowdSec is up but its local API does not answer, so bans cannot be listed or changed. The bouncer keeps its cached decisions in the meantime.' },
+  unhealthy: { icon: ShieldAlert, tone: 'attention', hint: 'The container runs, but Docker cannot get an answer from cscli. A restart usually clears it.' },
+  lapi_unreachable: { icon: Network, tone: 'attention', hint: 'CrowdSec is up but its local API does not answer, so bans cannot be listed or changed. The bouncer keeps its cached decisions in the meantime.' },
 }
 
 export function ProblemView({ s, onRefresh, onDeploy }: { s: CrowdSecStatusResponse; onRefresh: () => void; onDeploy: () => void }) {
@@ -116,7 +122,7 @@ export function ProblemView({ s, onRefresh, onDeploy }: { s: CrowdSecStatusRespo
   const Icon = look.icon
   const [showLog, setShowLog] = useState(state === 'crash_loop' || state === 'lapi_unreachable')
   const { run, busy } = useFixRunner(member, onRefresh, (fix) => { if (fix.id === 'logs') setShowLog(true); if (fix.id === 'deploy') onDeploy() })
-  const tile = look.tone === 'bad' ? 'bg-rose-500/10 border-rose-500/20 text-rose-400' : look.tone === 'warn' ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' : 'bg-cyan-500/10 border-cyan-500/20 text-cyan-400'
+  const tile = look.tone === 'problem' ? 'bg-rose-500/10 border-rose-500/20 text-rose-400' : look.tone === 'attention' ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' : 'bg-cyan-500/10 border-cyan-500/20 text-cyan-400'
   const log = s.log_tail ?? []
   return (
     <div className="space-y-4">
@@ -129,10 +135,10 @@ export function ProblemView({ s, onRefresh, onDeploy }: { s: CrowdSecStatusRespo
             <p className="text-xs text-slate-500 mt-2">{look.hint}</p>
             <div className="flex flex-wrap items-center gap-2 mt-4">
               {(s.fixes ?? []).map((f) => f.id === 'retry'
-                ? <button key={f.id} type="button" onClick={onRefresh} className={f.primary ? BTN_PRIMARY : BTN_QUIET}><RefreshCw size={13} /> {f.label}</button>
+                ? <button key={f.id} type="button" onClick={onRefresh} className={f.primary ? BTN_TOOLBAR_OK : BTN_TOOLBAR_QUIET}><RefreshCw size={13} /> {f.label}</button>
                 : <FixButton key={f.id} fix={f} busy={busy === f.id} onRun={() => run(f)} />)}
               {state !== 'docker_unavailable' && !(s.fixes ?? []).some((f) => f.id === 'logs') && (
-                <button type="button" onClick={() => setShowLog((v) => !v)} className={BTN_QUIET}><ScrollText size={13} /> {showLog ? 'Hide the log' : 'Show the log'}</button>
+                <button type="button" onClick={() => setShowLog((v) => !v)} className={BTN_TOOLBAR_QUIET}><ScrollText size={13} /> {showLog ? 'Hide the log' : 'Show the log'}</button>
               )}
             </div>
           </div>
@@ -181,21 +187,8 @@ function LogPanel({ initial, onRefresh }: { initial: string[]; onRefresh: () => 
 // Not deployed
 // ---------------------------------------------------------------------------
 
-function Check({ ok, warn, children, sub }: { ok?: boolean; warn?: boolean; children: React.ReactNode; sub?: React.ReactNode }) {
-  const Icon = ok ? CheckCircle2 : warn ? AlertTriangle : XCircle
-  return (
-    <li className="flex items-start gap-2.5 py-1.5">
-      <Icon size={15} className={`shrink-0 mt-0.5 ${ok ? 'text-emerald-400' : warn ? 'text-amber-400' : 'text-rose-400'}`} />
-      <div className="min-w-0">
-        <p className="text-sm text-slate-200">{children}</p>
-        {sub && <p className="text-[11px] text-slate-500 mt-0.5">{sub}</p>}
-      </div>
-    </li>
-  )
-}
-
 function Step({ icon: Icon, title, text, tone }: { icon: React.ElementType; title: string; text: string; tone: Tone }) {
-  const tile = tone === 'bad' ? 'bg-rose-500/10 border-rose-500/20 text-rose-300' : tone === 'good' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300' : tone === 'warn' ? 'bg-amber-500/10 border-amber-500/20 text-amber-300' : 'bg-cyan-500/10 border-cyan-500/20 text-cyan-400'
+  const tile = tone === 'problem' ? 'bg-rose-500/10 border-rose-500/20 text-rose-300' : tone === 'ok' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300' : tone === 'attention' ? 'bg-amber-500/10 border-amber-500/20 text-amber-300' : 'bg-cyan-500/10 border-cyan-500/20 text-cyan-400'
   return (
     <div className="flex-1 min-w-0 rounded-xl bg-white/[0.03] border border-white/5 p-3.5">
       <div className={`w-9 h-9 rounded-xl border flex items-center justify-center ${tile}`}><Icon size={16} /></div>
@@ -279,29 +272,29 @@ export function NotDeployed({ s, onRefresh }: { s: CrowdSecStatusResponse; onRef
           <div className="flex flex-col md:flex-row items-stretch gap-2 md:gap-1">
             <Step icon={FileText} tone="info" title="It reads the log" text="Traefik's access log is mounted read-only; nothing in your apps changes." />
             <div className="flex items-center justify-center text-slate-500 shrink-0"><ArrowRight size={16} className="hidden md:block" /><ArrowDown size={16} className="md:hidden" /></div>
-            <Step icon={Radar} tone="warn" title="It decides" text="Scenarios spot probing, brute force and exploits; the community blocklist adds known bad addresses." />
+            <Step icon={Radar} tone="attention" title="It decides" text="Scenarios spot probing, brute force and exploits; the community blocklist adds known bad addresses." />
             <div className="flex items-center justify-center text-slate-500 shrink-0"><ArrowRight size={16} className="hidden md:block" /><ArrowDown size={16} className="md:hidden" /></div>
-            <Step icon={Ban} tone="bad" title="Traefik blocks" text="DCS registers a bouncer, so a ban is enforced at the door before any app sees the request." />
+            <Step icon={Ban} tone="problem" title="Traefik blocks" text="DCS registers a bouncer, so a ban is enforced at the door before any app sees the request." />
             <div className="flex items-center justify-center text-slate-500 shrink-0"><ArrowRight size={16} className="hidden md:block" /><ArrowDown size={16} className="md:hidden" /></div>
-            <Step icon={MessageSquare} tone="good" title="You hear about it" text="Every ban can post to Discord, in words a person understands (when a webhook is set)." />
+            <Step icon={MessageSquare} tone="ok" title="You hear about it" text="Every ban can post to Discord, in words a person understands (when a webhook is set)." />
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
         <div className={`${CARD} p-5 lg:col-span-3`}>
-          <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Before it deploys</p>
+          <h3 className={SECTION_LABEL}>Before it deploys</h3>
           {!pre ? <div className="mt-3 space-y-2"><div className="skeleton h-5 rounded" /><div className="skeleton h-5 rounded w-2/3" /></div> : (
             <ul className="mt-2 divide-y divide-white/[0.04]">
-              <Check ok={pre.docker.ok} sub={pre.docker.version ? `Docker ${pre.docker.version}` : undefined}>Docker answers</Check>
-              <Check ok={!!pre.template} sub={pre.template ? `${pre.template.title} template, part of this DCS` : undefined}>The CrowdSec template is available</Check>
-              <Check ok={!!traefik?.present && !!traefik?.running} warn={!!traefik?.present && !traefik?.running} sub={traefik?.present ? `${traefik.container} is ${traefik.state}${traefik.project ? ` in ${traefik.project}` : ''}` : 'Without Traefik CrowdSec still detects and alerts, but nothing enforces a ban.'}>
-                {traefik?.present ? 'Traefik is here' : 'Traefik was not found'}
-              </Check>
-              <Check ok={pre.discord.configured} warn={!pre.discord.configured} sub={pre.discord.configured ? 'Bans will be posted with the server\'s webhook.' : 'Optional: add a webhook later on the Discord tab.'}>
-                {pre.discord.configured ? 'A Discord webhook is set' : 'No Discord webhook yet'}
-              </Check>
-              {pre.blockers.map((b) => <Check key={b}>{b}</Check>)}
+              <StatusLine as="li" tone={pre.docker.ok ? 'ok' : 'problem'} title="Docker answers">{pre.docker.version ? `Docker ${pre.docker.version}` : undefined}</StatusLine>
+              <StatusLine as="li" tone={pre.template ? 'ok' : 'problem'} title="The CrowdSec template is available">{pre.template ? `${pre.template.title} template, part of this DCS` : undefined}</StatusLine>
+              <StatusLine as="li" tone={traefik?.present && traefik?.running ? 'ok' : traefik?.present ? 'attention' : 'problem'} title={traefik?.present ? 'Traefik is here' : 'Traefik was not found'}>
+                {traefik?.present ? `${traefik.container} is ${traefik.state}${traefik.project ? ` in ${traefik.project}` : ''}` : 'Without Traefik CrowdSec still detects and alerts, but nothing enforces a ban.'}
+              </StatusLine>
+              <StatusLine as="li" tone={pre.discord.configured ? 'ok' : 'attention'} title={pre.discord.configured ? 'A Discord webhook is set' : 'No Discord webhook yet'}>
+                {pre.discord.configured ? 'Bans will be posted with the server\'s webhook.' : 'Optional: add a webhook later on the Discord tab.'}
+              </StatusLine>
+              {pre.blockers.map((b) => <StatusLine as="li" key={b} tone="problem" title={b} />)}
             </ul>
           )}
           {pre?.warnings.length ? (
@@ -326,11 +319,11 @@ export function NotDeployed({ s, onRefresh }: { s: CrowdSecStatusResponse; onRef
                 <label className="text-sm text-slate-200" htmlFor="cs-bouncer">Block bans at Traefik</label>
                 <p className={HINT}>Registers a bouncer and puts its middleware in Traefik&apos;s chain.{!pre?.enforcement && ' Needs Traefik in the same stack.'}</p>
               </div>
-              <Switch id="cs-bouncer" checked={bouncer} onChange={setBouncer} label="Block bans at Traefik" disabled={deploying || !pre?.enforcement} />
+              <Toggle id="cs-bouncer" checked={bouncer} onChange={setBouncer} label="Block bans at Traefik" disabled={deploying || !pre?.enforcement} />
             </div>
           </div>
           <div className="mt-4 space-y-2">
-            <button type="button" onClick={deploy} disabled={!canDeploy || deploying || !stack} className={`${BTN_PRIMARY} w-full h-11 text-sm`}>
+            <button type="button" onClick={deploy} disabled={!canDeploy || deploying || !stack} className={`${BTN_TOOLBAR_OK} w-full h-11 text-sm`}>
               {deploying ? <Loader2 size={16} className="animate-spin" /> : <Rocket size={16} />} {deploying ? 'Deploying…' : 'Deploy CrowdSec'}
             </button>
             {!isAdmin && <p className="text-[11px] text-amber-300 text-center">Only an admin can deploy.</p>}
@@ -345,9 +338,9 @@ export function NotDeployed({ s, onRefresh }: { s: CrowdSecStatusResponse; onRef
             {phase === 'failed' ? <XCircle size={16} className="text-rose-400" /> : <Loader2 size={16} className="animate-spin text-emerald-400" />}
             <p className="text-sm font-medium text-slate-100">{phase === 'failed' ? 'The deployment did not finish' : phase === 'deploying' ? 'Sending the deployment…' : 'CrowdSec is starting. This page opens when it is healthy.'}</p>
             {activity && activity.services.length > 0 && activity.services.map((sv) => (
-              <Chip key={sv.service} tone={sv.state === 'running' ? (sv.health === 'unhealthy' ? 'bad' : 'good') : sv.state === 'exited' || sv.state === 'dead' ? 'bad' : 'info'}>{sv.service} · {sv.state === 'running' && sv.health && sv.health !== 'none' ? sv.health : sv.state}</Chip>
+              <Pill key={sv.service} tone={sv.state === 'running' ? (sv.health === 'unhealthy' ? 'problem' : 'ok') : sv.state === 'exited' || sv.state === 'dead' ? 'problem' : 'info'}>{sv.service} · {sv.state === 'running' && sv.health && sv.health !== 'none' ? sv.health : sv.state}</Pill>
             ))}
-            {phase === 'failed' && <button type="button" onClick={deploy} className={`${BTN_WARN} ml-auto`}><RotateCw size={13} /> Try again</button>}
+            {phase === 'failed' && <button type="button" onClick={deploy} className={`${BTN_TOOLBAR_ATTN} ml-auto`}><RotateCw size={13} /> Try again</button>}
           </div>
           {error && <p className="px-4 py-3 text-sm text-rose-300 break-words">{error}</p>}
           {output.length > 0 && <pre className="px-4 py-3 text-[11px] leading-relaxed font-mono text-slate-500 overflow-x-auto max-h-56 overflow-y-auto scrollbar-thin whitespace-pre-wrap break-words">{output.slice(-40).join('\n')}</pre>}
@@ -364,18 +357,18 @@ export function TooOld() {
       <PackageOpen size={30} className="mx-auto text-amber-400" />
       <h2 className="mt-3 text-lg font-semibold text-slate-100">This DCS is older than the CrowdSec page</h2>
       <p className="mt-1.5 text-sm text-slate-500 max-w-lg mx-auto">The server did not report a CrowdSec state, so it predates the API this page uses. Update DCS on that server and come back.</p>
-      <button type="button" onClick={() => setCurrentPage('updates')} className={`${BTN_QUIET} mt-4`}><Boxes size={13} /> Open Updates</button>
+      <button type="button" onClick={() => setCurrentPage('updates')} className={`${BTN_TOOLBAR_QUIET} mt-4`}><Boxes size={13} /> Open Updates</button>
     </div>
   )
 }
 
 /** a small memo so the header can show a state's look */
 export function stateLook(state: string | undefined): { tone: Tone; Icon: React.ElementType } {
-  if (state === 'healthy') return { tone: 'good', Icon: ShieldCheck }
-  if (state === 'not_deployed') return { tone: 'mute', Icon: ShieldOff }
-  if (state === 'crash_loop' || state === 'docker_unavailable') return { tone: 'bad', Icon: ShieldAlert }
+  if (state === 'healthy') return { tone: 'ok', Icon: ShieldCheck }
+  if (state === 'not_deployed') return { tone: 'neutral', Icon: ShieldOff }
+  if (state === 'crash_loop' || state === 'docker_unavailable') return { tone: 'problem', Icon: ShieldAlert }
   if (state === 'starting') return { tone: 'info', Icon: ShieldAlert }
-  return { tone: 'warn', Icon: ShieldAlert }
+  return { tone: 'attention', Icon: ShieldAlert }
 }
 
 export function useStateLook(s: CrowdSecStatusResponse | null) {

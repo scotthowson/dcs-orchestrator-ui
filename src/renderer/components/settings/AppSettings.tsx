@@ -9,8 +9,8 @@ import { Timer, Layout, RotateCcw, User, Gamepad2,
 } from 'lucide-react'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { pageLabel } from '../../constants/pageTitles'
-import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, TONE_OK } from '../../lib/ui'
-import { FIELD, SUBHEAD } from '../../lib/fieldStyles'
+import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, TONE_OK, SECTION_LABEL } from '../../lib/ui'
+import { FIELD } from '../../lib/fieldStyles'
 import type { PageId } from '../../../shared/types'
 import type { AppSettings as AppSettingsType } from '../../../shared/types'
 
@@ -158,7 +158,7 @@ export default function AppSettingsForm({ onDirtyChange, onRegisterSave }: {
       <div>
         <div className="flex items-center gap-2 mb-4">
           <Timer size={14} className="accent-text" />
-          <h3 className={SUBHEAD}>Polling intervals</h3>
+          <h3 className={SECTION_LABEL}>Polling intervals</h3>
         </div>
 
         <div className="space-y-4">
@@ -213,7 +213,7 @@ export default function AppSettingsForm({ onDirtyChange, onRegisterSave }: {
       <div>
         <div className="flex items-center gap-2 mb-4">
           <Layout size={14} className="accent-text" />
-          <h3 className={SUBHEAD}>Layout</h3>
+          <h3 className={SECTION_LABEL}>Layout</h3>
         </div>
 
         <div className="flex items-center justify-between py-2">
@@ -263,7 +263,7 @@ function PersonalSettings() {
     <div className="space-y-1">
       <div className="flex items-center gap-2 mb-2">
         <User size={14} className="accent-text" />
-        <h3 className={SUBHEAD}>Personal</h3>
+        <h3 className={SECTION_LABEL}>Personal</h3>
       </div>
 
       <div className="flex items-center justify-between py-2">
@@ -343,7 +343,7 @@ function DiscordPresenceSettings() {
     <div className="space-y-1">
       <div className="flex items-center gap-2 mb-2">
         <Gamepad2 size={14} className="text-indigo-400" />
-        <h3 className={SUBHEAD}>Discord Rich Presence</h3>
+        <h3 className={SECTION_LABEL}>Discord Rich Presence</h3>
         {status && (
           <span className={`ml-auto inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold ${status.connected ? 'bg-emerald-500/15 text-emerald-400' : status.enabled ? 'bg-amber-500/15 text-amber-400' : 'bg-white/[0.06] text-slate-400'}`}>
             <span className={`w-1.5 h-1.5 rounded-full ${status.connected ? 'bg-emerald-400' : status.enabled ? 'bg-amber-400' : 'bg-slate-500'}`} />

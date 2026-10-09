@@ -7,12 +7,19 @@
 import { useEffect, useRef } from 'react'
 import { ChevronDown, ChevronRight, Clock, Eye, Info, Loader2, Moon, Send, Sun, TriangleAlert } from 'lucide-react'
 import type { DiscordWebhookPayload } from '../../../shared/types'
-import { BTN_PRIMARY, CARD, CopyIcon, INPUT, SectionHead, Segmented, Skel, fmtAgo, useNow } from './kit'
+import { fmtAgo, useNow } from './kit'
 import { DiscordMessage } from './DiscordPreview'
 import { SAMPLE_INFO, redact, sampleLabel } from './NotifyModel'
-import { Notice } from './NotifyFields'
 import { TestOutcome, type TestOutcomeData } from './NotifyStatus'
 
+import { BTN_TOOLBAR_OK } from '../../lib/ui'
+import { INPUT } from '../../lib/fieldStyles'
+import { CARD } from '../../lib/pageKit'
+import SectionHeader from '../common/SectionHeader'
+import { SkeletonBlock } from '../common/PageState'
+import Segmented from '../common/Segmented'
+import { CopyButton } from '../common/CopyButton'
+import Notice from '../common/Notice'
 export interface PreviewPanelProps {
   payload: DiscordWebhookPayload | null
   loading: boolean
@@ -52,7 +59,7 @@ export default function PreviewPanel(p: PreviewPanelProps) {
   useEffect(() => { if (p.test) result.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }) }, [p.test?.at]) // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <section className={p.bare ? 'space-y-3' : `${CARD} p-4 space-y-3`} aria-label="Preview">
-      <SectionHead icon={Eye} title="Live preview"
+      <SectionHeader icon={Eye} title="Live preview"
         right={
           <div className="flex items-center gap-2">
             {p.loading && <Loader2 size={13} className="animate-spin text-slate-500" aria-label="Updating the preview" />}
@@ -80,10 +87,10 @@ export default function PreviewPanel(p: PreviewPanelProps) {
 
       {p.payload
         ? <DiscordMessage payload={p.payload} dark={p.dark} dim={p.loading || !!p.problem} />
-        : p.problem ? null : <Skel className="h-52" />}
+        : p.problem ? null : <SkeletonBlock className="h-52" />}
 
       {p.problem && (
-        <Notice tone="bad" icon={TriangleAlert} role="alert" title="This message cannot be drawn">
+        <Notice tone="problem" icon={TriangleAlert} role="alert" title="This message cannot be drawn">
           {p.problem}{p.payload ? <span className="block mt-1 opacity-80">The preview above is the last one that worked.</span> : null}
         </Notice>
       )}
@@ -91,7 +98,7 @@ export default function PreviewPanel(p: PreviewPanelProps) {
       {p.isAdmin && (
         <div className="border-t border-white/5 pt-3 space-y-2.5">
           <div className="flex items-center gap-3 flex-wrap">
-            <button type="button" onClick={p.onTest} disabled={p.testing || !!p.testBlocked} className={BTN_PRIMARY} title={p.testBlocked ?? 'Post this example to the webhook now'}>
+            <button type="button" onClick={p.onTest} disabled={p.testing || !!p.testBlocked} className={BTN_TOOLBAR_OK} title={p.testBlocked ?? 'Post this example to the webhook now'}>
               {p.testing ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />} Send test message
             </button>
             <label className="inline-flex items-center gap-2 text-xs text-slate-300 cursor-pointer select-none">
@@ -118,7 +125,7 @@ export default function PreviewPanel(p: PreviewPanelProps) {
         <details className="group text-xs">
           <summary className="cursor-pointer text-slate-500 hover:text-slate-200 select-none inline-flex items-center gap-1.5 list-none [&::-webkit-details-marker]:hidden"><ChevronRight size={12} className="transition-transform group-open:rotate-90" /> The message as JSON</summary>
           <div className="relative mt-2">
-            <div className="absolute right-1 top-1"><CopyIcon text={json} label="Copy the message as JSON" /></div>
+            <div className="absolute right-1 top-1"><CopyButton text={json} label="Copy the message as JSON" /></div>
             <pre className="text-[11px] leading-relaxed font-mono text-slate-300 bg-white/[0.03] border border-white/5 rounded-lg p-3 pr-9 max-h-64 overflow-auto scrollbar-thin whitespace-pre-wrap break-words" tabIndex={0} aria-label="The message as JSON">{json}</pre>
           </div>
         </details>

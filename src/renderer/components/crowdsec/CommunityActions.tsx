@@ -21,8 +21,9 @@ import { ApiError } from '../../api/client'
 import { useSystemStore } from '../../stores/systemStore'
 import { serverLabel } from '../../hooks/useBrand'
 import type { CrowdSecCapiState, CrowdSecCommunityResponse, CrowdSecConsoleEnrollResponse } from '../../../shared/types'
-import { BTN_PRIMARY, BTN_QUIET, BTN_WARN, INPUT, LABEL, errData, errMsg, fmtAgo, useCs, useNow } from './kit'
-
+import { errData, errMsg, fmtAgo, useCs, useNow } from './kit'
+import { BTN_TOOLBAR_ATTN, BTN_TOOLBAR_OK, BTN_TOOLBAR_QUIET } from '../../lib/ui'
+import { INPUT, LABEL } from '../../lib/fieldStyles'
 export const CONSOLE_URL = 'https://app.crowdsec.net'
 
 /** the overview's "Enrol in the console" opens the Bouncers tab: the form scrolls into view and takes the focus once */
@@ -69,7 +70,7 @@ function PausedNotice({ hint, busy, onForce }: { hint: string; busy: boolean; on
   return (
     <div className="mt-2 rounded-lg bg-white/[0.04] border border-white/10 px-3 py-2" role="status">
       <p className="text-xs text-slate-300 break-words leading-relaxed">{hint}</p>
-      <button type="button" className={`${BTN_QUIET} mt-2`} disabled={busy} onClick={onForce}>Do it anyway</button>
+      <button type="button" className={`${BTN_TOOLBAR_QUIET} mt-2`} disabled={busy} onClick={onForce}>Do it anyway</button>
     </div>
   )
 }
@@ -107,7 +108,7 @@ export function RegisterAgainButton({ onDone, label = 'Register again' }: { onDo
   }
   return (
     <>
-      <button type="button" className={BTN_WARN} disabled={busy} onClick={() => void run(false)}>
+      <button type="button" className={BTN_TOOLBAR_ATTN} disabled={busy} onClick={() => void run(false)}>
         {busy ? <Loader2 size={13} className="animate-spin" /> : <RotateCw size={13} />} {busy ? 'Registering…' : label}
       </button>
       {paused && <PausedNotice hint={paused} busy={busy} onForce={() => void run(true)} />}
@@ -151,7 +152,7 @@ export function CheckNowButton({ onDone, availableAt }: { onDone: () => void; av
     } finally { setBusy(false) }
   }
   return (
-    <button type="button" className={BTN_QUIET} disabled={busy || !!waitMin} onClick={() => void run()}
+    <button type="button" className={BTN_TOOLBAR_QUIET} disabled={busy || !!waitMin} onClick={() => void run()}
       title={waitMin ? 'The community service is checked at most every 10 minutes' : undefined}>
       {busy ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />} {busy ? 'Checking…' : waitMin ? `Check now (available in ${waitMin} min)` : 'Check now'}
     </button>
@@ -243,7 +244,7 @@ export function EnrolBox({ onDone, onEnrolled, needsRegister = false }: { onDone
       <div className="mt-2 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-2.5" role="status">
         <p className="text-xs text-emerald-300 font-medium">One step left: open app.crowdsec.net and accept this engine.</p>
         <p className="text-xs text-slate-400 mt-1 leading-relaxed">It waits under Security Engines until someone accepts it. Its alerts appear in the console from then on.</p>
-        <a href={CONSOLE_URL} target="_blank" rel="noopener noreferrer" className={`${BTN_QUIET} mt-2`}><ExternalLink size={13} /> Open app.crowdsec.net</a>
+        <a href={CONSOLE_URL} target="_blank" rel="noopener noreferrer" className={`${BTN_TOOLBAR_QUIET} mt-2`}><ExternalLink size={13} /> Open app.crowdsec.net</a>
       </div>
     )
   }
@@ -273,7 +274,7 @@ export function EnrolBox({ onDone, onEnrolled, needsRegister = false }: { onDone
       {outcome?.kind === 'already' && (
         <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 px-3 py-2" role="status">
           <p className="text-xs text-amber-300 break-words">{outcome.message}</p>
-          <button type="button" className={`${BTN_WARN} mt-2`} disabled={busy || !k || !!keyProblem} onClick={() => void send(true)}>Replace the existing enrolment</button>
+          <button type="button" className={`${BTN_TOOLBAR_ATTN} mt-2`} disabled={busy || !k || !!keyProblem} onClick={() => void send(true)}>Replace the existing enrolment</button>
         </div>
       )}
       {outcome?.kind === 'paused' && <PausedNotice hint={outcome.message} busy={busy || !k || !!keyProblem} onForce={() => void send(!!outcome.overwrite, true)} />}
@@ -281,7 +282,7 @@ export function EnrolBox({ onDone, onEnrolled, needsRegister = false }: { onDone
         <p className="text-xs text-amber-300 rounded-lg bg-amber-500/10 border border-amber-500/20 px-3 py-2 break-words" role="status">{outcome.message} Use Register again above, then enrol.</p>
       )}
       <div className="flex items-center gap-2 flex-wrap">
-        <button type="submit" className={BTN_PRIMARY} disabled={busy || !k || !!keyProblem}>
+        <button type="submit" className={BTN_TOOLBAR_OK} disabled={busy || !k || !!keyProblem}>
           {busy ? <Loader2 size={13} className="animate-spin" /> : <KeyRound size={13} />} {busy ? 'Enrolling…' : 'Enrol'}
         </button>
         <span className="text-[11px] text-slate-500">CrowdSec keeps the key; this page never shows it again.</span>

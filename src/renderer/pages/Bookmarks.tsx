@@ -18,10 +18,11 @@ import Hint from '../components/common/Hint'
 import { DisconnectedBanner } from '../components/common/DisconnectedBanner'
 import { EmptyState } from '../components/common/PageState'
 import { useConfirm } from '../components/common/ConfirmDialog'
-import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_ICON_SM, TONE_OK, TONE_QUIET, TONE_GHOST } from '../lib/ui'
-import { CARD, CARD_HOVER, SEARCH_FIELD, FIELD, FOCUS_RING, REVEAL } from '../lib/pageKit'
+import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_ICON_SM, TONE_OK, TONE_QUIET, TONE_GHOST, FOCUS_RING } from '../lib/ui'
+import { CARD, CARD_HOVER, REVEAL } from '../lib/pageKit'
 import type { PageId } from '../../shared/types'
 
+import { SEARCH_FIELD, INPUT } from '../lib/fieldStyles'
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -188,7 +189,7 @@ function AddBookmarkForm({ onAdd, onCancel }: {
             onChange={(e) => setLabel(e.target.value)}
             placeholder="My bookmark"
             autoFocus
-            className={FIELD}
+            className={INPUT}
           />
         </div>
 
@@ -202,7 +203,7 @@ function AddBookmarkForm({ onAdd, onCancel }: {
               id={`${uid}-target`}
               value={target}
               onChange={(e) => setTarget(e.target.value)}
-              className={FIELD}
+              className={INPUT}
             >
               {pageTargets.map((p) => (
                 <option key={p.id} value={p.id}>{p.label}</option>
@@ -215,7 +216,7 @@ function AddBookmarkForm({ onAdd, onCancel }: {
               value={target}
               onChange={(e) => setTarget(e.target.value)}
               placeholder={type === 'stack' ? 'core-infrastructure' : type === 'container' ? 'nginx-proxy' : 'anything…'}
-              className={FIELD}
+              className={INPUT}
             />
           )}
         </div>
@@ -230,7 +231,7 @@ function AddBookmarkForm({ onAdd, onCancel }: {
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           placeholder="Quick notes about this bookmark…"
-          className={FIELD}
+          className={INPUT}
         />
       </div>
 

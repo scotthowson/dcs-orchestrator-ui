@@ -10,10 +10,12 @@ import { useSettingsStore } from '../../stores/settingsStore'
 import Hint from '../common/Hint'
 import ModalOverlay from '../common/ModalOverlay'
 import { BTN_CARD, BTN_ICON_SM, BTN_SHEET_PRIMARY, BTN_SHEET_QUIET, TONE_GHOST, TONE_OK } from '../../lib/ui'
-import { Card, CardBody, CardEmpty, CardLoading, pctTone, TONE_FILL, type CardCommonProps } from './cardShared'
+import { Card, CardBody, type CardCommonProps } from './cardShared'
 import { StateDot } from '../common/StateChip'
 import { containerState, isAsleep, STATE_META } from '../../lib/containerState'
 
+import { pctTone, TONE_FILL } from '../../lib/tone'
+import { Skeleton, EmptyState } from '../common/PageState'
 interface SpotlightConfig { containers: string[] }
 
 function pct(v: string | undefined): number | null {
@@ -65,14 +67,14 @@ export default function ContainerSpotlight({ cardConfig, onSaveConfig, dashboard
       ) : undefined}
     >
       {picked.length === 0 ? (
-        <CardEmpty
+        <EmptyState card
           icon={<Crosshair size={22} />}
           title="Nothing pinned yet"
           hint="Pick the containers you want to keep an eye on."
           action={canEdit ? <button type="button" onClick={() => setPicking(true)} className={`${BTN_CARD} ${TONE_OK}`}>Choose containers</button> : undefined}
         />
       ) : loading && containers.length === 0 ? (
-        <CardLoading label="Loading the containers…" rows={3} />
+        <Skeleton label="Loading the containers…" rows={3} />
       ) : (
         <CardBody className="space-y-1.5">
           {rows.map(({ name, info, st }) => {

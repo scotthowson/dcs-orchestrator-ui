@@ -10,8 +10,9 @@ import { useSettingsStore } from '../../stores/settingsStore'
 import Hint from '../common/Hint'
 import { BTN_ICON_SM, TONE_GHOST, TONE_GHOST_OK } from '../../lib/ui'
 import type { DiskInfo, CustomDiskEntry } from '../../../shared/types'
-import { Card, CardBody, CardEmpty, PCT_PROBLEM, pctTone, TONE_FILL, TONE_TEXT } from './cardShared'
-
+import { Card, CardBody } from './cardShared'
+import { PCT_PROBLEM, pctTone, TONE_FILL, TONE_TEXT } from '../../lib/tone'
+import { EmptyState } from '../common/PageState'
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -188,7 +189,7 @@ export default function DiskMonitor({ disks }: { disks: DiskInfo[] }) {
   if (totalMounts === 0) {
     return (
       <Card card="disk-monitor">
-        <CardEmpty icon={<HardDrive size={22} />} title="No disk data" hint="The server has not reported a disk yet." />
+        <EmptyState card icon={<HardDrive size={22} />} title="No disk data" hint="The server has not reported a disk yet." />
       </Card>
     )
   }

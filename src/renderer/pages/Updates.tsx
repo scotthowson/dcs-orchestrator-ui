@@ -43,21 +43,23 @@ import { DisconnectedBanner } from '../components/common/DisconnectedBanner'
 import PageHeader from '../components/common/PageHeader'
 import Hint from '../components/common/Hint'
 import { LoadingState, EmptyState } from '../components/common/PageState'
-import { Pill, Fact, CardIcon, StatusLine, formatRelativeTime, TONE_ATTN, type Tone } from '../components/updates/updateBits'
+import { Fact, CardIcon, formatRelativeTime, FreshnessLine } from '../components/updates/updateBits'
 import { pageLabel } from '../constants/pageTitles'
-import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD, BTN_CARD_QUIET, BTN_SHEET_PRIMARY, TONE_OK } from '../lib/ui'
+import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD, BTN_CARD_QUIET, BTN_SHEET_PRIMARY, TONE_OK, TONE_ATTN } from '../lib/ui'
 import { useAuthStore } from '../stores/authStore'
 import { useSettingsStore } from '../stores/settingsStore'
 import { relinkFleetMember, fetchImageUpdates, checkImageRegistry, updateImage, checkSystemUpdate, applySystemUpdate, rollbackSystemUpdate, fetchVersion, applyUiUpdate, restartApiServer, fetchSystemUpdateHistory, fetchFleetVersions, updateFleet, fetchFleetImages, checkFleetImageRegistry } from '../api/endpoints'
 import type { ImageCheckResponse, ImageUpdateInfo, SystemUpdateCheckResponse, SystemUpdateApplyResponse, SystemUpdateHistoryResponse, APIVersion, FleetVersions, FleetUpdateRound } from '../../shared/types'
 import { BUILD_VERSION, BUILD_DATE } from '../constants/buildInfo'
 
+import { Pill } from '../components/common/Pill'
+import { type Tone } from '../lib/tone'
 // ---------------------------------------------------------------------------
 // Staleness: how old an image is
 // ---------------------------------------------------------------------------
 
 /** how old an image is: fresh, getting old, old — and unknown */
-const STALENESS_TONE: Record<string, Tone> = { current: 'emerald', aging: 'amber', stale: 'rose', unknown: 'slate' }
+const STALENESS_TONE: Record<string, Tone> = { current: 'ok', aging: 'attention', stale: 'problem', unknown: 'neutral' }
 const STALENESS_LABEL: Record<string, string> = { current: 'Current', aging: 'Aging', stale: 'Stale', unknown: 'Unknown' }
 
 /** "5 min ago", "2 h ago", "3 d ago" for an ISO date */
@@ -100,7 +102,7 @@ function ImageRef({ image }: { image: string }) {
 }
 
 function StalenessBadge({ staleness }: { staleness: string }) {
-  return <Pill tone={STALENESS_TONE[staleness] ?? 'slate'} dot>{STALENESS_LABEL[staleness] ?? staleness}</Pill>
+  return <Pill tone={STALENESS_TONE[staleness] ?? 'neutral'} dot>{STALENESS_LABEL[staleness] ?? staleness}</Pill>
 }
 
 // ---------------------------------------------------------------------------
@@ -190,13 +192,13 @@ function SectionHead({ icon, title, sub, actions }: { icon: React.ReactNode; tit
 }
 
 function UpdateStatusBadge({ res }: { res: SystemUpdateCheckResponse }) {
-  if (res.state === 'member') return <Pill tone="violet" icon={<Boxes size={10} />} title={res.note}>Updated by its hub</Pill>
-  if (res.state === 'manual') return <Pill tone="slate" icon={<Info size={10} />} title={res.note}>Installed without git</Pill>
-  if (res.checked === false) return <Pill tone="rose" icon={<AlertTriangle size={10} />}>Check failed</Pill>
-  if (res.available) return <Pill tone="cyan" dot>{res.latest_name ? `${res.latest_name} available` : 'Update available'}</Pill>
-  if (res.state === 'ahead') return <Pill tone="cyan" icon={<GitBranch size={10} />} title="This checkout has commits newer than the release">Ahead of the release</Pill>
-  if (res.state === 'diverged') return <Pill tone="amber" icon={<AlertTriangle size={10} />}>Diverged</Pill>
-  return <Pill tone="emerald" icon={<CheckCircle size={10} />}>Up to date</Pill>
+  if (res.state === 'member') return <Pill tone="fleet" icon={<Boxes size={10} />} title={res.note}>Updated by its hub</Pill>
+  if (res.state === 'manual') return <Pill tone="neutral" icon={<Info size={10} />} title={res.note}>Installed without git</Pill>
+  if (res.checked === false) return <Pill tone="problem" icon={<AlertTriangle size={10} />}>Check failed</Pill>
+  if (res.available) return <Pill tone="info" dot>{res.latest_name ? `${res.latest_name} available` : 'Update available'}</Pill>
+  if (res.state === 'ahead') return <Pill tone="info" icon={<GitBranch size={10} />} title="This checkout has commits newer than the release">Ahead of the release</Pill>
+  if (res.state === 'diverged') return <Pill tone="attention" icon={<AlertTriangle size={10} />}>Diverged</Pill>
+  return <Pill tone="ok" icon={<CheckCircle size={10} />}>Up to date</Pill>
 }
 
 // ---------------------------------------------------------------------------
@@ -849,13 +851,13 @@ export default function Updates() {
                 <Fact label="Status">
                   <UpdateStatusBadge res={sysUpdate} />
                 </Fact>
-                <StatusLine
+                <FreshnessLine
                   ok={!sysUpdate.available && sysUpdate.checked !== false}
                   okText={sysUpdate.state === 'member' ? 'Follows the hub' : sysUpdate.state === 'manual' ? 'Nothing fetched here' : 'Up to date'}
                   warnText={sysUpdate.checked === false ? 'Check failed' : `${sysUpdate.latest_version || sysUpdate.latest_name || 'A release'} available`}
                   checkedAt={lastChecked}
                   updatedAt={sysUpdate.last_updated_at}
-                  tone={sysUpdate.checked === false ? 'rose' : 'cyan'}
+                  tone={sysUpdate.checked === false ? 'problem' : 'info'}
                 />
 
                 {apiVersionInfo && (
@@ -1066,12 +1068,12 @@ export default function Updates() {
             ) : sysCheckError ? (
               <div className="space-y-3">
                 <Fact label="Installed"><span className="text-xs font-mono text-slate-300">{apiVersionInfo?.framework_version || '—'}</span></Fact>
-                <Fact label="Status"><Pill tone="rose" icon={<AlertTriangle size={10} />}>Check failed</Pill></Fact>
+                <Fact label="Status"><Pill tone="problem" icon={<AlertTriangle size={10} />}>Check failed</Pill></Fact>
                 <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-rose-500/[0.06] border border-rose-500/15">
                   <Info size={12} className="text-rose-400 shrink-0 mt-0.5" />
                   <p className="text-[10px] text-rose-200 break-words">{sysCheckError}</p>
                 </div>
-                <StatusLine ok={false} okText="" warnText="Not checked" checkedAt={lastChecked} updatedAt={null} tone="rose" />
+                <FreshnessLine ok={false} okText="" warnText="Not checked" checkedAt={lastChecked} updatedAt={null} tone="problem" />
                 <button type="button" onClick={handleCheckSystemUpdate} disabled={sysChecking} className={BTN_CARD_QUIET}>
                   {sysChecking ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />} Try again
                 </button>
@@ -1106,10 +1108,10 @@ export default function Updates() {
                 <>
                   <Fact label="Status">
                     {uiUpdateAvailable
-                      ? <Pill tone="cyan" icon={<ArrowUpCircle size={10} />}>Update available</Pill>
-                      : <Pill tone="emerald" icon={<CheckCircle size={10} />}>Current</Pill>}
+                      ? <Pill tone="info" icon={<ArrowUpCircle size={10} />}>Update available</Pill>
+                      : <Pill tone="ok" icon={<CheckCircle size={10} />}>Current</Pill>}
                   </Fact>
-                  <StatusLine ok={!uiUpdateAvailable} okText="Up to date" warnText="Update available" checkedAt={lastChecked} updatedAt={BUILD_DATE} updatedLabel="Built" />
+                  <FreshnessLine ok={!uiUpdateAvailable} okText="Up to date" warnText="Update available" checkedAt={lastChecked} updatedAt={BUILD_DATE} updatedLabel="Built" />
                 </>
               ) : (
                 // the dashboard's release is learnt from the same check as the framework's: an admin's to run
@@ -1177,7 +1179,7 @@ export default function Updates() {
           <div className={`rounded-xl border p-5 mt-4 transition-all duration-300 ${fv.behind > 0 ? 'bg-cyan-500/[0.05] border-cyan-500/15' : 'bg-white/[0.03] border-white/5'}`}>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
               <div className="flex items-center gap-3">
-                <CardIcon tone="violet"><Boxes size={16} /></CardIcon>
+                <CardIcon tone="fleet"><Boxes size={16} /></CardIcon>
                 <div>
                   <h3 className="text-sm font-semibold text-slate-200">The VMs</h3>
                   <p className="text-[10px] text-slate-500">
@@ -1211,7 +1213,7 @@ export default function Updates() {
                   <Pill
                     key={m.id}
                     dot
-                    tone={!m.reachable ? 'slate' : m.behind ? 'cyan' : 'emerald'}
+                    tone={!m.reachable ? 'neutral' : m.behind ? 'info' : 'ok'}
                     title={!m.reachable ? 'not answering' : m.behind ? `DCS ${m.version} — the hub runs ${fv.hub.version}` : `DCS ${m.version}${m.vmid ? ` · VM #${m.vmid}` : ''}`}
                   >
                     {m.name}
@@ -1222,11 +1224,11 @@ export default function Updates() {
               })}
             </div>
             <div className="mt-3">
-              <StatusLine
+              <FreshnessLine
                 ok={fv.behind === 0 && fv.unreachable === 0}
                 okText={`All ${fleetMembers.length} VM${fleetMembers.length === 1 ? '' : 's'} up to date`}
                 warnText={fv.behind > 0 ? `${fv.behind} VM${fv.behind === 1 ? '' : 's'} behind` : `${fv.unreachable} not answering`}
-                tone={fv.behind > 0 ? 'cyan' : 'amber'}
+                tone={fv.behind > 0 ? 'info' : 'attention'}
                 checkedAt={fv.checked_at}
                 updatedAt={(() => { const lr = fleetReport ?? fv.last_round; return lr && lr.status !== 'running' ? lr.at : null })()}
               />
@@ -1317,11 +1319,11 @@ export default function Updates() {
         <div className="flex flex-col gap-2">
           {hasFleet && <FleetScopeChips scope={imgScope} members={scopeMembers} onChange={setImgScope} label="Images on" busy={switching} />}
           {data && (
-            <StatusLine
+            <FreshnessLine
               ok={counts.updates === 0}
               okText={data.registry_checked_at ? `All ${counts.total} image${counts.total === 1 ? '' : 's'} up to date` : `No updates known for ${counts.total} image${counts.total === 1 ? '' : 's'} — ${isAdmin ? 'check the registry' : 'admins check the registry'}`}
               warnText={`${counts.updates} image update${counts.updates === 1 ? '' : 's'} available`}
-              okTone={data.registry_checked_at || isAdmin ? 'emerald' : 'slate'}
+              okTone={data.registry_checked_at || isAdmin ? 'ok' : 'neutral'}
               checkedAt={data.registry_checked_at}
               updatedAt={data.last_update_at}
               updatedLabel="Last pulled"
@@ -1393,7 +1395,7 @@ export default function Updates() {
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-4">
             <h3 className="flex flex-wrap items-center gap-2 text-sm font-semibold text-slate-200">
               Tracked images
-              {imgScope === 'all' && <Pill tone="cyan">Hub + {scopeMembers.length} VM{scopeMembers.length === 1 ? '' : 's'}</Pill>}
+              {imgScope === 'all' && <Pill tone="info">Hub + {scopeMembers.length} VM{scopeMembers.length === 1 ? '' : 's'}</Pill>}
               {scopeMember && <VmCapsule member={scopeMember} name={scopeName} vmid={scopeMembers.find((m) => m.id === scopeMember)?.vmid} />}
             </h3>
             <p className="text-[10px] text-slate-500 leading-relaxed max-w-md">
@@ -1524,7 +1526,7 @@ export default function Updates() {
 
                         {/* Stack (hidden on mobile) */}
                         <td className="px-3 py-3 hidden sm:table-cell whitespace-nowrap">
-                          {img.stack ? <Pill tone="slate">{img.stack}</Pill> : <span className="text-xs text-slate-500">-</span>}
+                          {img.stack ? <Pill tone="neutral">{img.stack}</Pill> : <span className="text-xs text-slate-500">-</span>}
                         </td>
 
                         {/* Where it runs (the fleet view) */}
@@ -1551,13 +1553,13 @@ export default function Updates() {
                         <td className="px-3 py-3 whitespace-nowrap">
                           <div className="flex items-center gap-1.5">
                             <StalenessBadge staleness={img.staleness} />
-                            {img.update_available === true && <Pill tone="cyan" icon={<ArrowUpCircle size={10} />}>Update</Pill>}
-                            {img.update_available === false && <Pill tone="slate" icon={<CheckCircle size={10} />}>Latest</Pill>}
+                            {img.update_available === true && <Pill tone="info" icon={<ArrowUpCircle size={10} />}>Update</Pill>}
+                            {img.update_available === false && <Pill tone="neutral" icon={<CheckCircle size={10} />}>Latest</Pill>}
                             {bulkState === 'done' && !isUpdating && (
-                              <Pill tone="emerald" icon={<CheckCircle size={10} />} title="Pulled and recreated in this run">Updated</Pill>
+                              <Pill tone="ok" icon={<CheckCircle size={10} />} title="Pulled and recreated in this run">Updated</Pill>
                             )}
-                            {bulkState === 'failed' && !isUpdating && <Pill tone="rose">Failed</Pill>}
-                            {queued && <Pill tone="slate">Queued</Pill>}
+                            {bulkState === 'failed' && !isUpdating && <Pill tone="problem">Failed</Pill>}
+                            {queued && <Pill tone="neutral">Queued</Pill>}
                           </div>
                         </td>
 

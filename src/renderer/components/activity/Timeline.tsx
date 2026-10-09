@@ -17,11 +17,12 @@ import {
 import { useConnectionStore } from '../../stores/connectionStore'
 import { EmptyState } from '../common/PageState'
 import Hint from '../common/Hint'
-import { BTN_TOOLBAR_QUIET, BTN_TOOLBAR, BTN_ICON_SM, TONE_OK, TONE_GHOST } from '../../lib/ui'
-import { CARD_HOVER, SEARCH_FIELD, FOCUS_RING } from '../../lib/pageKit'
+import { BTN_TOOLBAR_QUIET, BTN_TOOLBAR, BTN_ICON_SM, TONE_OK, TONE_GHOST, FOCUS_RING } from '../../lib/ui'
+import { CARD_HOVER } from '../../lib/pageKit'
 import type { EventEntry } from '../../../shared/types'
 import { onDemandEventWord } from '../../lib/containerState'
 
+import { SEARCH_FIELD } from '../../lib/fieldStyles'
 // ---------------------------------------------------------------------------
 // Constants & helpers
 // ---------------------------------------------------------------------------

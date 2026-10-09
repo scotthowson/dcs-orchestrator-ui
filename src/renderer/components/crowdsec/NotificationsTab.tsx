@@ -16,21 +16,26 @@ import { useToast } from '../common/Toast'
 import { useConfirm } from '../common/ConfirmDialog'
 import { crowdsecNotify, crowdsecPreviewNotify, crowdsecResetNotify, crowdsecSaveNotify, crowdsecSimulation, crowdsecTestNotify } from '../../api/endpoints'
 import type { CrowdSecNotifyBody, CrowdSecNotifyResponse, DiscordWebhookPayload } from '../../../shared/types'
-import { BTN_DANGER, BTN_PRIMARY, BTN_QUIET, BTN_WARN, CARD, Chip, CsSheet, Dot, HINT, INPUT, LABEL, Skel, TEXTAREA, errData, errMsg, useCs } from './kit'
+import { errData, errMsg, useCs } from './kit'
 import {
   GROUP_WORD, LIM, NUM, changeRows, cpLen, deepEqual, describeChanges, diffPatch, draftMemory, mentionTag, orderSamples, approximatePayload, redact, sectionOfError, settingsOf, toForm, validateForm, webhookProblem,
   type Errors, type GroupBy, type Limits, type MentionMode, type NotifyForm, type Settings, type WebhookMode,
 } from './NotifyModel'
-import {
-  ChoiceCards, ColorField, Counter, FieldShell, FieldsEditor, Notice, NumberField, PhProvider, PillChoice, PlaceholderInput, PlaceholderPicker, Section, ToggleRow, TokenInput, useMedia, usePhRegistry,
-  type TokenSuggestion,
-} from './NotifyFields'
+import { ChoiceCards, ColorField, Counter, FieldShell, FieldsEditor, NumberField, PhProvider, PillChoice, PlaceholderInput, PlaceholderPicker, Section, TokenInput, useMedia, usePhRegistry, type TokenSuggestion } from './NotifyFields'
 import { ApplyProgress, StatusCard, type TestOutcomeData } from './NotifyStatus'
 import PreviewPanel from './NotifyPreview'
 import DigestCard from './NotifyDigest'
 import { ApiError } from '../../api/client'
 import { getRun, setRun, subscribeRun, type Outcome } from './NotifyRun'
 
+import { BTN_TOOLBAR_ATTN, BTN_TOOLBAR_DANGER, BTN_TOOLBAR_OK, BTN_TOOLBAR_QUIET } from '../../lib/ui'
+import { HINT, INPUT, LABEL } from '../../lib/fieldStyles'
+import { CARD } from '../../lib/pageKit'
+import { Pill, Dot } from '../common/Pill'
+import { SkeletonBlock } from '../common/PageState'
+import Sheet from '../common/Sheet'
+import { ToggleRow } from '../common/Toggle'
+import Notice from '../common/Notice'
 const DEFAULT_LIMITS: Limits = { title: 200, description: 1500, footer: 200, fields: 8, group_threshold_max: 100 }
 /** viewers get the server's drawing too (it only renders, it never sends); an older server that still refuses them falls back to the local sketch */
 const VIEWER_SERVER_PREVIEW = true
@@ -123,15 +128,15 @@ export default function NotificationsTab() {
         <AlertTriangle size={26} className="mx-auto text-rose-400" />
         <p className="mt-3 text-sm text-slate-200">Could not read the Discord settings.</p>
         <p className="mt-1 text-xs text-slate-500 max-w-md mx-auto break-words">{poll.error.message}</p>
-        <button type="button" onClick={poll.refresh} className={`${BTN_QUIET} mt-4`}><RefreshCw size={13} /> Try again</button>
+        <button type="button" onClick={poll.refresh} className={`${BTN_TOOLBAR_QUIET} mt-4`}><RefreshCw size={13} /> Try again</button>
       </div>
     )
   }
   if (!data) {
     return (
       <div className="space-y-3" aria-busy="true" aria-label="Loading the Discord settings">
-        <Skel className="h-64" />
-        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_28rem] gap-4"><div className="space-y-3"><Skel className="h-16" /><Skel className="h-16" /><Skel className="h-16" /><Skel className="h-16" /></div><Skel className="h-96 hidden xl:block" /></div>
+        <SkeletonBlock className="h-64" />
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_28rem] gap-4"><div className="space-y-3"><SkeletonBlock className="h-16" /><SkeletonBlock className="h-16" /><SkeletonBlock className="h-16" /><SkeletonBlock className="h-16" /></div><SkeletonBlock className="h-96 hidden xl:block" /></div>
       </div>
     )
   }
@@ -452,8 +457,8 @@ function Editor({ data, refresh, refreshFailed }: { data: CrowdSecNotifyResponse
             <Notice tone="info" icon={Eye}>You can read these settings. Only an administrator can change them or send a test message.</Notice>
             <Section id="notify-webhook" icon={Webhook} title="Webhook" summary={`${MODE_TITLE[s.webhook.mode]} · ${server.webhook.configured ? 'configured' : 'not configured'}`} open={open.webhook} onToggle={() => toggle('webhook')}>
               <dl className="divide-y divide-white/5">
-                <KV k="Source"><Chip tone="mute">{MODE_TITLE[s.webhook.mode]}</Chip></KV>
-                <KV k="Webhook"><Chip tone={server.webhook.configured ? 'good' : 'warn'}>{server.webhook.configured ? 'Configured' : 'Not configured'}</Chip></KV>
+                <KV k="Source"><Pill tone="neutral">{MODE_TITLE[s.webhook.mode]}</Pill></KV>
+                <KV k="Webhook"><Pill tone={server.webhook.configured ? 'ok' : 'attention'}>{server.webhook.configured ? 'Configured' : 'Not configured'}</Pill></KV>
               </dl>
             </Section>
             <Section id="notify-appearance" icon={Palette} title="Appearance" summary={`${s.identity.name} · ${s.embed.color_mode === 'auto' ? 'automatic colour' : s.embed.color} · mentions ${MENTION_WORDS[s.mention.mode]}`} open={open.appearance} onToggle={() => toggle('appearance')}>
@@ -466,10 +471,10 @@ function Editor({ data, refresh, refreshFailed }: { data: CrowdSecNotifyResponse
             </Section>
             <Section id="notify-triggers" icon={Filter} title="What triggers a message" summary={summaries.triggers} open={open.triggers} onToggle={() => toggle('triggers')}>
               <dl className="divide-y divide-white/5">
-                <KV k="Events"><span className="flex flex-wrap gap-1.5"><Chip tone={s.events.bans ? 'good' : 'mute'}>new bans {s.events.bans ? 'on' : 'off'}</Chip><Chip tone={s.events.simulated ? 'good' : 'mute'}>simulated bans {s.events.simulated ? 'on' : 'off'}</Chip><Chip tone={s.events.detect_only ? 'good' : 'mute'}>detection only {s.events.detect_only ? 'on' : 'off'}</Chip></span></KV>
+                <KV k="Events"><span className="flex flex-wrap gap-1.5"><Pill tone={s.events.bans ? 'ok' : 'neutral'}>new bans {s.events.bans ? 'on' : 'off'}</Pill><Pill tone={s.events.simulated ? 'ok' : 'neutral'}>simulated bans {s.events.simulated ? 'on' : 'off'}</Pill><Pill tone={s.events.detect_only ? 'ok' : 'neutral'}>detection only {s.events.detect_only ? 'on' : 'off'}</Pill></span></KV>
                 <KV k="Minimum events">{s.filters.min_events > 1 ? `${s.filters.min_events} log lines` : 'Every alert'}</KV>
-                <KV k="Only these scenarios">{s.filters.only.length ? <span className="flex flex-wrap gap-1.5">{s.filters.only.map((x) => <Chip key={x}><span className="font-mono">{x}</span></Chip>)}</span> : 'Every scenario'}</KV>
-                <KV k="Ignored scenarios">{s.filters.ignore.length ? <span className="flex flex-wrap gap-1.5">{s.filters.ignore.map((x) => <Chip key={x}><span className="font-mono">{x}</span></Chip>)}</span> : 'None'}</KV>
+                <KV k="Only these scenarios">{s.filters.only.length ? <span className="flex flex-wrap gap-1.5">{s.filters.only.map((x) => <Pill key={x}><span className="font-mono">{x}</span></Pill>)}</span> : 'Every scenario'}</KV>
+                <KV k="Ignored scenarios">{s.filters.ignore.length ? <span className="flex flex-wrap gap-1.5">{s.filters.ignore.map((x) => <Pill key={x}><span className="font-mono">{x}</span></Pill>)}</span> : 'None'}</KV>
               </dl>
             </Section>
             <Section id="notify-message" icon={Braces} title="Message" summary={summaries.message} open={open.message} onToggle={() => toggle('message')}>
@@ -481,7 +486,7 @@ function Editor({ data, refresh, refreshFailed }: { data: CrowdSecNotifyResponse
                 <KV k="Time">{s.message.timestamp ? 'Shown next to the footer' : 'Not shown'}</KV>
                 <KV k="Fields">{s.message.fields.length === 0 ? 'None' : (
                   <ul className="space-y-2">{s.message.fields.map((f, i) => (
-                    <li key={i} className="min-w-0"><p className="text-xs text-slate-300 flex items-center gap-1.5 flex-wrap">{f.name} {f.inline && <Chip>side by side</Chip>}</p><Template>{f.value}</Template></li>
+                    <li key={i} className="min-w-0"><p className="text-xs text-slate-300 flex items-center gap-1.5 flex-wrap">{f.name} {f.inline && <Pill>side by side</Pill>}</p><Template>{f.value}</Template></li>
                   ))}</ul>
                 )}</KV>
               </dl>
@@ -498,9 +503,9 @@ function Editor({ data, refresh, refreshFailed }: { data: CrowdSecNotifyResponse
           </div>
           {wide
             ? <aside className="sticky top-4 max-h-[calc(100vh-7rem)] overflow-y-auto scrollbar-thin" aria-label="Preview">{previewPanel()}</aside>
-            : <button type="button" onClick={() => setSheet(true)} className={`${BTN_QUIET} w-full`}><Eye size={13} /> Preview the message</button>}
+            : <button type="button" onClick={() => setSheet(true)} className={`${BTN_TOOLBAR_QUIET} w-full`}><Eye size={13} /> Preview the message</button>}
         </div>
-        {sheet && !wide && <CsSheet title="Preview" subtitle="How the message looks in Discord" icon={<Eye size={18} />} tone="info" wide onClose={() => setSheet(false)}>{previewPanel(true)}</CsSheet>}
+        {sheet && !wide && <Sheet title="Preview" subtitle="How the message looks in Discord" icon={<Eye size={18} />} tone="info" wide onClose={() => setSheet(false)}>{previewPanel(true)}</Sheet>}
       </div>
     )
   }
@@ -530,9 +535,9 @@ function Editor({ data, refresh, refreshFailed }: { data: CrowdSecNotifyResponse
               </Notice>
             )}
             {restored && <Notice tone="info" icon={Info} title="You have unsaved changes from earlier" action={<button type="button" className="text-cyan-400 hover:text-cyan-300 text-xs inline-flex items-center gap-1" onClick={discard}><Undo2 size={12} /> Discard them</button>}>They were kept while you looked at another tab. Nothing has been sent to CrowdSec yet.</Notice>}
-            {changedElsewhere && <Notice tone="warn" icon={AlertTriangle} title="The saved settings changed since you started editing" action={<button type="button" className="text-cyan-400 hover:text-cyan-300 text-xs inline-flex items-center gap-1" onClick={discard}><Undo2 size={12} /> Discard my changes and load them</button>}>Someone else saved, or CrowdSec was changed by hand. When you save, only the things you edited are applied on top.</Notice>}
+            {changedElsewhere && <Notice tone="attention" icon={AlertTriangle} title="The saved settings changed since you started editing" action={<button type="button" className="text-cyan-400 hover:text-cyan-300 text-xs inline-flex items-center gap-1" onClick={discard}><Undo2 size={12} /> Discard my changes and load them</button>}>Someone else saved, or CrowdSec was changed by hand. When you save, only the things you edited are applied on top.</Notice>}
             {needsTakeOver && (form.enabled || dirty) && (
-              <Notice tone="warn" icon={AlertTriangle} title={profileTakeover && !fileTakeover ? 'profiles.yaml has profiles DCS did not write' : 'CrowdSec’s notification file was not written by this page'}>
+              <Notice tone="attention" icon={AlertTriangle} title={profileTakeover && !fileTakeover ? 'profiles.yaml has profiles DCS did not write' : 'CrowdSec’s notification file was not written by this page'}>
                 {fileTakeover && <>It is CrowdSec’s own sample, comes from a stack template or was edited by hand. When you save, DCS replaces it with the file built from this page and keeps a copy of the old one. </>}
                 {profileTakeover && <>profiles.yaml has profiles DCS did not write; saving replaces the whole file with the one DCS manages (a copy is kept). </>}
                 You are asked to confirm before anything is replaced.
@@ -544,7 +549,7 @@ function Editor({ data, refresh, refreshFailed }: { data: CrowdSecNotifyResponse
               {SECTION_ORDER.map((id) => (
                 <button key={id} type="button" onClick={() => reveal(id)} className="h-8 px-3 rounded-lg text-xs text-slate-300 bg-white/5 border border-white/10 hover:bg-white/10 shrink-0 inline-flex items-center gap-1.5 transition-colors">
                   {({ webhook: 'Webhook', appearance: 'Appearance', triggers: 'Triggers', message: 'Message', delivery: 'Delivery' } as Record<SectionId, string>)[id]}
-                  {problemCount[id] > 0 && <Dot tone="bad" />}
+                  {problemCount[id] > 0 && <Dot tone="problem" />}
                 </button>
               ))}
             </nav>
@@ -561,20 +566,20 @@ function Editor({ data, refresh, refreshFailed }: { data: CrowdSecNotifyResponse
                   ] as const).map((o) => ({
                     ...o,
                     foot: o.value === 'custom' && form.mode === 'custom' && urlTyped !== '' && !urlProblem
-                      ? <Chip tone="info">new address, not saved yet</Chip>
+                      ? <Pill tone="info">new address, not saved yet</Pill>
                       : src[o.value].configured
-                        ? <span className="inline-flex items-center gap-1.5 text-[11px] text-slate-500 font-mono min-w-0 max-w-full"><Dot tone="good" /><span className="truncate">{src[o.value].masked}</span></span>
-                        : <Chip tone={form.mode === o.value && form.enabled ? 'warn' : 'mute'}>not set</Chip>,
+                        ? <span className="inline-flex items-center gap-1.5 text-[11px] text-slate-500 font-mono min-w-0 max-w-full"><Dot tone="ok" /><span className="truncate">{src[o.value].masked}</span></span>
+                        : <Pill tone={form.mode === o.value && form.enabled ? 'attention' : 'neutral'}>not set</Pill>,
                   }))} />
                 {form.mode === 'global' && (
                   src.global.configured
                     ? <p className="text-xs text-slate-500">DCS posts its own alerts to <span className="font-mono text-slate-300 break-all">{src.global.masked}</span>. CrowdSec’s alerts go there too. Change it under Server Config → Notifications.</p>
-                    : <Notice tone="warn" icon={AlertTriangle} title="No global webhook is set" action={<button type="button" onClick={() => setCurrentPage('config')} className="text-xs text-cyan-400 hover:text-cyan-300 inline-flex items-center gap-1">Open Server Config <ChevronRight size={12} /></button>}>DCS has no webhook of its own to share. Set <span className="font-mono">DISCORD_WEBHOOK_URL</span> under Server Config → Notifications, or choose Custom and add an address for CrowdSec alone.</Notice>
+                    : <Notice tone="attention" icon={AlertTriangle} title="No global webhook is set" action={<button type="button" onClick={() => setCurrentPage('config')} className="text-xs text-cyan-400 hover:text-cyan-300 inline-flex items-center gap-1">Open Server Config <ChevronRight size={12} /></button>}>DCS has no webhook of its own to share. Set <span className="font-mono">DISCORD_WEBHOOK_URL</span> under Server Config → Notifications, or choose Custom and add an address for CrowdSec alone.</Notice>
                 )}
                 {form.mode === 'keep' && (
                   src.keep.configured
                     ? <p className="text-xs text-slate-500">CrowdSec’s notification file already posts to <span className="font-mono text-slate-300 break-all">{src.keep.masked}</span>. That address stays as it is.</p>
-                    : <Notice tone="warn" icon={AlertTriangle} title="There is no webhook in CrowdSec’s file to keep">Choose Global, or Custom with a new address.</Notice>
+                    : <Notice tone="attention" icon={AlertTriangle} title="There is no webhook in CrowdSec’s file to keep">Choose Global, or Custom with a new address.</Notice>
                 )}
                 {form.mode === 'custom' && (
                   <div className="space-y-3">
@@ -584,7 +589,7 @@ function Editor({ data, refresh, refreshFailed }: { data: CrowdSecNotifyResponse
                           <p className="text-sm text-slate-200">A custom webhook is stored</p>
                           <p className="text-xs text-slate-500 font-mono break-all">{src.custom.masked}</p>
                         </div>
-                        <button type="button" className={BTN_DANGER} disabled={busy || customInUse} onClick={removeCustom} title={customInUse ? 'It is the webhook in use right now. Choose another source and save first.' : 'Delete the stored address'}>
+                        <button type="button" className={BTN_TOOLBAR_DANGER} disabled={busy || customInUse} onClick={removeCustom} title={customInUse ? 'It is the webhook in use right now. Choose another source and save first.' : 'Delete the stored address'}>
                           {applying?.what === REMOVING ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />} Remove the custom webhook
                         </button>
                         {customInUse && <p className="w-full text-[11px] text-slate-500">It is the webhook in use right now. Choose another source and save, then you can remove it.</p>}
@@ -595,7 +600,7 @@ function Editor({ data, refresh, refreshFailed }: { data: CrowdSecNotifyResponse
                       <div className="flex gap-2">
                         <input id="notify-webhook-url" name="dcs-crowdsec-webhook" type={showUrl ? 'text' : 'password'} value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://discord.com/api/webhooks/…" autoComplete="off" spellCheck={false} data-1p-ignore data-lpignore="true"
                           className={`${INPUT} font-mono text-[13px] ${urlProblem ? '!border-rose-500/40' : ''}`} aria-invalid={!!urlProblem} aria-describedby="notify-webhook-url-err notify-webhook-url-hint" />
-                        <button type="button" onClick={() => setShowUrl((v) => !v)} className={`${BTN_QUIET} !w-10 !px-0`} aria-label={showUrl ? 'Hide the address' : 'Show the address'} title={showUrl ? 'Hide the address' : 'Show what you typed'}>{showUrl ? <EyeOff size={14} /> : <Eye size={14} />}</button>
+                        <button type="button" onClick={() => setShowUrl((v) => !v)} className={`${BTN_TOOLBAR_QUIET} !w-10 !px-0`} aria-label={showUrl ? 'Hide the address' : 'Show the address'} title={showUrl ? 'Hide the address' : 'Show what you typed'}>{showUrl ? <EyeOff size={14} /> : <Eye size={14} />}</button>
                       </div>
                     </FieldShell>
                     {urlTyped !== '' && !urlProblem && <p className="text-xs text-emerald-300 flex items-center gap-1.5"><KeyRound size={12} /> This address is stored as the custom webhook when you save.</p>}
@@ -633,11 +638,11 @@ function Editor({ data, refresh, refreshFailed }: { data: CrowdSecNotifyResponse
                     </div>
                   )}
                   {(form.mention === 'here' || form.mention === 'everyone') && (
-                    <div className="mt-3"><Notice tone="warn" icon={AlertTriangle}>{form.mention === 'everyone' ? '@everyone notifies every member who can see the channel' : '@here notifies every member of the channel who is online'}, for every message. A role, and a minimum number of events under “What triggers a message”, keep it calmer.</Notice></div>
+                    <div className="mt-3"><Notice tone="attention" icon={AlertTriangle}>{form.mention === 'everyone' ? '@everyone notifies every member who can see the channel' : '@here notifies every member of the channel who is online'}, for every message. A role, and a minimum number of events under “What triggers a message”, keep it calmer.</Notice></div>
                   )}
                   <div className="mt-3">
                     <FieldShell id="notify-mention-text" label={form.mention === 'none' ? 'Text above the message (optional)' : 'Text next to the mention (optional)'} counter={<Counter n={cpLen(form.mentionText)} max={LIM.mentionText} />} error={errors.mentionText} hint="Plain words, for example “Someone is knocking:”. Placeholders do not work here." def="">
-                      <textarea id="notify-mention-text" rows={2} className={`${TEXTAREA} resize-y ${errors.mentionText ? '!border-rose-500/40' : ''}`} value={form.mentionText} onChange={(e) => patchForm({ mentionText: e.target.value })} aria-invalid={!!errors.mentionText} aria-describedby="notify-mention-text-err notify-mention-text-hint" />
+                      <textarea id="notify-mention-text" rows={2} className={`${INPUT} resize-y ${errors.mentionText ? '!border-rose-500/40' : ''}`} value={form.mentionText} onChange={(e) => patchForm({ mentionText: e.target.value })} aria-invalid={!!errors.mentionText} aria-describedby="notify-mention-text-err notify-mention-text-hint" />
                     </FieldShell>
                   </div>
                 </div>
@@ -669,7 +674,7 @@ function Editor({ data, refresh, refreshFailed }: { data: CrowdSecNotifyResponse
                 <div className="flex items-start justify-between gap-3 flex-wrap">
                   <p className="text-xs text-slate-500 leading-relaxed flex-1 min-w-[14rem]">Write the message with placeholders such as <span className="font-mono text-slate-300">{'{ip}'}</span> or <span className="font-mono text-slate-300">{'{country_tag}'}</span>. Type <span className="font-mono text-slate-300">{'{'}</span> in a box to get suggestions. In the description and in field values Discord draws **bold**, `code` and [text](link); the footer is plain text.</p>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <button type="button" className={BTN_QUIET} onClick={resetShipped} disabled={busy} title="Put the message, the look, the filters and the delivery back to what CrowdSec ships with. The webhook and the switch stay."><RotateCcw size={13} /> Shipped message</button>
+                    <button type="button" className={BTN_TOOLBAR_QUIET} onClick={resetShipped} disabled={busy} title="Put the message, the look, the filters and the delivery back to what CrowdSec ships with. The webhook and the switch stay."><RotateCcw size={13} /> Shipped message</button>
                     <PlaceholderPicker items={ph} label="All placeholders" target={() => reg.last()?.label ?? 'description'} onPick={(n) => (reg.last() ?? { insert: () => {} }).insert(`{${n}}`)} />
                   </div>
                 </div>
@@ -724,7 +729,7 @@ function Editor({ data, refresh, refreshFailed }: { data: CrowdSecNotifyResponse
                 <p className="text-sm text-slate-200">Back to the shipped message</p>
                 <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">Puts the text, the fields, the appearance, the mention, the filters and the delivery back to what CrowdSec ships with. The webhook and the on/off switch stay.</p>
               </div>
-              <button type="button" className={BTN_WARN} onClick={resetShipped} disabled={busy}><RotateCcw size={13} /> Reset to the shipped message</button>
+              <button type="button" className={BTN_TOOLBAR_ATTN} onClick={resetShipped} disabled={busy}><RotateCcw size={13} /> Reset to the shipped message</button>
             </div>
           </div>
 
@@ -737,7 +742,7 @@ function Editor({ data, refresh, refreshFailed }: { data: CrowdSecNotifyResponse
               {applying && <ApplyProgress startedAt={applying.at} what={applying.what} />}
               {!applying && outcome && (
                 <div ref={outcomeBox} tabIndex={-1} className="outline-none">
-                  <Notice role={outcome.kind === 'error' ? 'alert' : 'status'} tone={outcome.kind === 'ok' ? 'good' : outcome.kind === 'error' ? 'bad' : 'info'} icon={outcome.kind === 'ok' ? ShieldCheck : AlertTriangle} title={outcome.title}
+                  <Notice role={outcome.kind === 'error' ? 'alert' : 'status'} tone={outcome.kind === 'ok' ? 'ok' : outcome.kind === 'error' ? 'problem' : 'info'} icon={outcome.kind === 'ok' ? ShieldCheck : AlertTriangle} title={outcome.title}
                     action={<button type="button" onClick={() => setRun(member, { outcome: null })} className="text-xs underline underline-offset-2 opacity-80 hover:opacity-100">Dismiss</button>}>
                     {splitLog(outcome.detail).text}
                     {splitLog(outcome.detail).log && (
@@ -769,10 +774,10 @@ function Editor({ data, refresh, refreshFailed }: { data: CrowdSecNotifyResponse
                       </div>
                     )
                     : <div className="min-w-0 flex-1 basis-40"><p className="text-xs text-slate-500">No unsaved changes.</p></div>}
-                  {!wide && <button type="button" className={BTN_QUIET} onClick={() => setSheet(true)}><Eye size={13} /> Preview</button>}
-                  {dirty && <button type="button" className={BTN_QUIET} onClick={discard}><Undo2 size={13} /> Discard changes</button>}
+                  {!wide && <button type="button" className={BTN_TOOLBAR_QUIET} onClick={() => setSheet(true)}><Eye size={13} /> Preview</button>}
+                  {dirty && <button type="button" className={BTN_TOOLBAR_QUIET} onClick={discard}><Undo2 size={13} /> Discard changes</button>}
                   {dirty && (
-                    <button type="button" className={`${BTN_PRIMARY} min-w-[9.5rem]`} onClick={save} disabled={!canSave} title={totalProblems > 0 ? 'Fix the highlighted fields first' : blockingWebhook ? 'Saves the settings; the webhook problem is shown in the Webhook section' : 'Save the settings and restart CrowdSec to load them'}>
+                    <button type="button" className={`${BTN_TOOLBAR_OK} min-w-[9.5rem]`} onClick={save} disabled={!canSave} title={totalProblems > 0 ? 'Fix the highlighted fields first' : blockingWebhook ? 'Saves the settings; the webhook problem is shown in the Webhook section' : 'Save the settings and restart CrowdSec to load them'}>
                       <Save size={13} /> Save and apply
                     </button>
                   )}
@@ -789,11 +794,11 @@ function Editor({ data, refresh, refreshFailed }: { data: CrowdSecNotifyResponse
         )}
 
         {review && dirty && (
-          <CsSheet title="What Save and apply will change" subtitle="Nothing is sent to CrowdSec until you press Save and apply." icon={<ListChecks size={18} />} tone="info" wide onClose={() => setReview(false)}
+          <Sheet title="What Save and apply will change" subtitle="Nothing is sent to CrowdSec until you press Save and apply." icon={<ListChecks size={18} />} tone="info" wide onClose={() => setReview(false)}
             footer={
               <div className="flex gap-2 justify-end flex-wrap">
-                <button type="button" className={BTN_QUIET} onClick={() => setReview(false)}>Close</button>
-                <button type="button" className={BTN_PRIMARY} disabled={!canSave} onClick={() => { setReview(false); void save() }}><Save size={13} /> Save and apply</button>
+                <button type="button" className={BTN_TOOLBAR_QUIET} onClick={() => setReview(false)}>Close</button>
+                <button type="button" className={BTN_TOOLBAR_OK} disabled={!canSave} onClick={() => { setReview(false); void save() }}><Save size={13} /> Save and apply</button>
               </div>
             }>
             <ul className="divide-y divide-white/5" aria-label="Changes">
@@ -806,13 +811,13 @@ function Editor({ data, refresh, refreshFailed }: { data: CrowdSecNotifyResponse
               ))}
               {rows.length === 0 && <li className="text-xs text-slate-500 py-2">Nothing differs from what is saved.</li>}
             </ul>
-          </CsSheet>
+          </Sheet>
         )}
 
         {sheet && !wide && (
-          <CsSheet title="Preview" subtitle="How the message looks in Discord, and a test message" icon={<Eye size={18} />} tone="info" wide onClose={() => setSheet(false)}>
+          <Sheet title="Preview" subtitle="How the message looks in Discord, and a test message" icon={<Eye size={18} />} tone="info" wide onClose={() => setSheet(false)}>
             {previewPanel(true)}
-          </CsSheet>
+          </Sheet>
         )}
       </div>
     </PhProvider>

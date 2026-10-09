@@ -12,8 +12,8 @@ import { fetchContainerLogsLiveOn, fetchAppLogsLiveOn } from '../../api/fleetSco
 import { useConnectionStore } from '../../stores/connectionStore'
 import { LoadingState, EmptyState } from '../common/PageState'
 import Hint from '../common/Hint'
-import { BTN_CARD, BTN_CARD_QUIET, BTN_ICON_SM, TONE_QUIET } from '../../lib/ui'
-import { CARD, FOCUS_RING } from '../../lib/pageKit'
+import { BTN_CARD, BTN_CARD_QUIET, BTN_ICON_SM, TONE_QUIET, FOCUS_RING } from '../../lib/ui'
+import { CARD } from '../../lib/pageKit'
 import type { LogStreamEntry, LiveLogsResponse } from '../../../shared/types'
 import type { RowMember } from '../../../shared/fleetScoped'
 

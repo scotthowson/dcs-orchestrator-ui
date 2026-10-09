@@ -45,7 +45,7 @@ import { DisconnectedBanner } from '../components/common/DisconnectedBanner'
 import PageHeader from '../components/common/PageHeader'
 import SortableTh from '../components/common/SortableTh'
 import { EmptyState } from '../components/common/PageState'
-import { Panel, StatTile, CardSwitch, pctTone, TONE_FILL, TONE_TEXT, type Tone } from '../components/dashboard/cardShared'
+import { Panel, CardSwitch } from '../components/dashboard/cardShared'
 import { BTN_TOOLBAR_QUIET } from '../lib/ui'
 import UptimeTimeline, { type TimelineRow } from '../components/health/UptimeTimeline'
 import IncidentLog, { isIncident, type IncidentRow } from '../components/health/IncidentLog'
@@ -53,6 +53,8 @@ import {
   WINDOW_MIN, buildTimeline, coverageOf, ownerKey, isNotableEvent, availabilityText, availabilityTone, formatAverageUptime,
 } from '../components/health/uptimeModel'
 
+import { pctTone, TONE_FILL, TONE_TEXT, type Tone } from '../lib/tone'
+import StatTile from '../components/common/StatTile'
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------

@@ -11,12 +11,16 @@ import { useToast } from '../common/Toast'
 import { useConfirm } from '../common/ConfirmDialog'
 import { crowdsecAlert, crowdsecAllow, crowdsecAllowlist, crowdsecDecisions } from '../../api/endpoints'
 import type { CrowdSecAlert, CrowdSecAlertDetail } from '../../../shared/types'
-import {
-  BTN_DANGER, BTN_PRIMARY, BTN_QUIET, CARD, Chip, Country, CopyIcon, CsSheet, errMsg, fmtLeft, fmtNum, looksLikeTarget, originLabel, originTone,
-  Skel, useCs, useNow, type Tone,
-} from './kit'
+import { Country, errMsg, fmtLeft, fmtNum, looksLikeTarget, originLabel, originTone, useCs, useNow } from './kit'
 import BanSheet from './BanSheet'
 
+import { BTN_TOOLBAR_DANGER, BTN_TOOLBAR_OK, BTN_TOOLBAR_QUIET } from '../../lib/ui'
+import { CARD } from '../../lib/pageKit'
+import { type Tone } from '../../lib/tone'
+import { Pill } from '../common/Pill'
+import { SkeletonBlock } from '../common/PageState'
+import Sheet from '../common/Sheet'
+import { CopyButton } from '../common/CopyButton'
 // ---------------------------------------------------------------------------
 // Small helpers (the list uses them too)
 // ---------------------------------------------------------------------------
@@ -84,9 +88,9 @@ export interface Outcome { tone: Tone; text: string; title: string }
 /** what came of an alert, with words that say what is known and what is not */
 export function outcomeOf(a: Pick<CrowdSecAlert, 'kind' | 'simulated' | 'banned' | 'remediation'>): Outcome {
   if (a.kind === 'cscli') return { tone: 'info', text: 'Manual ban', title: 'Not a detection: someone banned this address by hand, or imported it. CrowdSec did not see an attack.' }
-  if (a.simulated) return { tone: 'warn', text: 'Simulated', title: 'This detector is in simulation mode (Settings): CrowdSec raised the alert but did not ban the address.' }
-  if (a.banned) return { tone: 'bad', text: 'Banned now', title: 'This address has an active ban right now.' }
-  return { tone: 'mute', text: 'Not banned', title: a.remediation ? 'The ban this alert led to has ended, or it was lifted. The address is not blocked at the moment.' : 'CrowdSec raised the alert but decided not to ban this address.' }
+  if (a.simulated) return { tone: 'attention', text: 'Simulated', title: 'This detector is in simulation mode (Settings): CrowdSec raised the alert but did not ban the address.' }
+  if (a.banned) return { tone: 'problem', text: 'Banned now', title: 'This address has an active ban right now.' }
+  return { tone: 'neutral', text: 'Not banned', title: a.remediation ? 'The ban this alert led to has ended, or it was lifted. The address is not blocked at the moment.' : 'CrowdSec raised the alert but decided not to ban this address.' }
 }
 
 const FIELD_LABEL: Record<string, string> = {
@@ -104,11 +108,11 @@ function listOf(v: unknown): string[] {
 }
 
 function statusTone(s: string): Tone {
-  if (/^2/.test(s)) return 'good'
+  if (/^2/.test(s)) return 'ok'
   if (/^3/.test(s)) return 'info'
-  if (/^4/.test(s)) return 'warn'
-  if (/^5/.test(s)) return 'bad'
-  return 'mute'
+  if (/^4/.test(s)) return 'attention'
+  if (/^5/.test(s)) return 'problem'
+  return 'neutral'
 }
 
 /** the one line an event is shown as; the rest waits behind "All fields" */
@@ -146,7 +150,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 /** a ban's remaining time, counting down; a ban of a year or more is a "permanent" one */
 function Left({ secs, at }: { secs: number; at: number }) {
   const now = useNow()
-  if (secs >= 365 * 86400) return <Chip tone="bad" title="CrowdSec has no ban without an end, so a permanent ban lasts ten years."><InfinityIcon size={10} /> permanent</Chip>
+  if (secs >= 365 * 86400) return <Pill tone="problem" title="CrowdSec has no ban without an end, so a permanent ban lasts ten years."><InfinityIcon size={10} /> permanent</Pill>
   const left = Math.round(secs - (now - at) / 1000)
   if (left <= 0) return <span className="text-xs text-slate-500">ended</span>
   return <span className={`text-xs tabular-nums ${left < 300 ? 'text-amber-300' : 'text-slate-300'}`}>ends in {fmtLeft(left)}</span>
@@ -165,7 +169,7 @@ function EventRow({ ev, n }: { ev: CrowdSecAlertDetail['events'][number]; n: num
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 min-w-0">
             <span className="font-mono text-xs text-slate-200 line-clamp-2 break-all select-text" title={s.primary}>{s.primary}</span>
-            {s.status && <Chip tone={statusTone(s.status)} title={`The server answered ${s.status}`}>{s.status}</Chip>}
+            {s.status && <Pill tone={statusTone(s.status)} title={`The server answered ${s.status}`}>{s.status}</Pill>}
           </div>
           {s.parts.length > 0 && <p className="text-[11px] text-slate-500 truncate select-text" title={s.parts.join(' · ')}>{s.parts.join(' · ')}</p>}
         </div>
@@ -285,26 +289,26 @@ export function AlertSheet({ id, onClose }: { id: number; onClose: () => void })
   const subtitle = a ? (a.scenario && a.scenario !== title ? a.scenario : `Alert ${id}`) : undefined
 
   return (
-    <CsSheet
+    <Sheet
       wide
       title={title}
       subtitle={subtitle}
       icon={<Bell size={18} />}
-      tone={out?.tone === 'bad' ? 'bad' : out?.tone === 'warn' ? 'warn' : 'info'}
+      tone={out?.tone === 'problem' ? 'problem' : out?.tone === 'attention' ? 'attention' : 'info'}
       onClose={onClose}
       footer={canAct ? (
         <div className="flex gap-2 justify-end flex-wrap">
-          <button type="button" className={BTN_QUIET} onClick={() => { goTab('bans', value); onClose() }} title="Show this address in the list of bans"><ArrowRight size={13} /> Open in Bans</button>
-          <button type="button" className={BTN_PRIMARY} disabled={busy || lk?.allowed === true} onClick={allow} title={lk?.allowed ? 'Already on the allowlist' : 'Put the address on the allowlist so CrowdSec never bans it'}>
+          <button type="button" className={BTN_TOOLBAR_QUIET} onClick={() => { goTab('bans', value); onClose() }} title="Show this address in the list of bans"><ArrowRight size={13} /> Open in Bans</button>
+          <button type="button" className={BTN_TOOLBAR_OK} disabled={busy || lk?.allowed === true} onClick={allow} title={lk?.allowed ? 'Already on the allowlist' : 'Put the address on the allowlist so CrowdSec never bans it'}>
             {busy ? <Loader2 size={13} className="animate-spin" /> : <UserCheck size={13} />} {lk?.allowed ? 'On the allowlist' : 'Never ban this address'}
           </button>
-          {lk?.banned !== true && lk?.allowed !== true && <button type="button" className={BTN_DANGER} disabled={busy} onClick={() => setBanning(true)}><Ban size={13} /> Ban this address</button>}
+          {lk?.banned !== true && lk?.allowed !== true && <button type="button" className={BTN_TOOLBAR_DANGER} disabled={busy} onClick={() => setBanning(true)}><Ban size={13} /> Ban this address</button>}
         </div>
       ) : undefined}
     >
       {loading && !a && (
         <div className="space-y-3" aria-busy="true" aria-label="Loading the alert">
-          <Skel className="h-6 w-2/3" /><Skel className="h-28" /><Skel className="h-20" /><Skel className="h-32" />
+          <SkeletonBlock className="h-6 w-2/3" /><SkeletonBlock className="h-28" /><SkeletonBlock className="h-20" /><SkeletonBlock className="h-32" />
         </div>
       )}
       {err && !a && (
@@ -320,9 +324,9 @@ export function AlertSheet({ id, onClose }: { id: number; onClose: () => void })
       {a && out && res && (
         <div className="space-y-4">
           <div className="flex items-center gap-2 flex-wrap">
-            <Chip tone={out.tone} title={out.title}>{out.tone === 'warn' && <FlaskConical size={10} />} {out.text}</Chip>
-            {lk?.allowed && <Chip tone="good" title="This address is on the allowlist: CrowdSec never bans it."><ShieldCheck size={10} /> Allowlisted</Chip>}
-            {lk?.simulated && <Chip tone="warn" title="Its ban is only simulated: it is never enforced."><FlaskConical size={10} /> Ban simulated</Chip>}
+            <Pill tone={out.tone} title={out.title}>{out.tone === 'attention' && <FlaskConical size={10} />} {out.text}</Pill>
+            {lk?.allowed && <Pill tone="ok" title="This address is on the allowlist: CrowdSec never bans it."><ShieldCheck size={10} /> Allowlisted</Pill>}
+            {lk?.simulated && <Pill tone="attention" title="Its ban is only simulated: it is never enforced."><FlaskConical size={10} /> Ban simulated</Pill>}
             {a.kind !== 'cscli' && <span className="text-xs text-slate-500 tabular-nums">{plural(a.events_count, 'event')} {spanWords(a.start_at, a.stop_at)}</span>}
           </div>
 
@@ -332,7 +336,7 @@ export function AlertSheet({ id, onClose }: { id: number; onClose: () => void })
                 {value ? (
                   <div className="flex items-center gap-1 min-w-0">
                     <span className="font-mono text-sm text-slate-100 break-all select-text">{value}</span>
-                    <CopyIcon text={value} label={`Copy ${value}`} />
+                    <CopyButton text={value} label={`Copy ${value}`} />
                     {src.more > 0 && <span className="text-[11px] text-slate-500 shrink-0">+{src.more} more</span>}
                   </div>
                 ) : <p className="text-xs text-slate-500">No address was recorded.</p>}
@@ -376,10 +380,10 @@ export function AlertSheet({ id, onClose }: { id: number; onClose: () => void })
                   const secs = goSeconds(d.duration)
                   return (
                     <li key={d.id} className="px-3.5 py-2 flex items-center gap-2 flex-wrap min-w-0">
-                      <Chip tone={d.type === 'ban' ? 'bad' : 'warn'} title={d.type === 'ban' ? 'The address is refused' : `Decision type: ${d.type}`}>{d.type || 'ban'}</Chip>
+                      <Pill tone={d.type === 'ban' ? 'problem' : 'attention'} title={d.type === 'ban' ? 'The address is refused' : `Decision type: ${d.type}`}>{d.type || 'ban'}</Pill>
                       <span className="font-mono text-xs text-slate-100 break-all select-text min-w-0">{d.value}</span>
-                      <Chip tone={originTone(d.origin)} title={`Origin: ${d.origin || 'unknown'}`}>{originLabel(d.origin)}</Chip>
-                      {d.simulated && <Chip tone="warn" title="Only simulated: never enforced"><FlaskConical size={10} /> simulated</Chip>}
+                      <Pill tone={originTone(d.origin)} title={`Origin: ${d.origin || 'unknown'}`}>{originLabel(d.origin)}</Pill>
+                      {d.simulated && <Pill tone="attention" title="Only simulated: never enforced"><FlaskConical size={10} /> simulated</Pill>}
                       <span className="ml-auto">{secs === null ? <span className="text-xs text-slate-500">{d.duration}</span> : <Left secs={secs} at={res.at} />}</span>
                     </li>
                   )
@@ -441,6 +445,6 @@ export function AlertSheet({ id, onClose }: { id: number; onClose: () => void })
           </div>
         </div>
       )}
-    </CsSheet>
+    </Sheet>
   )
 }

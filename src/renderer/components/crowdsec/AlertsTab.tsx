@@ -11,9 +11,15 @@ import { usePolling } from '../../hooks/usePolling'
 import { useConnectionStore } from '../../stores/connectionStore'
 import { crowdsecAlerts } from '../../api/endpoints'
 import type { CrowdSecAlert, CrowdSecFacet } from '../../../shared/types'
-import { BTN_QUIET, CARD, Chip, Country, ICON_BTN, INPUT, Segmented, Skel, countryName, fmtAgo, fmtNum, fmtTime, looksLikeTarget, useCs, useDebounced, useNow } from './kit'
+import { Country, countryName, fmtAgo, fmtNum, fmtTime, looksLikeTarget, useCs, useDebounced, useNow, Ago, FilterSelect } from './kit'
 import { AlertSheet, outcomeOf, plural, sourceOf } from './AlertSheet'
 
+import { BTN_ICON_QUIET, BTN_TOOLBAR_QUIET } from '../../lib/ui'
+import { INPUT } from '../../lib/fieldStyles'
+import { CARD } from '../../lib/pageKit'
+import { Pill } from '../common/Pill'
+import { SkeletonBlock } from '../common/PageState'
+import Segmented from '../common/Segmented'
 // The sheet lives in its own file; BansTab and OverviewTab import it from here.
 export { AlertSheet }
 
@@ -59,16 +65,6 @@ function useIsDesktop(): boolean {
   return v
 }
 
-function Select({ id, label, value, onChange, children }: { id: string; label: string; value: string; onChange: (v: string) => void; children: React.ReactNode }) {
-  return (
-    <div className="relative min-w-0 sm:shrink-0">
-      <label htmlFor={id} className="sr-only">{label}</label>
-      <select id={id} value={value} onChange={(e) => onChange(e.target.value)} className={`${INPUT} !h-9 !text-xs pr-8 appearance-none cursor-pointer sm:min-w-[9.5rem] sm:max-w-[16rem] ${value ? '!border-emerald-500/30 !text-emerald-300' : ''}`}>{children}</select>
-      <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
-    </div>
-  )
-}
-
 function FilterChip({ label, onRemove, what }: { label: React.ReactNode; onRemove: () => void; what: string }) {
   return (
     <span className="inline-flex items-center h-8 pl-2.5 pr-0.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300 max-w-full">
@@ -76,12 +72,6 @@ function FilterChip({ label, onRemove, what }: { label: React.ReactNode; onRemov
       <button type="button" onClick={onRemove} aria-label={`Remove the ${what} filter`} title={`Remove the ${what} filter`} className="h-8 w-8 rounded-lg inline-flex items-center justify-center hover:bg-white/10 shrink-0"><X size={13} /></button>
     </span>
   )
-}
-
-/** how long ago, counting on by itself; the exact time is in the tooltip */
-function Ago({ t, className = '' }: { t: string; className?: string }) {
-  const now = useNow()
-  return <span className={`tabular-nums ${className}`} title={new Date(t).toLocaleString()}>{fmtAgo(t, now)}</span>
 }
 
 function SourceCell({ a, phone = false }: { a: CrowdSecAlert; phone?: boolean }) {
@@ -112,7 +102,7 @@ function headOf(a: CrowdSecAlert): { title: string; sub: string } {
 
 function OutcomeChip({ a }: { a: CrowdSecAlert }) {
   const o = outcomeOf(a)
-  return <Chip tone={o.tone} title={o.title}>{o.tone === 'warn' && <FlaskConical size={10} />} {o.text}</Chip>
+  return <Pill tone={o.tone} title={o.title}>{o.tone === 'attention' && <FlaskConical size={10} />} {o.text}</Pill>
 }
 
 export default function AlertsTab({ seedSearch }: { seedSearch?: string }) {
@@ -194,18 +184,18 @@ export default function AlertsTab({ seedSearch }: { seedSearch?: string }) {
           <label htmlFor="alerts-search" className="sr-only">Search the alerts</label>
           <input id="alerts-search" type="search" value={f.q} maxLength={100} onChange={(e) => patch({ q: e.target.value })} placeholder="Search address, detection, country, network" className={`${INPUT} !h-9 !pl-9 !text-xs`} autoComplete="off" />
         </div>
-        <button type="button" onClick={refresh} className={`${ICON_BTN} ml-auto`} aria-label="Refresh the alerts" title="Refresh the alerts"><RefreshCw size={13} className={fetching ? 'animate-spin' : ''} /></button>
+        <button type="button" onClick={refresh} className={`${BTN_ICON_QUIET} ml-auto`} aria-label="Refresh the alerts" title="Refresh the alerts"><RefreshCw size={13} className={fetching ? 'animate-spin' : ''} /></button>
       </div>
       <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:flex-wrap">
-        <Select id="alerts-scenario" label="Detection" value={f.scenario} onChange={(v) => patch({ scenario: v })}>
+        <FilterSelect className="sm:min-w-[9.5rem] sm:max-w-[16rem]" id="alerts-scenario" label="Detection" value={f.scenario} onChange={(v) => patch({ scenario: v })}>
           <option value="">All detections</option>
           {scenarios.map((s) => <option key={s.value} value={s.value}>{scenarioText(s)} ({s.count})</option>)}
-        </Select>
-        <Select id="alerts-country" label="Country" value={f.country} onChange={(v) => patch({ country: v })}>
+        </FilterSelect>
+        <FilterSelect className="sm:min-w-[9.5rem] sm:max-w-[16rem]" id="alerts-country" label="Country" value={f.country} onChange={(v) => patch({ country: v })}>
           <option value="">All countries</option>
           {countries.map((c) => <option key={c.value} value={c.value}>{countryName(c.value) || c.value} ({c.count})</option>)}
           {facets && facets.unknown_country > 0 && <option value="unknown">Country not known ({facets.unknown_country})</option>}
-        </Select>
+        </FilterSelect>
         <label className="inline-flex items-center gap-2 text-xs text-slate-500 cursor-pointer select-none h-9 px-1 col-span-2 sm:col-span-1" title="Simulated detections only raise an alert: nothing is banned">
           <input type="checkbox" checked={f.hideSim} onChange={(e) => patch({ hideSim: e.target.checked })} className="accent-emerald-500" /> Hide simulated
         </label>
@@ -230,11 +220,11 @@ export default function AlertsTab({ seedSearch }: { seedSearch?: string }) {
           <div className="min-w-0 flex-1">
             <p className="text-sm text-rose-300 break-words">{poll.error.message}</p>
             <p className="text-xs text-slate-500 mt-1">The alerts could not be read. CrowdSec may be restarting.</p>
-            <button type="button" onClick={refresh} className={`${BTN_QUIET} mt-3`}><RefreshCw size={13} /> Try again</button>
+            <button type="button" onClick={refresh} className={`${BTN_TOOLBAR_QUIET} mt-3`}><RefreshCw size={13} /> Try again</button>
           </div>
         </div>
       )}
-      {!cur && !poll.error && <div className="space-y-2" aria-busy="true" aria-label="Loading the alerts">{[0, 1, 2, 3, 4, 5].map((i) => <Skel key={i} className="h-14" />)}</div>}
+      {!cur && !poll.error && <div className="space-y-2" aria-busy="true" aria-label="Loading the alerts">{[0, 1, 2, 3, 4, 5].map((i) => <SkeletonBlock key={i} className="h-14" />)}</div>}
       {poll.error && cur && (
         <p className="text-xs text-amber-300 flex items-center gap-2 flex-wrap rounded-lg bg-amber-500/10 border border-amber-500/20 px-3 py-2" role="status">
           <AlertTriangle size={13} className="shrink-0" /> <span className="min-w-0">Could not refresh ({poll.error.message}). Showing the last answer{data ? `, read ${fmtAgo(data.as_of, now)}` : ''}.</span>
@@ -252,8 +242,8 @@ export default function AlertsTab({ seedSearch }: { seedSearch?: string }) {
               : 'That is the normal state of a well-behaved server, not a fault. When CrowdSec catches a scanner or a brute-forcer it is listed here, with what it did and whether the address is banned.'}
           </p>
           <div className="mt-4 flex items-center justify-center gap-2 flex-wrap">
-            {filtered && <button type="button" onClick={clearFilters} className={BTN_QUIET}><X size={13} /> Clear filters</button>}
-            {win !== '30d' && <button type="button" onClick={() => setWin(win === '7d' ? '30d' : '7d')} className={BTN_QUIET}>Look at {win === '7d' ? 'the last 30 days' : 'the last 7 days'}</button>}
+            {filtered && <button type="button" onClick={clearFilters} className={BTN_TOOLBAR_QUIET}><X size={13} /> Clear filters</button>}
+            {win !== '30d' && <button type="button" onClick={() => setWin(win === '7d' ? '30d' : '7d')} className={BTN_TOOLBAR_QUIET}>Look at {win === '7d' ? 'the last 30 days' : 'the last 7 days'}</button>}
           </div>
         </div>
       )}
@@ -277,7 +267,7 @@ export default function AlertsTab({ seedSearch }: { seedSearch?: string }) {
                 <tbody className="divide-y divide-white/[0.04]">
                   {rows.map((a) => (
                     <tr key={a.id} className="hover:bg-white/[0.03] transition-colors cursor-pointer" onClick={() => setOpenId(a.id)}>
-                      <td className="pl-4 pr-3 py-2.5 whitespace-nowrap text-xs text-slate-300"><Ago t={a.created_at} /></td>
+                      <td className="pl-4 pr-3 py-2.5 whitespace-nowrap text-xs text-slate-300"><Ago at={a.created_at} /></td>
                       <td className="px-3 py-2.5 min-w-0 max-w-[18rem]">
                         <button
                           type="button"
@@ -307,7 +297,7 @@ export default function AlertsTab({ seedSearch }: { seedSearch?: string }) {
                       <span className="block text-sm text-slate-100 leading-snug break-words">{headOf(a).title}</span>
                       {headOf(a).sub && <span className="block text-[11px] text-slate-500 font-mono break-all">{headOf(a).sub}</span>}
                     </span>
-                    <Ago t={a.created_at} className="text-[11px] text-slate-500 shrink-0 pt-0.5" />
+                    <Ago at={a.created_at} className="text-[11px] text-slate-500 shrink-0 pt-0.5" />
                   </span>
                   <span className="block mt-2.5"><SourceCell a={a} phone /></span>
                   <span className="flex items-center justify-between gap-2 mt-3 pt-2.5 border-t border-white/5">

@@ -14,8 +14,7 @@ import type { FleetGuestScan, FleetMember, ProxmoxStatus, ProxmoxVm } from '../.
 import ProgressCard, { type ProgressLine, type ProgressState } from '../common/ProgressCard'
 import MemberSheet, { type MemberSheetPrefill } from './MemberSheet'
 import JoinCodeCard from './JoinCodeCard'
-import { TONE_ATTN } from './fleetShared'
-import { BTN_CARD, BTN_CARD_QUIET } from '../../lib/ui'
+import { BTN_CARD, BTN_CARD_QUIET, TONE_ATTN } from '../../lib/ui'
 import { pageLabel } from '../../constants/pageTitles'
 
 const STEPS = [

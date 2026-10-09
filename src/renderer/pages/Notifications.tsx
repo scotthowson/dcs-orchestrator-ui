@@ -23,11 +23,8 @@ import { DisconnectedBanner } from '../components/common/DisconnectedBanner'
 import PageHeader from '../components/common/PageHeader'
 import Hint from '../components/common/Hint'
 import { pageLabel } from '../constants/pageTitles'
-import {
-  BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD_QUIET, BTN_ICON, BTN_ICON_SM,
-  BTN_SHEET_QUIET, BTN_SHEET_PRIMARY, TONE_OK, TONE_GHOST, TONE_GHOST_DANGER,
-} from '../lib/ui'
-import { INPUT, CAPTION as LABEL, FOCUS_RING } from '../lib/fieldStyles'
+import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD_QUIET, BTN_ICON, BTN_ICON_SM, BTN_SHEET_QUIET, BTN_SHEET_PRIMARY, TONE_OK, TONE_GHOST, TONE_GHOST_DANGER, FOCUS_RING } from '../lib/ui'
+import { INPUT, CAPTION as LABEL } from '../lib/fieldStyles'
 import {
   fetchNotificationRules,
   createNotificationRule,

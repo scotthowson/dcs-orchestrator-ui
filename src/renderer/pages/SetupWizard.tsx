@@ -40,12 +40,8 @@ import Hint from '../components/common/Hint'
 import PasswordStrengthMeter from '../components/auth/PasswordStrength'
 import ShowPasswordButton from '../components/auth/ShowPasswordButton'
 import { pageLabel } from '../constants/pageTitles'
-import {
-  BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD, BTN_ICON_SM,
-  BTN_SHEET_QUIET, BTN_SHEET_PRIMARY, TONE_OK, TONE_DANGER, TONE_GHOST, TONE_GHOST_DANGER,
-} from '../lib/ui'
-import { FOCUS_RING, CHOICE, CHOICE_ON, CHOICE_OFF } from '../lib/fieldStyles'
-
+import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD, BTN_ICON_SM, BTN_SHEET_QUIET, BTN_SHEET_PRIMARY, TONE_OK, TONE_DANGER, TONE_GHOST, TONE_GHOST_DANGER, FOCUS_RING } from '../lib/ui'
+import { CHOICE, CHOICE_ON, CHOICE_OFF } from '../lib/fieldStyles'
 // ---------------------------------------------------------------------------
 // The pieces every step is drawn with
 // ---------------------------------------------------------------------------

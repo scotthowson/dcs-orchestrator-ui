@@ -13,16 +13,13 @@ import { fetchDashboardFeedStatus, createDashboardFeedToken, deleteDashboardFeed
 import type { DashboardFeedStatus } from '../../../shared/types'
 import { BTN_CARD, BTN_CARD_QUIET, TONE_OK, TONE_DANGER } from '../../lib/ui'
 
+import { CopyButton } from '../common/CopyButton'
 function CopyLine({ label, value }: { label: string; value: string }) {
-  const [done, setDone] = useState(false)
   return (
     <div className="flex items-center gap-2 min-w-0">
       <span className="text-[11px] text-slate-500 w-20 shrink-0">{label}</span>
       <code className="text-[11px] font-mono text-slate-300 truncate min-w-0 flex-1" title={value}>{value}</code>
-      <button type="button" aria-label={`Copy ${label}`} className={BTN_CARD_QUIET}
-        onClick={() => { navigator.clipboard?.writeText(value).then(() => { setDone(true); setTimeout(() => setDone(false), 1500) }).catch(() => {}) }}>
-        {done ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
-      </button>
+      <CopyButton text={value} label={`Copy the ${label.toLowerCase()}`} />
     </div>
   )
 }
