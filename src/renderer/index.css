@@ -1413,9 +1413,11 @@
    THE EDITORS' CODE AREA (components/editor/CodeArea)
    The text area takes the typing; the coloured copy under it shows the text.
    Its text is transparent in every look (the light look's form rules colour
-   every textarea: this beats them), its caret the theme's text colour.
+   every textarea, the theme engine its focus: :root here beats both), its caret
+   the theme's text colour.
    ══════════════════════════════════════════════════════════════ */
-textarea.code-input.code-input {
+:root textarea.code-input.code-input,
+:root textarea.code-input.code-input:focus {
   color: transparent !important;
   -webkit-text-fill-color: transparent;
   caret-color: var(--dcs-text, #e2e8f0);
@@ -1429,9 +1431,9 @@ textarea.code-input.code-input {
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--dcs-accent, #10b981) 45%, transparent);
 }
 /* (the code's own focus: a faint wash of the accent over the text, the hairline around the area below) */
-textarea.code-input.code-input:focus-visible {
+:root textarea.code-input.code-input:focus-visible {
   outline: none !important;
-  background: color-mix(in srgb, var(--dcs-accent, #10b981) 4%, transparent) !important;
+  background: color-mix(in srgb, var(--dcs-accent, #10b981) 3%, transparent) !important;
 }
 textarea.code-input::selection {
   background: color-mix(in srgb, var(--dcs-accent, #10b981) 30%, transparent);

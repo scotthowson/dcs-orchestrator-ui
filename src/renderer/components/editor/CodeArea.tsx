@@ -304,7 +304,8 @@ const CodeArea = forwardRef<CodeAreaHandle, CodeAreaProps>(function CodeArea(
       )}
 
       <div ref={scrollRef} className="code-scroll flex-1 min-h-0 overflow-auto overscroll-contain scrollbar-thin bg-slate-950" data-sweep-scroll>
-        <div className="flex min-w-full w-max font-mono text-[13px] leading-6">
+        {/* at least as tall as the area (less the bar's room): the gutter runs to the bottom and a click under the last line lands in the text */}
+        <div className="flex min-w-full w-max font-mono text-[13px] leading-6" style={{ minHeight: `calc(100% - ${bottomInset}px)` }}>
           {/* the gutter: line numbers, the linter's marks, a bar beside a changed line */}
           <div className="sticky left-0 z-10 shrink-0 w-12 select-none bg-slate-950 border-r border-white/5 py-3" aria-hidden="true">
             {lines.map((_, i) => {
