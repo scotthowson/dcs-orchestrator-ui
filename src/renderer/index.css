@@ -1403,6 +1403,53 @@
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+/* the footer of a sheet or a dialog: its own 16 px under the buttons (--pad-b), plus the phone's home bar
+   (safe-area-bottom alone set the padding to the inset, 0 on a desktop: the buttons sat on the edge) */
+.pad-bottom-safe {
+  padding-bottom: calc(var(--pad-b, 1rem) + env(safe-area-inset-bottom, 0px));
+}
+
+/* ══════════════════════════════════════════════════════════════
+   THE EDITORS' CODE AREA (components/editor/CodeArea)
+   The text area takes the typing; the coloured copy under it shows the text.
+   Its text is transparent in every look (the light look's form rules colour
+   every textarea: this beats them), its caret the theme's text colour.
+   ══════════════════════════════════════════════════════════════ */
+textarea.code-input.code-input {
+  color: transparent !important;
+  -webkit-text-fill-color: transparent;
+  caret-color: var(--dcs-text, #e2e8f0);
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  font-variant-ligatures: none;
+}
+/* the keyboard is in the code: a hairline of the accent around the visible area (not the whole text) */
+.code-scroll:focus-within {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--dcs-accent, #10b981) 45%, transparent);
+}
+/* (the code's own focus: a faint wash of the accent over the text, the hairline around the area below) */
+textarea.code-input.code-input:focus-visible {
+  outline: none !important;
+  background: color-mix(in srgb, var(--dcs-accent, #10b981) 4%, transparent) !important;
+}
+textarea.code-input::selection {
+  background: color-mix(in srgb, var(--dcs-accent, #10b981) 30%, transparent);
+}
+.code-text {
+  font-variant-ligatures: none;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   THE SAVE BAR (components/editor/SaveBar)
+   A bar on a page lifts the floating chat and back-to-top buttons by its
+   height (it sets --dcs-savebar-h while it shows), so neither covers the other.
+   ══════════════════════════════════════════════════════════════ */
+.lift-over-savebar {
+  /* (the property, not transform: the buttons' own hover lift stays; their transition-all moves it) */
+  translate: 0 calc(-1 * var(--dcs-savebar-h, 0px));
+}
+
 /* ══════════════════════════════════════════════════════════════
    MOBILE OVERRIDES — phones < 768px
    ══════════════════════════════════════════════════════════════ */

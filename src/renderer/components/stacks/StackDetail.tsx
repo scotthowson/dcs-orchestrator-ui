@@ -631,6 +631,7 @@ export default function StackDetail({ stackName, onBack, onAction, isActionLoadi
           stackName={stackName}
           content={composeContent}
           isAdmin={isAdmin}
+          stack={stack}
           onClose={() => setShowCompose(false)}
         />
       )}

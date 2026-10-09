@@ -1,9 +1,8 @@
 // =============================================================================
-// LintParts — the two pieces of the compose linter's display that both stack
-// editors (the compose viewer and the edit overlay) draw:
-//   DiagNumber        a line number that carries diagnostics: coloured by its worst one,
-//                     the messages in a bubble on hover and on keyboard focus
-//   EditorDiagnostics the panel under an editor in edit mode: the counts and the messages
+// LintParts — the compose linter's marks the editors draw (components/editor):
+//   DiagNumber   a line number that carries diagnostics: coloured by its worst one,
+//                the messages in a bubble on hover and on keyboard focus
+//   CountBadge   the errors (or warnings) on a file's tab
 // =============================================================================
 
 import type { LintDiagnostic } from '../../hooks/useComposeLinter'
@@ -40,42 +39,6 @@ export function DiagNumber({ line, diags, className = '', width = 300, focusable
         </span>
       </span>
     </span>
-  )
-}
-
-/** Live diagnostics under an editor in edit mode — the same panel the template editor shows */
-export function EditorDiagnostics({ diagnostics, counts, validation, kind, hint }: {
-  diagnostics: LintDiagnostic[]
-  counts: { errors: number; warnings: number; info: number }
-  validation?: { valid: boolean; output: string } | null
-  kind: 'compose' | 'env'
-  /** the keyboard line at the right (the editor's own shortcuts by default) */
-  hint?: string
-}) {
-  return (
-    <div className="shrink-0 border-t border-white/5 bg-slate-900/60 px-5 py-2 text-[11px]">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-slate-500">
-        <span className={counts.errors ? 'text-rose-400' : ''}>{counts.errors} error{counts.errors === 1 ? '' : 's'}</span>
-        <span className={counts.warnings ? 'text-amber-400' : ''}>{counts.warnings} warning{counts.warnings === 1 ? '' : 's'}</span>
-        <span>{counts.info} hint{counts.info === 1 ? '' : 's'}</span>
-        {validation && kind === 'compose' && (
-          <span className={validation.valid ? 'text-emerald-400' : 'text-rose-400'}>· compose config: {validation.valid ? 'valid' : 'invalid'}</span>
-        )}
-        <span className="ml-auto hidden sm:inline text-slate-500">
-          {hint ?? `${kind === 'compose' ? 'Ctrl+S validates and saves' : 'Ctrl+S saves'} · Esc leaves edit mode`}
-        </span>
-      </div>
-      {diagnostics.length > 0 && (
-        <ul className="mt-1.5 space-y-0.5 max-h-28 overflow-y-auto scrollbar-thin rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40" tabIndex={0} aria-label="Lint messages">
-          {diagnostics.slice(0, 40).map((d, i) => (
-            <li key={`${d.line}-${i}`} className={d.severity === 'error' ? 'text-rose-300' : d.severity === 'warning' ? 'text-amber-300' : 'text-slate-400'}>
-              L{d.line} · {d.message}{d.fix ? <span className="text-slate-500"> — {d.fix}</span> : null}
-            </li>
-          ))}
-          {diagnostics.length > 40 && <li className="text-slate-500">+{diagnostics.length - 40} more</li>}
-        </ul>
-      )}
-    </div>
   )
 }
 

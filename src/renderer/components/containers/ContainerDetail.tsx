@@ -1765,7 +1765,11 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
             saving={envSaving}
             onSave={handleSaveEnv}
             onDiscard={discardEnv}
-            message={`Environment changes for ${containerName}`}
+            message={(() => {
+              const n = Object.entries(envDrafts).filter(([k, v]) => !envRemovals.has(k) && v !== (currentEnv.find((e) => e.key === k)?.value ?? '')).length + envAdditions.filter((x) => x.key.trim()).length + envRemovals.size
+              return `${n} variable${n === 1 ? '' : 's'} of ${containerName} changed`
+            })()}
+            detail={`Written to ${composeProject}/docker-compose.yml · ${envRecreate ? 'the container is recreated right away' : 'it takes effect when the container is recreated'}`}
             saveLabel={envRecreate ? 'Save & recreate' : 'Save'}
             savingLabel={envRecreate ? 'Saving & recreating…' : 'Saving…'}
             extra={(

@@ -27,7 +27,6 @@ import {
   Plus,
   Pencil,
   Trash2,
-  Save,
   Upload,
   Download,
   CheckCircle,
@@ -48,7 +47,7 @@ import {
   KeyRound,
   Wand2,
   Terminal, Moon,
-  Satellite, Home, Check, Cpu,
+  Satellite, Home, Check, Cpu, FileCode2, FileText, Tag, Variable,
 } from 'lucide-react'
 import { createPortal } from 'react-dom'
 import { SegmentedControl, Select, Switch } from '@mantine/core'
@@ -286,6 +285,17 @@ import ModalOverlay from '../components/common/ModalOverlay'
 import { Pill } from '../components/common/Pill'
 import SearchInput from '../components/common/SearchInput'
 import CloseButton from '../components/common/CloseButton'
+import Segmented from '../components/common/Segmented'
+import { CountBadge } from '../components/stacks/LintParts'
+import EditorFrame from '../components/editor/EditorFrame'
+import CodeArea, { type CodeAreaHandle } from '../components/editor/CodeArea'
+import SaveBar from '../components/editor/SaveBar'
+import DiffView from '../components/editor/DiffView'
+import EditorTools from '../components/editor/EditorTools'
+import EditorStatus, { LintButton } from '../components/editor/EditorStatus'
+import { useSavePipeline, lintQuestion, type CheckOutcome, type SaveOutcome } from '../components/editor/useSavePipeline'
+import { changeSummary, diffLines, problemsFrom, type Problem } from '../components/editor/codeText'
+import { CAPTION, HINT, INPUT, LABEL } from '../lib/fieldStyles'
 function generateRouteYaml(
   serviceName: string,
   containerName: string,
@@ -552,8 +562,6 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
   })
   const [autoStart, setAutoStart] = useState(true)
   const [showCompose, setShowCompose] = useState(false)
-  // F1: Confirmation step
-  const [confirming, setConfirming] = useState(false)
   // F4: Local deploying state (stays true through wait period, unlike parent prop)
   const [localDeploying, setLocalDeploying] = useState(false)
   // F4: Success result
@@ -945,12 +953,8 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
     )
   }, [plugins])
 
-  // F1: Handle deploy click — first click shows confirmation, second executes
-  const handleDeployClick = useCallback(async () => {
-    if (!confirming) {
-      setConfirming(true)
-      return
-    }
+  // The deploy itself (the save bar's Deploy runs it once the check passed: deployPipeline below)
+  const runDeploy = useCallback(async (): Promise<boolean> => {
     setLocalDeploying(true)
     setActivity(null)
     setActivityError(null)
@@ -965,7 +969,7 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
       if (!SECRET_NAME_OK.test(secretName)) {
         addToast({ type: 'error', message: `${secretName} is not a valid secret name — letters, digits and underscores, starting with a letter` })
         setLocalDeploying(false)
-        return
+        return false
       }
       try {
         await setSecret(secretName, val)
@@ -974,7 +978,7 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
       } catch (err) {
         addToast({ type: 'error', message: `Could not store ${secretName} as a secret: ${err instanceof Error ? err.message : 'request failed'}` })
         setLocalDeploying(false)
-        return
+        return false
       }
     }
     const exclude = excludedServices.size > 0 ? Array.from(excludedServices) : undefined
@@ -1012,7 +1016,8 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
       setShowOutput(true)
     }
     setLocalDeploying(false)
-  }, [confirming, onDeploy, targetStack, variables, autoStart, replaceServices, excludedServices, traefikActive, traefikDomain, routeDomain, targetInVm, enableRouting, customRoutes, connectProxy, enableResourceLimits, memLimit, cpuLimit, homarrActive, addToHomarr, storeAsSecret, secretNames, customContainerNames, routeServices, enableAuthelia, autheliaMw, sablierPresent, gpuCards, gpuSlot, addToast])
+    return !!result
+  }, [onDeploy, targetStack, variables, autoStart, replaceServices, excludedServices, traefikActive, traefikDomain, routeDomain, targetInVm, enableRouting, customRoutes, connectProxy, enableResourceLimits, memLimit, cpuLimit, homarrActive, addToHomarr, storeAsSecret, secretNames, customContainerNames, routeServices, enableAuthelia, autheliaMw, sablierPresent, gpuCards, gpuSlot, addToast])
 
   // F4: Handle "View Stack" navigation
   const handleViewStack = useCallback(() => {
@@ -1033,7 +1038,7 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
 
   // F5: Handle dry-run preview
   const [dryRunError, setDryRunError] = useState<string | null>(null)
-  const handleDryRun = useCallback(async () => {
+  const handleDryRun = useCallback(async (): Promise<TemplateDryRunResponse> => {
     setDryRunLoading(true)
     setDryRunResult(null)
     setDryRunError(null)
@@ -1055,13 +1060,52 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
         ...(routable ? { routes: enableRouting, route_services: enableRouting && routeServices.length > 0 ? routeServices.filter((s) => s.enabled).map((s) => s.name) : undefined } : {}),
       }, member?.id)
       setDryRunResult(res)
+      return res
     } catch (err) {
       setDryRunResult(null)
-      setDryRunError(err instanceof Error ? err.message : 'Preview failed')
+      setDryRunError(err instanceof Error ? err.message : 'The check failed')
+      throw err
     } finally {
       setDryRunLoading(false)
     }
   }, [template.name, targetStack, variables, excludedServices, storeAsSecret, secretNames, member, traefikActive, traefikDomain, enableRouting, routeServices])
+
+  // One press deploys: the dry run checks first (the same inputs), the deploy follows when nothing is in its way.
+  // What would stop the server (a service or a port already taken, a singleton already there, a required value
+  // missing) is listed above the bar instead; replacing services asks first.
+  const deployCheck = useCallback(async (): Promise<CheckOutcome> => {
+    const r = await handleDryRun()
+    const problems: Problem[] = []
+    if (r.has_service_conflicts && !replaceServices) problems.push({ severity: 'error', message: `Already in ${targetStack}: ${r.service_conflicts}. Switch on "Replace existing services" in the check's result to replace them.` })
+    if (r.has_port_conflicts) {
+      if (r.port_conflicts_detail?.length) for (const pc of r.port_conflicts_detail) problems.push({ severity: 'error', message: `Host port ${pc.port} is taken by ${pc.type === 'stack' ? 'the stack' : 'the container'} ${pc.owner}${pc.service ? ` (${pc.service})` : ''}` })
+      else problems.push({ severity: 'error', message: `Host ports taken: ${r.port_conflicts}` })
+    }
+    if (r.has_singleton_conflict) problems.push({ severity: 'error', message: `It runs once per server and is deployed already: ${r.singleton_conflict}` })
+    if (r.has_missing_vars) problems.push({ severity: 'error', message: `Required variables without a value: ${r.missing_required_vars}` })
+    for (const w of r.security_warnings ?? []) problems.push({ severity: 'warning', message: w })
+    const replacing = replaceServices && r.has_service_conflicts
+    return {
+      ok: !problems.some((p) => p.severity === 'error'),
+      problems,
+      passNote: `Checked: nothing in the way · ${r.services.length} service${r.services.length === 1 ? '' : 's'}, +${r.lines_added} lines of compose`,
+      ask: replacing ? {
+        title: 'Replace the existing services?',
+        message: `${r.service_conflicts} in ${targetStack} ${r.service_conflicts.includes(',') ? 'are' : 'is'} replaced by the template's: their blocks in the compose file are rewritten (the file is backed up first).`,
+        confirmLabel: 'Replace and deploy',
+        declined: 'Not deployed: the existing services stay',
+      } : undefined,
+    }
+  }, [handleDryRun, replaceServices, targetStack])
+  const deploySave = useCallback(async (): Promise<SaveOutcome> => {
+    const ok = await runDeploy()
+    return ok ? { ok: true, note: 'Deploying' } : { ok: false, title: 'Not deployed', problems: [{ severity: 'error', message: 'The server did not take the deploy: its message is in the notification' }] }
+  }, [runDeploy])
+  const deployRun = useSavePipeline({ check: deployCheck, save: deploySave, version: `${targetStack}|${replaceServices}|${JSON.stringify(variables)}|${[...excludedServices].join()}`, saveWord: 'deployed' })
+  const deployBlocked = !canDeploy ? (targetStack ? '' : 'Choose the target stack first')
+    : autoStart && missingSecrets.length > 0 ? `Store ${missingSecrets.join(', ')} first, or turn auto-start off`
+      : badSecretNames.length > 0 ? 'Fix the secret names first'
+        : Object.keys(containerNameIssues.blocking).length > 0 ? 'Fix the container names first' : ''
 
   const headerTone = deployResult
     ? (outcome === 'running' ? 'ok' : outcome === 'failed' ? 'bad' : outcome === 'not-started' ? 'held' : 'busy')
@@ -1327,7 +1371,7 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
                   id="deploy-target-stack"
                   data={stackChoices}
                   value={targetStack || null}
-                  onChange={(v) => { if (v) { setTargetStack(v); setConfirming(false) } }}
+                  onChange={(v) => { if (v) setTargetStack(v) }}
                   placeholder="Select a stack…"
                   searchable={!isMobile && stackChoices.length > 8}
                   nothingFoundMessage="No stack matches"
@@ -2005,7 +2049,7 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
                 <div className="rounded-lg border border-cyan-500/20 bg-cyan-500/5 p-3 space-y-2.5 animate-fade-in">
                   <div className="flex items-center gap-2">
                     <Scan size={14} className="text-cyan-400 shrink-0" />
-                    <p className="text-xs font-semibold text-cyan-300">Deployment preview</p>
+                    <p className="text-xs font-semibold text-cyan-300">What the deploy changes</p>
                   </div>
                   <div className="text-[11px] space-y-2.5 pl-[22px]">
                     {/* Services to add */}
@@ -2180,88 +2224,29 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
                 <div className="rounded-lg border border-rose-500/20 bg-rose-500/5 p-3 animate-fade-in">
                   <p className="text-[11px] text-rose-400">
                     <AlertTriangle size={11} className="inline mr-1" />
-                    Preview failed: {dryRunError}
+                    The check failed: {dryRunError}
                   </p>
                 </div>
               )}
 
-              {/* F1: Confirmation panel */}
-              {confirming && (
-                <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 space-y-2 animate-fade-in">
-                  <div className="flex items-center gap-2">
-                    <AlertTriangle size={14} className="text-amber-400 shrink-0" />
-                    <p className="text-xs font-semibold text-amber-300">Confirm deployment</p>
-                  </div>
-                  <div className="text-[11px] text-slate-400 space-y-1 pl-[22px]">
-                    <p>
-                      Target: <span className="font-mono text-slate-300">{targetStack}</span>
-                      {selectedStack && (
-                        <span className={`ml-1.5 ${selectedStack.status === 'running' ? 'text-emerald-400' : 'text-slate-500'}`}>
-                          ({selectedStack.status}{selectedStack.status === 'running' ? `, ${selectedStack.running_containers} containers` : ''})
-                        </span>
-                      )}
-                    </p>
-                    <p>
-                      Services to {replaceServices ? 'deploy' : 'add'}: <span className="font-mono text-slate-300">{templateServiceNames.join(', ')}</span>
-                    </p>
-                    {replaceServices && dryRunResult?.has_service_conflicts && (
-                      <p className="text-amber-400">
-                        Replacing existing: <span className="font-mono">{dryRunResult.service_conflicts}</span>
-                      </p>
-                    )}
-                    <p className="text-amber-400/70 mt-1">
-                      This will modify the compose file of <span className="font-mono">{targetStack}</span>. A backup will be created.
-                    </p>
-                  </div>
-                </div>
-              )}
             </div>
 
-            {/* Footer */}
-            <div className="flex flex-wrap items-center justify-end gap-2 px-4 md:px-5 py-4 border-t border-white/5 shrink-0">
-              <button
-                type="button"
-                onClick={() => { if (confirming) { setConfirming(false) } else { onClose() } }}
-                className={`${BTN_SHEET_QUIET} flex-1 sm:flex-none`}
-              >
-                {confirming ? 'Back' : isAdmin ? 'Cancel' : 'Close'}
-              </button>
-              {!confirming && (
-                <button
-                  type="button"
-                  onClick={handleDryRun}
-                  disabled={!targetStack || dryRunLoading}
-                  className={`${BTN_SHEET} ${TONE_QUIET} flex-1 sm:flex-none`}
-                >
-                  {dryRunLoading ? <Loader2 size={16} className="animate-spin" /> : <Eye size={16} />}
-                  Preview
-                </button>
-              )}
-              {isAdmin && (
-                <button
-                  type="button"
-                  onClick={handleDeployClick}
-                  disabled={!canDeploy || (autoStart && missingSecrets.length > 0) || badSecretNames.length > 0 || Object.keys(containerNameIssues.blocking).length > 0}
-                  title={autoStart && missingSecrets.length > 0 ? `Store ${missingSecrets.join(', ')} first, or turn auto-start off` : badSecretNames.length > 0 ? 'Fix the secret names first' : Object.keys(containerNameIssues.blocking).length > 0 ? 'Fix the container names first' : undefined}
-                  className={`${BTN_SHEET_PRIMARY} flex-1 sm:flex-none`}
-                >
-                  {deploying ? (
-                    <Loader2 size={16} className="animate-spin" />
-                  ) : confirming ? (
-                    <AlertTriangle size={16} />
-                  ) : (
-                    <Rocket size={16} />
-                  )}
-                  {confirming ? 'Confirm and deploy' : 'Deploy stack'}
-                </button>
-              )}
-              {!isAdmin && (
-                <p className="w-full sm:w-auto sm:order-first sm:mr-auto flex items-center gap-1.5 text-[11px] text-slate-500">
-                  <Shield size={12} className="shrink-0" aria-hidden />
-                  Admins deploy templates
-                </p>
-              )}
-            </div>
+            {/* The deploy bar, the editors' save bar in the sheet's footer: what the deploy does, Check only (the dry
+                run), Cancel and Deploy — one press checks, then deploys; what is in the way is listed above it */}
+            <SaveBar
+              open
+              placement="static"
+              pip="info"
+              status={!isAdmin ? 'Admins deploy templates' : targetStack ? `${replaceServices ? 'Replaces' : 'Adds'} ${templateServiceNames.join(', ')} ${replaceServices ? 'in' : 'to'} ${targetStack}` : 'Choose the target stack'}
+              detail={isAdmin && targetStack ? `${selectedStack ? `${selectedStack.status === 'running' ? 'Running' : 'Stopped'} · ` : ''}its compose file is backed up first · ${autoStart ? 'the services start right away' : 'not started: auto-start is off'}` : !isAdmin ? 'Check only runs the same check a deploy runs and shows what it would change' : undefined}
+              phase={deployRun.phase}
+              result={deployRun.result}
+              onDismissResult={deployRun.clear}
+              onCheck={targetStack ? () => void deployRun.checkOnly() : undefined}
+              secondary={{ label: isAdmin ? 'Cancel' : 'Close', onClick: onClose }}
+              primary={isAdmin ? { label: 'Deploy', busyLabel: 'Deploying…', icon: <Rocket size={16} aria-hidden />, onClick: () => void deployRun.submit(), disabled: !!deployBlocked, reason: deployBlocked || undefined } : undefined}
+              label="Deploy"
+            />
           </>
         )}
       </div>
@@ -2271,7 +2256,9 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
 }
 
 // ---------------------------------------------------------------------------
-// Create / Edit Template Modal
+// Create / Edit Template — the one editor (components/editor): the compose file, its .env, the template's details
+// and the variables it asks for. Saving is one press: the server checks the compose file (POST /compose/validate),
+// the save follows when it passes. (The template routes do not check on their own: the dashboard checks, then saves.)
 // ---------------------------------------------------------------------------
 
 interface CreateEditModalProps {
@@ -2279,20 +2266,12 @@ interface CreateEditModalProps {
   initial?: { name: string; compose: string; env: string; metadata: Record<string, unknown> }
   stacks: StackInfo[]
   onClose: () => void
-  onSave: (data: { name: string; compose: string; env: string; metadata: Record<string, unknown> }) => void | boolean | Promise<void | boolean>
-  saving: boolean
+  /** true when saved; else what the server said */
+  onSave: (data: { name: string; compose: string; env: string; metadata: Record<string, unknown> }) => Promise<true | string>
 }
 
-function CreateEditModal({ mode, initial, stacks, onClose, onSave, saving }: CreateEditModalProps) {
-  const confirm = useConfirm()
-  const uid = useId()
-  const [name, setName] = useState(initial?.name ?? '')
-  const [title, setTitle] = useState((initial?.metadata?.title as string) ?? '')
-  const [description, setDescription] = useState((initial?.metadata?.description as string) ?? '')
-  const [category, setCategory] = useState((initial?.metadata?.category as string) ?? 'other')
-  const [targetStack, setTargetStack] = useState((initial?.metadata?.target_stack as string) ?? '')
-  const [compose, setCompose] = useState(initial?.compose ?? 'services:\n  app:\n    image: example:latest\n    restart: unless-stopped\n    volumes:\n      - ${APP_DATA_DIR:-./App-Data}/App:/data\n')
-  const [env, setEnv] = useState(initial?.env ?? `# =============================================================================
+const NEW_COMPOSE = 'services:\n  app:\n    image: example:latest\n    restart: unless-stopped\n    volumes:\n      - ${APP_DATA_DIR:-./App-Data}/App:/data\n'
+const NEW_ENV = `# =============================================================================
 # Stack Configuration
 # Inherits from root .env — only add stack-specific overrides here
 # =============================================================================
@@ -2310,38 +2289,52 @@ function CreateEditModal({ mode, initial, stacks, onClose, onSave, saving }: Cre
 # TZ is set in the root .env file
 
 # Stack-specific overrides below
-`)
-  const [activeTab, setActiveTab] = useState<'compose' | 'env' | 'meta'>('compose')
-  const [saved, setSaved] = useState(false)
-  // Baseline for change detection: reset after a successful save so the editor can stay open
-  const [baseline, setBaseline] = useState({
-    compose: initial?.compose ?? '',
-    env: initial?.env ?? '',
+`
+const TEMPLATE_CATEGORIES = ['databases', 'media', 'monitoring', 'web', 'development', 'storage', 'automation', 'utilities', 'other']
+
+function CreateEditModal({ mode, initial, stacks, onClose, onSave }: CreateEditModalProps) {
+  const confirm = useConfirm()
+  const uid = useId()
+  const code = useRef<CodeAreaHandle>(null)
+  const meta0 = {
     title: (initial?.metadata?.title as string) ?? '',
     description: (initial?.metadata?.description as string) ?? '',
     category: (initial?.metadata?.category as string) ?? 'other',
     targetStack: (initial?.metadata?.target_stack as string) ?? '',
-  })
-  const [validation, setValidation] = useState<{ valid: boolean; errors: string[]; warnings: string[] } | null>(null)
-  const [validating, setValidating] = useState(false)
+  }
+  // what was saved last: the editor stays open after a save, and its changes are counted from there
+  const [base, setBase] = useState({ compose: initial?.compose ?? (mode === 'create' ? NEW_COMPOSE : ''), env: initial?.env ?? (mode === 'create' ? NEW_ENV : ''), ...meta0 })
+  const [name, setName] = useState(initial?.name ?? '')
+  const [title, setTitle] = useState(meta0.title)
+  const [description, setDescription] = useState(meta0.description)
+  const [category, setCategory] = useState(meta0.category)
+  const [targetStack, setTargetStack] = useState(meta0.targetStack)
+  const [compose, setCompose] = useState(base.compose)
+  const [env, setEnv] = useState(base.env)
+  const [tab, setTab] = useState<'compose' | 'env' | 'details' | 'variables'>(mode === 'create' ? 'details' : 'compose')
+  const [showDiff, setShowDiff] = useState(false)
+  const [caret, setCaret] = useState<{ line: number; col: number } | null>(null)
+  const [barH, setBarH] = useState(0)
   const lint = useComposeLinter(compose, env)
   const envLint = useEnvLinter(env, compose)
 
-  const canSave = name.trim().length > 0 && compose.trim().length > 0 && !saving
+  const composeDiff = useMemo(() => diffLines(base.compose, compose), [base.compose, compose])
+  const envDiff = useMemo(() => diffLines(base.env, env), [base.env, env])
+  const detailsDirty = title !== base.title || description !== base.description || category !== base.category || targetStack !== base.targetStack
+  const dirty = mode === 'create' || compose !== base.compose || env !== base.env || detailsDirty
+  const missing = !name.trim() ? 'Name the template on the Details tab first' : !compose.trim() ? 'The compose file is empty' : ''
 
-  // Detect changes against the last saved baseline (edit mode)
-  const hasChanges = mode === 'edit' ? (
-    compose !== baseline.compose ||
-    env !== baseline.env ||
-    title !== baseline.title ||
-    description !== baseline.description ||
-    category !== baseline.category ||
-    targetStack !== baseline.targetStack
-  ) : canSave
-
-  const handleSaveInPlace = useCallback(async () => {
-    if (!canSave) return
-    // Keep the template's own variables and tags: an edit must not wipe them
+  const check = useCallback(async (): Promise<CheckOutcome> => {
+    const res = await validateCompose({ content: compose })
+    const lintList = lint.diagnostics.filter((d) => d.severity !== 'info').map((d) => ({ severity: d.severity === 'error' ? 'error' as const : 'warning' as const, message: d.message, line: d.line }))
+    const errors = (res.errors ?? []).flatMap((e) => problemsFrom(e, compose))
+    const warnings = (res.warnings ?? []).map((w) => ({ ...(problemsFrom(w, compose)[0] ?? { message: w }), severity: 'warning' as const }))
+    if (!res.valid) return { ok: false, problems: [...(errors.length ? errors : problemsFrom(res.output || 'The compose file does not pass the check', compose)), ...lintList.filter((p) => p.severity === 'error')] }
+    return { ok: true, problems: [...warnings, ...lintList], ask: lintQuestion(lintList.filter((p) => p.severity === 'error').length, 'docker-compose.yml'), passNote: 'Checked: Docker reads the file without a problem' }
+  }, [compose, lint.diagnostics])
+  const save = useCallback(async (): Promise<SaveOutcome> => {
+    const snapshot = { compose, env, title, description, category, targetStack }
+    // keep the template's own variables and tags: an edit must not wipe them
     const ok = await onSave({
       name, compose, env,
       metadata: {
@@ -2351,304 +2344,142 @@ function CreateEditModal({ mode, initial, stacks, onClose, onSave, saving }: Cre
         variables: (initial?.metadata?.variables as unknown[]) ?? [],
       },
     })
-    if (ok !== false) {
-      setBaseline({ compose, env, title, description, category, targetStack })
-      setSaved(true)
-      setTimeout(() => setSaved(false), 3000)
-    }
-  }, [canSave, name, compose, env, title, description, category, targetStack, initial, onSave])
+    if (ok !== true) return { ok: false, title: mode === 'create' ? 'Not created' : 'Not saved', problems: [{ severity: 'error', message: ok }] }
+    setBase(snapshot)
+    return { ok: true, note: mode === 'create' ? 'Created' : 'Saved · checked by Docker' }
+  }, [compose, env, title, description, category, targetStack, name, initial, onSave, mode])
+  const run = useSavePipeline({ check, save, version: `${compose}\u0000${env}`, saveWord: mode === 'create' ? 'created' : 'saved' })
 
-  const handleDiscard = useCallback(() => {
-    setCompose(baseline.compose)
-    setEnv(baseline.env)
-    setTitle(baseline.title)
-    setDescription(baseline.description)
-    setCategory(baseline.category)
-    setTargetStack(baseline.targetStack)
-  }, [baseline])
+  const discard = async () => {
+    if (!(await confirm({ title: 'Discard your changes?', message: 'The editor goes back to the saved template: the compose file, the .env and the details.', confirmLabel: 'Discard changes', danger: true }))) return
+    setCompose(base.compose); setEnv(base.env); setTitle(base.title); setDescription(base.description); setCategory(base.category); setTargetStack(base.targetStack)
+    run.clear()
+    setShowDiff(false)
+  }
 
-  const handleValidate = useCallback(async () => {
-    setValidating(true)
-    try {
-      const res = await validateCompose({ content: compose })
-      setValidation({ valid: !!res.valid, errors: res.errors ?? [], warnings: res.warnings ?? [] })
-    } catch (err) {
-      setValidation({ valid: false, errors: [err instanceof Error ? err.message : 'Validation failed'], warnings: [] })
-    } finally {
-      setValidating(false)
-    }
-  }, [compose])
+  const onFile = tab === 'compose' || tab === 'env'
+  const file = tab === 'env' ? { text: env, set: setEnv, diff: envDiff, lint: envLint.diagnostics, lang: 'env' as const, name: '.env' } : { text: compose, set: setCompose, diff: composeDiff, lint: lint.diagnostics, lang: 'yaml' as const, name: 'docker-compose.yml' }
+  const changed = Math.max(composeDiff.added, composeDiff.removed) + Math.max(envDiff.added, envDiff.removed)
+  let status: string
+  if (mode === 'create') status = name.trim() ? `New template ${name}` : 'New template'
+  else if (changed && detailsDirty) status = `${changeSummary({ added: changed, removed: 0 })} · details changed`
+  else if (changed) status = changeSummary({ added: changed, removed: 0 })
+  else status = 'Details changed'
+  const jump = (l: number) => { setShowDiff(false); setTab('compose'); window.setTimeout(() => code.current?.jumpTo(l), 30) }
+  const parsedVars = useMemo(() => parseComposeVariables(compose), [compose])
 
-  // Esc closes (the overlay's key: it asks first when there are unsaved changes), Ctrl/Cmd+S saves
-  const requestClose = useCallback(async () => {
-    if (hasChanges && mode === 'edit' && !(await confirm({ title: 'Discard the changes?', message: 'Discard unsaved changes to this template?', confirmLabel: 'Discard', danger: true }))) return
-    onClose()
-  }, [hasChanges, mode, onClose, confirm])
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); handleSaveInPlace() }
-    }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [handleSaveInPlace])
+  return (
+    <EditorFrame
+      title={mode === 'create' ? 'Create template' : `Edit ${initial?.name}`}
+      subtitle={mode === 'create' ? 'A reusable stack template' : `${initial?.name}/${tab === 'env' ? '.env' : 'docker-compose.yml'} · a template`}
+      icon={mode === 'create' ? <Plus size={18} /> : <Pencil size={18} />}
+      tone={mode === 'create' ? 'ok' : 'info'}
+      tabs={<Segmented ariaLabel="Template files" value={tab} onChange={(t) => { setShowDiff(false); setCaret(null); setTab(t) }} options={[
+        { value: 'compose', label: <span className="flex items-center gap-1.5"><FileCode2 size={12} aria-hidden />Compose<CountBadge errors={lint.counts.errors} warnings={lint.counts.warnings} />{compose !== base.compose && mode === 'edit' && <span className="h-1.5 w-1.5 rounded-full bg-amber-400" role="img" aria-label="unsaved" />}</span> },
+        { value: 'env', label: <span className="flex items-center gap-1.5"><FileText size={12} aria-hidden />.env{env !== base.env && mode === 'edit' && <span className="h-1.5 w-1.5 rounded-full bg-amber-400" role="img" aria-label="unsaved" />}</span> },
+        { value: 'details', label: <span className="flex items-center gap-1.5"><Tag size={12} aria-hidden />Details{detailsDirty && mode === 'edit' && <span className="h-1.5 w-1.5 rounded-full bg-amber-400" role="img" aria-label="unsaved" />}</span> },
+        { value: 'variables', label: <span className="flex items-center gap-1.5"><Variable size={12} aria-hidden />Variables</span> },
+      ]} />}
+      tools={onFile ? (
+        <EditorTools
+          onFind={() => { setShowDiff(false); window.setTimeout(() => code.current?.openFind(true), 0) }}
+          diff={mode === 'edit' ? { on: showDiff, toggle: () => setShowDiff((d) => !d), changed: Math.max(file.diff.added, file.diff.removed) } : undefined}
+          copy={file.text}
+        />
+      ) : undefined}
+      dirty={mode === 'edit' ? dirty : compose !== NEW_COMPOSE || env !== NEW_ENV || !!name || !!title || !!description}
+      dirtyWhat={mode === 'create' ? 'the new template' : 'your changes to the template'}
+      onClose={onClose}
+      onSave={() => { if (dirty && !missing) void run.submit() }}
+      onFind={onFile ? () => { setShowDiff(false); window.setTimeout(() => code.current?.openFind(true), 0) } : undefined}
+      onEscape={() => {
+        if (code.current?.findOpen()) { code.current.closeFind(); return true }
+        if (showDiff) { setShowDiff(false); return true }
+        return false
+      }}
+      bar={(
+        <SaveBar
+          open={dirty}
+          placement="panel"
+          status={status}
+          detail={mode === 'create' ? 'Saved as a template: deploying it is a step of its own' : 'Stacks it was deployed to keep their copy: the next deploy uses this one'}
+          phase={run.phase}
+          result={run.result}
+          onJump={jump}
+          onDismissResult={run.clear}
+          onCheck={run.checkOnly}
+          secondary={mode === 'edit' ? { label: 'Discard', onClick: () => void discard() } : undefined}
+          primary={{ label: mode === 'create' ? 'Create template' : 'Save', busyLabel: mode === 'create' ? 'Creating…' : 'Saving…', onClick: () => void run.submit(), disabled: !!missing, reason: missing }}
+          onHeight={setBarH}
+          label={mode === 'create' ? 'The new template' : 'Unsaved changes to the template'}
+        />
+      )}
+      status={onFile ? <EditorStatus lines={file.text.split('\n').length} caret={caret} lang={tab === 'env' ? 'ENV' : 'YAML'} lint={<LintButton diagnostics={file.lint} onJump={jump} what={file.name} />} /> : undefined}
+    >
+      {onFile && (showDiff
+        ? <DiffView diff={file.diff} left="Saved" right="Your edit" />
+        : <CodeArea ref={code} key={tab} value={file.text} onChange={file.set} lang={file.lang} label={tab === 'env' ? '.env' : 'docker-compose.yml'} diagnostics={file.lint} changed={mode === 'edit' ? file.diff.changed : undefined} bottomInset={barH ? barH + 24 : 0} onCaret={(line, col) => setCaret({ line, col })} />)}
 
-  return createPortal(
-    <ModalOverlay onClose={requestClose} className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
-      <div className="absolute inset-0" onClick={requestClose} />
-      <div className="relative w-full max-w-[95vw] xl:max-w-[1400px] mx-3 md:mx-4 max-h-[95vh] bg-slate-900 border border-white/10 rounded-2xl shadow-2xl shadow-black/40 flex flex-col animate-scale-in overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 md:px-5 py-4 border-b border-white/5 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className={`w-9 h-9 rounded-lg ${mode === 'create' ? 'bg-emerald-500/15 border-emerald-500/20' : 'bg-cyan-500/15 border-cyan-500/20'} border flex items-center justify-center shrink-0`}>
-              {mode === 'create' ? <Plus size={16} className="text-emerald-400" /> : <Pencil size={16} className="text-cyan-400" />}
+      {tab === 'details' && (
+        <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin p-4 sm:p-6" style={{ paddingBottom: barH ? barH + 32 : undefined }}>
+          <div className="max-w-3xl grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor={`${uid}-name`} className={LABEL}>Template name *</label>
+              <input id={`${uid}-name`} value={name} onChange={(e) => setName(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, '-'))} placeholder="my-template" disabled={mode === 'edit'} className={`${INPUT} font-mono`} />
+              <p className={HINT}>Letters, digits, dashes and underscores: it names the template&apos;s folder.</p>
             </div>
             <div>
-              <h3 className="text-sm font-bold text-slate-100">{mode === 'create' ? 'Create template' : `Edit ${initial?.name}`}</h3>
-              <p className="text-[10px] text-slate-500">Define a reusable stack template</p>
+              <label htmlFor={`${uid}-title`} className={LABEL}>Display title</label>
+              <input id={`${uid}-title`} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="My template" className={INPUT} />
             </div>
-          </div>
-          {/* the ✕ asks about unsaved changes like Close and Escape do */}
-          <CloseButton onClick={() => void requestClose()} />
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto scrollbar-thin">
-          {/* Name + metadata row */}
-          <div className="px-4 md:px-5 py-4 space-y-3 border-b border-white/5">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label htmlFor={`${uid}-name`} className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Template name *</label>
-                <input
-                  id={`${uid}-name`}
-                  value={name}
-                  onChange={(e) => setName(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, '-'))}
-                  placeholder="my-template"
-                  disabled={mode === 'edit'}
-                  className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/5 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500/30 transition-colors disabled:opacity-50 font-mono"
-                />
-              </div>
-              <div>
-                <label htmlFor={`${uid}-title`} className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Display title</label>
-                <input
-                  id={`${uid}-title`}
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="My template"
-                  className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/5 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500/30 transition-colors"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label htmlFor={`${uid}-description`} className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Description</label>
-                <input
-                  id={`${uid}-description`}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Brief description…"
-                  className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/5 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500/30 transition-colors"
-                />
-              </div>
-              <div>
-                <label htmlFor={`${uid}-category`} className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Category</label>
-                <select id={`${uid}-category`}
-                  value={category}
-                  onChange={(e) => {
-                    const cat = e.target.value
-                    setCategory(cat)
-                    const suggested = CATEGORY_TO_STACK[cat]
-                    if (suggested) setTargetStack(suggested)
-                  }}
-                  className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500/30 transition-colors"
-                >
-                  <option value="databases">Databases</option>
-                  <option value="media">Media</option>
-                  <option value="monitoring">Monitoring</option>
-                  <option value="web">Web</option>
-                  <option value="development">Development</option>
-                  <option value="storage">Storage</option>
-                  <option value="automation">Automation</option>
-                  <option value="utilities">Utilities</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
+            <div className="sm:col-span-2">
+              <label htmlFor={`${uid}-description`} className={LABEL}>Description</label>
+              <input id={`${uid}-description`} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Brief description…" className={INPUT} />
             </div>
             <div>
-              <label htmlFor={`${uid}-target`} className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Default target stack</label>
-              <select id={`${uid}-target`}
-                value={targetStack}
-                onChange={(e) => setTargetStack(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500/30 transition-colors"
-              >
-                <option value="">None (user selects at deploy time)</option>
-                {stacks.map((s) => (
-                  <option key={s.name} value={s.name}>{s.name}</option>
-                ))}
+              <label htmlFor={`${uid}-category`} className={LABEL}>Category</label>
+              <select id={`${uid}-category`} value={category} onChange={(e) => { const c = e.target.value; setCategory(c); const s = CATEGORY_TO_STACK[c]; if (s) setTargetStack(s) }} className={INPUT}>
+                {TEMPLATE_CATEGORIES.map((c) => <option key={c} value={c}>{c[0].toUpperCase() + c.slice(1)}</option>)}
               </select>
-              <p className="text-[10px] text-slate-500 mt-1">Stack where this template's services will be merged when deployed</p>
+            </div>
+            <div>
+              <label htmlFor={`${uid}-target`} className={LABEL}>Default target stack</label>
+              <select id={`${uid}-target`} value={targetStack} onChange={(e) => setTargetStack(e.target.value)} className={INPUT}>
+                <option value="">None (chosen at deploy time)</option>
+                {stacks.map((s) => <option key={s.name} value={s.name}>{s.name}</option>)}
+              </select>
+              <p className={HINT}>Where the template&apos;s services are merged when it is deployed.</p>
             </div>
           </div>
+        </div>
+      )}
 
-          {/* Editor tabs */}
-          <div role="tablist" aria-label="Template files" className="flex items-center gap-0.5 px-4 md:px-5 pt-3 pb-0">
-            {(['compose', 'env', 'meta'] as const).map((tab) => (
-              <button
-                key={tab}
-                type="button"
-                role="tab"
-                aria-selected={activeTab === tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-3 py-1.5 rounded-t-lg text-[11px] font-medium transition-colors ${activeTab === tab ? 'bg-white/[0.06] text-slate-200 border border-white/10 border-b-transparent' : 'text-slate-500 hover:text-slate-400'}`}
-              >
-                {tab === 'compose' ? 'docker-compose.yml' : tab === 'env' ? '.env' : 'Variables'}
-              </button>
-            ))}
-          </div>
-
-          <div className="px-4 md:px-5 pb-4">
-            {activeTab === 'compose' && (
-              <>
-              <textarea
-                value={compose}
-                onChange={(e) => { setCompose(e.target.value); setValidation(null) }}
-                aria-label="docker-compose.yml"
-                spellCheck={false}
-                className="w-full h-[58vh] min-h-[320px] px-4 py-3 rounded-lg bg-slate-950/60 border border-white/5 text-xs text-slate-300 font-mono leading-relaxed focus:outline-none focus:border-emerald-500/20 resize-none scrollbar-thin"
-                placeholder="services:&#10;  app:&#10;    image: example:latest"
-              />
-              {/* Live diagnostics from the compose linter (same rules as the stack editor) */}
-              <div className="mt-2 rounded-lg bg-slate-950/40 border border-white/5 px-3 py-2 text-[11px]">
-                <div className="flex items-center gap-3 text-slate-500">
-                  <span className={lint.counts.errors ? 'text-rose-400' : ''}>{lint.counts.errors} error{lint.counts.errors === 1 ? '' : 's'}</span>
-                  <span className={lint.counts.warnings ? 'text-amber-400' : ''}>{lint.counts.warnings} warning{lint.counts.warnings === 1 ? '' : 's'}</span>
-                  <span>{lint.counts.info} hint{lint.counts.info === 1 ? '' : 's'}</span>
-                  {validation && (
-                    <span className={validation.valid ? 'text-emerald-400' : 'text-rose-400'}>· compose config: {validation.valid ? 'valid' : 'invalid'}</span>
-                  )}
-                  <span className="ml-auto text-slate-600">Ctrl+S saves · Esc closes</span>
-                </div>
-                {(lint.diagnostics.length > 0 || (validation && !validation.valid)) && (
-                  <ul className="mt-1.5 space-y-0.5 max-h-28 overflow-y-auto scrollbar-thin">
-                    {validation?.errors.map((e, i) => <li key={`v${i}`} className="text-rose-300">{e}</li>)}
-                    {lint.diagnostics.slice(0, 40).map((d, i) => (
-                      <li key={i} className={d.severity === 'error' ? 'text-rose-300' : d.severity === 'warning' ? 'text-amber-300' : 'text-slate-400'}>
-                        {d.line ? `L${d.line} · ` : ''}{d.message}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-              </>
+      {tab === 'variables' && (
+        <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin p-4 sm:p-6" style={{ paddingBottom: barH ? barH + 32 : undefined }}>
+          <div className="max-w-3xl space-y-3">
+            <p className={`${CAPTION} mb-0`}>Variables the compose file asks for ({parsedVars.length})</p>
+            {parsedVars.length === 0 ? (
+              <p className="text-sm text-slate-500">None yet: a <code className="text-slate-400 bg-white/5 px-1 py-0.5 rounded">{'${VAR_NAME:-default}'}</code> in the compose file becomes a field of the deploy sheet.</p>
+            ) : (
+              <ul className="space-y-1.5">
+                {parsedVars.map((v) => {
+                  const isBool = v.defaultValue === 'true' || v.defaultValue === 'false'
+                  return (
+                    <li key={v.name} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2 px-3 rounded-lg bg-white/[0.03] border border-white/5">
+                      <code className="text-xs font-mono text-emerald-400 min-w-[10rem]">{v.name}</code>
+                      <Pill size="xs" tone={isBool ? 'info' : 'neutral'}>{isBool ? 'switch' : 'text'}</Pill>
+                      <span className="text-xs text-slate-500">default</span>
+                      <code className="text-xs font-mono text-slate-400 min-w-0 truncate">{v.defaultValue || <span className="italic text-slate-500">none</span>}</code>
+                    </li>
+                  )
+                })}
+              </ul>
             )}
-            {activeTab === 'env' && (
-              <textarea
-                value={env}
-                onChange={(e) => setEnv(e.target.value)}
-                aria-label=".env"
-                spellCheck={false}
-                className="w-full h-[58vh] min-h-[320px] px-4 py-3 rounded-lg bg-slate-950/60 border border-white/5 text-xs text-slate-300 font-mono leading-relaxed focus:outline-none focus:border-emerald-500/20 resize-none scrollbar-thin"
-                placeholder="# Environment variables for this template"
-              />
-            )}
-            {activeTab === 'meta' && (() => {
-              const parsedVars = parseComposeVariables(compose)
-              return (
-                <div className="rounded-lg bg-slate-950/60 border border-white/5 p-4 space-y-3">
-                  <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">
-                    Detected variables ({parsedVars.length})
-                  </p>
-                  {parsedVars.length === 0 ? (
-                    <div className="text-xs text-slate-500 py-4 text-center">
-                      <p>No custom variables detected in compose file.</p>
-                      <p className="mt-1">Use <code className="text-slate-400 bg-white/5 px-1 py-0.5 rounded">${'${VAR_NAME:-default}'}</code> placeholders to add them.</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-1.5">
-                      {parsedVars.map((v) => {
-                        const isBool = v.defaultValue === 'true' || v.defaultValue === 'false'
-                        return (
-                          <div key={v.name} className="flex items-center gap-3 py-1.5 px-2 rounded bg-white/[0.03]">
-                            <code className="text-[11px] font-mono text-emerald-400 min-w-[140px]">{v.name}</code>
-                            <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded ${isBool ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/15' : 'bg-slate-500/10 text-slate-500 border border-slate-500/15'}`}>
-                              {isBool ? 'toggle' : 'text'}
-                            </span>
-                            <span className="text-[10px] text-slate-500">default:</span>
-                            <code className="text-[11px] font-mono text-slate-400 flex-1 truncate">
-                              {v.defaultValue || <span className="text-slate-500 italic">none</span>}
-                            </code>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
-                  <p className="text-[10px] text-slate-500 mt-2">
-                    Standard variables (<code className="text-slate-500">TZ</code>, <code className="text-slate-500">PUID</code>, <code className="text-slate-500">PGID</code>, <code className="text-slate-500">APP_DATA_DIR</code>) are inherited from root .env and excluded above.
-                  </p>
-                </div>
-              )
-            })()}
+            <p className={HINT}>TZ, PUID, PGID and APP_DATA_DIR come from the server&apos;s own .env and are left out above.</p>
           </div>
         </div>
-
-        {/* Footer */}
-        <div className="flex flex-wrap items-center justify-between gap-2 px-4 md:px-5 py-3 border-t border-white/5 shrink-0">
-          <div className="flex items-center gap-2">
-            {saved && (
-              <span className="text-xs text-emerald-400 animate-fade-in flex items-center gap-1">
-                <CheckCircle size={12} /> Saved
-              </span>
-            )}
-          </div>
-          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-            {envLint.diagnostics.length > 0 && activeTab === 'env' && (
-              <span className="text-[10px] text-amber-400 mr-1">{envLint.diagnostics.length} .env hint{envLint.diagnostics.length === 1 ? '' : 's'}</span>
-            )}
-            <button
-              type="button"
-              onClick={handleValidate}
-              disabled={validating || !compose.trim()}
-              className={`${BTN_SHEET} ${TONE_QUIET} flex-1 sm:flex-none whitespace-nowrap`}
-              title="Run docker compose config on the server"
-            >
-              {validating ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />} Validate
-            </button>
-            {/* the editor's own Discard (a floating save bar here sat over this footer, a second Save beside this one) */}
-            {mode === 'edit' && hasChanges && (
-              <button type="button" onClick={handleDiscard} disabled={saving} className={`${BTN_SHEET_QUIET} flex-1 sm:flex-none whitespace-nowrap`}>
-                Discard
-              </button>
-            )}
-            <button type="button" onClick={requestClose} className={`${BTN_SHEET_QUIET} flex-1 sm:flex-none whitespace-nowrap`}>
-              {mode === 'edit' ? 'Close' : 'Cancel'}
-            </button>
-            {mode === 'edit' && (
-              <button
-                type="button"
-                onClick={handleSaveInPlace}
-                disabled={!canSave || !hasChanges}
-                className={`${BTN_SHEET_PRIMARY} flex-1 sm:flex-none whitespace-nowrap`}
-              >
-                {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                Save
-              </button>
-            )}
-            {mode === 'create' && (
-              <button
-                type="button"
-                onClick={handleSaveInPlace}
-                disabled={!canSave}
-                className={`${BTN_SHEET_PRIMARY} flex-1 sm:flex-none whitespace-nowrap`}
-              >
-                {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                Create template
-              </button>
-            )}
-          </div>
-        </div>
-
-      </div>
-    </ModalOverlay>,
-    document.body,
+      )}
+    </EditorFrame>
   )
 }
 
@@ -3521,7 +3352,7 @@ export default function Templates() {
             type: 'warning',
             message: message.toLowerCase().includes('port')
               ? `Port conflict — a host port is already in use. Change the port variable or choose a different target stack.`
-              : `Service name conflict — these services are already deployed in "${targetStack}". Enable "Replace existing services" in Preview, or choose a different stack.`,
+              : `Service name conflict — these services are already deployed in "${targetStack}". Switch on "Replace existing services" in the check's result (Check only), or choose a different stack.`,
             duration: 8000,
           })
         } else if (message.includes('422') || message.toLowerCase().includes('invalid compose')) {
@@ -3608,33 +3439,25 @@ export default function Templates() {
     }
   }, [addToast])
 
-  // Save create / edit
-  const handleSaveTemplate = useCallback(async (data: { name: string; compose: string; env: string; metadata: Record<string, unknown> }) => {
+  // Save create / edit: true when the server kept it, else its reason (the editor shows it above its save bar)
+  const handleSaveTemplate = useCallback(async (data: { name: string; compose: string; env: string; metadata: Record<string, unknown> }): Promise<true | string> => {
     setSaving(true)
     try {
       if (createEditMode === 'create') {
         const res = await importTemplate({ name: data.name, compose: data.compose, metadata: data.metadata, env: data.env })
-        if (res.success) {
-          addToast({ type: 'success', message: `Template "${data.name}" created` })
-          setCreateEditMode(null)
-          refresh()
-        } else {
-          addToast({ type: 'error', message: res.message || 'Failed to create template' })
-        }
-      } else {
-        const res = await updateTemplate(data.name, { compose: data.compose, metadata: data.metadata, env: data.env })
-        if (res.success) {
-          addToast({ type: 'success', message: `Template "${data.name}" saved` })
-          refresh()   // the editor stays open; keep editing or close with Esc
-          return true
-        }
-        addToast({ type: 'error', message: res.message || 'Failed to update template' })
-        return false
+        if (!res.success) return res.message || 'The server did not create the template'
+        addToast({ type: 'success', message: `Template "${data.name}" created` })
+        setCreateEditMode(null)
+        refresh()
+        return true
       }
+      const res = await updateTemplate(data.name, { compose: data.compose, metadata: data.metadata, env: data.env })
+      if (!res.success) return res.message || 'The server did not save the template'
+      addToast({ type: 'success', message: `Template "${data.name}" saved` })
+      refresh()   // the editor stays open; keep editing or close with Esc
       return true
     } catch (err) {
-      addToast({ type: 'error', message: `Save failed: ${err instanceof Error ? err.message : String(err)}` })
-      return false
+      return err instanceof Error ? err.message : String(err)
     } finally {
       setSaving(false)
     }
@@ -4041,7 +3864,6 @@ export default function Templates() {
           stacks={availableStacks}
           onClose={() => { if (!saving) setCreateEditMode(null) }}
           onSave={handleSaveTemplate}
-          saving={saving}
         />
       )}
 

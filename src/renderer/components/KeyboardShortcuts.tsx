@@ -56,6 +56,15 @@ const sections: ShortcutSection[] = [
       { keys: ['Escape'], label: 'Close overlays' },
     ],
   },
+  {
+    title: 'Editors (compose files, templates)',
+    shortcuts: [
+      { keys: ['Ctrl', 'S'], label: 'Check, then save (one press)' },
+      { keys: ['Ctrl', 'F'], label: 'Find and replace' },
+      { keys: ['Enter'], label: 'Next match (Shift+Enter: the one before)' },
+      { keys: ['Escape'], label: 'Close Find, then the editor (it asks when something is unsaved)' },
+    ],
+  },
 ]
 
 // ---------------------------------------------------------------------------

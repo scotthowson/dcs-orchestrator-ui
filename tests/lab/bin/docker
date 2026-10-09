@@ -1041,6 +1041,33 @@ def cmd_compose(argv):
             except OSError as e:
                 sys.stderr.write(f'open {f}: {e.strerror}\n')
                 sys.exit(1)
+        # a file Docker could not read is refused the way docker compose refuses it (when PyYAML is there to tell)
+        try:
+            import yaml
+        except ImportError:
+            yaml = None
+        if yaml is not None:
+            try:
+                doc = yaml.safe_load(text)
+            except yaml.YAMLError as e:
+                mark = getattr(e, 'problem_mark', None)
+                where = f'line {mark.line + 1}: ' if mark is not None else ''
+                sys.stderr.write(f'yaml: {where}{getattr(e, "problem", None) or e}\n')
+                sys.exit(1)
+            if not isinstance(doc, dict):
+                sys.stderr.write('Top-level object must be a mapping\n')
+                sys.exit(1)
+            svcs = doc.get('services')
+            if svcs is not None and not isinstance(svcs, dict):
+                sys.stderr.write('services must be a mapping\n')
+                sys.exit(1)
+            for name, svc in (svcs or {}).items():
+                if not isinstance(svc, dict):
+                    sys.stderr.write(f'services.{name} must be a mapping\n')
+                    sys.exit(1)
+                if 'image' not in svc and 'build' not in svc:
+                    sys.stderr.write(f'service "{name}" has neither an image nor a build context specified: invalid compose project\n')
+                    sys.exit(1)
         if '--services' in o:
             for m in re.finditer(r'^  ([A-Za-z0-9._-]+):\s*$', text, re.M):
                 print(m.group(1))

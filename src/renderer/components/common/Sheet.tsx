@@ -62,7 +62,8 @@ export default function Sheet({ title, subtitle, icon, tone = 'ok', onClose, chi
           </div>
         </div>
         <div className={`min-h-0 flex-1 overflow-y-auto overscroll-contain scrollbar-thin px-5 ${footer ? 'pb-4' : 'pb-5'}`}>{children}</div>
-        {footer && <div className="shrink-0 px-5 py-4 border-t border-white/10 safe-area-bottom">{footer}</div>}
+        {/* 16 px under the buttons, plus a phone's home bar (pad-bottom-safe: safe-area-bottom alone left 0 on a desktop) */}
+        {footer && <div className="shrink-0 px-5 pt-4 pad-bottom-safe border-t border-white/10">{footer}</div>}
       </div>
     </div>,
     document.body,

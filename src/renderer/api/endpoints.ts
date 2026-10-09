@@ -93,6 +93,7 @@ import type {
   SnapshotCreateResponse,
   SnapshotRestoreResponse,
   ComposeHistoryResponse,
+  ComposeVersionContentResponse,
   DashboardLayout,
   DashboardLayoutResponse,
   PluginCardsResponse,
@@ -904,6 +905,11 @@ export function deleteSnapshot(id: string, member?: string | null): Promise<{ su
 /** GET /stacks/:name/compose/history — Compose version history */
 export function fetchComposeHistory(name: string): Promise<ComposeHistoryResponse> {
   return apiClient.get<ComposeHistoryResponse>(`/stacks/${encodeURIComponent(name)}/compose/history`)
+}
+
+/** GET /stacks/:name/compose/history/:version — one saved version's content (the editor compares it with the file) */
+export function fetchComposeVersion(name: string, versionId: string): Promise<ComposeVersionContentResponse> {
+  return apiClient.get<ComposeVersionContentResponse>(`/stacks/${encodeURIComponent(name)}/compose/history/${encodeURIComponent(versionId)}`)
 }
 
 /** GET /settings/dashboard — Fetch user's dashboard layout */

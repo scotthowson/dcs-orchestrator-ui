@@ -1,6 +1,6 @@
 // Templates: My templates (search, the category chips, a filter with no match, a template's deploy sheet: its form,
-// the container-name validation, Preview (the dry run, a viewer's too), Deploy → the confirm step → Back, never
-// deployed), Export, History, Refresh, URL import's validation, a throwaway template created, edited (read back after a
+// the container-name validation, Check only (the dry run, a viewer's too), one press of Deploy that the check stops
+// (a host port taken: listed above the bar, nothing deployed; never deployed), Export, History, Refresh, URL import's validation, a throwaway template created, edited (read back after a
 // reload), its editor's ✕ asking about unsaved changes, and deleted again; the Gallery (search, categories, its empty
 // state). A viewer (View + Preview, nothing an admin's), a phone and the light look.
 
@@ -60,18 +60,19 @@ export default async function templates(k) {
     check('the sheet shows the target stack, the variables and the container names', /Target stack/i.test(form) && /Variables/i.test(form) && /Container names/i.test(form), form.slice(0, 300))
     await a.type('Container name of redis', 'bad name!')
     check('an invalid container name is refused in place', await a.waitText('Letters, digits, dot, dash and underscore only', { within: '[role="dialog"]', ms: 3000 }))
-    const blocked = await dlgButton(a, 'Deploy stack')
-    check('…and Deploy is disabled with the reason', blocked?.disabled && /container names/.test(blocked.title), JSON.stringify(blocked))
+    const blocked = await dlgButton(a, 'Deploy')
+    check('…and Deploy is disabled, the reason under the bar', blocked?.disabled && /container names/.test(await dlg(a)), JSON.stringify(blocked))
     await a.type('Container name of redis', '')
     let w0 = a.requests.length
-    check('Preview runs the dry run', await a.click('Preview', { within: '[role="dialog"]', kind: 'button' }) && await a.until(() => [...document.querySelectorAll('[role="dialog"]')].some((d) => /lines of compose|Preview failed/.test(d.innerText)), null, 30000))
+    check('Check only runs the dry run', await a.click('Check only', { within: '[role="dialog"]', kind: 'button' }) && await a.until(() => [...document.querySelectorAll('[role="dialog"]')].some((d) => /lines of compose|The check failed/.test(d.innerText)), null, 30000))
     check('…as a POST to the dry-run route', writes(a, w0).some((x) => /\/templates\/redis\/dry-run$/.test(x)), writes(a, w0).join())
-    check('…and shows its result, not an error', !/Preview failed/.test(await dlg(a)), (await dlg(a)).slice(-300))
+    check('…and shows its result, not an error', !/The check failed/.test(await dlg(a)) && /Checked: nothing in the way/.test(await dlg(a)), (await dlg(a)).slice(-300))
+    // one press of Deploy checks first: a host port another stack holds stops it there, listed above the bar
+    await a.type('Host Port', '3001')
     w0 = a.requests.length
-    await a.click('Deploy stack', { within: '[role="dialog"]' })
-    check('Deploy stack asks for a second step (Confirm and deploy)', !!(await dlgButton(a, 'Confirm and deploy')) && /This will modify the compose file/.test(await dlg(a)))
-    await a.click('Back', { within: '[role="dialog"]' })
-    check('Back returns to the form (nothing deployed)', !!(await dlgButton(a, 'Deploy stack')) && !writes(a, w0).some((x) => /deploy$/.test(x)), writes(a, w0).join())
+    await a.click('Deploy', { within: '[role="dialog"]', kind: 'button' })
+    check('one press of Deploy runs the check and lists what is in the way (a taken host port)', await a.until(() => [...document.querySelectorAll('[role="dialog"] [data-save-result="problem"]')].some((d) => /3001/.test(d.innerText)), null, 30000), (await dlg(a)).slice(-400))
+    check('…and deploys nothing (no deploy request, no confirm step)', !writes(a, w0).some((x) => /\/deploy$/.test(x)) && !(await dlgButton(a, 'Confirm and deploy')) && !(await a.page.$('[role="alertdialog"]')), writes(a, w0).join())
     await a.click('Cancel', { within: '[role="dialog"]' })
     check('Cancel closes the deploy sheet', await a.waitNoDialog(5000))
     await a.click('Deploy Redis 7', { within: 'main' }); await a.waitDialog(/^Deploy /, 15000)
@@ -107,33 +108,39 @@ export default async function templates(k) {
     await a.type('Display title', title)
     await a.type('Description', 'made by the e2e journey')
     // the editor starts with an example compose file: replace it
+    await a.click(/^Compose\b/, { within: '[role="dialog"]' })
     check('the compose editor starts with an example', /services:/.test(await a.value('docker-compose.yml')))
     await a.type('docker-compose.yml', COMPOSE)
     w0 = a.requests.length
-    await a.click('Validate', { within: '[role="dialog"]', kind: 'button' })
-    await k.sleep(1500)
-    check('Validate checks the compose file on the server', writes(a, w0).some((x) => /validate/.test(x)), writes(a, w0).join())
+    await a.click('Check only', { within: '[role="dialog"]', kind: 'button' })
+    check('Check only checks the compose file on the server (and creates nothing)', await a.until(() => !!document.querySelector('[role="dialog"] [data-save-result]'), null, 15000) && writes(a, w0).some((x) => /validate/.test(x)) && !writes(a, w0).some((x) => /import/.test(x)), writes(a, w0).join())
     await a.click('Create template', { within: '[role="dialog"]', kind: 'button' })
     check('Create template saves it (a toast, the editor closes)', await a.waitToast(`Template "${tpl}" created`, 15000) && await a.waitNoDialog(8000))
     await a.type('Search the templates', tpl.slice(7))
     check('…and its card appears', await a.until((t) => [...document.querySelectorAll('main [aria-label^="Export "]')].some((b) => b.getAttribute('aria-label') === `Export ${t}`), title, 15000), JSON.stringify(await cardTitles(a)))
     await a.click(`Edit ${title}`, { within: 'main' })
-    check('Edit opens the editor with its name locked', await a.waitDialog(`Edit ${tpl}`, 10000) && await a.page.evaluate(() => [...document.querySelectorAll('[role="dialog"] input')].find((i) => i.placeholder === 'my-template')?.disabled === true))
+    check('Edit opens the editor at the compose file', await a.waitDialog(`Edit ${tpl}`, 10000) && /services:/.test(await a.value('docker-compose.yml')))
+    await a.click('Details', { within: '[role="dialog"]' })
+    check('…its Details with the name locked', await a.page.evaluate(() => [...document.querySelectorAll('[role="dialog"] input')].find((i) => i.placeholder === 'my-template')?.disabled === true))
     await a.type('Description', 'edited by the e2e journey')
     const saves = await a.page.evaluate(() => [...document.querySelectorAll('button')].filter((b) => b.getClientRects().length && b.innerText.trim() === 'Save').length)
     const footer = await a.page.evaluate(() => [...document.querySelectorAll('button')].filter((b) => b.getClientRects().length && /^(Save|Discard|Close)$/.test(b.innerText.trim())).map((b) => b.innerText.trim() + (b.disabled ? ' (disabled)' : '')))
     check('with unsaved changes the editor shows one Save (no second save bar over its footer)', saves === 1, JSON.stringify(footer))
-    check('Discard puts the saved description back', await a.click('Discard', { within: '[role="dialog"]', kind: 'button', dom: true }) && (await a.value('Description')) === 'made by the e2e journey', await a.value('Description'))
+    await a.click('Discard', { within: '[role="dialog"]', kind: 'button', dom: true })
+    let dc = await a.until(() => !!document.querySelector('[role="alertdialog"]'), null, 4000) && await a.confirmInfo()
+    check('Discard asks first (danger)', dc && dc.title === 'Discard your changes?' && dc.danger, JSON.stringify(dc))
+    check('Discard puts the saved description back', await a.click('Discard changes', { within: '[role="alertdialog"]' }) && await a.until(() => [...document.querySelectorAll('[role="dialog"] input')].some((i) => i.value === 'made by the e2e journey'), null, 4000), await a.value('Description'))
     await a.type('Description', 'edited by the e2e journey')
     // the ✕ with unsaved changes asks first
     await a.click('Close', { within: '[role="dialog"]', kind: 'button', index: 0 })
     let c = await a.until(() => !!document.querySelector('[role="alertdialog"]'), null, 4000) && await a.confirmInfo()
     check('the editor\'s ✕ with unsaved changes asks first', c && /\?$/.test(c.title) && c.danger, JSON.stringify(c))
-    if (c) await a.click('Cancel', { within: '[role="alertdialog"]' })
-    check('…Cancel keeps the editor and the edit', (await a.waitDialog(`Edit ${tpl}`, 3000)) && (await a.value('Description')) === 'edited by the e2e journey')
+    if (c) await a.click('Keep editing', { within: '[role="alertdialog"]' })
+    check('…Keep editing keeps the editor and the edit', (await a.waitDialog(`Edit ${tpl}`, 3000)) && (await a.value('Description')) === 'edited by the e2e journey')
     // (a toast can sit over the editor's footer: press the button itself)
+    w0 = a.requests.length
     await a.click('Save', { within: '[role="dialog"]', kind: 'button', dom: true })
-    check('Save keeps the change (a toast)', await a.waitToast(`Template "${tpl}" saved`, 15000))
+    check('one press of Save checks the compose file and saves (a toast)', await a.waitToast(`Template "${tpl}" saved`, 15000) && writes(a, w0).some((x) => /\/compose\/validate$/.test(x)) && writes(a, w0).some((x) => /\/update$/.test(x)), writes(a, w0).join())
     await a.key('Escape')
     check('Escape closes the saved editor without asking', await a.waitNoDialog(6000))
     await a.reload()
@@ -178,8 +185,8 @@ export default async function templates(k) {
   await v.type('Search the templates', 'redis')
   await v.click('View Redis 7', { within: 'main' })
   check('View opens the template for a viewer (titled by its name, not "Deploy")', await v.waitDialog('redis', 15000))
-  check('…with Close and no Deploy button', !!(await dlgButton(v, 'Close')) && !(await dlgButton(v, 'Deploy stack')) && /Admins deploy templates/.test(await dlg(v)))
-  check('a viewer\'s Preview runs the dry run', await v.click('Preview', { within: '[role="dialog"]', kind: 'button' }) && await v.until(() => [...document.querySelectorAll('[role="dialog"]')].some((d) => /lines of compose|Preview failed/.test(d.innerText)), null, 30000) && !/Preview failed/.test(await dlg(v)))
+  check('…with Close and no Deploy button', !!(await dlgButton(v, 'Close')) && !(await dlgButton(v, 'Deploy')) && /Admins deploy templates/.test(await dlg(v)))
+  check('a viewer\'s Check only runs the dry run', await v.click('Check only', { within: '[role="dialog"]', kind: 'button' }) && await v.until(() => [...document.querySelectorAll('[role="dialog"]')].some((d) => /lines of compose|The check failed/.test(d.innerText)), null, 30000) && !/The check failed/.test(await dlg(v)))
   check('a viewer\'s Close closes it', await v.click('Close', { within: '[role="dialog"]', kind: 'button', index: 1 }) && await v.waitNoDialog(5000))
   const ve = v.errors.length
   await v.click('Export Redis 7', { within: 'main' })
@@ -196,7 +203,7 @@ export default async function templates(k) {
   await p.click('Deploy Redis 7', { within: 'main' }); await p.waitDialog(/^Deploy /, 15000)
   const pb = await p.page.evaluate(() => {
     const d = [...document.querySelectorAll('[role="dialog"]')].filter((e) => e.getClientRects().length).pop()
-    return [...d.querySelectorAll('button')].filter((b) => /^(Cancel|Preview|Deploy stack)$/.test(b.innerText.trim())).map((b) => Math.round(b.getBoundingClientRect().height))
+    return [...d.querySelectorAll('button')].filter((b) => /^(Cancel|Check only|Deploy)$/.test(b.innerText.trim())).map((b) => Math.round(b.getBoundingClientRect().height))
   })
   check('the deploy sheet\'s buttons are thumb-sized on a phone (≥ 40 px)', pb.length === 3 && pb.every((h) => h >= 40), JSON.stringify(pb))
   check('no sideways scroll with the deploy sheet open', !(await p.page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)))

@@ -120,7 +120,7 @@ export default function ChatBubble() {
         aria-haspopup="dialog"
         data-chat-bubble
         onClick={() => setOpen(!open)}
-        className={`fixed bottom-16 right-5 md:bottom-14 md:right-8 z-40 h-11 w-11 rounded-full backdrop-blur-md border shadow-lg shadow-black/40
+        className={`lift-over-savebar fixed bottom-16 right-5 md:bottom-14 md:right-8 z-40 h-11 w-11 rounded-full backdrop-blur-md border shadow-lg shadow-black/40
           flex items-center justify-center transition-all duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40
           ${open ? 'bg-emerald-600 border-emerald-500/30 text-white' : 'bg-slate-900/80 border-white/10 text-slate-300 hover:text-emerald-400 hover:border-emerald-500/30'}`}
       >
