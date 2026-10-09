@@ -4,7 +4,6 @@
 // =============================================================================
 
 import React, { useState, useCallback, useEffect } from 'react'
-import { Switch as MantineSwitch } from '@mantine/core'
 import { Timer, Layout, RotateCcw, User, Gamepad2,
 } from 'lucide-react'
 import { useSettingsStore } from '../../stores/settingsStore'
@@ -14,6 +13,7 @@ import { FIELD } from '../../lib/fieldStyles'
 import type { PageId } from '../../../shared/types'
 import type { AppSettings as AppSettingsType } from '../../../shared/types'
 
+import { Toggle } from '../common/Toggle'
 // ---------------------------------------------------------------------------
 // Defaults (must match settingsStore defaults)
 // ---------------------------------------------------------------------------
@@ -221,7 +221,7 @@ export default function AppSettingsForm({ onDirtyChange, onRegisterSave }: {
             <p className="text-sm font-medium text-slate-300">Sidebar collapsed</p>
             <p className="text-xs text-slate-500">Start with a compact sidebar</p>
           </div>
-          <Switch label="Sidebar collapsed" on={sidebarCollapsed} onChange={() => toggleSidebar()} />
+          <Toggle label="Sidebar collapsed" checked={sidebarCollapsed} onChange={() => toggleSidebar()} />
         </div>
       </div>
 
@@ -248,11 +248,6 @@ export default function AppSettingsForm({ onDirtyChange, onRegisterSave }: {
 
 const LANDING_PAGES: { id: PageId; label: string }[] = (['dashboard', 'stacks', 'containers', 'health', 'topology', 'updates', 'templates', 'logs', 'activity'] as const)
   .map((id) => ({ id, label: pageLabel(id) }))
-
-/** the dashboard's toggle (a Mantine Switch, themed in lib/mantine.tsx), named for a screen reader */
-function Switch({ on, onChange, label }: { on: boolean; onChange: (v: boolean) => void; label: string }) {
-  return <MantineSwitch checked={on} onChange={() => onChange(!on)} aria-label={label} />
-}
 
 function PersonalSettings() {
   const defaultPage = useSettingsStore((s) => s.defaultPage)
@@ -285,7 +280,7 @@ function PersonalSettings() {
           <p className="text-sm font-medium text-slate-300">24-hour clock</p>
           <p className="text-xs text-slate-500">The clock in the status bar ({use24hClock !== false ? '13:05' : '1:05 PM'})</p>
         </div>
-        <Switch label="24-hour clock" on={use24hClock !== false} onChange={(v) => updateSetting('use24hClock', v)} />
+        <Toggle label="24-hour clock" checked={use24hClock !== false} onChange={(v) => updateSetting('use24hClock', v)} />
       </div>
 
       <div className="flex items-center justify-between py-2">
@@ -293,7 +288,7 @@ function PersonalSettings() {
           <p className="text-sm font-medium text-slate-300">Reduce motion</p>
           <p className="text-xs text-slate-500">Skip animations and transitions everywhere</p>
         </div>
-        <Switch label="Reduce motion" on={!!reduceMotion} onChange={(v) => updateSetting('reduceMotion', v)} />
+        <Toggle label="Reduce motion" checked={!!reduceMotion} onChange={(v) => updateSetting('reduceMotion', v)} />
       </div>
     </div>
   )
@@ -365,7 +360,7 @@ function DiscordPresenceSettings() {
           <p className="text-sm font-medium text-slate-300">Show my server on Discord</p>
           <p className="text-xs text-slate-500">Needs the Discord desktop app running and an Application ID below</p>
         </div>
-        <Switch label="Show my server on Discord" on={enabled} onChange={(v) => { setEnabled(v); void save(v, clientId) }} />
+        <Toggle label="Show my server on Discord" checked={enabled} onChange={(v) => { setEnabled(v); void save(v, clientId) }} />
       </div>
 
       <div className="py-2">
