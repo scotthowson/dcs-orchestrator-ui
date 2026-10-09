@@ -44,3 +44,12 @@ PUPPETEER_DIR=/tmp/dcs-ui-sweep node tests/server-accounts.mjs
 PUPPETEER_DIR=/tmp/dcs-ui-sweep node tests/remember-password.mjs   # the desktop sign-in's remembered password, bridge stubbed
 node tests/credential-vault.mjs
 ```
+
+`tests/data-layer.mjs` checks the link between the dashboard and a server against the same lab: two tabs share the
+saved server list (a server one tab adds survives the other tab saving its own change), a heartbeat ping that waits
+behind the dashboard's own requests is not "Connection Lost" while the API answers, and the live stream carries the
+session in its Authorization header, never in its address (docs/data-layer.md).
+
+```bash
+PUPPETEER_DIR=/tmp/dcs-ui-sweep node tests/data-layer.mjs
+```
