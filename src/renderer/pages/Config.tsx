@@ -210,25 +210,36 @@ function NumberRow({
   description?: string
   configKey: string
   value: number
-  onChange: (key: string, val: number) => void
+  /** bad: the value is not a whole number within min…max (the page keeps it from being saved) */
+  onChange: (key: string, val: number, bad?: boolean) => void
   disabled?: boolean
   min?: number
   max?: number
 }) {
   const { id, helpId } = useRowIds(description)
+  // an empty field or a number outside the range is said under the field, never sent (an empty one wrote KEY= to .env)
+  const outOf = (n: number) => !Number.isInteger(n) || (min !== undefined && n < min) || (max !== undefined && n > max)
+  // said once the field was typed into: a value the server holds outside the range (a lab's high rate limit) is not "wrong" on arrival
+  const [touched, setTouched] = useState(false)
+  const bad = touched && !disabled && outOf(value)
+  const range = min !== undefined && max !== undefined ? `from ${min} to ${max}` : min !== undefined ? `of ${min} or more` : max !== undefined ? `up to ${max}` : ''
   return (
     <Row label={label} description={description} controlId={id} helpId={helpId}>
-      <input
-        id={id}
-        aria-describedby={helpId}
-        type="number"
-        value={value}
-        onChange={(e) => onChange(configKey, parseInt(e.target.value, 10))}
-        disabled={disabled}
-        min={min}
-        max={max}
-        className={`${FIELD} font-mono w-28 shrink-0`}
-      />
+      <div className="shrink-0 flex flex-col items-end">
+        <input
+          id={id}
+          aria-describedby={bad ? `${id}-error` : helpId}
+          aria-invalid={bad || undefined}
+          type="number"
+          value={Number.isNaN(value) ? '' : value}
+          onChange={(e) => { const n = e.target.value.trim() === '' ? NaN : Number(e.target.value); setTouched(true); onChange(configKey, n, outOf(n)) }}
+          disabled={disabled}
+          min={min}
+          max={max}
+          className={`${FIELD} font-mono w-28`}
+        />
+        {bad && <p id={`${id}-error`} role="alert" className="text-xs text-rose-400 mt-1 max-w-[12rem] text-right">A whole number {range}</p>}
+      </div>
     </Row>
   )
 }
@@ -355,6 +366,8 @@ export default function Config() {
   const [saving, setSaving] = useState(false)
   const [saveResult, setSaveResult] = useState<{ success: boolean; message: string } | null>(null)
   const [userIsEditing, setUserIsEditing] = useState(false)
+  // the number fields that hold something the server cannot use (empty, a fraction, out of range): Save waits for them
+  const [invalidKeys, setInvalidKeys] = useState<Set<string>>(() => new Set())
 
   // Build edits from server data
   const buildEditsFromData = useCallback((d: ServerConfig): EditableConfig => ({
@@ -475,7 +488,13 @@ export default function Config() {
     handleChange(key, val)
   }, [handleChange])
 
-  const handleNumberChange = useCallback((key: string, val: number) => {
+  const handleNumberChange = useCallback((key: string, val: number, bad?: boolean) => {
+    setInvalidKeys((prev) => {
+      if (!!bad === prev.has(key)) return prev
+      const next = new Set(prev)
+      if (bad) next.add(key); else next.delete(key)
+      return next
+    })
     handleChange(key, val)
   }, [handleChange])
 
@@ -487,6 +506,10 @@ export default function Config() {
 
   const handleSave = async () => {
     if (!data || !hasChanges) return
+    if (invalidKeys.size) {
+      setSaveResult({ success: false, message: `Nothing was saved: correct the ${invalidKeys.size === 1 ? 'value' : `${invalidKeys.size} values`} marked in red first.` })
+      return
+    }
     setSaving(true)
     setSaveResult(null)
 
@@ -531,6 +554,7 @@ export default function Config() {
 
   const handleReset = () => {
     setUserIsEditing(false)
+    setInvalidKeys(new Set())
     if (data) {
       setEdits(buildEditsFromData(data))
       setSaveResult(null)
@@ -901,13 +925,14 @@ export default function Config() {
               onChange={handleStringChange}
               placeholder="https://…/avatar.png"
             />
-            <TextRow
+            <NumberRow
               label="Repeat cooldown"
               description="Minutes before a container rule repeats the same event for the same container while it lasts (0 = every check). Disk rules wait 6 h, image-update rules a day; a rule's own cooldown overrides these."
               configKey="NOTIFY_COOLDOWN_MINUTES"
-              value={String(edits.NOTIFY_COOLDOWN_MINUTES ?? cfg.notify_cooldown_minutes ?? 60)}
-              onChange={handleStringChange}
-              placeholder="60"
+              value={Number(edits.NOTIFY_COOLDOWN_MINUTES ?? cfg.notify_cooldown_minutes ?? 60)}
+              onChange={handleNumberChange}
+              min={0}
+              max={999999}
             />
             <SectionLabel>Delivery</SectionLabel>
             <SelectRow

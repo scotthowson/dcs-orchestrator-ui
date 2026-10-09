@@ -187,8 +187,8 @@ export default function CardStudio({ onClose, onSaved }: { onClose: () => void; 
   const IconPreview = ((Icons as unknown as Record<string, React.ElementType>)[icon] ?? Icons.Activity) as React.ElementType
 
   return createPortal(
-    <ModalOverlay onClose={onClose} className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="w-full max-w-6xl mx-4 h-[92vh] flex flex-col bg-slate-900/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl shadow-black/40 animate-scale-in" onClick={(e) => e.stopPropagation()}>
+    <ModalOverlay onClose={onClose} className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <div className="w-full max-w-6xl sm:mx-4 h-[92vh] flex flex-col bg-slate-900/95 backdrop-blur-2xl border border-white/10 rounded-t-3xl sm:rounded-2xl shadow-2xl shadow-black/40 animate-slide-up sm:animate-scale-in" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between gap-3 px-6 py-4 border-b border-white/5">
           <div className="flex items-center gap-3 min-w-0">
             <span className="flex items-center justify-center w-9 h-9 rounded-xl bg-white/5 border border-white/10 shrink-0" aria-hidden><LayoutTemplate size={16} className="text-slate-300" /></span>
@@ -295,7 +295,7 @@ export default function CardStudio({ onClose, onSaved }: { onClose: () => void; 
           {loadedFrom && <button type="button" onClick={() => void handleDelete()} className={`${BTN_CARD} ${TONE_DANGER}`}><Trash2 size={12} /> Delete card</button>}
           <span className="text-[11px] text-slate-500 flex items-center gap-1.5 min-w-0"><FolderOpen size={12} className="shrink-0" aria-hidden /> <span className="truncate">Saves to .plugins/{slug(plugin)}/cards/{effectiveId}</span></span>
           <div className="ml-auto flex items-center gap-2">
-            <button type="button" onClick={onClose} className={BTN_SHEET_QUIET}>Close</button>
+            <button type="button" onClick={onClose} className={BTN_SHEET_QUIET}>Cancel</button>
             <button type="button" onClick={() => void handleSave()} disabled={saving || !title.trim() || !plugin.trim()} className={BTN_SHEET_PRIMARY}>
               {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} {loadedFrom ? 'Save changes' : 'Save card'}
             </button>

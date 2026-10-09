@@ -876,7 +876,11 @@ function AppearanceSettings() {
 
   useSettingsDirty('appearance', brandingDirty, handleSaveAppearance, handleDiscardAppearance)
 
+  // a background is a web address (or an image's data): anything else would be an url() the browser cannot load
+  const bgBad = bgInput.trim() !== '' && !/^(https?:\/\/\S+|data:image\/)/i.test(bgInput.trim())
+
   const handleBgSave = () => {
+    if (bgBad) return
     const val = bgInput.trim()
     const profile = getProfileData()
     saveProfileData({ ...profile, backgroundImage: val })
@@ -986,17 +990,20 @@ function AppearanceSettings() {
             onChange={(e) => setBgInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleBgSave()}
             placeholder="https://images.unsplash.com/..."
+            aria-invalid={bgBad || undefined}
+            aria-describedby={bgBad ? 'bg-address-error' : undefined}
             className={`flex-1 min-w-0 ${FIELD} font-mono`}
           />
-          <button onClick={handleBgSave} className={`${BTN_TOOLBAR} ${TONE_OK}`}>
+          <button onClick={handleBgSave} disabled={bgBad || !bgInput.trim()} className={`${BTN_TOOLBAR} ${TONE_OK}`}>
             Apply
           </button>
           {backgroundImage && (
-            <button onClick={handleBgClear} className={`${BTN_TOOLBAR} ${TONE_DANGER}`}>
+            <button onClick={handleBgClear} className={BTN_TOOLBAR_QUIET}>
               Clear
             </button>
           )}
         </div>
+        {bgBad && <p id="bg-address-error" role="alert" className="text-xs text-rose-400 -mt-1 mb-3">Use an image's web address (https://…).</p>}
 
         {/* Presets */}
         <div className="flex flex-wrap gap-2">
@@ -2044,7 +2051,7 @@ function SessionInfo() {
     navigator.clipboard.writeText(token).then(() => {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
-    })
+    }, () => { /* the browser refused: nothing was copied, the button stays as it was */ })
   }, [token])
 
   return (
@@ -2146,13 +2153,30 @@ function AlertThresholdsEditor() {
   }, [isConnected])
 
   const isDirty = JSON.stringify(thresholds) !== JSON.stringify(initialThresholds)
+  const { addToast } = useToast()
+
+  // what the server cannot use is said here and never sent: a percentage outside 10–100, a warning at or above its
+  // critical level, a restart count outside 1–50 (an emptied field read as 0 and was saved)
+  const problems: string[] = []
+  for (const [name, w, c] of [['CPU', 'cpu_warning', 'cpu_critical'], ['Memory', 'memory_warning', 'memory_critical'], ['Disk', 'disk_warning', 'disk_critical']] as const) {
+    const wv = thresholds[w], cv = thresholds[c]
+    if (![wv, cv].every((v) => Number.isInteger(v) && v >= 10 && v <= 100)) problems.push(`${name}: use whole percentages from 10 to 100`)
+    else if (wv >= cv) problems.push(`${name}: the warning must be below the critical level`)
+  }
+  if (!Number.isInteger(thresholds.restart_threshold) || thresholds.restart_threshold < 1 || thresholds.restart_threshold > 50) problems.push('Restarts: use a whole number from 1 to 50')
 
   const handleSave = useCallback(async () => {
+    if (problems.length) {
+      addToast({ type: 'error', message: `Alert thresholds not saved: ${problems[0]}` })
+      return
+    }
     try {
       await updateAlertConfig(thresholds)
       setInitialThresholds(thresholds)
-    } catch { /* */ }
-  }, [thresholds])
+    } catch (err) {
+      addToast({ type: 'error', message: `Alert thresholds not saved: ${err instanceof Error ? err.message : 'the server refused them'}` })
+    }
+  }, [thresholds, problems.join('|'), addToast]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleDiscard = useCallback(() => {
     setThresholds(initialThresholds)
@@ -2219,6 +2243,12 @@ function AlertThresholdsEditor() {
       <p className="text-[11px] text-slate-500 -mt-1">
         Configure when resource usage triggers warning and critical alerts on the dashboard.
       </p>
+
+      {problems.length > 0 && (
+        <ul role="alert" className="text-xs text-rose-400 space-y-0.5">
+          {problems.map((pr) => <li key={pr}>{pr}</li>)}
+        </ul>
+      )}
 
       {sliderRow('CPU usage', 'cpu_warning', 'cpu_critical')}
       <div className="border-b border-white/[0.03]" />

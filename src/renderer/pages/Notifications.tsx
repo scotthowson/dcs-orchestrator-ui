@@ -372,6 +372,11 @@ export default function Notifications() {
   const history: NotificationHistoryEntry[] = useMemo(() => historyData?.history ?? [], [historyData])
   const webhooks: WebhookType[] = useMemo(() => webhooksData?.webhooks ?? [], [webhooksData])
   const setCurrentPage = useSettingsStore((s) => s.setCurrentPage)
+  // where the server's notification settings live: a link for an admin, the place named for anyone else (Config is an
+  // admin's page, and a viewer sent there only bounces back to the dashboard)
+  const configLink = isAdmin
+    ? <button type="button" onClick={() => setCurrentPage('config')} className={LINK_BTN}>{pageLabel('config')} → Notifications</button>
+    : <span className="text-slate-300">{pageLabel('config')} → Notifications</span>
   const ntfyConfigured = configData?.ntfy_configured ?? false
   const discordConfigured = configData?.discord_configured ?? false
   const discordHint = configData?.discord_webhook_hint ?? ''
@@ -443,8 +448,12 @@ export default function Notifications() {
     setNewMessageTemplate('')
   }, [])
 
+  // what the server cannot use is said under the field (a cooldown that is not a whole number, an address that is not http(s))
+  const cooldownBad = newCooldown.trim() !== '' && !/^\d{1,6}$/.test(newCooldown.trim())
+  const webhookUrlBad = webhookUrl.trim() !== '' && !/^https?:\/\/\S+$/i.test(webhookUrl.trim())
+
   const handleCreateRule = useCallback(async () => {
-    if (!newName.trim()) return
+    if (!newName.trim() || cooldownBad) return
     setCreating(true)
     try {
       const tags = newTags.split(',').map((t) => t.trim()).filter(Boolean)
@@ -457,18 +466,18 @@ export default function Notifications() {
         enabled: true,
         title_template: newTitleTemplate.trim(),
         message_template: newMessageTemplate.trim(),
-        ...(newCooldown.trim() !== '' && /^\d{1,6}$/.test(newCooldown.trim()) ? { cooldown_minutes: Number(newCooldown.trim()) } : {}),
+        ...(newCooldown.trim() !== '' ? { cooldown_minutes: Number(newCooldown.trim()) } : {}),
       })
       addToast({ type: 'success', message: `Rule "${newName.trim()}" created` })
       setShowAddModal(false)
       resetForm()
       refreshRules()
-    } catch {
-      addToast({ type: 'error', message: 'Failed to create notification rule' })
+    } catch (err) {
+      addToast({ type: 'error', message: err instanceof Error && err.message ? `Rule not created: ${err.message}` : 'Failed to create notification rule' })
     } finally {
       setCreating(false)
     }
-  }, [newName, newTrigger, newTarget, newPriority, newTags, newCooldown, newTitleTemplate, newMessageTemplate, addToast, refreshRules, resetForm])
+  }, [newName, cooldownBad, newTrigger, newTarget, newPriority, newTags, newCooldown, newTitleTemplate, newMessageTemplate, addToast, refreshRules, resetForm])
 
   /** Apply a preset template to the form */
   const applyPreset = useCallback((preset: PresetTemplate) => {
@@ -484,7 +493,7 @@ export default function Notifications() {
 
   // Webhook handlers
   const handleCreateWebhook = useCallback(async () => {
-    if (!webhookUrl.trim() || creatingWebhook) return
+    if (!webhookUrl.trim() || webhookUrlBad || creatingWebhook) return
     setCreatingWebhook(true)
     try {
       await createWebhook({
@@ -497,12 +506,13 @@ export default function Notifications() {
       setWebhookUrl('')
       setWebhookEvents(new Set(WEBHOOK_DEFAULT_EVENTS))
       refreshWebhooks()
-    } catch {
-      addToast({ type: 'error', message: 'Failed to create webhook' })
+    } catch (err) {
+      // the server's reason (an address it will not send to, one it cannot resolve), not a bare "failed"
+      addToast({ type: 'error', message: err instanceof Error && err.message ? `Webhook not created: ${err.message}` : 'Failed to create webhook' })
     } finally {
       setCreatingWebhook(false)
     }
-  }, [webhookUrl, webhookEvents, creatingWebhook, addToast, refreshWebhooks])
+  }, [webhookUrl, webhookUrlBad, webhookEvents, creatingWebhook, addToast, refreshWebhooks])
 
   const handleDeleteWebhook = useCallback(async (wh: WebhookType) => {
     const ok = await confirm({
@@ -602,7 +612,7 @@ export default function Notifications() {
             </button>
           )}
           {isAdmin && (
-            <button onClick={() => setShowAddModal(true)} className={`${BTN_TOOLBAR} ${TONE_OK}`}>
+            <button onClick={() => { resetForm(); setShowAddModal(true) }} className={`${BTN_TOOLBAR} ${TONE_OK}`}>
               <Plus size={14} />
               Add rule
             </button>
@@ -767,7 +777,7 @@ export default function Notifications() {
               <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/15">
                 <AlertTriangle size={14} className="text-amber-400 mt-0.5 shrink-0" />
                 <p className="text-[11px] text-amber-400/90">
-                  Set <span className="font-mono">NTFY_URL</span> and <span className="font-mono">NTFY_TOPIC</span> under <button type="button" onClick={() => setCurrentPage('config')} className={LINK_BTN}>{pageLabel('config')} → Notifications</button> to enable push notifications.
+                  Set <span className="font-mono">NTFY_URL</span> and <span className="font-mono">NTFY_TOPIC</span> under {configLink} to enable push notifications.
                 </p>
               </div>
             </div>
@@ -800,13 +810,13 @@ export default function Notifications() {
           <div className="mt-3 pt-3 border-t border-white/[0.03]">
             {discordConfigured ? (
               <p className="text-[11px] text-slate-500">
-                Each event lands as an embed with a colour and emoji per event, the stack, container and status as fields, your server as the author line and a link back here. Repeats are held back by the rule's cooldown. Name, avatar and cooldowns live under <button type="button" onClick={() => setCurrentPage('config')} className={LINK_BTN}>{pageLabel('config')} → Notifications</button>; CrowdSec bans use the same webhook. Commands from Discord are the separate <button type="button" onClick={() => setCurrentPage('templates')} className={LINK_BTN}>DCS Discord Bot</button> template — the full walkthrough is docs/DISCORD.md in the DCS repository.
+                Each event lands as an embed with a colour and emoji per event, the stack, container and status as fields, your server as the author line and a link back here. Repeats are held back by the rule's cooldown. Name, avatar and cooldowns live under {configLink}; CrowdSec bans use the same webhook. Commands from Discord are the separate <button type="button" onClick={() => setCurrentPage('templates')} className={LINK_BTN}>DCS Discord Bot</button> template — the full walkthrough is docs/DISCORD.md in the DCS repository.
               </p>
             ) : (
               <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-indigo-500/10 border border-indigo-500/15">
                 <MessageCircle size={14} className="text-indigo-300 mt-0.5 shrink-0" />
                 <p className="text-[11px] text-indigo-200/90">
-                  In Discord: Server Settings → Integrations → Webhooks → New Webhook, copy its URL and paste it as <span className="font-mono">DISCORD_WEBHOOK_URL</span> under <button type="button" onClick={() => setCurrentPage('config')} className={LINK_BTN}>{pageLabel('config')} → Notifications</button> (a <span className="font-mono">{'${SECRETS_…}'}</span> reference works too).
+                  In Discord: Server Settings → Integrations → Webhooks → New Webhook, copy its URL and paste it as <span className="font-mono">DISCORD_WEBHOOK_URL</span> under {configLink} (a <span className="font-mono">{'${SECRETS_…}'}</span> reference works too).
                 </p>
               </div>
             )}
@@ -834,7 +844,7 @@ export default function Notifications() {
               title="No notification rules yet"
               hint={isAdmin ? 'Pick a preset above to start, or write your own rule.' : 'An admin can add rules.'}
               action={isAdmin ? (
-                <button onClick={() => setShowAddModal(true)} className={`${BTN_TOOLBAR} ${TONE_OK}`}>
+                <button onClick={() => { resetForm(); setShowAddModal(true) }} className={`${BTN_TOOLBAR} ${TONE_OK}`}>
                   <Plus size={14} />
                   Create first rule
                 </button>
@@ -1055,8 +1065,11 @@ export default function Notifications() {
                     value={webhookUrl}
                     onChange={(e) => setWebhookUrl(e.target.value)}
                     placeholder="https://example.com/webhook"
+                    aria-invalid={webhookUrlBad || undefined}
+                    aria-describedby={webhookUrlBad ? 'webhook-url-error' : undefined}
                     className={`${INPUT} font-mono`}
                   />
+                  {webhookUrlBad && <p id="webhook-url-error" role="alert" className="text-xs text-rose-400 mt-1.5">Use a web address that starts with http:// or https://.</p>}
                 </div>
 
                 {/* Event checkboxes */}
@@ -1104,7 +1117,7 @@ export default function Notifications() {
                   </button>
                   <button
                     onClick={handleCreateWebhook}
-                    disabled={creatingWebhook || !webhookUrl.trim()}
+                    disabled={creatingWebhook || !webhookUrl.trim() || webhookUrlBad}
                     className={`${BTN_TOOLBAR} ${TONE_OK}`}
                   >
                     {creatingWebhook ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
@@ -1326,8 +1339,11 @@ export default function Notifications() {
                   value={newCooldown}
                   onChange={(e) => setNewCooldown(e.target.value)}
                   placeholder="default"
+                  aria-invalid={cooldownBad || undefined}
+                  aria-describedby={cooldownBad ? 'rule-cooldown-error' : undefined}
                   className={`${INPUT} !w-40`}
                 />
+                {cooldownBad && <p id="rule-cooldown-error" role="alert" className="text-xs text-rose-400 mt-1.5">Use a whole number of minutes (0 or more), or leave it blank for the default.</p>}
               </div>
 
               {/* Notification message section */}
@@ -1393,7 +1409,7 @@ export default function Notifications() {
               </button>
               <button
                 onClick={handleCreateRule}
-                disabled={creating || !newName.trim()}
+                disabled={creating || !newName.trim() || cooldownBad}
                 className={BTN_SHEET_PRIMARY}
               >
                 {creating ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}

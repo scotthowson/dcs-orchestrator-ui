@@ -174,13 +174,13 @@ function MaintenancePanel({ member, whereLabel }: ScopedProps) {
 
       {/* Result banner */}
       {result && (
-        <div className={`
+        <div role={result.success ? 'status' : 'alert'} className={`
           flex items-center gap-2 rounded-lg p-3 mb-4 text-sm animate-fade-in
           ${result.success
             ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
             : 'bg-rose-500/10 border border-rose-500/20 text-rose-400'
           }
-        `} role="status">
+        `}>
           {result.success ? <CheckCircle size={16} aria-hidden /> : <XCircle size={16} aria-hidden />}
           <span>{result.message}</span>
         </div>

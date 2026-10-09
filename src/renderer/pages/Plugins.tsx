@@ -106,6 +106,8 @@ const SPECIAL_PLUGINS: FeaturedPlugin[] = [
     },
   },
 ]
+/** the dashboard's own plugins: switched on and off in this browser, never installed or removed on the server */
+const BUILT_IN_NAMES = new Set(SPECIAL_PLUGINS.filter((p) => p.builtIn).map((p) => p.name))
 
 const PLUGIN_ICONS: Record<string, React.ElementType> = {
   'env-validator': FileSearch,
@@ -295,15 +297,21 @@ export default function Plugins() {
     return [...SPECIAL_PLUGINS.filter((sp) => !names.has(sp.name)), ...fromServer]
   }, [catalog])
 
+  // a repository address git can clone (https://, ssh:// or git@host:path); anything else is said under the field
+  const gitUrlBad = gitUrl.trim() !== '' && !/^(https?:\/\/|ssh:\/\/|git@)\S+$/i.test(gitUrl.trim())
+
   const handleInstall = useCallback(async () => {
-    if (!gitUrl) return
-    const ok = await installPlugin(gitUrl)
+    if (!gitUrl.trim() || gitUrlBad) return
+    const ok = await installPlugin(gitUrl.trim())
     if (ok) {
       setShowInstall(false)
       setGitUrl('')
       addToast({ type: 'success', message: 'Plugin installed' })
+    } else {
+      // the server's reason (the clone failed, no plugin.json …): a failed install never ends in silence
+      addToast({ type: 'error', message: usePluginStore.getState().error || 'Could not install the plugin' })
     }
-  }, [gitUrl, installPlugin, addToast])
+  }, [gitUrl, gitUrlBad, installPlugin, addToast])
 
   const handleInstallFeatured = useCallback(async (fp: FeaturedPlugin) => {
     if (installingFeatured) return
@@ -338,6 +346,9 @@ export default function Plugins() {
   }, [installingFeatured, plugins, installPlugin, installFromCatalog, scaffoldPlugin, addToast])
 
   const installedNames = new Set(plugins.map(p => p.name))
+  // what the server has installed: the dashboard's built-ins (compose-linter) are switched in their catalogue card, not
+  // listed as installed (they were always there, so a server with nothing installed never said so)
+  const installedList = plugins.filter((p) => !BUILT_IN_NAMES.has(p.name))
 
   // Built-in plugin toggle — just calls the store (which handles localStorage persistence)
   const handleBuiltInToggle = useCallback((name: string) => {
@@ -364,6 +375,7 @@ export default function Plugins() {
     }))) return
     const ok = await removePlugin(name)
     if (ok) addToast({ type: 'success', message: `${name} removed` })
+    else addToast({ type: 'error', message: `Could not remove ${name}` })
   }, [confirm, removePlugin, addToast])
 
   return (
@@ -486,7 +498,7 @@ export default function Plugins() {
                           <Pill tone="ok" icon={<CheckCircle size={10} />}>Installed</Pill>
                         )}
                         <Hint label={<PluginDetails name={fp.name} version={fp.version} description={fp.description} hooks={fp.scaffold?.hooks ? Object.keys(fp.scaffold.hooks) : undefined} tags={fp.tags} author={fp.author} Icon={Icon} />} position="left">
-                          <button type="button" className={`${BTN_ICON_SM} ${TONE_GHOST}`} aria-label="Plugin details">
+                          <button type="button" className={`${BTN_ICON_SM} ${TONE_GHOST}`} aria-label={`Details of ${fp.name}`}>
                             <Info size={14} />
                           </button>
                         </Hint>
@@ -539,15 +551,15 @@ export default function Plugins() {
       <div>
         <div className="flex items-center gap-2 mb-3">
           <Package size={13} className="text-slate-400" aria-hidden />
-          <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Installed ({plugins.length})</h2>
+          <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Installed ({installedList.length})</h2>
           <div className="flex-1 h-px bg-gradient-to-r from-white/[0.06] to-transparent" />
         </div>
 
-        {loading && plugins.length === 0 ? (
+        {loading && installedList.length === 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4" role="status" aria-label="Loading the installed plugins">
             {[1, 2].map((i) => <div key={i} className="skeleton h-36" aria-hidden />)}
           </div>
-        ) : plugins.length === 0 ? (
+        ) : installedList.length === 0 ? (
           <div className="glass-card">
             <EmptyState
               compact
@@ -559,7 +571,7 @@ export default function Plugins() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-            {plugins.map((p) => (
+            {installedList.map((p) => (
               <div key={p.name} className={`glass-card p-4 animate-fade-in ${p.enabled ? 'border-emerald-500/20' : ''}`}>
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-3 min-w-0">
@@ -576,7 +588,7 @@ export default function Plugins() {
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
                     <Hint label={<PluginDetails name={p.name} version={p.version} description={p.description} hooks={p.hooks} templates={p.templates} author={p.author} Icon={Puzzle} />} position="left">
-                      <button type="button" className={`${BTN_ICON_SM} ${TONE_GHOST}`} aria-label="Plugin details">
+                      <button type="button" className={`${BTN_ICON_SM} ${TONE_GHOST}`} aria-label={`Details of ${p.name}`}>
                         <Info size={14} />
                       </button>
                     </Hint>
@@ -632,8 +644,8 @@ export default function Plugins() {
 
       {/* Install from Git */}
       {showInstall && createPortal(
-        <ModalOverlay onClose={() => setShowInstall(false)} className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setShowInstall(false)}>
-          <div className="bg-slate-900/95 backdrop-blur-xl rounded-2xl p-6 w-full max-w-md mx-4 border border-white/10 shadow-2xl shadow-black/40 animate-scale-in" onClick={e => e.stopPropagation()}>
+        <ModalOverlay onClose={() => setShowInstall(false)} className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setShowInstall(false)}>
+          <div className="bg-slate-900/95 backdrop-blur-xl rounded-t-3xl sm:rounded-2xl p-6 w-full sm:max-w-md sm:mx-4 border border-white/10 shadow-2xl shadow-black/40 animate-slide-up sm:animate-scale-in" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center" aria-hidden>
@@ -653,8 +665,11 @@ export default function Plugins() {
                   onKeyDown={e => e.key === 'Enter' && handleInstall()}
                   placeholder="https://github.com/user/my-dcs-plugin.git"
                   autoFocus
+                  aria-invalid={gitUrlBad || undefined}
+                  aria-describedby={gitUrlBad ? 'plugin-git-url-error' : undefined}
                   className="w-full px-3 py-2.5 rounded-lg bg-white/5 text-sm text-slate-100 placeholder-slate-500 border border-white/10 focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/30 focus:outline-none transition-all"
                 />
+                {gitUrlBad && <p id="plugin-git-url-error" role="alert" className="text-xs text-rose-400 mt-1.5">Use the repository's address: https://…, ssh://… or git@host:path.</p>}
               </div>
               <div className="bg-white/[0.03] rounded-lg px-3.5 py-3 border border-white/5">
                 <p className="text-[11px] text-slate-500 leading-relaxed">
@@ -664,7 +679,7 @@ export default function Plugins() {
               </div>
               <div className="flex gap-3 pt-1">
                 <button type="button" onClick={() => setShowInstall(false)} className={`${BTN_SHEET_QUIET} flex-1`}>Cancel</button>
-                <button type="button" onClick={handleInstall} disabled={installing || !gitUrl.trim()} className={`${BTN_SHEET_PRIMARY} flex-1`}>
+                <button type="button" onClick={handleInstall} disabled={installing || !gitUrl.trim() || gitUrlBad} className={`${BTN_SHEET_PRIMARY} flex-1`}>
                   {installing
                     ? <><Loader2 size={16} className="animate-spin" /> Installing…</>
                     : <><Download size={16} /> Install plugin</>

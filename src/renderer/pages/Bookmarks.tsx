@@ -267,9 +267,11 @@ function BookmarkCard({ item, onDelete, onTogglePin, onNavigate }: {
   const Icon = iconMap[item.icon] || Bookmark
   const colorClass = getColorClass(item.color)
   const timeAgo = getTimeAgo(item.createdAt)
+  // a custom bookmark is a note to self (a reference, not a page): it leads nowhere, so it is not drawn as a button
+  const opens = item.type !== 'custom'
 
   return (
-    <div className={`group relative ${CARD_HOVER} p-4 cursor-pointer animate-fade-in`} onClick={() => onNavigate(item)}>
+    <div className={`group relative ${opens ? `${CARD_HOVER} cursor-pointer` : CARD} p-4 animate-fade-in`} onClick={opens ? () => onNavigate(item) : undefined}>
       <div className="flex items-start gap-3">
         {/* Icon */}
         <div className={`rounded-lg p-2.5 ${colorClass} border shrink-0`} aria-hidden>
@@ -280,12 +282,14 @@ function BookmarkCard({ item, onDelete, onTogglePin, onNavigate }: {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <h3 className="text-sm font-semibold text-slate-200 truncate group-hover:text-white transition-colors min-w-0">
-              <button
-                type="button"
-                className={`text-left max-w-full truncate rounded after:absolute after:inset-0 after:rounded-xl ${FOCUS_RING}`}
-              >
-                {item.label}
-              </button>
+              {opens ? (
+                <button
+                  type="button"
+                  className={`text-left max-w-full truncate rounded after:absolute after:inset-0 after:rounded-xl ${FOCUS_RING}`}
+                >
+                  {item.label}
+                </button>
+              ) : item.label}
             </h3>
             {item.pinned && <Star size={11} className="text-amber-400 fill-amber-400 shrink-0" aria-hidden />}
             <Pill tone="neutral">{item.type}</Pill>
@@ -511,7 +515,7 @@ export default function Bookmarks() {
             action={
               <button type="button" onClick={() => { setSearch(''); setFilter('all') }} className={`${BTN_TOOLBAR_QUIET} ${FOCUS_RING}`}>
                 <X size={14} />
-                Show all bookmarks
+                Clear the filters
               </button>
             }
           />

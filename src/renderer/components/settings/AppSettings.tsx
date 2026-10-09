@@ -1,10 +1,10 @@
 // =============================================================================
-// AppSettings — Settings → Application preferences: polling intervals, layout,
+// AppSettings — Settings → Application preferences: layout,
 // personal preferences, Discord Rich Presence (desktop app) and the reset
 // =============================================================================
 
 import React, { useState, useCallback, useEffect } from 'react'
-import { Timer, Layout, RotateCcw, User, Gamepad2,
+import { Layout, RotateCcw, User, Gamepad2,
 } from 'lucide-react'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { pageLabel } from '../../constants/pageTitles'
@@ -30,185 +30,34 @@ const DEFAULTS: Pick<
 }
 
 // ---------------------------------------------------------------------------
-// Interval input descriptor
-// ---------------------------------------------------------------------------
-
-interface IntervalField {
-  key: keyof Pick<AppSettingsType, 'pollingInterval' | 'containerPollingInterval' | 'imagePollingInterval' | 'logPollingInterval'>
-  label: string
-  description: string
-  min: number
-  max: number
-}
-
-const intervalFields: IntervalField[] = [
-  {
-    key: 'pollingInterval',
-    label: 'Dashboard polling',
-    description: 'How often the dashboard overview refreshes',
-    min: 2,
-    max: 120,
-  },
-  {
-    key: 'containerPollingInterval',
-    label: 'Container polling',
-    description: 'Refresh interval for container listings',
-    min: 2,
-    max: 120,
-  },
-  {
-    key: 'imagePollingInterval',
-    label: 'Image polling',
-    description: 'Refresh interval for image data',
-    min: 10,
-    max: 600,
-  },
-  {
-    key: 'logPollingInterval',
-    label: 'Log polling',
-    description: 'How often the log viewer fetches new entries',
-    min: 1,
-    max: 60,
-  },
-]
-
-// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
+
+// The four "polling interval" fields that were here are gone: nothing read them (every poll runs at the fixed
+// rates of docs/data-layer.md), so they changed nothing. The stored keys stay, harmless, and Reset puts them back.
+const POLL_KEYS = ['pollingInterval', 'containerPollingInterval', 'imagePollingInterval', 'logPollingInterval'] as const
 
 export default function AppSettingsForm({ onDirtyChange, onRegisterSave }: {
   onDirtyChange?: (dirty: boolean) => void
   onRegisterSave?: (save: () => void, discard: () => void) => void
 } = {}) {
-  const pollingInterval = useSettingsStore((s) => s.pollingInterval)
-  const containerPollingInterval = useSettingsStore((s) => s.containerPollingInterval)
-  const imagePollingInterval = useSettingsStore((s) => s.imagePollingInterval)
-  const logPollingInterval = useSettingsStore((s) => s.logPollingInterval)
   const sidebarCollapsed = useSettingsStore((s) => s.sidebarCollapsed)
   const updateSetting = useSettingsStore((s) => s.updateSetting)
   const toggleSidebar = useSettingsStore((s) => s.toggleSidebar)
 
-  // Local state for interval inputs (display in seconds)
-  const [localIntervals, setLocalIntervals] = useState<Record<string, number>>({
-    pollingInterval: pollingInterval / 1000,
-    containerPollingInterval: containerPollingInterval / 1000,
-    imagePollingInterval: imagePollingInterval / 1000,
-    logPollingInterval: logPollingInterval / 1000,
-  })
-
-  const [dirty, setDirty] = useState(false)
-
-  // Sync from store when values change externally
-  useEffect(() => {
-    setLocalIntervals({
-      pollingInterval: pollingInterval / 1000,
-      containerPollingInterval: containerPollingInterval / 1000,
-      imagePollingInterval: imagePollingInterval / 1000,
-      logPollingInterval: logPollingInterval / 1000,
-    })
-  }, [pollingInterval, containerPollingInterval, imagePollingInterval, logPollingInterval])
-
-  const handleIntervalChange = useCallback((key: string, value: number) => {
-    setLocalIntervals((prev) => ({ ...prev, [key]: value }))
-    setDirty(true)
-  }, [])
-
-  const handleSave = useCallback(() => {
-    for (const field of intervalFields) {
-      const seconds = localIntervals[field.key] ?? DEFAULTS[field.key] / 1000
-      const clamped = Math.max(field.min, Math.min(field.max, seconds))
-      updateSetting(field.key, clamped * 1000)
-    }
-    setDirty(false)
-  }, [localIntervals, updateSetting])
-
-  const handleDiscard = useCallback(() => {
-    setLocalIntervals({
-      pollingInterval: pollingInterval / 1000,
-      containerPollingInterval: containerPollingInterval / 1000,
-      imagePollingInterval: imagePollingInterval / 1000,
-      logPollingInterval: logPollingInterval / 1000,
-    })
-    setDirty(false)
-  }, [pollingInterval, containerPollingInterval, imagePollingInterval, logPollingInterval])
-
   const handleReset = useCallback(() => {
-    for (const field of intervalFields) {
-      updateSetting(field.key, DEFAULTS[field.key])
-    }
+    for (const key of POLL_KEYS) updateSetting(key, DEFAULTS[key])
     if (sidebarCollapsed !== DEFAULTS.sidebarCollapsed) {
       toggleSidebar()
     }
-    setLocalIntervals({
-      pollingInterval: DEFAULTS.pollingInterval / 1000,
-      containerPollingInterval: DEFAULTS.containerPollingInterval / 1000,
-      imagePollingInterval: DEFAULTS.imagePollingInterval / 1000,
-      logPollingInterval: DEFAULTS.logPollingInterval / 1000,
-    })
-    setDirty(false)
   }, [updateSetting, sidebarCollapsed, toggleSidebar])
 
-  // Report dirty state to parent
-  useEffect(() => { onDirtyChange?.(dirty) }, [dirty, onDirtyChange])
-  useEffect(() => { onRegisterSave?.(handleSave, handleDiscard) }, [handleSave, handleDiscard, onRegisterSave])
+  // every choice here takes effect at once: nothing waits for a Save
+  useEffect(() => { onDirtyChange?.(false) }, [onDirtyChange])
+  useEffect(() => { onRegisterSave?.(() => {}, () => {}) }, [onRegisterSave])
 
   return (
     <div className="space-y-6">
-      {/* Polling intervals */}
-      <div>
-        <div className="flex items-center gap-2 mb-4">
-          <Timer size={14} className="accent-text" />
-          <h3 className={SECTION_LABEL}>Polling intervals</h3>
-        </div>
-
-        <div className="space-y-4">
-          {intervalFields.map((field) => (
-            <div key={field.key} className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <label className="text-sm font-medium text-slate-300">{field.label}</label>
-                  <p className="text-xs text-slate-500">{field.description}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <input aria-label={`${field.label} (seconds)`}
-                    type="number"
-                    min={field.min}
-                    max={field.max}
-                    value={localIntervals[field.key] ?? field.min}
-                    onChange={(e) => handleIntervalChange(field.key, Number(e.target.value))}
-                    className={`w-20 text-right font-mono ${FIELD}`}
-                  />
-                  <span className="text-xs text-slate-500 w-5">sec</span>
-                </div>
-              </div>
-              {/* Range slider */}
-              <input aria-label={field.label}
-                type="range"
-                min={field.min}
-                max={field.max}
-                value={localIntervals[field.key] ?? field.min}
-                onChange={(e) => handleIntervalChange(field.key, Number(e.target.value))}
-                className="
-                  w-full h-1.5 rounded-full appearance-none cursor-pointer
-                  bg-slate-800
-                  [&::-webkit-slider-thumb]:appearance-none
-                  [&::-webkit-slider-thumb]:h-3.5
-                  [&::-webkit-slider-thumb]:w-3.5
-                  [&::-webkit-slider-thumb]:rounded-full
-                  [&::-webkit-slider-thumb]:bg-emerald-400
-                  [&::-webkit-slider-thumb]:shadow-[0_0_6px_rgba(52,211,153,0.4)]
-                  [&::-webkit-slider-thumb]:cursor-pointer
-                "
-              />
-              <div className="flex justify-between text-[10px] text-slate-500">
-                <span>{field.min}s</span>
-                <span>{field.max}s</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* Appearance */}
       <div>
         <div className="flex items-center gap-2 mb-4">

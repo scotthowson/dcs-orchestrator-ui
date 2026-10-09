@@ -47,9 +47,9 @@ export function ProxmoxTestPanel({ url, tokenId, tokenSecret, verifyTls, secretS
           {busy ? <Loader2 size={14} className="animate-spin" /> : <PlugZap size={14} />} Test connection
         </button>
       </div>
-      {err && <div className="mt-2 text-xs text-rose-300 flex items-center gap-1.5"><XCircle size={13} /> {err}</div>}
+      {err && <div role="alert" className="mt-2 text-xs text-rose-300 flex items-center gap-1.5"><XCircle size={13} /> {err}</div>}
       {res && (
-        <div className={`mt-2 text-xs flex items-start gap-1.5 ${res.reachable ? 'text-emerald-300' : 'text-rose-300'}`}>
+        <div role={res.reachable ? 'status' : 'alert'} className={`mt-2 text-xs flex items-start gap-1.5 ${res.reachable ? 'text-emerald-300' : 'text-rose-300'}`}>
           {res.reachable ? <CheckCircle2 size={13} className="mt-0.5 shrink-0" /> : <XCircle size={13} className="mt-0.5 shrink-0" />}
           <span>{res.reachable ? `Connected: Proxmox VE ${res.version}, ${res.nodes} node${res.nodes === 1 ? '' : 's'}, ${res.vms.total} guests (${res.vms.running} running)` : (res.error || res.hints?.[0] || 'Not reachable')}</span>
         </div>
