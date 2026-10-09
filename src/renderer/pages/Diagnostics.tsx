@@ -1410,7 +1410,7 @@ export default function Diagnostics() {
 
             {/* Health Score Ring */}
             <div className="lg:col-span-4">
-              <div className={`${CARD} p-4 md:p-5 flex flex-col items-center justify-center h-full relative overflow-hidden`}>
+              <div className={`${CARD} p-4 md:p-5 flex flex-col h-full relative overflow-hidden`}>
                 {/* Ambient glow behind ring */}
                 <div className="absolute inset-0 pointer-events-none">
                   <div
@@ -1425,6 +1425,8 @@ export default function Diagnostics() {
                   />
                 </div>
                 <SectionHeader icon={<Shield size={14} />} title="System health score" />
+                {/* the title sits at the top like every panel's; the score fills the rest, centred */}
+                <div className="flex flex-1 flex-col items-center justify-center">
                 <HealthScoreRing score={healthScore} />
                 {healthScoreData?.grade && (
                   <div className="flex items-center gap-3 mt-3">
@@ -1448,6 +1450,7 @@ export default function Diagnostics() {
                 <p className="text-[11px] text-slate-500 mt-4 text-center max-w-[200px]">
                   Calculated from container health, image freshness, memory, and CPU load
                 </p>
+                </div>
               </div>
             </div>
 
