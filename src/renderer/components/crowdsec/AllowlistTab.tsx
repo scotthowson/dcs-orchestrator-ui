@@ -10,7 +10,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, ArrowRight, Info, ListChecks, Loader2, Lock, Plus, Search, ShieldCheck, Trash2, UserCheck, X } from 'lucide-react'
 import { usePolling } from '../../hooks/usePolling'
-import { useConnectionStore } from '../../stores/connectionStore'
 import { useToast } from '../common/Toast'
 import { useConfirm } from '../common/ConfirmDialog'
 import { crowdsecAllow, crowdsecAllowlist, crowdsecDisallow } from '../../api/endpoints'
@@ -260,10 +259,9 @@ function AllowSheet({ data, seed, onClose, onDone }: { data: CrowdSecAllowlistRe
 
 export default function AllowlistTab() {
   const { member, isAdmin, status, refreshStatus, goTab } = useCs()
-  const isConnected = useConnectionStore((s) => s.status === 'connected')
   const { addToast } = useToast()
   const confirm = useConfirm()
-  const poll = usePolling<CrowdSecAllowlistResponse>(() => crowdsecAllowlist(member), 15000, { enabled: isConnected })
+  const poll = usePolling<CrowdSecAllowlistResponse>(() => crowdsecAllowlist(member), 15000)
   const refresh = poll.refresh
   const data = poll.data
   const [q, setQ] = useState('')

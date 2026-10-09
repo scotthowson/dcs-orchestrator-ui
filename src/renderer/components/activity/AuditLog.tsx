@@ -4,12 +4,13 @@
 // filtered by action or text. useAuditLog polls it only while the tab shows.
 // =============================================================================
 
-import React, { useState, useMemo, useEffect, useCallback } from 'react'
+import React, { useState, useMemo } from 'react'
 import {
   Play, Trash2, RefreshCw, Search, X, ChevronDown, FileText, Shield,
   Rocket, Power, HeartPulse, Archive, ListFilter, WifiOff,
 } from 'lucide-react'
 import { fetchAuditLog } from '../../api/endpoints'
+import { usePolling } from '../../hooks/usePolling'
 import { useToast } from '../common/Toast'
 import { LoadingState, EmptyState } from '../common/PageState'
 import Hint from '../common/Hint'
@@ -21,35 +22,19 @@ import type { AuditEntry } from '../../../shared/types'
 const AUDIT_LIMIT = 200
 const AUDIT_POLL_MS = 15000
 
-/** The last 200 entries of the scope's audit log, read now and every 15 s while `enabled` (the tab shows, an admin, connected) */
+/** The last 200 entries of the scope's audit log, read now and every 15 s while `enabled` (the tab shows, an admin); a new
+ *  scope asks at once */
 export function useAuditLog(enabled: boolean, scope: string) {
   const { addToast } = useToast()
-  const [entries, setEntries] = useState<AuditEntry[]>([])
-  const [loading, setLoading] = useState(false)
-  const [tick, setTick] = useState(0)
-  const refresh = useCallback(() => setTick((t) => t + 1), [])
-
-  useEffect(() => {
-    if (!enabled) return
-    let cancelled = false
-    const load = async () => {
-      setLoading(true)
-      try {
-        const res = await fetchAuditLog({ limit: AUDIT_LIMIT }, scope)
-        if (!cancelled) setEntries(res.entries)
-      } catch {
-        if (!cancelled) addToast({ type: 'error', message: 'Failed to load audit log' })
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-    load()
-    const interval = setInterval(load, AUDIT_POLL_MS)
-    return () => { cancelled = true; clearInterval(interval); setLoading(false) }
-  }, [enabled, scope, addToast, tick])
-
-  return { entries, loading, refresh }
+  const poll = usePolling(() => fetchAuditLog({ limit: AUDIT_LIMIT }, scope), AUDIT_POLL_MS, {
+    key: `audit:${scope}`,
+    enabled,
+    onError: () => addToast({ type: 'error', message: 'Failed to load audit log' }),
+  })
+  return { entries: poll.data?.entries ?? NO_ENTRIES, loading: poll.fetching, refresh: poll.refresh }
 }
+
+const NO_ENTRIES: AuditEntry[] = []
 
 export default function AuditLog({ entries, loading, isConnected, onScope }: {
   entries: AuditEntry[]

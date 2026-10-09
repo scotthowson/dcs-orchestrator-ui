@@ -64,6 +64,7 @@ import { apiClient } from './api/client'
 import { sseClient } from './lib/sse'
 import { sanitizeCss } from './lib/cssSanitize'
 import { useThemeStore, syncDocumentTheme, effectiveThemeNeedsDoc, THEME_POLL_MS } from './stores/themeStore'
+import { usePolling } from './hooks/usePolling'
 import { hydrateUser, resetUserSync } from './lib/userSync'
 import { toggleMode, useResolvedMode } from './lib/colorMode'
 import type { PageId } from '../shared/types'
@@ -107,6 +108,8 @@ const pageComponents: Record<Exclude<PageId, AliasPageId>, React.ComponentType> 
   export: Export,
   setup: SetupWizard as unknown as React.ComponentType,
 }
+
+const refreshServerThemes = () => useThemeStore.getState().refresh()
 
 // Ctrl+1…9 and Ctrl+0 open the sidebar's ten sections in order (navSections), each on the tab it was last on
 
@@ -315,13 +318,7 @@ export default function App() {
 
   // Follow the server: read GET /themes once signed in (the list needs a session: asked before sign-in it is refused and the theme
   // would wait for the next poll) and every five minutes
-  useEffect(() => {
-    if (connectionStatus !== 'connected' || !isAuthenticated) return
-    const refresh = () => { useThemeStore.getState().refresh() }
-    refresh()
-    const interval = setInterval(refresh, THEME_POLL_MS)
-    return () => clearInterval(interval)
-  }, [connectionStatus, isAuthenticated])
+  usePolling(refreshServerThemes, THEME_POLL_MS, { enabled: isAuthenticated })
 
   // Apply per-user appearance (accent color + background image)
   const [accentColor, setAccentColor] = useState('emerald')

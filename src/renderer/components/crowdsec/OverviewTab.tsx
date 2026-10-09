@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Activity, Globe2, Crosshair, Radar, Network, ShieldCheck, Users, Cpu, Ban, RotateCw, RefreshCw, ArrowRight, Plug, UserCheck, Loader2, CircleAlert, CircleCheck, Info, Clock, TriangleAlert, ShieldOff, KeyRound } from 'lucide-react'
 import { usePolling } from '../../hooks/usePolling'
-import { useConnectionStore } from '../../stores/connectionStore'
+import { pollKeys } from '../../api/pollKeys'
 import { useToast } from '../common/Toast'
 import { useConfirm } from '../common/ConfirmDialog'
 import { crowdsecMetrics, crowdsecAlerts, crowdsecCommunity, crowdsecService, crowdsecRegisterTraefikBouncer, fetchRoutes } from '../../api/endpoints'
@@ -70,7 +70,6 @@ function CheckLine({ state, label, children }: { state: 'ok' | 'warn' | 'bad' | 
 
 export default function OverviewTab() {
   const { member, isAdmin, status: s, refreshStatus, goTab } = useCs()
-  const isConnected = useConnectionStore((st) => st.status === 'connected')
   const { addToast } = useToast()
   const confirm = useConfirm()
   const now = useNow()
@@ -83,14 +82,14 @@ export default function OverviewTab() {
   const [busy, setBusy] = useState('')
 
   const winRef = useRef(win); winRef.current = win
-  const metrics = usePolling<CrowdSecMetricsResponse>(() => crowdsecMetrics(winRef.current, member), 30000, { enabled: isConnected })
+  const metrics = usePolling<CrowdSecMetricsResponse>(() => crowdsecMetrics(winRef.current, member), 30000)
   const mRefresh = metrics.refresh
   useEffect(() => { mRefresh() }, [win, member, mRefresh])
   // manual bans are alerts too, but they are not detections: ask for a few more and leave them out
-  const recent = usePolling(() => crowdsecAlerts({ window: '24h', limit: 16, simulated: 'any' }, member), 20000, { enabled: isConnected })
+  const recent = usePolling(() => crowdsecAlerts({ window: '24h', limit: 16, simulated: 'any' }, member), 20000)
   const latest = useMemo(() => (recent.data?.alerts ?? []).filter((a) => a.kind !== 'cscli').slice(0, 6), [recent.data])
-  const community = usePolling(() => crowdsecCommunity(member), 60000, { enabled: isConnected })
-  const routes = usePolling(() => fetchRoutes(), 45000, { enabled: isConnected && !member })
+  const community = usePolling(() => crowdsecCommunity(member), 60000, { key: pollKeys.crowdsecCommunity(member) })
+  const routes = usePolling(fetchRoutes, 45000, { key: pollKeys.routes, enabled: !member })
   const bypass = useMemo(() => (routes.data?.routes ?? []).filter((r) => r.crowdsec === 'bypass'), [routes.data])
   const checked = useMemo(() => (routes.data?.routes ?? []).filter((r) => r.crowdsec === 'protected').length, [routes.data])
   const setPage = useSettingsStore((st) => st.setCurrentPage)

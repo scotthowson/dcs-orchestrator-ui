@@ -33,6 +33,7 @@ import {
 import type { StackDetail as StackDetailType, ContainerInfo, StackInfo, ProxmoxVmAction, StackAppDataStatus } from '../../../shared/types'
 import AppDataLabel from './AppDataLabel'
 import { fetchStack, fetchStackLogs, fetchStackCompose, cloneStack, renameStack, startContainer, stopContainer, restartContainer, proxmoxVmAction, pushStackFiles, pullStackFiles, fetchStackAppData, mountStackAppData, unmountStackAppData } from '../../api/endpoints'
+import { usePolling } from '../../hooks/usePolling'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { useToast } from '../common/Toast'
 import { useConfirm } from '../common/ConfirmDialog'
@@ -133,10 +134,16 @@ export default function StackDetail({ stackName, onBack, onAction, isActionLoadi
       addToast({ type: 'error', message: `Could not ${action === 'shutdown' ? 'shut down' : action} ${vm}: ${err instanceof Error ? err.message : String(err)}`, duration: 6000 })
     } finally { setVmBusy('') }
   }
-  const [detail, setDetail] = useState<StackDetailType | null>(null)
+  // the stack, every 5 s (only its own answer is shown: another stack never shows this one's)
+  const detailKey = `stack:${stackName}`
+  const detailPoll = usePolling<StackDetailType>(() => fetchStack(stackName), 5000, { key: detailKey })
+  const detail = detailPoll.dataKey === detailKey ? detailPoll.data : null
+  const loadDetail = detailPoll.refresh
+  // keep the previous detail on an error; the message shows when there is none yet
+  const loadError = detailPoll.error ? detailPoll.error.message || String(detailPoll.error) : null
+  const [retrying, setRetrying] = useState(false)
+  const loading = detailPoll.loading || retrying
   const [logs, setLogs] = useState<string>('')
-  const [loading, setLoading] = useState(true)
-  const [loadError, setLoadError] = useState<string | null>(null)
   const [logsLoading, setLogsLoading] = useState(false)
   const [activeTab, setActiveTab] = useState<Tab>('containers')
   const [showCompose, setShowCompose] = useState(false)
@@ -149,7 +156,6 @@ export default function StackDetail({ stackName, onBack, onAction, isActionLoadi
   const [appData, setAppData] = useState<StackAppDataStatus | null>(null)
   const [appDataBusy, setAppDataBusy] = useState<'mount' | 'unmount' | ''>('')
   const logEndRef = useRef<HTMLDivElement>(null)
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const { addToast } = useToast()
   const confirm = useConfirm()
   const cloneFieldId = useId()
@@ -226,19 +232,6 @@ export default function StackDetail({ stackName, onBack, onAction, isActionLoadi
     }
   }, [stackName, renameTo, addToast, onBack])
 
-  // Fetch stack detail
-  const loadDetail = useCallback(async () => {
-    try {
-      const data = await fetchStack(stackName)
-      setDetail(data)
-      setLoadError(null)
-    } catch (err) {
-      // Keep previous detail on error; the message shows when there is none yet
-      setLoadError(err instanceof Error ? err.message : String(err))
-    } finally {
-      setLoading(false)
-    }
-  }, [stackName])
 
   // Fetch stack logs
   const loadLogs = useCallback(async () => {
@@ -275,20 +268,12 @@ export default function StackDetail({ stackName, onBack, onAction, isActionLoadi
 
   // the hub's view of the VM's App-Data: read when the page opens and every half minute (a mount comes by itself a
   // moment after a deploy or a start, and goes with a VM that is switched off)
-  const loadAppData = useCallback(async () => {
-    if (!isVm || !isAdmin) { setAppData(null); return }
-    try {
-      const res = await fetchStackAppData(stackName)
-      setAppData(res.placement === 'vm' ? res : null)
-    } catch {
-      setAppData(null)
-    }
-  }, [isVm, isAdmin, stackName])
+  const appDataPoll = usePolling(() => fetchStackAppData(stackName), 30000, { key: `stack-app-data:${stackName}`, enabled: isVm && isAdmin })
+  const loadAppData = appDataPoll.refresh
   useEffect(() => {
-    void loadAppData()
-    const t = setInterval(() => { void loadAppData() }, 30000)
-    return () => clearInterval(t)
-  }, [loadAppData])
+    if (!isVm || !isAdmin || appDataPoll.error) setAppData(null)
+    else if (appDataPoll.data) setAppData(appDataPoll.data.placement === 'vm' ? appDataPoll.data : null)
+  }, [isVm, isAdmin, appDataPoll.data, appDataPoll.error])
   const moveAppData = useCallback(async (what: 'mount' | 'unmount') => {
     setAppDataBusy(what)
     try {
@@ -303,16 +288,6 @@ export default function StackDetail({ stackName, onBack, onAction, isActionLoadi
     }
   }, [stackName, addToast, loadAppData])
 
-  // Initial load + polling
-  useEffect(() => {
-    setLoading(true)
-    loadDetail()
-
-    pollRef.current = setInterval(loadDetail, 5000)
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current)
-    }
-  }, [loadDetail])
 
   // Load logs when tab switches to logs
   useEffect(() => {
@@ -383,7 +358,7 @@ export default function StackDetail({ stackName, onBack, onAction, isActionLoadi
             <span className="hidden sm:inline">Back</span>
           </button>
         </Hint>
-        <ErrorState title={`Could not read ${stackName}`} error={loadError} onRetry={() => { setLoading(true); void loadDetail() }} />
+        <ErrorState title={`Could not read ${stackName}`} error={loadError} onRetry={() => { setRetrying(true); void loadDetail().finally(() => setRetrying(false)) }} />
       </div>
     )
   }

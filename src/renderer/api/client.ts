@@ -1,5 +1,9 @@
 // =============================================================================
-// API Client — fetch wrapper for the DCS Orchestrator REST API
+// API Client — the one way the dashboard talks to the DCS Orchestrator REST API.
+// Every request carries the session, has a timeout, and fails with an ApiError
+// (what it means for the person: api/errors). GETs that fail on the network are
+// retried; identical GETs on their way at the same time are one request. A switch
+// of server or session (cancelAll) drops every answer still on its way.
 // =============================================================================
 
 import { getDefaultServerUrl } from '../lib/env'
@@ -10,10 +14,24 @@ export class ApiError extends Error {
     message: string,
     /** the JSON body of the error answer, when it had one (a `reason`, `rolled_back` …) */
     public data?: Record<string, unknown>,
+    /** a 429 or 503: how long the server asks to wait (its Retry-After header, else the body's retry_after), 0 if it did not say */
+    public retryAfterMs = 0,
   ) {
     super(message)
     this.name = 'ApiError'
   }
+}
+
+/** Retry-After (seconds, or an HTTP date) or a JSON body's retry_after (seconds), in ms; 0 when neither says */
+function retryAfterOf(header: string | null, data: Record<string, unknown> | undefined): number {
+  if (header) {
+    const secs = Number(header)
+    if (Number.isFinite(secs) && secs >= 0) return secs * 1000
+    const at = Date.parse(header)
+    if (Number.isFinite(at)) return Math.max(0, at - Date.now())
+  }
+  const body = Number(data?.retry_after)
+  return Number.isFinite(body) && body > 0 ? body * 1000 : 0
 }
 
 export class ApiTimeoutError extends ApiError {
@@ -78,6 +96,11 @@ export class ApiClient {
   /** bumped by cancelAll(): a request started before it never delivers its answer (or its 401) */
   private epoch = 0
   private inflight = new Set<AbortController>()
+  /** when the server in use last answered anything (any status): the heartbeat's proof of life when its own ping queued
+   *  behind the dashboard's requests (a browser opens at most six connections to a server) */
+  private lastAnswerAt = 0
+  /** GETs on their way, by session, epoch and path: a second identical GET waits for the first's answer */
+  private sharedGets = new Map<string, Promise<unknown>>()
 
   constructor(baseUrl = getDefaultServerUrl(), timeout = 30000) {
     this.baseUrl = baseUrl.replace(/\/$/, '')
@@ -92,6 +115,16 @@ export class ApiClient {
   setBaseUrl(url: string): void {
     this.baseUrl = url.replace(/\/$/, '')
     this.pingPath = '/ping'
+    this.lastAnswerAt = 0
+  }
+
+  /** the server in use answered something (a request of any kind, any status) at or after `t` (ms) */
+  answeredSince(t: number): boolean {
+    return this.lastAnswerAt >= t
+  }
+
+  private noteAnswer(baseUrl: string): void {
+    if (baseUrl === this.baseUrl) this.lastAnswerAt = Date.now()
   }
 
   setTimeout(ms: number): void {
@@ -123,6 +156,7 @@ export class ApiClient {
     this.epoch++
     for (const c of this.inflight) c.abort()
     this.inflight.clear()
+    this.sharedGets.clear()
   }
 
   private async requestOnce<T>(method: string, path: string, body?: string, timeoutOverride?: number): Promise<T> {
@@ -158,6 +192,7 @@ export class ApiClient {
       clearTimeout(timeoutId)
       this.inflight.delete(controller)
     }
+    this.noteAnswer(baseUrl)
     if (epoch !== this.epoch) throw new ApiCancelledError(path)
 
     if (!response.ok) {
@@ -190,7 +225,7 @@ export class ApiClient {
         }
         throw new ApiError(401, errorMessage, errorData)
       }
-      throw new ApiError(response.status, errorMessage, errorData)
+      throw new ApiError(response.status, errorMessage, errorData, retryAfterOf(response.headers.get('Retry-After'), errorData))
     }
 
     // Read body as text first, then parse — more resilient to encoding issues
@@ -229,8 +264,34 @@ export class ApiClient {
     throw lastError!
   }
 
+  /**
+   * A file the API streams (a backup or a recovery bundle): fetched with the session and handed to the browser as a
+   * download named `filename`. No time limit (a large archive takes its time); a refusal is an ApiError with the status.
+   */
+  async download(path: string, filename: string): Promise<void> {
+    const baseUrl = this.baseUrl
+    const res = await fetch(`${baseUrl}${path}`, { headers: this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {} })
+    this.noteAnswer(baseUrl)
+    if (!res.ok) throw new ApiError(res.status, `The download failed (${res.status})`)
+    const url = URL.createObjectURL(await res.blob())
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
   async get<T>(path: string): Promise<T> {
-    return this.request<T>('GET', path)
+    const key = `${this.epoch}|${this.authToken ?? ''}|${this.baseUrl}${path}`
+    const shared = this.sharedGets.get(key)
+    if (shared) return shared as Promise<T>
+    const promise = this.request<T>('GET', path).finally(() => {
+      if (this.sharedGets.get(key) === promise) this.sharedGets.delete(key)
+    })
+    this.sharedGets.set(key, promise)
+    return promise
   }
 
   async post<T>(path: string, body?: unknown, timeoutOverride?: number): Promise<T> {
@@ -253,6 +314,7 @@ export class ApiClient {
    * and the smallest answer the API has, so the time it takes is the round trip.
    */
   async testConnection(): Promise<boolean> {
+    const baseUrl = this.baseUrl
     try {
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 8000)
@@ -268,7 +330,9 @@ export class ApiClient {
           return this.testConnection()
         }
         // The dashboard's own HTML answers 200 too; only the API speaks JSON
-        return response.ok && (response.headers.get('content-type') || '').includes('json')
+        const ok = response.ok && (response.headers.get('content-type') || '').includes('json')
+        if (ok) this.noteAnswer(baseUrl)
+        return ok
       } catch {
         return false
       } finally {

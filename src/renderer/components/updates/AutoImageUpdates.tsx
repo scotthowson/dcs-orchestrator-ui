@@ -8,7 +8,7 @@
 // and to the "Unattended updates" list.
 // =============================================================================
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { Select, Switch } from '@mantine/core'
 import { CalendarClock, Loader2, Play, DownloadCloud } from 'lucide-react'
 import { useToast } from '../common/Toast'
@@ -18,6 +18,7 @@ import { pageLabel } from '../../constants/pageTitles'
 import { BTN_CARD_QUIET } from '../../lib/ui'
 import { CardIcon } from './updateBits'
 import { createSchedule, deleteSchedule, fetchSchedules, runSchedule, updateSchedule, updateAllImages } from '../../api/endpoints'
+import { usePolling } from '../../hooks/usePolling'
 import { scopeMember, type FleetScope, type ScopeMember } from '../../hooks/useFleetScope'
 import type { Schedule } from '../../../shared/types'
 
@@ -45,9 +46,6 @@ function ago(iso?: string | null): string {
 export default function AutoImageUpdates({ scope, members }: { scope: FleetScope; members: ScopeMember[] }) {
   const { addToast } = useToast()
   const confirm = useConfirm()
-  const [list, setList] = useState<Schedule[] | null>(null)
-  const [silent, setSilent] = useState<string[]>([])   // servers that did not answer the schedule list
-  const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [recreateNew, setRecreateNew] = useState(true)   // a new schedule pulls and recreates unless told otherwise
 
@@ -55,22 +53,15 @@ export default function AutoImageUpdates({ scope, members }: { scope: FleetScope
   const targets = useMemo<(string | null)[]>(() => (scope === 'all' ? [null, ...members.map((m) => m.id)] : [scopeMember(scope)]), [scope, members])
   const nameOf = useCallback((t: string | null) => (t === null ? 'the hub' : (members.find((m) => m.id === t)?.name ?? t)), [members])
 
-  const load = useCallback(async () => {
-    try {
-      const r = await fetchSchedules(scope)
-      setList((r.schedules ?? []).filter((s) => s.action === 'image-update'))
-      setSilent((r.members ?? []).filter((m) => !m.reachable).map((m) => m.name))
-      setError('')
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'The schedules could not be read')
-    }
-  }, [scope])
-  useEffect(() => {
-    setList(null)
-    void load()
-    const t = setInterval(() => { void load() }, 60000)
-    return () => clearInterval(t)
-  }, [load])
+  // the schedules of the scope, every minute; a new scope asks at once and shows nothing until its own answer is in
+  const schedulesKey = `schedules:${scope}`
+  const poll = usePolling(() => fetchSchedules(scope), 60000, { key: schedulesKey })
+  const load = poll.refresh
+  const answer = poll.dataKey === schedulesKey ? poll.data : null
+  const list = useMemo<Schedule[] | null>(() => (answer ? (answer.schedules ?? []).filter((s) => s.action === 'image-update') : null), [answer])
+  // servers that did not answer the schedule list
+  const silent = useMemo(() => (answer?.members ?? []).filter((m) => !m.reachable).map((m) => m.name), [answer])
+  const error = poll.error ? poll.error.message || 'The schedules could not be read' : ''
 
   // the schedule each server has (one is enough: the panel creates exactly one)
   const byTarget = useMemo(() => {

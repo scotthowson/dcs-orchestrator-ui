@@ -84,7 +84,7 @@ export default function Automations() {
 
   // automation rules: every 10 s, as their run counts move when a condition fires
   const fetchScopedAutomations = useCallback(() => fetchAutomations(scope), [scope])
-  const { data: autoData, loading: autoLoading, error: autoError, refresh: refreshAutomations } = usePolling(fetchScopedAutomations, 10000, { enabled: isConnected })
+  const { data: autoData, loading: autoLoading, error: autoError, refresh: refreshAutomations } = usePolling(fetchScopedAutomations, 10000)
   const scopeRef = useRef(scope)
   useEffect(() => { if (scopeRef.current !== scope) { scopeRef.current = scope; refreshAutomations() } }, [scope, refreshAutomations])
 

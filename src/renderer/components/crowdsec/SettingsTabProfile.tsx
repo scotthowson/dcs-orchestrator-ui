@@ -14,7 +14,6 @@ import {
   AlertTriangle, Archive, ArrowDown, ArrowUp, ChevronDown, ChevronRight, CircleAlert, CircleCheck, FileCode, Info, Loader2, Lock, LockOpen, Plus, RefreshCw, RotateCcw, Save, Timer, Trash2, Undo2,
 } from 'lucide-react'
 import { usePolling } from '../../hooks/usePolling'
-import { useConnectionStore } from '../../stores/connectionStore'
 import { useToast } from '../common/Toast'
 import { useConfirm } from '../common/ConfirmDialog'
 import { crowdsecSettings, crowdsecSaveSettings } from '../../api/endpoints'
@@ -116,7 +115,6 @@ function Static({ children, muted = false }: { children: React.ReactNode; muted?
 
 export default function ProfileCard({ scenarios }: { scenarios: ScenarioInfo[] }) {
   const { member, isAdmin, refreshStatus, goTab } = useCs()
-  const isConnected = useConnectionStore((s) => s.status === 'connected')
   const { addToast } = useToast()
   const confirm = useConfirm()
 
@@ -144,7 +142,7 @@ export default function ProfileCard({ scenarios }: { scenarios: ScenarioInfo[] }
   const [justAdded, setJustAdded] = useState<number | null>(null)
   const busy = applying !== null
 
-  const poll = usePolling(() => crowdsecSettings(member), POLL_MS, { enabled: isConnected && !busy })
+  const poll = usePolling(() => crowdsecSettings(member), POLL_MS, { enabled: !busy })
   const draftRef = useRef<Draft | null>(null); draftRef.current = draft
   const baseRef = useRef<Draft | null>(null); baseRef.current = base
 

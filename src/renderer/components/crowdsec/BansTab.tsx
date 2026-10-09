@@ -7,7 +7,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Search, Plus, Upload, Download, Unlock, Loader2, X, ChevronDown, Info, FlaskConical, Infinity as InfinityIcon, ShieldOff } from 'lucide-react'
 import { usePolling } from '../../hooks/usePolling'
-import { useConnectionStore } from '../../stores/connectionStore'
 import { useToast } from '../common/Toast'
 import { useConfirm } from '../common/ConfirmDialog'
 import { crowdsecDecisions, crowdsecUnban, crowdsecBulkUnban, crowdsecExportBans } from '../../api/endpoints'
@@ -65,7 +64,6 @@ function Select({ id, label, value, onChange, children, plain = false }: { id: s
 
 export default function BansTab({ seedSearch }: { seedSearch?: string }) {
   const { member, isAdmin, status, refreshStatus } = useCs()
-  const isConnected = useConnectionStore((s) => s.status === 'connected')
   const { addToast } = useToast()
   const confirm = useConfirm()
   const [q, setQ] = useState(seedSearch ?? '')
@@ -90,7 +88,7 @@ export default function BansTab({ seedSearch }: { seedSearch?: string }) {
   const dir = SORTS.find((x) => x.value === sort)?.dir ?? 'desc'
   const query = useMemo<CrowdSecDecisionQuery>(() => ({ q: dq, scope, origin, country, scenario, simulated: hideSim ? 'no' : 'any', sort, dir, limit }), [dq, scope, origin, country, scenario, hideSim, sort, dir, limit])
   const queryRef = useRef(query); queryRef.current = query
-  const poll = usePolling(() => crowdsecDecisions(queryRef.current, member), 15000, { enabled: isConnected })
+  const poll = usePolling(() => crowdsecDecisions(queryRef.current, member), 15000)
   const refresh = poll.refresh
   useEffect(() => { refresh() }, [query, refresh])
   useEffect(() => { setLimit(PAGE) }, [dq, scope, origin, country, scenario, hideSim, sort])

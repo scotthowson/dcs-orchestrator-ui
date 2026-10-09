@@ -18,24 +18,11 @@ import { apiClient, ApiCancelledError, ApiError, type AuthExpiredDetail } from '
 import { authLogin, authVerify } from '../api/endpoints'
 import { useConnectionStore } from './connectionStore'
 import { useSettingsStore, settlePageForRole } from './settingsStore'
-import { useContainerStore } from './containerStore'
-import { useStackStore } from './stackStore'
-import { useHealthStore } from './healthStore'
-import { useSystemStore } from './systemStore'
-import { useImageStore } from './imageStore'
-import { useLogStore } from './logStore'
-import { useConfigStore } from './configStore'
-import { useMetricsStore } from './metricsStore'
-import { useNetworkStore } from './networkStore'
-import { useRollbackStore } from './rollbackStore'
-import { useScheduleStore } from './scheduleStore'
-import { useSecretsStore } from './secretsStore'
-import { usePluginStore } from './pluginStore'
 import { useAuthStore, hasLocalSession, onSignOut, takeLegacyApiToken } from './authStore'
 import { getDefaultServerUrl } from '../lib/env'
 import { corsBlocked, blockedText } from '../lib/discover'
 import { sseClient } from '../lib/sse'
-import { resetUserSync } from '../lib/userSync'
+import { resetServerScope } from '../lib/serverScope'
 import { rememberPassword, rememberedPassword, forgetPassword, rememberedServers } from '../lib/credentials'
 
 const STORAGE_KEY = 'dcs-servers'
@@ -102,6 +89,27 @@ function persistServers(servers: ServerProfile[], activeId: string | null) {
   } catch { /* ignore */ }
 }
 
+/** the list another tab may have saved since this one read it (null: nothing saved, or unreadable) */
+function storedServers(): ServerProfile[] | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return null
+    const data = JSON.parse(raw)
+    return Array.isArray(data?.servers) ? (data.servers as ServerProfile[]).map(migrateProfile) : null
+  } catch { return null }
+}
+
+/**
+ * Several tabs share the saved list: each change starts from what is saved now, never from what this tab read when it
+ * opened, so a server another tab added (or a session it saved) is not written away. Each tab keeps its own active
+ * server. Called first by every change of the list.
+ */
+function syncServers() {
+  if (!loaded) return
+  const servers = storedServers()
+  if (servers) useServerStore.setState({ servers })
+}
+
 function asRole(r: unknown): Role | null {
   return r === 'admin' || r === 'user' || r === 'bot' ? r : null
 }
@@ -120,26 +128,19 @@ function migrateProfile(p: ServerProfile): ServerProfile {
   return out
 }
 
-/** Every store that holds what a server said: emptied before the next server is shown */
-function resetServerData() {
-  for (const store of [useHealthStore, useSystemStore, useImageStore, useLogStore, useConfigStore, useMetricsStore,
-    useNetworkStore, useRollbackStore, useScheduleStore, useSecretsStore, usePluginStore] as const) {
-    const s = store as unknown as { setState: (v: unknown, replace: true) => void; getInitialState: () => unknown }
-    s.setState(s.getInitialState(), true)
-  }
-  // the favourites and the action times of the stacks are this device's, not the server's
-  useContainerStore.setState({ containers: [], stats: {}, statsHistory: {}, loading: true, fetchedAt: 0 })
-  useStackStore.setState({ stacks: [], selectedStack: null, loading: false, actionLoading: null })
-}
-
 /** Take the dashboard down and drop everything of the server in use; the saved sessions stay as they are */
 function leaveServer() {
   useAuthStore.getState().suspendSession()
-  apiClient.cancelAll()
   useConnectionStore.getState().disconnect()
+  dropServerData()
+}
+
+/** Nothing of the server before reaches the next one: its requests on their way are dropped, the live stream closes, and
+ *  every store and cache that registered with lib/serverScope is emptied */
+function dropServerData() {
+  apiClient.cancelAll()
   sseClient.disconnect()
-  resetUserSync()
-  resetServerData()
+  resetServerScope()
 }
 
 /** End a session on its server without touching the active one (POST /auth/logout with that token) */
@@ -337,6 +338,7 @@ export const useServerStore = create<ServerState>((set, get) => {
       // which servers have a password in the keychain (desktop): the profiles follow the keychain, and a password
       // whose profile is gone is forgotten
       void rememberedServers().then((ids) => {
+        syncServers()
         const known = new Set(get().servers.map((s) => s.id))
         for (const id of ids) if (!known.has(id)) void forgetPassword(id)
         const has = new Set(ids)
@@ -349,6 +351,7 @@ export const useServerStore = create<ServerState>((set, get) => {
     },
 
     importLegacyProfiles: () => {
+      syncServers()
       const legacy = useSettingsStore.getState().connectionProfiles ?? []
       if (legacy.length === 0) return
       const known = new Set(get().servers.map((s) => s.url))
@@ -364,6 +367,7 @@ export const useServerStore = create<ServerState>((set, get) => {
     },
 
     addServer: (server) => {
+      syncServers()
       const newServer: ServerProfile = { ...server, id: generateId() }
       const servers = [...get().servers, newServer]
       set({ servers })
@@ -372,6 +376,7 @@ export const useServerStore = create<ServerState>((set, get) => {
     },
 
     removeServer: (id) => {
+      syncServers()
       const gone = get().servers.find((s) => s.id === id)
       if (!gone) return
       if (gone.session?.token) logoutElsewhere(gone.url, gone.session.token)
@@ -384,6 +389,7 @@ export const useServerStore = create<ServerState>((set, get) => {
     },
 
     updateServer: (id, updates) => {
+      syncServers()
       const servers = get().servers.map((s) => {
         if (s.id !== id) return s
         const next = { ...s, ...updates }
@@ -412,6 +418,7 @@ export const useServerStore = create<ServerState>((set, get) => {
       // the dashboard of the server before goes away first, with everything it showed
       leaveServer()
       const returnToId = prevConfirmed && prev !== id ? prev : get().returnToId === id ? null : get().returnToId
+      syncServers()
       set({ activeServerId: id, loading: true, returnToId, signInReason: null })
       persistServers(get().servers, id)
       const ok = await enterServer(id)
@@ -479,6 +486,7 @@ export const useServerStore = create<ServerState>((set, get) => {
     },
 
     setDefaultServer: (id) => {
+      syncServers()
       const servers = get().servers.map(s => ({ ...s, isDefault: s.id === id }))
       set({ servers })
       persistServers(servers, get().activeServerId)
@@ -489,12 +497,10 @@ export const useServerStore = create<ServerState>((set, get) => {
 // Signing out (the header, the command palette, the lock screen, a device session that ran out): the active
 // server's session ends, and with `everywhere` every other server's too — on each server as well, best effort
 onSignOut(({ everywhere }) => {
+  syncServers()
   const st = useServerStore.getState()
   const activeId = st.activeServerId
-  apiClient.cancelAll()
-  sseClient.disconnect()
-  resetUserSync()
-  resetServerData()
+  dropServerData()
   const servers = st.servers.map((s) => {
     if (s.id === activeId) return { ...s, session: null, signedOut: everywhere ? true : s.signedOut }
     if (!everywhere) return s
@@ -536,11 +542,13 @@ useConnectionStore.subscribe((s, prev) => {
     const a = useAuthStore.getState()
     return apiClient.getEpoch() === epoch && a.isAuthenticated && a.validatedServerId === id
   }
-  // two pings a few seconds apart, both silent: a server that is only busy (a burst of requests) keeps the dashboard
+  // two pings a few seconds apart, both silent and nothing else answered meanwhile: a server that is only busy (a burst of
+  // requests the ping waited behind) keeps the dashboard
+  const since = Date.now()
   void (async () => {
     for (let i = 0; i < 2; i++) {
       if (i) await new Promise((r) => setTimeout(r, 4000))
-      if (!stillHere() || (await apiClient.testConnection())) return
+      if (!stillHere() || (await apiClient.testConnection()) || apiClient.answeredSince(since)) return
     }
     if (!stillHere()) return
     leaveServer()
@@ -557,10 +565,19 @@ useConnectionStore.subscribe((s, prev) => {
  */
 export function endSavedSessionsWithoutDeviceSession(): boolean {
   if (hasLocalSession()) return false
+  syncServers()
   const st = useServerStore.getState()
   if (!st.servers.some((s) => s.session?.token)) return true
   const servers = st.servers.map((s) => (s.session?.token ? { ...s, session: null } : s))
   useServerStore.setState({ servers })
   persistServers(servers, st.activeServerId)
   return true
+}
+
+// another tab saved the list (a server added, removed or renamed, a session saved): this tab shows it too, and keeps the
+// server it is on
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (e) => {
+    if (e.key === STORAGE_KEY && loaded) syncServers()
+  })
 }

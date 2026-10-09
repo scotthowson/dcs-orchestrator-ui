@@ -13,9 +13,8 @@ import {
 } from 'lucide-react'
 import { usePolling } from '../hooks/usePolling'
 import { useFleetScope } from '../hooks/useFleetScope'
-import { fetchLogsOn, fetchLogStatsOn, fetchLogArchivesOn } from '../api/fleetScoped'
-import { useLogStore } from '../stores/logStore'
-import { useConnectionStore } from '../stores/connectionStore'
+import { fetchLogStats } from '../api/endpoints'
+import { fetchLogsOn, fetchLogArchivesOn } from '../api/fleetScoped'
 import LiveLogViewer from '../components/logs/LiveLogViewer'
 import FleetScopeChips from '../components/fleet/FleetScopeChips'
 import VmCapsule from '../components/fleet/VmCapsule'
@@ -104,8 +103,6 @@ export default function Logs() {
   const [archivesLoading, setArchivesLoading] = useState(false)
   const [archivesError, setArchivesError] = useState<Error | null>(null)
 
-  const setLogs = useLogStore((s) => s.setLogs)
-  const isConnected = useConnectionStore((s) => s.status) === 'connected'
 
   // a hub: the hub's own framework log or one VM's (through the hub's proxy, polled — streams do not ride it);
   // Everywhere is a view of lists, so here it shows the hub's log and says a VM's is one chip away
@@ -121,18 +118,11 @@ export default function Logs() {
     }, scopeMember),
   }), [lineCount, serverLevel, serverSearch, scopeMember])
 
-  const { data: tagged, loading: polling, error, refresh } = usePolling<{ member: string | null; res: LogsResponse }>(fetchFn, scopeMember ? 5000 : 3000, {
-    enabled: isConnected,
-  })
+  const { data: tagged, loading: polling, error, refresh } = usePolling<{ member: string | null; res: LogsResponse }>(fetchFn, scopeMember ? 5000 : 3000)
   const data = tagged && tagged.member === scopeMember ? tagged.res : null
   const loading = polling || !data
   const memberRef = useRef(scopeMember)
   useEffect(() => { if (memberRef.current !== scopeMember) { memberRef.current = scopeMember; refresh() } }, [scopeMember, refresh])
-
-  // Sync to store (a VM's log is not this server's: it stays on this page)
-  useEffect(() => {
-    if (data && !scopeMember) setLogs(data.logs, data.log_file)
-  }, [data, setLogs, scopeMember])
 
   const rawLogs = data?.logs ?? ''
 
@@ -241,7 +231,7 @@ export default function Logs() {
     setStatsLoading(true)
     setStatsError(null)
     try {
-      const result = await fetchLogStatsOn(scopeMember)
+      const result = await fetchLogStats(scopeMember)
       setStats(result)
     } catch (err: unknown) {
       setStatsError(err instanceof Error ? err : new Error(String(err)))

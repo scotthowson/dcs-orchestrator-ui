@@ -10,7 +10,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { AlertTriangle, Braces, ChevronRight, Clock, Eye, EyeOff, Filter, Info, KeyRound, ListChecks, Loader2, Palette, RefreshCw, RotateCcw, Save, ShieldCheck, Trash2, Undo2, Webhook } from 'lucide-react'
 import { usePolling } from '../../hooks/usePolling'
-import { useConnectionStore } from '../../stores/connectionStore'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { useToast } from '../common/Toast'
 import { useConfirm } from '../common/ConfirmDialog'
@@ -100,7 +99,6 @@ function Template({ children }: { children: string }) {
 
 export default function NotificationsTab() {
   const { member } = useCs()
-  const isConnected = useConnectionStore((s) => s.status === 'connected')
   const lastRef = useRef<CrowdSecNotifyResponse | null>(null)
   const fetchNow = async (): Promise<CrowdSecNotifyResponse> => {
     // while a change is being applied CrowdSec is restarting: asking it would only fail, and the answer would be older than the change
@@ -114,7 +112,7 @@ export default function NotificationsTab() {
     lastRef.current = d
     return d
   }
-  const poll = usePolling<CrowdSecNotifyResponse>(fetchNow, 30000, { enabled: isConnected })
+  const poll = usePolling<CrowdSecNotifyResponse>(fetchNow, 30000)
   const data = poll.data
 
   if (!data && poll.error) {

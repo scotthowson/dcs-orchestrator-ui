@@ -6,13 +6,12 @@
 
 import { useMemo } from 'react'
 import { usePolling } from './usePolling'
-import { useConnectionStore } from '../stores/connectionStore'
 import { fetchStacks } from '../api/endpoints'
+import { pollKeys } from '../api/pollKeys'
 import { scopeMember, type FleetScope } from './useFleetScope'
 
 export function useStackCounts(scope: FleetScope): { total: number; running: number; sleeping: number; loaded: boolean } {
-  const isConnected = useConnectionStore((s) => s.status === 'connected')
-  const { data } = usePolling(fetchStacks, 30000, { enabled: isConnected })
+  const { data } = usePolling(fetchStacks, 30000, { key: pollKeys.stacks })
   return useMemo(() => {
     const all = data?.stacks ?? []
     const member = scopeMember(scope)

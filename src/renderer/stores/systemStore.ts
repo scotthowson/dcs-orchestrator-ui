@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { ServerStatus, SystemInfo, APIVersion } from '../../shared/types'
+import { resetsWithServer } from '../lib/serverScope'
 
 const SPARK_MAX = 20
 
@@ -15,7 +16,6 @@ interface SystemState {
   status: ServerStatus | null
   system: SystemInfo | null
   version: APIVersion | null
-  loading: boolean
   /** why the last status poll failed; cleared by the next status */
   error: string | null
   metricHistory: MetricHistory
@@ -23,7 +23,6 @@ interface SystemState {
   setError: (error: string | null) => void
   setSystem: (system: SystemInfo) => void
   setVersion: (version: APIVersion) => void
-  setLoading: (loading: boolean) => void
   pushMetrics: (vals: { stacks?: number; containers?: number; health?: number; cpu?: number; mem?: number }) => void
 }
 
@@ -36,7 +35,6 @@ export const useSystemStore = create<SystemState>((set) => ({
   status: null,
   system: null,
   version: null,
-  loading: false,
   error: null,
   metricHistory: { stacks: [], containers: [], health: [], cpu: [], mem: [] },
 
@@ -44,7 +42,6 @@ export const useSystemStore = create<SystemState>((set) => ({
   setError: (error) => set({ error }),
   setSystem: (system) => set({ system }),
   setVersion: (version) => set({ version }),
-  setLoading: (loading) => set({ loading }),
   pushMetrics: (vals) => set((state) => {
     const h = { ...state.metricHistory }
     if (vals.stacks !== undefined) h.stacks = pushToRing(h.stacks, vals.stacks)
@@ -55,3 +52,5 @@ export const useSystemStore = create<SystemState>((set) => ({
     return { metricHistory: h }
   }),
 }))
+
+resetsWithServer(useSystemStore)

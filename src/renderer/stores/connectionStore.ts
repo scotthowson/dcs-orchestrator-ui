@@ -64,13 +64,22 @@ const HEARTBEAT_FAIL_THRESHOLD = 3 // require 3 consecutive failures (30s) befor
 function startHeartbeat(connectFn: () => Promise<boolean>) {
   stopHeartbeat()
   heartbeatFailCount = 0
+  let lastBeatAt = Date.now()
   heartbeatTimer = setInterval(async () => {
     try {
+      const beatAt = Date.now()
       const t0 = performance.now()
       const ok = await apiClient.testConnection()
+      // the ping can wait behind the dashboard's own requests (six connections per server) and time out while the server
+      // answers everything else: a beat is missed only when nothing at all answered since the one before
+      const alive = !ok && apiClient.answeredSince(lastBeatAt)
+      lastBeatAt = beatAt
       if (ok) {
         heartbeatFailCount = 0
         useConnectionStore.setState({ latencyMs: recordLatency(Math.round(performance.now() - t0)), heartbeatFailures: 0 })
+      } else if (alive) {
+        heartbeatFailCount = 0
+        useConnectionStore.setState({ heartbeatFailures: 0 })
       } else {
         heartbeatFailCount++
         useConnectionStore.setState({ heartbeatFailures: heartbeatFailCount })

@@ -34,6 +34,7 @@ import {
 } from 'lucide-react'
 import { createPortal } from 'react-dom'
 import { usePolling } from '../hooks/usePolling'
+import { pollKeys } from '../api/pollKeys'
 import type { RouteCertificatesResponse } from '../../shared/types'
 import { useConnectionStore } from '../stores/connectionStore'
 import { useAuthStore } from '../stores/authStore'
@@ -56,9 +57,9 @@ type FleetRoute = RouteEntry & { member?: string; member_name?: string; vmid?: n
 import { LoadingState, EmptyState, ErrorState } from '../components/common/PageState'
 import {
   fetchRoutes, fetchDnsRecords, fetchDnsStatus, fetchDnsZones, checkSubdomain, updateRoute, deleteRoute, fetchRouteCertificates,
-  fetchTraefikStatus, createDnsRecord, updateDnsRecord, deleteDnsRecord, syncDnsRecords,
-  type RouteEntry, type DnsRecord, type DnsRecordInput, type DnsZone, fetchDomains,
+  fetchTraefikStatus, createDnsRecord, updateDnsRecord, deleteDnsRecord, syncDnsRecords, fetchDomains,
 } from '../api/endpoints'
+import type { RouteEntry, DnsRecord, DnsRecordInput, DnsZone } from '../../shared/types'
 import ModalOverlay from '../components/common/ModalOverlay'
 import DomainsPanel from '../components/dns/DomainsPanel'
 
@@ -407,13 +408,13 @@ export default function DNS() {
   const [zones, setZones] = useState<DnsZone[]>([])
 
   // ---- Data ----
-  const { data: routesData, loading: routesLoading, error: routesError, refresh: refreshRoutes } = usePolling(fetchRoutes, 30000, { enabled: isConnected })
-  const { data: dnsStatus, refresh: refreshStatus } = usePolling(fetchDnsStatus, 60000, { enabled: isConnected })
+  const { data: routesData, loading: routesLoading, error: routesError, refresh: refreshRoutes } = usePolling(fetchRoutes, 30000, { key: pollKeys.routes })
+  const { data: dnsStatus, refresh: refreshStatus } = usePolling(fetchDnsStatus, 60000)
   const fetchRecords = useCallback(() => fetchDnsRecords(zoneId ? { zone: zoneId } : {}), [zoneId])
-  const { data: dnsData, loading: dnsLoading, error: dnsError, refresh: refreshDns } = usePolling(fetchRecords, 60000, { enabled: isConnected })
-  const { data: traefikStatus } = usePolling(fetchTraefikStatus, 60000, { enabled: isConnected })
-  const { data: certs, loading: certsLoading, error: certsError, refresh: refreshCerts } = usePolling(fetchRouteCertificates, 120000, { enabled: isConnected && !!traefikStatus?.active })
-  const { data: domainsData, refresh: refreshDomains } = usePolling(fetchDomains, 60000, { enabled: isConnected && !!traefikStatus?.active })
+  const { data: dnsData, loading: dnsLoading, error: dnsError, refresh: refreshDns } = usePolling(fetchRecords, 60000)
+  const { data: traefikStatus } = usePolling(fetchTraefikStatus, 60000)
+  const { data: certs, loading: certsLoading, error: certsError, refresh: refreshCerts } = usePolling(fetchRouteCertificates, 120000, { enabled: !!traefikStatus?.active })
+  const { data: domainsData, refresh: refreshDomains } = usePolling(fetchDomains, 60000, { enabled: !!traefikStatus?.active })
 
   const routes = routesData?.routes ?? []
   const domain = routesData?.domain ?? dnsStatus?.domain ?? traefikStatus?.domain ?? ''

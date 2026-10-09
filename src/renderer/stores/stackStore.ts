@@ -1,15 +1,12 @@
 import { create } from 'zustand'
-import { StackInfo, StackDetail } from '../../shared/types'
+import { StackInfo } from '../../shared/types'
+import { onServerReset } from '../lib/serverScope'
 
 interface StackState {
   stacks: StackInfo[]
-  selectedStack: StackDetail | null
-  loading: boolean
   actionLoading: string | null
   lastActionTimestamps: Record<string, number>
   setStacks: (stacks: StackInfo[]) => void
-  setSelectedStack: (detail: StackDetail | null) => void
-  setLoading: (loading: boolean) => void
   setActionLoading: (name: string | null) => void
   recordAction: (stackName: string) => void
 }
@@ -24,14 +21,10 @@ function loadActionTimestamps(): Record<string, number> {
 
 export const useStackStore = create<StackState>((set, get) => ({
   stacks: [],
-  selectedStack: null,
-  loading: false,
   actionLoading: null,
   lastActionTimestamps: loadActionTimestamps(),
 
   setStacks: (stacks) => set({ stacks }),
-  setSelectedStack: (detail) => set({ selectedStack: detail }),
-  setLoading: (loading) => set({ loading }),
   setActionLoading: (name) => set({ actionLoading: name }),
   recordAction: (stackName) => {
     const updated = { ...get().lastActionTimestamps, [stackName]: Date.now() }
@@ -39,3 +32,6 @@ export const useStackStore = create<StackState>((set, get) => ({
     set({ lastActionTimestamps: updated })
   },
 }))
+
+// the stacks are the server's; the action times are this device's
+onServerReset(() => useStackStore.setState({ stacks: [], actionLoading: null }))

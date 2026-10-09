@@ -4,9 +4,8 @@
 
 import { useCallback, useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { useApi } from '../hooks/useApi'
+import { usePolling } from '../hooks/usePolling'
 import { useStackStore } from '../stores/stackStore'
-import { useConnectionStore } from '../stores/connectionStore'
 import { useSettingsStore } from '../stores/settingsStore'
 import { useAuthStore } from '../stores/authStore'
 import { useToast } from '../components/common/Toast'
@@ -31,8 +30,8 @@ import {
 import { DisconnectedBanner } from '../components/common/DisconnectedBanner'
 import { activityOutcome, startedInBackground, waitForStackActivity } from '../lib/stackActivity'
 import { useFleetRole } from '../hooks/useFleetRole'
-import { usePolling } from '../hooks/usePolling'
 import { fetchFleetJobs, fetchFleetProvisionDefaults, fetchProxmoxCapabilities } from '../api/endpoints'
+import { pollKeys } from '../api/pollKeys'
 import NewVmSheet from '../components/fleet/NewVmSheet'
 import ModalOverlay from '../components/common/ModalOverlay'
 import Hint from '../components/common/Hint'
@@ -44,7 +43,6 @@ import { BTN_TOOLBAR, BTN_CARD_QUIET, BTN_ICON_SM, BTN_SHEET_PRIMARY, TONE_QUIET
 
 export default function Stacks() {
   const { stacks, setStacks, actionLoading, setActionLoading } = useStackStore()
-  const isConnected = useConnectionStore((s) => s.status === 'connected')
   const userRole = useAuthStore((s) => s.userRole)
   const isAdmin = userRole === 'admin'
   const [selectedStackName, setSelectedStackName] = useState<string | null>(null)
@@ -53,9 +51,9 @@ export default function Stacks() {
   const [showNewVm, setShowNewVm] = useState(false)
   const [moveStack, setMoveStack] = useState<string | null>(null)   // a hub stack on its way into a VM
   // building VMs is an admin's: the server refuses these reads to anyone else (and the controls that use them are an admin's)
-  const jobs = usePolling(fetchFleetJobs, 5000, { enabled: isConnected && hubMode && isAdmin })
-  const provDefaults = usePolling(fetchFleetProvisionDefaults, 60000, { enabled: isConnected && hubMode && isAdmin })
-  const caps = usePolling(fetchProxmoxCapabilities, 60000, { enabled: isConnected && hubMode && isAdmin })
+  const jobs = usePolling(fetchFleetJobs, 5000, { key: pollKeys.fleetJobs, enabled: hubMode && isAdmin })
+  const provDefaults = usePolling(fetchFleetProvisionDefaults, 60000, { key: pollKeys.fleetProvisionDefaults, enabled: hubMode && isAdmin })
+  const caps = usePolling(fetchProxmoxCapabilities, 60000, { key: pollKeys.proxmoxCapabilities, enabled: hubMode && isAdmin })
   const navigationPayload = useSettingsStore((s) => s.navigationPayload)
   const { addToast } = useToast()
 
@@ -125,10 +123,8 @@ export default function Stacks() {
   const [showBatchProgress, setShowBatchProgress] = useState(false)
   const [batchTotal, setBatchTotal] = useState(0)
 
-  // Poll stacks list every 5 seconds
-  const { data: stacksData, loading: stacksLoading, error: stacksError, refresh } = useApi(fetchStacks, 5000, {
-    enabled: isConnected,
-  })
+  // Poll stacks list every 5 seconds (the request every card and badge that lists the stacks shares)
+  const { data: stacksData, loading: stacksLoading, error: stacksError, refresh } = usePolling(fetchStacks, 5000, { key: pollKeys.stacks })
 
   // Sync fetched data into the store
   useEffect(() => {

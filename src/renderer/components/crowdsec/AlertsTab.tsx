@@ -8,7 +8,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Search, X, ChevronDown, ChevronRight, RefreshCw, Info, BellOff, FlaskConical, Loader2, AlertTriangle } from 'lucide-react'
 import { usePolling } from '../../hooks/usePolling'
-import { useConnectionStore } from '../../stores/connectionStore'
 import { crowdsecAlerts } from '../../api/endpoints'
 import type { CrowdSecAlert, CrowdSecFacet } from '../../../shared/types'
 import { BTN_QUIET, CARD, Chip, Country, ICON_BTN, INPUT, Segmented, Skel, countryName, fmtAgo, fmtNum, fmtTime, looksLikeTarget, useCs, useDebounced, useNow } from './kit'
@@ -117,7 +116,6 @@ function OutcomeChip({ a }: { a: CrowdSecAlert }) {
 
 export default function AlertsTab({ seedSearch }: { seedSearch?: string }) {
   const { member } = useCs()
-  const isConnected = useConnectionStore((s) => s.status === 'connected')
   const isDesktop = useIsDesktop()
   const now = useNow()
   const [win, setWinState] = useState<Win>(loadWin)
@@ -152,7 +150,7 @@ export default function AlertsTab({ seedSearch }: { seedSearch?: string }) {
     try {
       return { view: JSON.stringify({ ...q, limit: 0 }), main: await crowdsecAlerts(q, member) }
     } finally { setFetching(false) }
-  }, 15000, { enabled: isConnected })
+  }, 15000)
   const refresh = poll.refresh
   const first = useRef(true)
   useEffect(() => { if (first.current) { first.current = false; return } refresh() }, [queryKey, refresh])

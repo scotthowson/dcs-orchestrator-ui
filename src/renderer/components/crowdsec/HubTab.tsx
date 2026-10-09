@@ -8,11 +8,11 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Package, Sparkles, Search, Plus, Trash2, RefreshCw, CircleArrowUp, Loader2, X, AlertTriangle, ChevronDown, Info } from 'lucide-react'
-import { useConnectionStore } from '../../stores/connectionStore'
 import { useToast } from '../common/Toast'
 import { useConfirm } from '../common/ConfirmDialog'
 import { ApiTimeoutError } from '../../api/client'
 import { crowdsecHub, crowdsecHubAvailable, crowdsecHubInstall, crowdsecHubRemove, crowdsecHubUpdate, crowdsecHubUpgrade } from '../../api/endpoints'
+import { usePolling } from '../../hooks/usePolling'
 import type { CrowdSecHubAvailableResponse, CrowdSecHubItem, CrowdSecHubResponse } from '../../../shared/types'
 import { BTN_PRIMARY, BTN_QUIET, CARD, Chip, INPUT, SectionHead, Segmented, Skel, errMsg, fmtNum, useCs, useDebounced, useNow } from './kit'
 
@@ -88,7 +88,6 @@ function StatusChips({ item }: { item: CrowdSecHubItem }) {
 
 export default function HubTab() {
   const { member, isAdmin, refreshStatus } = useCs()
-  const isConnected = useConnectionStore((s) => s.status === 'connected')
   const { addToast } = useToast()
   const confirm = useConfirm()
   const [kind, setKind] = useState<Kind>('collections')
@@ -111,12 +110,8 @@ export default function HubTab() {
       return null
     }
   }, [member])
-  useEffect(() => { void reload() }, [reload])
-  useEffect(() => {
-    if (!isConnected || busy) return
-    const t = setInterval(() => { if (!document.hidden) void reload() }, 30000)
-    return () => clearInterval(t)
-  }, [isConnected, busy, reload])
+  // read now (and at once for another server), then every 30 s while nothing is being changed
+  usePolling(reload, 30000, { key: `crowdsec-hub:${member ?? 'hub'}`, enabled: !busy })
 
   // ---- what could be installed ----
   const [avail, setAvail] = useState<{ key: string; res: CrowdSecHubAvailableResponse } | null>(null)

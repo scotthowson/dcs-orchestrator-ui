@@ -1,5 +1,8 @@
 import { create } from 'zustand'
 import { ContainerInfo, ContainerStats } from '../../shared/types'
+import { refreshPoll } from '../lib/poll'
+import { pollKeys } from '../api/pollKeys'
+import { onServerReset } from '../lib/serverScope'
 
 export interface StatsHistoryEntry {
   time: number
@@ -13,12 +16,7 @@ interface ContainerState {
   statsHistory: Record<string, StatsHistoryEntry[]>
   favorites: string[]
   loading: boolean
-  /** Epoch ms of the last successful list fetch; 0 until the first one lands */
-  fetchedAt: number
-  /** Registered by GlobalPoller: fetches the list (and bulk stats) once, now */
-  refresher: (() => Promise<void>) | null
-  setRefresher: (fn: (() => Promise<void>) | null) => void
-  /** Fetch the list now through the global poller (no-op until it is registered) */
+  /** Fetch the list now: the global poller's request (GlobalPoller fills the store with its answer) */
   refresh: () => Promise<void>
   setContainers: (containers: ContainerInfo[]) => void
   setStats: (name: string, stats: ContainerStats) => void
@@ -42,22 +40,18 @@ function loadFavorites(): string[] {
   }
 }
 
-export const useContainerStore = create<ContainerState>((set, get) => ({
+export const useContainerStore = create<ContainerState>((set) => ({
   containers: [],
   stats: {},
   statsHistory: {},
   favorites: loadFavorites(),
   // True until the first list arrives, so an empty list is never shown as "no containers"
   loading: true,
-  fetchedAt: 0,
-  refresher: null,
 
-  setRefresher: (fn) => set({ refresher: fn }),
   refresh: async () => {
-    const fn = get().refresher
-    if (fn) await fn()
+    refreshPoll(pollKeys.containers())
   },
-  setContainers: (containers) => set({ containers, loading: false, fetchedAt: Date.now() }),
+  setContainers: (containers) => set({ containers, loading: false }),
   setStats: (name, stats) =>
     set((state) => ({
       stats: { ...state.stats, [name]: stats },
@@ -90,3 +84,6 @@ export const useContainerStore = create<ContainerState>((set, get) => ({
 export function selectStatsHistory(name: string) {
   return (s: ContainerState) => s.statsHistory[name] ?? EMPTY_HISTORY
 }
+
+// what the server said goes with it; the favourites are this device's
+onServerReset(() => useContainerStore.setState({ containers: [], stats: {}, statsHistory: {}, loading: true }))

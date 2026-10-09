@@ -127,8 +127,8 @@ function saveToCache(layout: DashboardLayout): void {
 /** Save layout to the server. Resolves false when the server refused (the cache still holds it). */
 async function saveToServer(layout: DashboardLayout): Promise<boolean> {
   try {
-    const { apiClient } = await import('../api/client')
-    await apiClient.post('/settings/dashboard', { layout })
+    const { saveDashboardLayout } = await import('../api/endpoints')
+    await saveDashboardLayout(layout)
     return true
   } catch {
     return false
@@ -138,8 +138,8 @@ async function saveToServer(layout: DashboardLayout): Promise<boolean> {
 /** Fetch layout from server */
 async function fetchFromServer(): Promise<DashboardLayout | null> {
   try {
-    const { apiClient } = await import('../api/client')
-    const res = await apiClient.get<{ layout: DashboardLayout }>('/settings/dashboard')
+    const { fetchDashboardLayout } = await import('../api/endpoints')
+    const res = await fetchDashboardLayout()
     return res.layout
   } catch {
     return null

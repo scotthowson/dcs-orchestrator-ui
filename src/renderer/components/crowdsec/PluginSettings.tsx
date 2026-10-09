@@ -10,7 +10,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Plug, Loader2, Save, RotateCcw, Info, TriangleAlert, ShieldCheck, Undo2 } from 'lucide-react'
 import { useToast } from '../common/Toast'
-import { useConnectionStore } from '../../stores/connectionStore'
 import { usePolling } from '../../hooks/usePolling'
 import { crowdsecPlugin, crowdsecSavePlugin } from '../../api/endpoints'
 import type { CrowdSecPluginSettings } from '../../../shared/types'
@@ -53,8 +52,7 @@ function numProblem(v: string, [lo, hi]: [number, number], unit: string): string
 export default function PluginSettings() {
   const { member, isAdmin, status, refreshStatus, goTab } = useCs()
   const { addToast } = useToast()
-  const isConnected = useConnectionStore((s) => s.status === 'connected')
-  const poll = usePolling(() => crowdsecPlugin(member), 60000, { enabled: isConnected })
+  const poll = usePolling(() => crowdsecPlugin(member), 60000)
   const data = poll.data
   const [draft, setDraft] = useState<Draft | null>(null)
   const [base, setBase] = useState<Draft | null>(null)

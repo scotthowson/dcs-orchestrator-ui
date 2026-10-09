@@ -17,6 +17,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { Badge, SegmentedControl } from '@mantine/core'
 import { Radio, Trash2, ArrowDown, ArrowDownToLine } from 'lucide-react'
 import { sseClient, fleetTagOf, type SSEMessage, type SSEEventType, type FleetTag } from '../../lib/sse'
+import { useLiveEvent } from '../../hooks/useLiveStream'
 import type { ScopeMember } from '../../hooks/useFleetScope'
 import VmCapsule from '../fleet/VmCapsule'
 import { EmptyState } from '../common/PageState'
@@ -86,18 +87,6 @@ function tagFor(event: SSEMessage, scope: string, members: ScopeMember[]): Fleet
   return { member: scope, member_name: m?.name, vmid: m?.vmid ?? null }
 }
 
-/** Whether the live stream is open, checked every second while `watch` (the Live stream tab shows) */
-export function useSseConnected(watch: boolean): boolean {
-  const [connected, setConnected] = useState(() => sseClient.isConnected())
-  useEffect(() => {
-    if (!watch) return
-    setConnected(sseClient.isConnected())
-    const t = setInterval(() => setConnected(sseClient.isConnected()), 1000)
-    return () => clearInterval(t)
-  }, [watch])
-  return connected
-}
-
 export default function LiveStream({ active, scope, members, memberName, sseConnected, onScope }: {
   /** the tab shows (the component stays mounted behind the other tabs, so what it caught is kept) */
   active: boolean
@@ -125,15 +114,13 @@ export default function LiveStream({ active, scope, members, memberName, sseConn
   }, [scope])
 
   // ---- Subscription ----
-  useEffect(() => {
-    return sseClient.on('*', (event: SSEMessage) => {
-      const entry: FeedEvent = { ...event, tag: tagFor(event, scopeRef.current, membersRef.current) }
-      setEvents((prev) => {
-        const next = [...prev, entry]
-        return next.length > MAX_EVENTS ? next.slice(next.length - MAX_EVENTS) : next
-      })
+  useLiveEvent('*', (event: SSEMessage) => {
+    const entry: FeedEvent = { ...event, tag: tagFor(event, scopeRef.current, membersRef.current) }
+    setEvents((prev) => {
+      const next = [...prev, entry]
+      return next.length > MAX_EVENTS ? next.slice(next.length - MAX_EVENTS) : next
     })
-  }, [])
+  })
 
   // The feed scrolls, not the page: scrollIntoView on a marker at its end would scroll every scrollable
   // ancestor too, and pull the page's own header out of view each time an event arrives.

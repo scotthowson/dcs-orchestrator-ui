@@ -7,7 +7,6 @@
 
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { useContainerStore } from '../stores/containerStore'
-import { useConnectionStore } from '../stores/connectionStore'
 import { useSettingsStore } from '../stores/settingsStore'
 import { useAuthStore } from '../stores/authStore'
 import { Loader2 } from 'lucide-react'
@@ -19,7 +18,10 @@ import { OnDemandMissingBanner } from '../components/common/OnDemandMissingBanne
 import { useToast } from '../components/common/Toast'
 import { usePolling } from '../hooks/usePolling'
 import { useFleetScope } from '../hooks/useFleetScope'
-import { fetchContainersScoped, scopeContainerRows, rowKey } from '../api/fleetScoped'
+import { scopeContainerRows, rowKey } from '../api/fleetScoped'
+import { fetchContainers } from '../api/endpoints'
+import { memberOf } from '../api/fleetScopedOps'
+import { pollKeys } from '../api/pollKeys'
 import type { ContainerInfo } from '../../shared/types'
 import type { FleetContainerListResponse, RowMember, ScopeMemberTag } from '../../shared/fleetScoped'
 
@@ -34,7 +36,6 @@ function selectionMatches(sel: Selection, c: ContainerInfo): boolean {
 const Containers: React.FC = () => {
   const storeContainers = useContainerStore((s) => s.containers)
   const storeLoading = useContainerStore((s) => s.loading)
-  const isConnected = useConnectionStore((s) => s.status === 'connected')
   const isAdmin = useAuthStore((s) => s.userRole) === 'admin'
   const { addToast } = useToast()
 
@@ -45,13 +46,14 @@ const Containers: React.FC = () => {
     [scopeMember, memberName, scopeMembers],
   )
 
-  // The list of the chosen scope, tagged with the scope it was asked for so a
-  // switch never shows the old rows under the new label
-  const fetchScoped = useCallback(async () => ({ scope, res: await fetchContainersScoped(scope) }), [scope])
-  const { data, loading: scopedLoading, error, refresh: refreshScoped } = usePolling<{ scope: string; res: FleetContainerListResponse }>(fetchScoped, 10000, { enabled: isConnected })
-  const scopeRef = useRef(scope)
-  useEffect(() => { if (scopeRef.current !== scope) { scopeRef.current = scope; refreshScoped() } }, [scope, refreshScoped])
-  const current = data && data.scope === scope ? data.res : null
+  // The list of the chosen scope. A hub's own list already carries every VM's containers (tagged), so everywhere and the hub
+  // ask the request the global poller keeps (one request for both); a VM asks its own. Only the answer of the scope shown
+  // counts: a switch never shows the old rows under the new label
+  const scopeMemberId = memberOf(scope)
+  const containersKey = pollKeys.containers(scopeMemberId)
+  const scoped = usePolling<FleetContainerListResponse>(() => fetchContainers(scopeMemberId), 10000, { key: containersKey })
+  const { loading: scopedLoading, error, refresh: refreshScoped } = scoped
+  const current = scoped.dataKey === containersKey ? scoped.data : null
   // the hub's own list is what the global poller keeps in the store: the page opens with it before its own fetch lands
   const containers = useMemo<ContainerInfo[]>(
     () => (current ? scopeContainerRows(scope, current.containers, vmTag) : scope === 'hub' ? storeContainers.filter((c) => !c.member) : []),
@@ -59,12 +61,13 @@ const Containers: React.FC = () => {
   )
   const loading = current ? false : scope === 'hub' ? storeLoading && scopedLoading : true
 
-  // The global poller feeds the dashboard's container card: after an action both lists are asked for a fresh copy
+  // The global poller feeds the dashboard's container card: after an action both lists are asked for a fresh copy (one request
+  // when the page shows the hub's own list)
   const refreshContainers = useContainerStore((s) => s.refresh)
-  useEffect(() => {
-    if (isConnected) void refreshContainers()
-  }, [isConnected, refreshContainers])
-  const refresh = useCallback(() => { refreshScoped(); void refreshContainers() }, [refreshScoped, refreshContainers])
+  const refresh = useCallback(() => {
+    refreshScoped()
+    if (scopeMemberId) void refreshContainers()
+  }, [refreshScoped, refreshContainers, scopeMemberId])
 
   const [selected, setSelected] = useState<Selection | null>(null)
   const navigationPayload = useSettingsStore((s) => s.navigationPayload)

@@ -6,6 +6,7 @@ import { useFleetRole } from '../../hooks/useFleetRole'
 import { useFleetTotals } from '../../hooks/useFleetTotals'
 import { useStackCounts } from '../../hooks/useStackCounts'
 import { usePolling } from '../../hooks/usePolling'
+import { pollKeys } from '../../api/pollKeys'
 import { fetchStacks } from '../../api/endpoints'
 import React, { useEffect, useRef, useState } from 'react'
 import { Layers, Box, HardDrive, HeartPulse } from 'lucide-react'
@@ -260,8 +261,7 @@ export default function OverviewCards() {
   // --- Stacks ---
   // a hub: the cards count the whole fleet — its own stacks and containers plus every VM's
   const { isHub } = useFleetRole()
-  const isConnectedFleet = useConnectionStore((s) => s.status === 'connected')
-  const fleetStacks = usePolling(fetchStacks, 30000, { enabled: isConnectedFleet && isHub })
+  const fleetStacks = usePolling(fetchStacks, 30000, { key: pollKeys.stacks, enabled: isHub })
   const { totals: fleet } = useFleetTotals()
   const vmStacks = isHub ? (fleetStacks.data?.stacks ?? []).filter((s) => s.placement === 'vm') : []
   // a stack asleep on demand is fine (the first request wakes it): it counts with the running ones

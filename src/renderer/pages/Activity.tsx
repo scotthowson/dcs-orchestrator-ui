@@ -13,6 +13,7 @@ import { useState, useCallback, useEffect, useRef, type KeyboardEvent } from 're
 import { Badge } from '@mantine/core'
 import { RefreshCw, History, Radio, FileText, type LucideIcon } from 'lucide-react'
 import { usePolling } from '../hooks/usePolling'
+import { pollKeys } from '../api/pollKeys'
 import { fetchEvents } from '../api/endpoints'
 import { useFleetScope } from '../hooks/useFleetScope'
 import FleetScopeChips from '../components/fleet/FleetScopeChips'
@@ -24,7 +25,8 @@ import { useLogStore } from '../stores/logStore'
 import { DisconnectedBanner } from '../components/common/DisconnectedBanner'
 import PageHeader from '../components/common/PageHeader'
 import Timeline from '../components/activity/Timeline'
-import LiveStream, { useSseConnected } from '../components/activity/LiveStream'
+import LiveStream from '../components/activity/LiveStream'
+import { useLiveConnected } from '../hooks/useLiveStream'
 import AuditLog, { useAuditLog } from '../components/activity/AuditLog'
 import { BTN_TOOLBAR_QUIET } from '../lib/ui'
 import { FOCUS_RING } from '../lib/pageKit'
@@ -49,8 +51,6 @@ export default function Activity() {
   const isConnected = useConnectionStore((s) => s.status === 'connected')
   // GET /audit is admin-only: a user never sees the tab, and their page never asks for it
   const isAdmin = useAuthStore((s) => s.userRole) === 'admin'
-  const reportPollSuccess = useConnectionStore((s) => s.reportPollSuccess)
-  const reportPollFailure = useConnectionStore((s) => s.reportPollFailure)
   const { scope, setScope, member: scopeMember, memberName, members: scopeMembers, hasFleet } = useFleetScope()
   const showMember = useCallback((m: string | null) => setScope(m ?? 'hub'), [setScope])
 
@@ -74,27 +74,24 @@ export default function Activity() {
     setVisited((v) => (v.has(tab) ? v : new Set(v).add(tab)))
   }, [tab])
 
-  // ---- Timeline: /events every 3 s (6 s everywhere), only while its tab shows ----
+  // ---- Timeline: /events every 3 s (6 s everywhere), only while its tab shows; a new scope asks at once ----
   // (the store is what the dashboard's Recent events card reads; the dashboard polls it itself too)
   const setEvents = useLogStore((s) => s.setEvents)
   const events = useLogStore((s) => s.events)
-  const fetchScopedEvents = useCallback(() => fetchEvents(scope), [scope])
-  const eventsPoll = usePolling<EventsResponse>(fetchScopedEvents, scope === 'all' ? 6000 : 3000, {
-    enabled: isConnected && tab === 'timeline',
-    onError: reportPollFailure,
+  const eventsPoll = usePolling<EventsResponse>(() => fetchEvents(scope), scope === 'all' ? 6000 : 3000, {
+    key: pollKeys.events(scope),
+    enabled: tab === 'timeline',
+    reportsLink: true,
   })
   useEffect(() => {
-    if (eventsPoll.data) {
-      setEvents(eventsPoll.data.events)
-      reportPollSuccess()
-    }
-  }, [eventsPoll.data, setEvents, reportPollSuccess])
+    if (eventsPoll.data) setEvents(eventsPoll.data.events)
+  }, [eventsPoll.data, setEvents])
 
   // ---- Audit log: every 15 s while its tab shows ----
   const audit = useAuditLog(isConnected && isAdmin && tab === 'audit', scope)
 
-  // ---- Live stream: is the stream open (checked while its tab shows) ----
-  const sseConnected = useSseConnected(tab === 'live')
+  // ---- Live stream: is the stream open ----
+  const sseConnected = useLiveConnected()
 
   const refresh = tab === 'timeline' ? eventsPoll.refresh : tab === 'audit' ? audit.refresh : null
   const refreshing = tab === 'timeline' ? eventsPoll.loading : tab === 'audit' ? audit.loading : false

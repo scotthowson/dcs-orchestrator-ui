@@ -18,19 +18,16 @@ import {
   fetchFleetMaintenanceReport,
   fetchFleetOrphans,
   fetchFleetDisk,
-  triggerDeepPruneScoped,
-  triggerLogRotateScoped,
   runDockerPruneScoped,
-  runImagePruneScoped,
   fleetTargets,
   fanOut,
   summarizeOutcomes,
   parseSizeBytes,
 } from '../api/fleetScopedOps'
+import { triggerDeepPrune, triggerLogRotate, runImagePrune } from '../api/endpoints'
 import { useFleetScope } from '../hooks/useFleetScope'
 import FleetScopeChips from '../components/fleet/FleetScopeChips'
 import VmCapsule from '../components/fleet/VmCapsule'
-import { useConnectionStore } from '../stores/connectionStore'
 import { useToast } from '../components/common/Toast'
 import { useConfirm } from '../components/common/ConfirmDialog'
 import { DisconnectedBanner } from '../components/common/DisconnectedBanner'
@@ -162,7 +159,6 @@ important is accidentally removed.`,
 // ---------------------------------------------------------------------------
 
 export default function Maintenance() {
-  const isConnected = useConnectionStore((s) => s.status) === 'connected'
   const { addToast } = useToast()
   const confirm = useConfirm()
 
@@ -187,21 +183,21 @@ export default function Maintenance() {
     data: reportData,
     loading: reportLoading,
     refresh: refreshReport,
-  } = usePolling<FleetMaintenanceReport>(fetchReport, everywhere ? 45000 : 10000, { enabled: isConnected })
+  } = usePolling<FleetMaintenanceReport>(fetchReport, everywhere ? 45000 : 10000)
 
   const fetchOrphans = useCallback(() => fetchFleetOrphans(targetsRef.current), [])
   const {
     data: orphans,
     loading: orphansLoading,
     refresh: refreshOrphans,
-  } = usePolling<FleetOrphanReport>(fetchOrphans, everywhere ? 60000 : 15000, { enabled: isConnected })
+  } = usePolling<FleetOrphanReport>(fetchOrphans, everywhere ? 60000 : 15000)
 
   const fetchDisk = useCallback(() => fetchFleetDisk(targetsRef.current), [])
   const {
     data: disk,
     loading: diskLoading,
     refresh: refreshDisk,
-  } = usePolling<FleetDiskAnalysis>(fetchDisk, everywhere ? 60000 : 15000, { enabled: isConnected })
+  } = usePolling<FleetDiskAnalysis>(fetchDisk, everywhere ? 60000 : 15000)
 
   // another view: ask again right away
   const scopeRef = useRef(scope)
@@ -270,12 +266,12 @@ export default function Maintenance() {
   }, [everywhere, vmCount, targets, scopeMember, whereLabel, confirm, addToast, refreshReport, refreshOrphans, refreshDisk])
 
   const handleSafePrune = () => runAction({ verb: 'Safe prune', done: 'Docker system prune completed', call: runDockerPruneScoped, setBusy: setPruning })
-  const handleImagePrune = () => runAction({ verb: 'Image prune', done: 'Image prune completed', call: runImagePruneScoped, setBusy: setImagePruning })
+  const handleImagePrune = () => runAction({ verb: 'Image prune', done: 'Image prune completed', call: runImagePrune, setBusy: setImagePruning })
   const handleDeepPrune = () => {
     setShowDeepPruneModal(false)
-    void runAction({ verb: 'Deep prune', done: 'Deep prune completed — all unused resources removed', call: triggerDeepPruneScoped, setBusy: setDeepPruning, confirmed: true, danger: true })
+    void runAction({ verb: 'Deep prune', done: 'Deep prune completed — all unused resources removed', call: triggerDeepPrune, setBusy: setDeepPruning, confirmed: true, danger: true })
   }
-  const handleLogRotate = () => runAction({ verb: 'Log rotation', done: 'Logs rotated', call: triggerLogRotateScoped, setBusy: setRotating })
+  const handleLogRotate = () => runAction({ verb: 'Log rotation', done: 'Logs rotated', call: triggerLogRotate, setBusy: setRotating })
 
   // ---- Refresh all ----
   const handleRefreshAll = () => {

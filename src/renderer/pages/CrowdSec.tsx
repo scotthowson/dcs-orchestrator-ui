@@ -13,11 +13,11 @@
 // On a hub the scope chips pick the server (the hub or one VM) the page works on.
 // =============================================================================
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Activity, Ban, Bell, ShieldCheck, MessageSquare, SlidersHorizontal, Package, Plug, ScrollText, RefreshCw, ShieldOff, UserCheck } from 'lucide-react'
 import { usePolling } from '../hooks/usePolling'
+import { pollKeys } from '../api/pollKeys'
 import { useFleetScope } from '../hooks/useFleetScope'
-import { useConnectionStore } from '../stores/connectionStore'
 import { useAuthStore } from '../stores/authStore'
 import { useSettingsStore } from '../stores/settingsStore'
 import { DisconnectedBanner } from '../components/common/DisconnectedBanner'
@@ -48,7 +48,6 @@ function loadTab(): TabId {
 }
 
 export default function CrowdSec() {
-  const isConnected = useConnectionStore((s) => s.status === 'connected')
   const isAdmin = useAuthStore((s) => s.userRole === 'admin')
   const navigationPayload = useSettingsStore((s) => s.navigationPayload)
   const { scope, setScope, member: scopeMember, memberName, members: scopeMembers, hasFleet, pending: scopePending } = useFleetScope()
@@ -76,19 +75,14 @@ export default function CrowdSec() {
     }
   }, [navigationPayload, goTab])
 
-  // the answer carries the server it is about, so the numbers of the hub are never shown under a VM (and a slow answer of the server just left is ignored).
-  // Nothing is asked while the scope is still being worked out (a VM remembered, the VMs not read yet): the page used to
-  // open on the hub, then drop to its skeleton and open again on the VM, remounting the tab
-  const status = usePolling<{ of: string | null; status: CrowdSecStatusResponse }>(async () => ({ of: member, status: await crowdsecStatus(member) }), POLL_MS, { enabled: isConnected && !scopePending })
+  // only the answer of the server shown counts, so the numbers of the hub are never shown under a VM (and a slow answer of the
+  // server just left is ignored); another server chosen is asked at once (a new key). Nothing is asked while the scope is
+  // still being worked out (a VM remembered, the VMs not read yet): the page used to open on the hub, then drop to its
+  // skeleton and open again on the VM, remounting the tab. The dashboard's card asks the hub's status too: one request
+  const statusKey = pollKeys.crowdsecStatus(member)
+  const status = usePolling<CrowdSecStatusResponse>(() => crowdsecStatus(member), POLL_MS, { key: statusKey, enabled: !scopePending })
   const statusRefresh = status.refresh
-  // another server chosen: ask it at once (the first question is the poll's own)
-  const askedFor = useRef<string | null | undefined>(undefined)
-  useEffect(() => {
-    if (scopePending) return
-    if (askedFor.current !== undefined && askedFor.current !== member) statusRefresh()
-    askedFor.current = member
-  }, [member, scopePending, statusRefresh])
-  const s = status.data && status.data.of === member ? status.data.status : null
+  const s = status.dataKey === statusKey ? status.data : null
 
   const ctx = useMemo(() => ({ member, memberName: scopeMember ? memberName : '', isAdmin, status: s, refreshStatus: statusRefresh, goTab }), [member, scopeMember, memberName, isAdmin, s, statusRefresh, goTab])
 

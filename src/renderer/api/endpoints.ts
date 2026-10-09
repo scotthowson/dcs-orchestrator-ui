@@ -8,24 +8,18 @@ import type {
   FleetUpdateResponse,
   FleetImagesCheckResponse,
   FleetTemplatesResponse,
-  APIRoot,
   APIVersion,
   ServerStatus,
   HealthReport,
   StackListResponse,
   StackDetail,
-  StackContainersResponse,
   StackLogsResponse,
   StackActionResponse,
   StackUpdateResponse,
   StackCreateResponse,
   StackDeleteResponse,
   ImageListResponse,
-  ContainerInfo,
-  ContainerDetail,
-  ContainerStats,
   ContainerActionResponse,
-  ContainerLogsResponse,
   ServerConfig,
   ConfigUpdateResponse,
   ProxmoxStatus,
@@ -39,17 +33,16 @@ import type {
   ProxmoxVmAction,
   TraefikFeedStatus,
   TraefikFeedTokenResponse,
-  FleetStatus, FleetMembersResponse, FleetMember, FleetMemberResponse, FleetOverview, FleetDiscoverResponse,
+  FleetStatus, FleetMembersResponse, FleetMemberResponse, FleetOverview, FleetDiscoverResponse,
   FleetJoinTokensResponse, FleetJoinTokenResponse, FleetMemberTestResponse, FleetJoinHubResponse, FleetLeaveResponse,
   FleetMemberSyncResponse, StackPushResponse, StackPullResponse, StackAppDataStatus, MemberFolders, HostFolderOperation, DashboardFeedStatus, WebTerminalStatus, AutheliaSecondStep, AutheliaSecondStepResult, AutheliaSecondStepRepair, AutheliaVerificationCode, ApiKeyInfo, ApiKeyCreated, SshAccess, SshKeyCreated,
-  ProxmoxCapabilities, ProxmoxStorageResponse, FleetProvisionDefaults, FleetProvisionRequest, FleetMoveCheck, FleetProvisionResponse, FleetJob, FleetJobsResponse,
+  ProxmoxCapabilities, FleetProvisionDefaults, FleetProvisionRequest, FleetMoveCheck, FleetProvisionResponse, FleetJob, FleetJobsResponse,
   SystemInfo,
   NetworkListResponse,
   NetworkDetail,
   NetworkCreateResponse,
   NetworkCreateOptions,
   NetworkRecreateResponse,
-  ContainerEnvUpdateResponse,
   NetworkDeleteResponse,
   NetworkActionResponse,
   VolumeListResponse,
@@ -58,7 +51,6 @@ import type {
   LogsResponse,
   EventsResponse,
   MaintenanceResponse,
-  ContainerProcessesResponse,
   StackComposeResponse,
   AuthResponse,
   AuthVerifyResponse,
@@ -76,31 +68,18 @@ import type {
   DiskAnalysis,
   LogRotateResponse,
   LogStatsResponse,
-  LogArchivesResponse,
   BatchStackResponse,
-  RootEnvResponse,
-  EnvValidateResponse,
-  BackupListResponse,
   BackupStatusResponse,
-  BackupConfigResponse,
   BackupTriggerResponse,
-  BackupRestoreResponse,
-  ContainerExecResponse,
   TerminalExecResponse,
-  TerminalHistoryResponse,
   ImageDeleteResponse,
-  ContainerRenameResponse,
-  StackServicesResponse,
   StackActivityResponse,
   SystemMetricsResponse,
   TerminalAuthResponse,
   TerminalAuthVerifyResponse,
   TerminalLogoutResponse,
-  ContainerFilesResponse,
-  ContainerFileContentResponse,
   AlertConfigResponse,
   CrontabResponse,
-  LiveLogsResponse,
   MetricsSnapshotResponse,
   MetricsTrendsResponse,
   ImageCheckResponse,
@@ -114,7 +93,6 @@ import type {
   SnapshotCreateResponse,
   SnapshotRestoreResponse,
   ComposeHistoryResponse,
-  ComposeVersionContentResponse,
   DashboardLayout,
   DashboardLayoutResponse,
   PluginCardsResponse,
@@ -131,33 +109,22 @@ import type {
   AutomationRule,
   AutomationListResponse,
   AutomationHistoryResponse,
-  TopologyResponse,
   SetupStatusResponse,
   SetupDefaultsResponse,
   SetupConfigureRequest,
   SetupConfigureResponse,
   SetupCompleteResponse,
   StackRenameResponse,
-  StackReorderResponse,
   FactoryResetResponse,
-  MetricsHistoryResponse,
-  MetricsSummaryResponse,
-  RollbackSnapshotsResponse,
-  RollbackSnapshotDetail,
-  RollbackRestoreResponse,
-  RollbackDiffResponse,
   SecretsListResponse,
   SecretSetResponse,
   SecretDeleteResponse,
-  SecretExistsResponse,
   SecretReferencesResponse,
   ScheduleListResponse,
   ScheduleCreateResponse,
   Schedule,
   ScheduleHistoryResponse,
   HealthScoreResponse,
-  StackHealthScore,
-  HealthScoreHistoryResponse,
   PluginListResponse,
   PluginCatalogResponse,
   CrowdSecStatusResponse,
@@ -168,15 +135,7 @@ import type {
   CrowdSecSettingsBody, CrowdSecNotifyResponse, CrowdSecNotifyBody, CrowdSecPreviewResponse, CrowdSecNotifyTestResponse, CrowdSecDigestSendResponse, CrowdSecDigestView, CrowdSecServiceResponse, CrowdSecFix,
   PluginInstallResponse,
   PluginDeleteResponse,
-  PluginHooksListResponse,
-  PluginHookContentResponse,
-  PluginHookUpdateResponse,
-  PluginHookTestResponse,
-  PluginLogsResponse,
-  PluginConfigUpdateResponse,
   Plugin,
-  ConfigSchemaResponse,
-  DependencyGraphResponse,
   TemplateImportUrlResponse,
   TemplateGalleryResponse,
   StackCloneResponse,
@@ -185,8 +144,6 @@ import type {
   ExportResponse,
   AuditLogResponse,
   WebhookListResponse,
-  ContainerResetPreview,
-  ContainerResetResponse,
   UserRoleResponse,
   WebhookCreateResponse,
   WebhookDeleteResponse,
@@ -203,26 +160,15 @@ import type {
   RecoveryBundleResponse,
   RecoveryRestoreResponse,
   SystemUpdateHistoryResponse,
-  OsUpdateCheckResponse,
-  OsUpdateApplyResponse,
-  OsUpdateStatusResponse,
   OsUpdatesResponse,
   TotpSetupResponse,
   TotpVerifyResponse,
   TotpValidateResponse,
   RouteCertificatesResponse,
-  SablierToggleResponse, DockerEngineInfo, DockerEngineFleet, DockerEngineStatus, DockerEngineUpdateResponse, FleetDockerEngineUpdateResponse,
+  DockerEngineInfo, DockerEngineFleet, DockerEngineStatus, DockerEngineUpdateResponse, FleetDockerEngineUpdateResponse,
   ProxmoxSelf, StorageOverview, DomainsResponse, DomainChangeResponse,
+  ContainerListResponse, RoutesResponse, RouteCheckResponse, DnsRecord, DnsZone, DnsRecordsResponse, DnsStatusResponse, DnsRecordInput
 } from '../../shared/types'
-
-// ---------------------------------------------------------------------------
-// Root
-// ---------------------------------------------------------------------------
-
-/** GET / — API root with endpoint listing */
-export function fetchApiRoot(): Promise<APIRoot> {
-  return apiClient.get<APIRoot>('/')
-}
 
 // ---------------------------------------------------------------------------
 // Server
@@ -256,8 +202,8 @@ export function updateConfig(updates: Record<string, string | boolean | number>)
 }
 
 /** GET /system — System information */
-export function fetchSystemInfo(): Promise<SystemInfo> {
-  return apiClient.get<SystemInfo>('/system')
+export function fetchSystemInfo(member?: string | null): Promise<SystemInfo> {
+  return apiClient.get<SystemInfo>(memberPath(member, '/system'))
 }
 
 // ---------------------------------------------------------------------------
@@ -277,13 +223,6 @@ export function fetchStacks(member?: string | null): Promise<StackListResponse> 
 /** GET /stacks/:name — Stack detail */
 export function fetchStack(name: string): Promise<StackDetail> {
   return apiClient.get<StackDetail>(`/stacks/${encodeURIComponent(name)}`)
-}
-
-/** GET /stacks/:name/containers — Containers in a stack */
-export function fetchStackContainers(name: string): Promise<StackContainersResponse> {
-  return apiClient.get<StackContainersResponse>(
-    `/stacks/${encodeURIComponent(name)}/containers`,
-  )
 }
 
 /** GET /stacks/:name/logs — Stack logs */
@@ -352,44 +291,13 @@ export function fetchImages(scope?: string | null): Promise<ImageListResponse> {
   return apiClient.get<ImageListResponse>(memberPath(scope === 'hub' ? null : scope, '/images'))
 }
 
-/** GET /images/stale — Stale images only */
-export function fetchStaleImages(): Promise<ImageListResponse> {
-  return apiClient.get<ImageListResponse>('/images/stale')
-}
-
 // ---------------------------------------------------------------------------
 // Containers
 // ---------------------------------------------------------------------------
 
-export interface ContainerListResponse {
-  total: number
-  containers: ContainerInfo[]
-}
-
-/** GET /containers — All containers */
-export function fetchContainers(): Promise<ContainerListResponse> {
-  return apiClient.get<ContainerListResponse>('/containers')
-}
-
-/** GET /containers/:name — Container detail */
-export function fetchContainer(name: string): Promise<ContainerDetail> {
-  return apiClient.get<ContainerDetail>(
-    `/containers/${encodeURIComponent(name)}`,
-  )
-}
-
-/** GET /containers/:name/stats — Container resource stats */
-export function fetchContainerStats(name: string): Promise<ContainerStats> {
-  return apiClient.get<ContainerStats>(
-    `/containers/${encodeURIComponent(name)}/stats`,
-  )
-}
-
-/** GET /containers/:name/logs — Container logs */
-export function fetchContainerLogs(name: string): Promise<ContainerLogsResponse> {
-  return apiClient.get<ContainerLogsResponse>(
-    `/containers/${encodeURIComponent(name)}/logs`,
-  )
+/** GET /containers — All containers (a hub's list carries every VM's, tagged; on a fleet member when one is given) */
+export function fetchContainers(member?: string | null): Promise<ContainerListResponse> {
+  return apiClient.get<ContainerListResponse>(memberPath(member, '/containers'))
 }
 
 /** POST /containers/:name/start — Start a container */
@@ -420,38 +328,6 @@ export function recreateContainer(name: string, member?: string | null): Promise
   )
 }
 
-/** GET /containers/:name/reset — What a nuke & reinstall would remove (admin) */
-export function fetchContainerResetPreview(name: string): Promise<ContainerResetPreview> {
-  return apiClient.get<ContainerResetPreview>(`/containers/${encodeURIComponent(name)}/reset`)
-}
-
-/** POST /containers/:name/reset — Nuke & reinstall: wipe its App-Data (to the trash), optionally its volumes, recreate it */
-export function resetContainer(name: string, body: { confirm: string; wipe_app_data?: boolean; wipe_volumes?: boolean; pull?: boolean }): Promise<ContainerResetResponse> {
-  return apiClient.post<ContainerResetResponse>(`/containers/${encodeURIComponent(name)}/reset`, body, 300000)
-}
-
-/** POST /containers/:name/remove — Force-remove a container */
-export function removeContainer(name: string, member?: string | null): Promise<ContainerActionResponse> {
-  return apiClient.post<ContainerActionResponse>(
-    `/containers/${encodeURIComponent(name)}/remove${member ? `?member=${encodeURIComponent(member)}` : ''}`,
-  )
-}
-
-/** GET /containers/:name/processes — Running processes in a container */
-export function fetchContainerProcesses(name: string): Promise<ContainerProcessesResponse> {
-  return apiClient.get<ContainerProcessesResponse>(
-    `/containers/${encodeURIComponent(name)}/processes`,
-  )
-}
-
-/** POST /containers/:name/exec — Execute a command inside a container */
-export function execContainerCommand(name: string, command: string): Promise<ContainerExecResponse> {
-  return apiClient.post<ContainerExecResponse>(
-    `/containers/${encodeURIComponent(name)}/exec`,
-    { command },
-  )
-}
-
 // ---------------------------------------------------------------------------
 // Infrastructure
 // ---------------------------------------------------------------------------
@@ -468,18 +344,14 @@ export function fetchNetworkDetail(name: string, member?: string | null): Promis
   return apiClient.get<NetworkDetail>(memberPath(member, `/networks/${encodeURIComponent(name)}`))
 }
 
-/**
- * POST /containers/:name/env — Change a Compose service's environment in its
- * stack files (compose entry, or the .env variable it references) and recreate
- * the container unless recreate is false.
- */
-export function updateContainerEnv(name: string, opts: { set?: Record<string, string>; unset?: string[]; recreate?: boolean }): Promise<ContainerEnvUpdateResponse> {
-  return apiClient.post<ContainerEnvUpdateResponse>(`/containers/${encodeURIComponent(name)}/env`, opts, 180000)
-}
-
 /** GET / — The API's own endpoint catalogue (public) */
 export function fetchApiCatalogue(): Promise<{ name: string; version: string; endpoints: { method: string; path: string; access: string; description: string }[] }> {
   return apiClient.get('/')
+}
+
+/** GET /plugins/:plugin/cards/:card — A dashboard card's HTML, to render */
+export function fetchPluginCard(plugin: string, card: string): Promise<{ html: string }> {
+  return apiClient.get(`/plugins/${plugin}/cards/${card}`)
 }
 
 /** GET /plugins/:plugin/cards/:card/source — A card's manifest and raw HTML for editing */
@@ -607,14 +479,10 @@ export function fetchEvents(scope?: string | null): Promise<EventsResponse> {
 // Maintenance
 // ---------------------------------------------------------------------------
 
-/** POST /maintenance/prune — Docker system prune */
-export function runDockerPrune(): Promise<MaintenanceResponse> {
-  return apiClient.post<MaintenanceResponse>('/maintenance/prune')
-}
-
 /** POST /maintenance/image-prune — Docker image prune (on a fleet member when one is given) */
 export function runImagePrune(member?: string | null): Promise<MaintenanceResponse> {
-  return apiClient.post<MaintenanceResponse>(memberPath(member, '/maintenance/image-prune'))
+  // a prune of many images takes minutes: wait for its answer rather than report a timeout while it still runs
+  return apiClient.post<MaintenanceResponse>(memberPath(member, '/maintenance/image-prune'), undefined, 120000)
 }
 
 // ---------------------------------------------------------------------------
@@ -692,11 +560,6 @@ export function authChangePassword(currentPassword: string, newPassword: string)
   return apiClient.post<AuthPasswordChangeResponse>('/auth/password', { current_password: currentPassword, new_password: newPassword })
 }
 
-/** POST /auth/refresh — Refresh current session token */
-export function authRefresh(): Promise<AuthResponse> {
-  return apiClient.post<AuthResponse>('/auth/refresh')
-}
-
 /** GET /auth/sessions — List active sessions (admin only) */
 export function authListSessions(): Promise<SessionListResponse> {
   return apiClient.get<SessionListResponse>('/auth/sessions')
@@ -757,18 +620,13 @@ export function saveStackCompose(name: string, content: string): Promise<Compose
 }
 
 /** GET /stacks/:name/env — Read stack .env */
-export function fetchStackEnv(name: string): Promise<StackEnvResponse> {
-  return apiClient.get<StackEnvResponse>(
-    `/stacks/${encodeURIComponent(name)}/env`,
-  )
+export function fetchStackEnv(name: string, member?: string | null): Promise<StackEnvResponse> {
+  return apiClient.get<StackEnvResponse>(memberPath(member, `/stacks/${encodeURIComponent(name)}/env`))
 }
 
 /** POST /stacks/:name/env — Save stack .env */
-export function saveStackEnv(name: string, content: string): Promise<StackEnvSaveResponse> {
-  return apiClient.post<StackEnvSaveResponse>(
-    `/stacks/${encodeURIComponent(name)}/env`,
-    { content },
-  )
+export function saveStackEnv(name: string, content: string, member?: string | null): Promise<StackEnvSaveResponse> {
+  return apiClient.post<StackEnvSaveResponse>(memberPath(member, `/stacks/${encodeURIComponent(name)}/env`), { content })
 }
 
 // ---------------------------------------------------------------------------
@@ -776,56 +634,37 @@ export function saveStackEnv(name: string, content: string): Promise<StackEnvSav
 // ---------------------------------------------------------------------------
 
 /** GET /maintenance/report — Full system report */
-export function fetchMaintenanceReport(): Promise<MaintenanceReport> {
-  return apiClient.get<MaintenanceReport>('/maintenance/report')
+export function fetchMaintenanceReport(member?: string | null): Promise<MaintenanceReport> {
+  return apiClient.get<MaintenanceReport>(memberPath(member, '/maintenance/report'))
 }
 
 /** GET /maintenance/orphans — Orphaned resources */
-export function fetchMaintenanceOrphans(): Promise<OrphanReport> {
-  return apiClient.get<OrphanReport>('/maintenance/orphans')
+export function fetchMaintenanceOrphans(member?: string | null): Promise<OrphanReport> {
+  return apiClient.get<OrphanReport>(memberPath(member, '/maintenance/orphans'))
 }
 
 /** GET /maintenance/disk — Disk analysis */
-export function fetchMaintenanceDisk(): Promise<DiskAnalysis> {
-  return apiClient.get<DiskAnalysis>('/maintenance/disk')
+export function fetchMaintenanceDisk(member?: string | null): Promise<DiskAnalysis> {
+  return apiClient.get<DiskAnalysis>(memberPath(member, '/maintenance/disk'))
 }
 
 /** POST /maintenance/deep-prune — Aggressive docker prune */
-export function triggerDeepPrune(): Promise<MaintenanceResponse> {
-  return apiClient.post<MaintenanceResponse>('/maintenance/deep-prune', { confirm: 'CONFIRM' }, 120000)
+export function triggerDeepPrune(member?: string | null): Promise<MaintenanceResponse> {
+  return apiClient.post<MaintenanceResponse>(memberPath(member, '/maintenance/deep-prune'), { confirm: 'CONFIRM' }, 180000)
 }
 
 /** POST /maintenance/log-rotate — Rotate logs */
-export function triggerLogRotate(): Promise<LogRotateResponse> {
-  return apiClient.post<LogRotateResponse>('/maintenance/log-rotate')
+export function triggerLogRotate(member?: string | null): Promise<LogRotateResponse> {
+  return apiClient.post<LogRotateResponse>(memberPath(member, '/maintenance/log-rotate'))
 }
 
 // ---------------------------------------------------------------------------
 // Phase 3: Enhanced Log Viewer
 // ---------------------------------------------------------------------------
 
-/** GET /logs — Application logs (with optional server-side filtering) */
-export function fetchLogsFiltered(params?: {
-  level?: string
-  search?: string
-  lines?: number
-}): Promise<LogsResponse> {
-  const searchParams = new URLSearchParams()
-  if (params?.level) searchParams.set('level', params.level)
-  if (params?.search) searchParams.set('search', params.search)
-  if (params?.lines) searchParams.set('lines', String(params.lines))
-  const qs = searchParams.toString()
-  return apiClient.get<LogsResponse>(qs ? `/logs?${qs}` : '/logs')
-}
-
 /** GET /logs/stats — Log statistics */
-export function fetchLogStats(): Promise<LogStatsResponse> {
-  return apiClient.get<LogStatsResponse>('/logs/stats')
-}
-
-/** GET /logs/archives — Archived log files */
-export function fetchLogArchives(): Promise<LogArchivesResponse> {
-  return apiClient.get<LogArchivesResponse>('/logs/archives')
+export function fetchLogStats(member?: string | null): Promise<LogStatsResponse> {
+  return apiClient.get<LogStatsResponse>(memberPath(member, '/logs/stats'))
 }
 
 // ---------------------------------------------------------------------------
@@ -846,56 +685,18 @@ export function batchStackUpdate(stacks: string[] | 'all'): Promise<BatchStackRe
 }
 
 // ---------------------------------------------------------------------------
-// Phase 5: Environment Variable Manager
-// ---------------------------------------------------------------------------
-
-/** GET /env — Root .env as raw + parsed */
-export function fetchRootEnv(): Promise<RootEnvResponse> {
-  return apiClient.get<RootEnvResponse>('/env')
-}
-
-/** POST /env — Save root .env */
-export function saveRootEnv(content: string): Promise<{ success: boolean; message: string }> {
-  return apiClient.post<{ success: boolean; message: string }>('/env', { content })
-}
-
-/** POST /env/validate — Validate .env content */
-export function validateEnv(content: string): Promise<EnvValidateResponse> {
-  return apiClient.post<EnvValidateResponse>('/env/validate', { content })
-}
-
-// ---------------------------------------------------------------------------
 // Phase 6: Backup & Restore
 // ---------------------------------------------------------------------------
 
-/** GET /backups — List backup archives */
-export function fetchBackups(): Promise<BackupListResponse> {
-  return apiClient.get<BackupListResponse>('/backups')
-}
-
 /** GET /backups/status — Current backup status */
-export function fetchBackupStatus(): Promise<BackupStatusResponse> {
-  return apiClient.get<BackupStatusResponse>('/backups/status')
-}
-
-/** GET /backups/config — Backup configuration */
-export function fetchBackupConfig(): Promise<BackupConfigResponse> {
-  return apiClient.get<BackupConfigResponse>('/backups/config')
+export function fetchBackupStatus(member?: string | null): Promise<BackupStatusResponse> {
+  return apiClient.get<BackupStatusResponse>(memberPath(member, '/backups/status'))
 }
 
 /** POST /backups/trigger — Start a backup */
-export function triggerBackup(stack?: string): Promise<BackupTriggerResponse> {
-  return apiClient.post<BackupTriggerResponse>('/backups/trigger', stack ? { stack } : {})
-}
-
-/** POST /backups/restore — Restore from archive */
-export function restoreBackup(filename: string): Promise<BackupRestoreResponse> {
-  return apiClient.post<BackupRestoreResponse>('/backups/restore', { filename, confirm: 'RESTORE' }, 120000)
-}
-
-/** POST /backups/cancel — Cancel a running backup */
-export function cancelBackup(): Promise<{ success: boolean; message: string }> {
-  return apiClient.post<{ success: boolean; message: string }>('/backups/cancel')
+export function triggerBackup(stack?: string, member?: string | null): Promise<BackupTriggerResponse> {
+  // a VM's backup runs through the hub's proxy: it may take a minute to answer
+  return apiClient.post<BackupTriggerResponse>(memberPath(member, '/backups/trigger'), stack ? { stack } : {}, member ? 60000 : undefined)
 }
 
 /** POST /schedules/:id/run — Run a schedule immediately (the server runs the action before it answers: a backup or a prune outlasts the 30 s default) */
@@ -912,16 +713,6 @@ export function updateAllImages(member?: string | null): Promise<{ success: bool
 // v3.1: Terminal, Image Delete, Container Rename, Stack Services, System Metrics
 // ---------------------------------------------------------------------------
 
-/** POST /terminal/exec — Execute a command on the host */
-export function execTerminalCommand(command: string, cwd?: string): Promise<TerminalExecResponse> {
-  return apiClient.post<TerminalExecResponse>('/terminal/exec', { command, cwd })
-}
-
-/** GET /terminal/history — Recent command audit log */
-export function fetchTerminalHistory(): Promise<TerminalHistoryResponse> {
-  return apiClient.get<TerminalHistoryResponse>('/terminal/history')
-}
-
 /** POST /images/:id/delete — Remove a Docker image by id (an untagged one: "<none>") */
 export function deleteImage(id: string, member?: string | null): Promise<ImageDeleteResponse> {
   return apiClient.post<ImageDeleteResponse>(memberPath(member, `/images/${encodeURIComponent(id)}/delete`), undefined, 120000)
@@ -930,14 +721,6 @@ export function deleteImage(id: string, member?: string | null): Promise<ImageDe
 /** POST /images/delete — Remove a tagged image by its reference ("repository:tag"): Docker takes the name even when the id carries several tags */
 export function deleteImageRef(image: string, member?: string | null): Promise<ImageDeleteResponse> {
   return apiClient.post<ImageDeleteResponse>(memberPath(member, '/images/delete'), { image }, 120000)
-}
-
-/** POST /containers/:name/rename — Rename a container */
-export function renameContainer(name: string, newName: string): Promise<ContainerRenameResponse> {
-  return apiClient.post<ContainerRenameResponse>(
-    `/containers/${encodeURIComponent(name)}/rename`,
-    { new_name: newName },
-  )
 }
 
 /** GET /stacks/:name/services — Per-service status within a stack */
@@ -971,12 +754,6 @@ export function unmountStackAppData(name: string): Promise<StackAppDataStatus> {
   return apiClient.post<StackAppDataStatus>(`/stacks/${encodeURIComponent(name)}/appdata/unmount`, {}, 60000)
 }
 
-export function fetchStackServices(name: string): Promise<StackServicesResponse> {
-  return apiClient.get<StackServicesResponse>(
-    `/stacks/${encodeURIComponent(name)}/services`,
-  )
-}
-
 /** GET /system/metrics — Lightweight CPU/memory/disk snapshot */
 export function fetchSystemMetrics(): Promise<SystemMetricsResponse> {
   return apiClient.get<SystemMetricsResponse>('/system/metrics')
@@ -987,8 +764,8 @@ export function fetchSystemMetrics(): Promise<SystemMetricsResponse> {
 // ---------------------------------------------------------------------------
 
 /** POST /terminal/auth — Authenticate with Linux credentials for terminal access */
-export function terminalAuth(username: string, password: string): Promise<TerminalAuthResponse> {
-  return apiClient.post<TerminalAuthResponse>('/terminal/auth', { username, password })
+export function terminalAuth(username: string, password: string, member?: string | null): Promise<TerminalAuthResponse> {
+  return apiClient.post<TerminalAuthResponse>(memberPath(member, '/terminal/auth'), { username, password })
 }
 
 /** POST /terminal/auth/verify — Verify a terminal session token */
@@ -1014,23 +791,6 @@ export function execTerminalCommandAuth(
   })
 }
 
-/** GET /containers/:name/files — List directory contents inside a container */
-export function fetchContainerFiles(name: string, path = '/'): Promise<ContainerFilesResponse> {
-  return apiClient.get<ContainerFilesResponse>(
-    `/containers/${encodeURIComponent(name)}/files?path=${encodeURIComponent(path)}`,
-  )
-}
-
-/** GET /containers/:name/files/content — Read file contents inside a container */
-export function fetchContainerFileContent(
-  name: string,
-  path: string,
-): Promise<ContainerFileContentResponse> {
-  return apiClient.get<ContainerFileContentResponse>(
-    `/containers/${encodeURIComponent(name)}/files/content?path=${encodeURIComponent(path)}`,
-  )
-}
-
 /** GET /alerts/config — Read alert thresholds */
 export function fetchAlertConfig(): Promise<AlertConfigResponse> {
   return apiClient.get<AlertConfigResponse>('/alerts/config')
@@ -1054,24 +814,6 @@ export function fetchSystemCrontab(): Promise<CrontabResponse> {
 /** POST /system/crontab — Update user crontab */
 export function updateCrontab(content: string): Promise<{ success: boolean; message: string }> {
   return apiClient.post('/system/crontab', { content })
-}
-
-/** GET /containers/:name/logs/live — Live log polling for a container */
-export function fetchContainerLogsLive(
-  name: string,
-  lines = 100,
-  since?: string,
-): Promise<LiveLogsResponse> {
-  let url = `/containers/${encodeURIComponent(name)}/logs/live?lines=${lines}`
-  if (since) url += `&since=${encodeURIComponent(since)}`
-  return apiClient.get<LiveLogsResponse>(url)
-}
-
-/** GET /logs/live — Live log polling for DCS application log */
-export function fetchAppLogsLive(lines = 100, since?: string): Promise<LiveLogsResponse> {
-  let url = `/logs/live?lines=${lines}`
-  if (since) url += `&since=${encodeURIComponent(since)}`
-  return apiClient.get<LiveLogsResponse>(url)
 }
 
 // ---------------------------------------------------------------------------
@@ -1163,13 +905,6 @@ export function fetchComposeHistory(name: string): Promise<ComposeHistoryRespons
   return apiClient.get<ComposeHistoryResponse>(`/stacks/${encodeURIComponent(name)}/compose/history`)
 }
 
-/** GET /stacks/:name/compose/history/:id — View a specific compose version's content */
-export function fetchComposeVersionContent(name: string, versionId: string): Promise<ComposeVersionContentResponse> {
-  return apiClient.get<ComposeVersionContentResponse>(
-    `/stacks/${encodeURIComponent(name)}/compose/history/${encodeURIComponent(versionId)}`,
-  )
-}
-
 /** GET /settings/dashboard — Fetch user's dashboard layout */
 export function fetchDashboardLayout(): Promise<DashboardLayoutResponse> {
   return apiClient.get<DashboardLayoutResponse>('/settings/dashboard')
@@ -1195,11 +930,6 @@ export function fetchTraefikStatus(): Promise<TraefikStatusResponse> {
   return apiClient.get<TraefikStatusResponse>('/traefik/status')
 }
 
-/** Start a container on demand through Sablier (or serve it normally again): writes or removes the Traefik middleware */
-export function setContainerSablier(name: string, body: { enabled: boolean; session?: string; display_name?: string; theme?: string }): Promise<SablierToggleResponse> {
-  return apiClient.post<SablierToggleResponse>(`/containers/${encodeURIComponent(name)}/sablier`, body)
-}
-
 /** TLS state of the proxy: challenge, ACME account, certificates held, recent errors, hints */
 export function fetchRouteCertificates(): Promise<RouteCertificatesResponse> {
   return apiClient.get<RouteCertificatesResponse>('/routes/certificates')
@@ -1208,102 +938,6 @@ export function fetchRouteCertificates(): Promise<RouteCertificatesResponse> {
 // ---------------------------------------------------------------------------
 // Routes & DNS
 // ---------------------------------------------------------------------------
-
-export interface RouteEntry {
-  subdomain: string
-  service: string
-  stack: string
-  target: string
-  conflict: boolean
-  /** Traefik's CrowdSec bouncer: checks this route (protected), does not (bypass), or CrowdSec is not set up on the proxy (off) */
-  crowdsec?: 'protected' | 'bypass' | 'off'
-}
-
-export interface RoutesResponse {
-  total: number
-  routes: RouteEntry[]
-  domain: string
-}
-
-export interface RouteCheckResponse {
-  available: boolean
-  subdomain: string
-  fqdn: string
-  existing_service: string
-  existing_stack: string
-}
-
-export type DnsRecordType = 'A' | 'AAAA' | 'CNAME' | 'TXT' | 'MX' | 'NS' | 'SRV' | 'CAA' | 'PTR' | string
-
-export interface DnsRecord {
-  id: string
-  type: DnsRecordType
-  name: string
-  /** Name relative to the zone ("@" for the apex) */
-  subdomain: string
-  content: string
-  /** 1 = automatic */
-  ttl: number
-  proxied: boolean
-  proxiable: boolean
-  priority: number | null
-  comment: string
-  tags: string[]
-  locked: boolean
-  created_on: string
-  modified_on: string
-  /** Comment mentions DCS: created by a deployment, a route change or a sync */
-  managed: boolean
-  /** "stack/service" of the DCS route that uses this name, if any */
-  route: string | null
-  /** CNAME pointing at the DCS domain */
-  points_to_dcs: boolean
-  /** DCS can change or delete it (A, AAAA, CNAME, TXT, MX, NS and not locked) */
-  editable: boolean
-}
-
-export interface DnsZone {
-  id: string
-  name: string
-  status: string
-  name_servers: string[]
-  plan: string
-}
-
-export interface DnsRecordsResponse {
-  total: number
-  all_total?: number
-  records: DnsRecord[]
-  domain: string
-  zone: { id: string; name: string } | null
-  cf_configured: boolean
-  token_source: '' | 'secret' | 'env' | 'stack-env'
-  /** DCS routes under the zone that have no A/AAAA/CNAME record */
-  routes_without_dns: { fqdn: string; route: string }[]
-  error?: string
-  hint?: string
-}
-
-export interface DnsStatusResponse {
-  cf_configured: boolean
-  token_source: '' | 'secret' | 'env' | 'stack-env'
-  token_status: 'active' | 'invalid' | 'unreachable' | 'unknown' | string
-  domain: string
-  zone: DnsZone | null
-  zone_found: boolean
-  hint: string
-}
-
-export interface DnsRecordInput {
-  zone?: string
-  type: DnsRecordType
-  name: string
-  content: string
-  ttl?: number
-  proxied?: boolean
-  priority?: number | null
-  comment?: string
-}
 
 /** GET /routes — List all Traefik routes */
 export function fetchRoutes(): Promise<RoutesResponse> {
@@ -1524,11 +1158,6 @@ export function fetchAutomationHistory(id: string, member?: string | null): Prom
   return apiClient.get<AutomationHistoryResponse>(memberPath(member, `/automations/${encodeURIComponent(id)}/history`))
 }
 
-/** GET /topology — Network topology graph data */
-export function fetchTopology(): Promise<TopologyResponse> {
-  return apiClient.get<TopologyResponse>('/topology')
-}
-
 // ---------------------------------------------------------------------------
 // Setup Wizard
 // ---------------------------------------------------------------------------
@@ -1558,43 +1187,6 @@ export function renameStack(oldName: string, newName: string): Promise<StackRena
   return apiClient.post<StackRenameResponse>('/stacks/rename', { old_name: oldName, new_name: newName })
 }
 
-/** POST /stacks/reorder — Set stack startup order (admin only) */
-export function reorderStacks(stacks: string[]): Promise<StackReorderResponse> {
-  return apiClient.post<StackReorderResponse>('/stacks/reorder', { stacks })
-}
-
-// ---------------------------------------------------------------------------
-// Metrics History
-// ---------------------------------------------------------------------------
-
-export function fetchMetricsHistory(range: string = '24h'): Promise<MetricsHistoryResponse> {
-  return apiClient.get<MetricsHistoryResponse>(`/metrics/history?range=${encodeURIComponent(range)}`)
-}
-
-export function fetchMetricsSummary(range: string = '24h'): Promise<MetricsSummaryResponse> {
-  return apiClient.get<MetricsSummaryResponse>(`/metrics/summary?range=${encodeURIComponent(range)}`)
-}
-
-// ---------------------------------------------------------------------------
-// Rollback
-// ---------------------------------------------------------------------------
-
-export function fetchRollbackSnapshots(stack: string): Promise<RollbackSnapshotsResponse> {
-  return apiClient.get<RollbackSnapshotsResponse>(`/rollback/${encodeURIComponent(stack)}/snapshots`)
-}
-
-export function fetchRollbackSnapshot(stack: string, id: string): Promise<RollbackSnapshotDetail> {
-  return apiClient.get<RollbackSnapshotDetail>(`/rollback/${encodeURIComponent(stack)}/snapshots/${encodeURIComponent(id)}`)
-}
-
-export function restoreRollbackSnapshot(stack: string, snapshotId: string): Promise<RollbackRestoreResponse> {
-  return apiClient.post<RollbackRestoreResponse>(`/rollback/${encodeURIComponent(stack)}/restore`, { snapshot_id: snapshotId }, 120000)
-}
-
-export function fetchRollbackDiff(stack: string, id: string): Promise<RollbackDiffResponse> {
-  return apiClient.get<RollbackDiffResponse>(`/rollback/${encodeURIComponent(stack)}/diff/${encodeURIComponent(id)}`)
-}
-
 // ---------------------------------------------------------------------------
 // Secrets
 // ---------------------------------------------------------------------------
@@ -1611,10 +1203,6 @@ export function setSecret(key: string, value: string, member?: string | null): P
 
 export function deleteSecret(key: string, member?: string | null): Promise<SecretDeleteResponse> {
   return apiClient.delete<SecretDeleteResponse>(memberPath(member, `/secrets/${encodeURIComponent(key)}`))
-}
-
-export function checkSecretExists(key: string): Promise<SecretExistsResponse> {
-  return apiClient.get<SecretExistsResponse>(`/secrets/${encodeURIComponent(key)}/exists`)
 }
 
 /** GET /secrets/:key/references — Stacks and env files that reference a secret */
@@ -1663,14 +1251,6 @@ export function fetchHealthScore(scope?: string | null): Promise<HealthScoreResp
   return apiClient.get<HealthScoreResponse>(memberPath(scope === 'hub' ? null : scope, '/health/score'))
 }
 
-export function fetchStackHealthScore(stack: string): Promise<StackHealthScore> {
-  return apiClient.get<StackHealthScore>(`/health/score/${encodeURIComponent(stack)}`)
-}
-
-export function fetchHealthScoreHistory(range: string = '24h'): Promise<HealthScoreHistoryResponse> {
-  return apiClient.get<HealthScoreHistoryResponse>(`/health/score/history?range=${encodeURIComponent(range)}`)
-}
-
 // ---------------------------------------------------------------------------
 // Plugins
 // ---------------------------------------------------------------------------
@@ -1711,48 +1291,6 @@ export function removePlugin(name: string): Promise<PluginDeleteResponse> {
 
 export function togglePlugin(name: string): Promise<Plugin> {
   return apiClient.post<Plugin>(`/plugins/${encodeURIComponent(name)}/toggle`)
-}
-
-/** GET /plugins/:name/hooks — List hooks with metadata */
-export function fetchPluginHooks(name: string): Promise<PluginHooksListResponse> {
-  return apiClient.get<PluginHooksListResponse>(`/plugins/${encodeURIComponent(name)}/hooks`)
-}
-
-/** GET /plugins/:name/hooks/:hook — Read hook script content */
-export function fetchPluginHookContent(name: string, hook: string): Promise<PluginHookContentResponse> {
-  return apiClient.get<PluginHookContentResponse>(`/plugins/${encodeURIComponent(name)}/hooks/${encodeURIComponent(hook)}`)
-}
-
-/** POST /plugins/:name/hooks/:hook/update — Update hook script */
-export function updatePluginHook(name: string, hook: string, content: string): Promise<PluginHookUpdateResponse> {
-  return apiClient.post<PluginHookUpdateResponse>(`/plugins/${encodeURIComponent(name)}/hooks/${encodeURIComponent(hook)}/update`, { content })
-}
-
-/** POST /plugins/:name/hooks/:hook/test — Dry-run a hook */
-export function testPluginHook(name: string, hook: string, context?: Record<string, unknown>): Promise<PluginHookTestResponse> {
-  return apiClient.post<PluginHookTestResponse>(`/plugins/${encodeURIComponent(name)}/hooks/${encodeURIComponent(hook)}/test`, { context }, 60000)
-}
-
-/** GET /plugins/:name/logs — Execution history */
-export function fetchPluginLogs(name: string): Promise<PluginLogsResponse> {
-  return apiClient.get<PluginLogsResponse>(`/plugins/${encodeURIComponent(name)}/logs`)
-}
-
-/** POST /plugins/:name/config — Update plugin configuration */
-export function updatePluginConfig(name: string, config: Record<string, unknown>): Promise<PluginConfigUpdateResponse> {
-  return apiClient.post<PluginConfigUpdateResponse>(`/plugins/${encodeURIComponent(name)}/config`, { config })
-}
-
-// ---------------------------------------------------------------------------
-// Config Schema & Dependency Graph
-// ---------------------------------------------------------------------------
-
-export function fetchConfigSchema(): Promise<ConfigSchemaResponse> {
-  return apiClient.get<ConfigSchemaResponse>('/config/schema')
-}
-
-export function fetchDependencyGraph(): Promise<DependencyGraphResponse> {
-  return apiClient.get<DependencyGraphResponse>('/stacks/dependency-graph')
 }
 
 // ---------------------------------------------------------------------------
@@ -1875,11 +1413,6 @@ export function repairOnDemand(member?: string | null): Promise<{ success: boole
   return apiClient.post<{ success: boolean; recreated: string[]; failed: string[]; message: string }>(memberPath(member, '/sablier/repair'), {}, 120000)
 }
 
-/** POST /power/sample — Read the UPS right now */
-export function samplePower(): Promise<PowerStatus> {
-  return apiClient.post<PowerStatus>('/power/sample', {}, 20000)
-}
-
 // ---------------------------------------------------------------------------
 // Recovery bundles
 // ---------------------------------------------------------------------------
@@ -1914,24 +1447,9 @@ export function applyUiUpdate(): Promise<{ success: boolean; message: string }> 
   return apiClient.post<{ success: boolean; message: string }>('/system/ui-update/apply', {}, 120000)
 }
 
-/** POST /system/os-update/check — Check for available OS package updates */
-export function checkOsUpdates(terminalToken: string, password?: string): Promise<OsUpdateCheckResponse> {
-  return apiClient.post<OsUpdateCheckResponse>('/system/os-update/check', { terminal_token: terminalToken, ...(password ? { password } : {}) }, 120000)
-}
-
-/** POST /system/os-update/apply — Start OS package updates (background) */
-export function applyOsUpdates(terminalToken: string, password?: string): Promise<OsUpdateApplyResponse> {
-  return apiClient.post<OsUpdateApplyResponse>('/system/os-update/apply', { terminal_token: terminalToken, confirm: 'true', ...(password ? { password } : {}) }, 30000)
-}
-
 /** GET /system/os-updates?fleet=1 — every server's own look at its OS updates (the hub first); refresh asks for a new look */
 export function fetchOsUpdates(refresh = false): Promise<OsUpdatesResponse> {
   return apiClient.get<OsUpdatesResponse>(`/system/os-updates?fleet=1${refresh ? '&refresh=1' : ''}`)
-}
-
-/** GET /system/os-update/status — Poll background OS update status */
-export function getOsUpdateStatus(): Promise<OsUpdateStatusResponse> {
-  return apiClient.get<OsUpdateStatusResponse>('/system/os-update/status')
 }
 
 // ---------------------------------------------------------------------------
@@ -2139,10 +1657,6 @@ export function crowdsecPlugin(member?: string | null): Promise<CrowdSecPluginRe
 export function crowdsecSavePlugin(settings: Partial<CrowdSecPluginSettings>, member?: string | null): Promise<CrowdSecPluginResponse> {
   return apiClient.put<CrowdSecPluginResponse>(memberPath(member, '/crowdsec/plugin'), { settings }, 60000)
 }
-/** POST /crowdsec/traefik/restart — Traefik loads a plugin it declares only when it starts */
-export function crowdsecRestartTraefik(member?: string | null): Promise<{ success: boolean; message: string }> {
-  return apiClient.post(memberPath(member, '/crowdsec/traefik/restart'), undefined, 120000)
-}
 
 /** POST /crowdsec/service — start, restart or reload the container */
 export function crowdsecService(action: 'start' | 'restart' | 'reload', member?: string | null): Promise<CrowdSecServiceResponse> {
@@ -2222,11 +1736,6 @@ export function fetchFleetStatus(): Promise<FleetStatus> {
 /** GET /fleet/members — the members this hub manages */
 export function fetchFleetMembers(): Promise<FleetMembersResponse> {
   return apiClient.get<FleetMembersResponse>('/fleet/members')
-}
-
-/** GET /fleet/members/:id — one member with a live reachability check */
-export function fetchFleetMember(id: string): Promise<FleetMember> {
-  return apiClient.get<FleetMember>(`/fleet/members/${encodeURIComponent(id)}`)
 }
 
 /** POST /fleet/members — add a member by address and an account on it */
@@ -2337,11 +1846,6 @@ export function fetchProxmoxSelf(): Promise<ProxmoxSelf> {
 /** POST /proxmox/self/tag — give that guest its tags now (the API token needs VM.Config.Options on it) */
 export function tagProxmoxSelf(): Promise<ProxmoxSelf> {
   return apiClient.post<ProxmoxSelf>('/proxmox/self/tag', {}, 30000)
-}
-
-/** GET /proxmox/storage — the node's storages */
-export function fetchProxmoxStorage(node?: string): Promise<ProxmoxStorageResponse> {
-  return apiClient.get<ProxmoxStorageResponse>(`/proxmox/storage${node ? `?node=${encodeURIComponent(node)}` : ''}`)
 }
 
 /** GET /fleet/provision/defaults — prefilled values for creating VMs (POST with Proxmox values before they are saved) */

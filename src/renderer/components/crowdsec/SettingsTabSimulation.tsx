@@ -11,7 +11,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowRight, CircleAlert, FlaskConical, Info, Loader2, Package, RefreshCw, Search, TriangleAlert, X } from 'lucide-react'
 import { usePolling } from '../../hooks/usePolling'
-import { useConnectionStore } from '../../stores/connectionStore'
 import { useToast } from '../common/Toast'
 import { useConfirm } from '../common/ConfirmDialog'
 import { crowdsecSimulation, crowdsecSetSimulation } from '../../api/endpoints'
@@ -39,7 +38,6 @@ export interface Simulation {
 /** the tab's one source of truth for simulation: polled, optimistic while changes are on their way */
 export function useSimulation(): Simulation {
   const { member, refreshStatus } = useCs()
-  const isConnected = useConnectionStore((s) => s.status === 'connected')
   const { addToast } = useToast()
   const [fresh, setFresh] = useState<SimView | null>(null)
   const [local, setLocal] = useState<SimView | null>(null)
@@ -53,7 +51,7 @@ export function useSimulation(): Simulation {
     const g = gen.current
     const d = await crowdsecSimulation(member)
     return { g, d }
-  }, POLL_MS, { enabled: isConnected && pending.length === 0 })
+  }, POLL_MS, { enabled: pending.length === 0 })
   useEffect(() => {
     const p = poll.data
     if (!p || p.g !== gen.current || inFlight.current > 0) return

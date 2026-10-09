@@ -29,6 +29,7 @@ import { apiClient, ApiError, ApiNetworkError } from '../api/client'
 import { isWebMode } from '../lib/env'
 import type { SetupDefaultsResponse, FleetStatus, FleetJoinHubResponse, FleetProvisionDefaults, ProxmoxCapabilities } from '../../shared/types'
 import { usePolling } from '../hooks/usePolling'
+import { pollKeys } from '../api/pollKeys'
 import FleetJobsPanel from '../components/fleet/FleetJobsPanel'
 import { VmSettingsFields, CapabilityNote, settingsFromDefaults, vmSettingsToRequest, osLabel, type VmSettings } from '../components/fleet/NewVmSheet'
 import FleetLinkPanel from '../components/fleet/FleetLinkPanel'
@@ -306,7 +307,7 @@ export default function SetupWizard({ onComplete }: WizardProps) {
   const [sizeOpen, setSizeOpen] = useState<string | null>(null)
   const [vmQueued, setVmQueued] = useState(0)
   const vmReady = !!(pveTest?.ok && caps?.can_provision && vmSettings)
-  const jobsPoll = usePolling(fetchFleetJobs, 5000, { enabled: complete && vmQueued > 0 })
+  const jobsPoll = usePolling(fetchFleetJobs, 5000, { key: pollKeys.fleetJobs, enabled: complete && vmQueued > 0, requireConnection: false })
   const pveGuest = !!defaults?.system?.proxmox?.guest
   const pveHost = !!defaults?.system?.proxmox?.host
   const usingSavedSecret = !!(pveSaved && !pveSecret.trim() && pveTokenId.trim() === pveSaved.token_id)

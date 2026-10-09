@@ -6,16 +6,15 @@
 import { useState } from 'react'
 import { Moon, Loader2, Wrench } from 'lucide-react'
 import { usePolling } from '../../hooks/usePolling'
-import { useConnectionStore } from '../../stores/connectionStore'
+import { pollKeys } from '../../api/pollKeys'
 import { useAuthStore } from '../../stores/authStore'
 import { useToast } from './Toast'
 import { fetchHealthReport, repairOnDemand } from '../../api/endpoints'
 
 export function OnDemandMissingBanner() {
-  const isConnected = useConnectionStore((s) => s.status === 'connected')
   const isAdmin = useAuthStore((s) => s.userRole) === 'admin'
   const { addToast } = useToast()
-  const { data, refetch } = usePolling(fetchHealthReport, 30000, { enabled: isConnected })
+  const { data, refetch } = usePolling(fetchHealthReport, 30000, { key: pollKeys.health(null) })
   const [busy, setBusy] = useState(false)
   const missing = data?.summary?.on_demand_missing ?? []
   if (missing.length === 0) return null

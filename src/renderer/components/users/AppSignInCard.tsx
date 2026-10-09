@@ -22,6 +22,7 @@ import { ShieldCheck, ShieldAlert, ExternalLink, Loader2, KeyRound, Smartphone, 
 import { useToast } from '../common/Toast'
 import { useConfirm } from '../common/ConfirmDialog'
 import { fetchAutheliaSecondStep, setAutheliaSecondStep, repairAutheliaSecondStep, fetchAutheliaVerificationCode } from '../../api/endpoints'
+import { usePolling } from '../../hooks/usePolling'
 import type { AutheliaSecondStep, AutheliaStepMode, AutheliaVerificationCode } from '../../../shared/types'
 import { BTN_CARD, BTN_CARD_QUIET, TONE_OK } from '../../lib/ui'
 import { CHOICE, CHOICE_ON, CHOICE_OFF, SUBHEAD, FOCUS_RING } from '../../lib/fieldStyles'
@@ -76,14 +77,11 @@ export default function AppSignInCard() {
     })
   }, [addToast])
   // while watching: a new code shows up within a few seconds of Authelia writing it
-  useEffect(() => {
-    if (!watching) return
-    const t = setInterval(() => {
-      if (Date.now() > watchUntil.current) { setWatching(false); return }
-      readCode()
-    }, 4000)
-    return () => clearInterval(t)
-  }, [watching, readCode])
+  const watchTick = useCallback(async () => {
+    if (Date.now() > watchUntil.current) { setWatching(false); return }
+    readCode()
+  }, [readCode])
+  usePolling(watchTick, 4000, { enabled: watching })
   const watch = () => { watchUntil.current = Date.now() + WATCH_MS; setWatching(true); readCode() }
 
   if (missing) return <p className="text-xs text-slate-500">This server does not have this setting yet: update DCS (Updates) to bring it.</p>

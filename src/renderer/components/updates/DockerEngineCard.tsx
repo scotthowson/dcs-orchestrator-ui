@@ -41,7 +41,10 @@ export default function DockerEngineCard({ enabled, isHub }: { enabled: boolean;
   const [authErr, setAuthErr] = useState('')
   const [showOutput, setShowOutput] = useState(false)
   const [checkedAt, setCheckedAt] = useState(0)
-  const pollRef = useRef<number | null>(null)
+  /** when following an update began (null: not following) */
+  const [followSince, setFollowSince] = useState<number | null>(null)
+  const followingRef = useRef(false)
+  followingRef.current = followSince !== null
 
   useEffect(() => { if (data) setCheckedAt(Date.now()) }, [data])
 
@@ -50,28 +53,23 @@ export default function DockerEngineCard({ enabled, isHub }: { enabled: boolean;
   const last = status ?? own?.last_update ?? null
   const running = last?.status === 'running'
 
-  // follow an update in progress (the daemon restarts under us: a failed poll is just "not yet")
-  const follow = useCallback(() => {
-    if (pollRef.current) window.clearInterval(pollRef.current)
-    pollRef.current = window.setInterval(async () => {
-      try {
-        const st = await fetchDockerEngineStatus()
-        setStatus(st)
-        if (st.status !== 'running') {
-          if (pollRef.current) window.clearInterval(pollRef.current)
-          pollRef.current = null
-          addToast({
-            type: st.status === 'done' ? 'success' : 'error',
-            message: st.status === 'done' ? `Docker Engine is now ${st.version || 'up to date'}` : `The engine update failed (exit ${st.exit_code ?? '?'}) — see the output`,
-            duration: 8000,
-          })
-          refresh()
-        }
-      } catch { /* keep polling */ }
-    }, 3000)
-  }, [addToast, refresh])
-  useEffect(() => () => { if (pollRef.current) window.clearInterval(pollRef.current) }, [])
-  useEffect(() => { if (own?.last_update?.status === 'running' && !pollRef.current) follow() }, [own?.last_update?.status, follow])
+  // follow an update in progress every 3 s (the daemon restarts under us: a failed read is just "not yet")
+  const follow = useCallback(() => setFollowSince(Date.now()), [])
+  const followPoll = usePolling(fetchDockerEngineStatus, 3000, { enabled: followSince !== null })
+  useEffect(() => {
+    const st = followPoll.data
+    if (followSince === null || !st || followPoll.updatedAt < followSince) return
+    setStatus(st)
+    if (st.status === 'running') return
+    setFollowSince(null)
+    addToast({
+      type: st.status === 'done' ? 'success' : 'error',
+      message: st.status === 'done' ? `Docker Engine is now ${st.version || 'up to date'}` : `The engine update failed (exit ${st.exit_code ?? '?'}) — see the output`,
+      duration: 8000,
+    })
+    refresh()
+  }, [followPoll.data, followPoll.updatedAt, followSince, addToast, refresh])
+  useEffect(() => { if (own?.last_update?.status === 'running' && !followingRef.current) follow() }, [own?.last_update?.status, follow])
 
   const start = useCallback(async (token?: string, password?: string) => {
     setBusy(true)

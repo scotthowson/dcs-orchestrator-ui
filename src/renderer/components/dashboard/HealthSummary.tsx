@@ -2,7 +2,7 @@
 // HealthSummary — unified health card: score gauge + status + containers
 // =============================================================================
 
-import React, { useState, useEffect } from 'react'
+import React from 'react'
 import {
   ShieldCheck, ShieldAlert, ShieldX, ShieldQuestion, HeartPulse, Cpu, MemoryStick, HardDrive, Timer,
 } from 'lucide-react'
@@ -11,6 +11,8 @@ import { useHealthStore } from '../../stores/healthStore'
 import { useConnectionStore } from '../../stores/connectionStore'
 import { useApiLink } from '../../hooks/useApiLink'
 import { fetchHealthScore } from '../../api/endpoints'
+import { pollKeys } from '../../api/pollKeys'
+import { usePolling } from '../../hooks/usePolling'
 import { useFleetScope } from '../../hooks/useFleetScope'
 import { useStackCounts } from '../../hooks/useStackCounts'
 import VmCapsule from '../fleet/VmCapsule'
@@ -196,26 +198,12 @@ export default function HealthSummary() {
   const isConnected = useConnectionStore((s) => s.status === 'connected')
   const link = useApiLink()
 
-  const [scoreData, setScoreData] = useState<HealthScoreResponse | null>(null)
-  const [scoreLoading, setScoreLoading] = useState(true)
-  // the same scope the Health page uses (everywhere on a hub with VMs), so both say the same
+  // the same scope the Health page uses (everywhere on a hub with VMs), so both say the same (and ask one request)
   const { scope, hasFleet } = useFleetScope()
   const stackCounts = useStackCounts(scope)
-
-  useEffect(() => {
-    if (!isConnected) return
-    let mounted = true
-    const load = async () => {
-      try {
-        const res = await fetchHealthScore(scope)
-        if (mounted) setScoreData(res)
-      } catch { /* ignore */ }
-      if (mounted) setScoreLoading(false)
-    }
-    load()
-    const interval = setInterval(load, 30000)
-    return () => { mounted = false; clearInterval(interval) }
-  }, [isConnected, scope])
+  const scorePoll = usePolling<HealthScoreResponse>(() => fetchHealthScore(scope), 30000, { key: pollKeys.healthScore(scope) })
+  const scoreData = scorePoll.data
+  const scoreLoading = scorePoll.loading && !scoreData
 
   // The poll failed before anything loaded: say why instead of a skeleton that never resolves
   if (!report && error) return <Card card="health-summary"><CardError title="Could not load the health report" error={error} onRetry={() => window.dispatchEvent(new Event('app-refresh'))} /></Card>

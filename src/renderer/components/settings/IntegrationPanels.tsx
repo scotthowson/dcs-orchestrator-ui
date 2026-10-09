@@ -78,8 +78,7 @@ function ago(epoch: number): string {
 }
 
 export function TraefikFeedPanel({ enabled }: { enabled: boolean }) {
-  const isConnected = useConnectionStore((s) => s.status === 'connected')
-  const feed = usePolling(fetchTraefikFeedStatus, 15000, { enabled: isConnected })
+  const feed = usePolling(fetchTraefikFeedStatus, 15000)
   const confirm = useConfirm()
   const [rotating, setRotating] = useState(false)
   const f = feed.data
@@ -143,7 +142,7 @@ const HOMARR_WORDS = {
 
 export function HomarrPanel({ onOpenSecrets }: { onOpenSecrets?: () => void }) {
   const isConnected = useConnectionStore((s) => s.status === 'connected')
-  const poll = usePolling(fetchHomarrIntegration, 30000, { enabled: isConnected })
+  const poll = usePolling(fetchHomarrIntegration, 30000)
   const { addToast } = useToast()
   const confirm = useConfirm()
   const [key, setKey] = useState('')

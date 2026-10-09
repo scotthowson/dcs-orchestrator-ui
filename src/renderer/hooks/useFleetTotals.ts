@@ -8,12 +8,9 @@
 
 import { usePolling } from './usePolling'
 import { useFleetRole } from './useFleetRole'
-import { useConnectionStore } from '../stores/connectionStore'
 import { fetchFleetOverview } from '../api/endpoints'
-import { sharedFetch } from '../lib/sharedFetch'
+import { pollKeys } from '../api/pollKeys'
 import type { FleetOverview } from '../../shared/types'
-
-const overviewShared = sharedFetch(fetchFleetOverview, 10000)
 
 export interface FleetTotals {
   containersRunning: number
@@ -30,8 +27,7 @@ const NONE: FleetTotals = { containersRunning: 0, containersTotal: 0, containers
 
 export function useFleetTotals(): { isHub: boolean; totals: FleetTotals; overview: FleetOverview | null } {
   const { isHub } = useFleetRole()
-  const connected = useConnectionStore((s) => s.status === 'connected')
-  const { data } = usePolling(overviewShared, 30000, { enabled: connected && isHub })
+  const { data } = usePolling(fetchFleetOverview, 30000, { key: pollKeys.fleetOverview, enabled: isHub })
   if (!isHub || !data) return { isHub, totals: NONE, overview: null }
   const t = data.totals
   return {

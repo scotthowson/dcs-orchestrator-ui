@@ -9,6 +9,7 @@ import {
   AlertTriangle, AlertCircle, Info, Bug,
 } from 'lucide-react'
 import { fetchContainerLogsLiveOn, fetchAppLogsLiveOn } from '../../api/fleetScoped'
+import { usePolling } from '../../hooks/usePolling'
 import { useConnectionStore } from '../../stores/connectionStore'
 import { LoadingState, EmptyState } from '../common/PageState'
 import Hint from '../common/Hint'
@@ -135,7 +136,8 @@ export default function LiveLogViewer({
   // the last batch's lines by key and count: the next poll asks `since` that timestamp inclusive, so
   // every line of that second comes back once more and is dropped once per copy already shown
   const lastBatchRef = useRef<Map<string, number>>(new Map())
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  // the first page is in: the live tail asks only for what came after it
+  const primedRef = useRef(false)
   const userScrolledRef = useRef(false)
 
   // Fetch function
@@ -157,7 +159,9 @@ export default function LiveLogViewer({
   useEffect(() => {
     if (!isConnected) return
     setLoading(true)
+    primedRef.current = false
     fetchLogs().then((data) => {
+      primedRef.current = true
       if (data?.entries) {
         setLines(data.entries)
         lastBatchRef.current = batchCounts(data.entries)
@@ -168,50 +172,35 @@ export default function LiveLogViewer({
     })
   }, [isConnected, fetchLogs])
 
-  // Live polling
-  useEffect(() => {
-    if (!isLive || !isConnected) {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current)
-        intervalRef.current = null
-      }
-      return
+  // Live polling: what came after the last line, every pollInterval while live
+  const tail = useCallback(async () => {
+    if (!primedRef.current) return
+    const data = await fetchLogs(lastTimestampRef.current || undefined)
+    if (data?.entries && data.entries.length > 0) {
+      // Deduplicate against the whole last batch, not only its last line: `since` is inclusive to the
+      // second, so every line of that second comes back (the server filters most of it now that it
+      // takes its own stamp; what remains is dropped here, once per copy already shown)
+      const seen = new Map(lastBatchRef.current)
+      const newEntries = data.entries.filter((e) => {
+        const k = entryKey(e)
+        const n = seen.get(k) ?? 0
+        if (n > 0) { seen.set(k, n - 1); return false }
+        return true
+      })
+      lastBatchRef.current = batchCounts(data.entries)
+      const last = data.entries[data.entries.length - 1]
+      if (last?.timestamp) lastTimestampRef.current = last.timestamp
+      if (newEntries.length === 0) return
+      setLines((prev) => {
+        const combined = [...prev, ...newEntries]
+        if (combined.length > maxLines) {
+          return combined.slice(combined.length - maxLines)
+        }
+        return combined
+      })
     }
-
-    intervalRef.current = setInterval(async () => {
-      const data = await fetchLogs(lastTimestampRef.current || undefined)
-      if (data?.entries && data.entries.length > 0) {
-        // Deduplicate against the whole last batch, not only its last line: `since` is inclusive to the
-        // second, so every line of that second comes back (the server filters most of it now that it
-        // takes its own stamp; what remains is dropped here, once per copy already shown)
-        const seen = new Map(lastBatchRef.current)
-        const newEntries = data.entries.filter((e) => {
-          const k = entryKey(e)
-          const n = seen.get(k) ?? 0
-          if (n > 0) { seen.set(k, n - 1); return false }
-          return true
-        })
-        lastBatchRef.current = batchCounts(data.entries)
-        const last = data.entries[data.entries.length - 1]
-        if (last?.timestamp) lastTimestampRef.current = last.timestamp
-        if (newEntries.length === 0) return
-        setLines((prev) => {
-          const combined = [...prev, ...newEntries]
-          if (combined.length > maxLines) {
-            return combined.slice(combined.length - maxLines)
-          }
-          return combined
-        })
-      }
-    }, pollInterval)
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current)
-        intervalRef.current = null
-      }
-    }
-  }, [isLive, isConnected, fetchLogs, pollInterval, maxLines])
+  }, [fetchLogs, maxLines])
+  usePolling(tail, pollInterval, { enabled: isLive })
 
   // Auto-scroll
   useEffect(() => {

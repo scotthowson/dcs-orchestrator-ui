@@ -4,6 +4,7 @@
 // updates on a VM the hub built run unattended: its API has passwordless sudo.
 // =============================================================================
 
+import { fetchSystemInfo, terminalAuth, runImagePrune } from '../api/endpoints'
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import {
   Cpu,
@@ -28,9 +29,9 @@ import {
 } from 'lucide-react'
 import { Badge } from '@mantine/core'
 import { usePolling } from '../hooks/usePolling'
+import { pollKeys } from '../api/pollKeys'
 import {
-  fetchSystemInfoScoped, fetchSudoReadyScoped, runDockerPruneScoped, runImagePruneScoped,
-  terminalAuthScoped, checkOsUpdatesScoped, applyOsUpdatesScoped, getOsUpdateStatusScoped, fetchOsUpdatesScoped,
+  fetchSudoReadyScoped, runDockerPruneScoped, checkOsUpdatesScoped, applyOsUpdatesScoped, getOsUpdateStatusScoped, fetchOsUpdatesScoped,
 } from '../api/fleetScopedOps'
 import { useFleetScope } from '../hooks/useFleetScope'
 import FleetScopeChips from '../components/fleet/FleetScopeChips'
@@ -154,7 +155,7 @@ function MaintenancePanel({ member, whereLabel }: ScopedProps) {
     setImagePruning(true)
     setResult(null)
     try {
-      const res = await runImagePruneScoped(member)
+      const res = await runImagePrune(member)
       setResult({
         success: res.success,
         message: res.success ? `Image prune completed${where}` : (res.output || 'Image prune failed'),
@@ -240,9 +241,8 @@ function autoUpdatesLine(a: OsUpdatesInfo['auto_updates'] | undefined): string {
  * every few hours; "Look again" asks for a new look now.
  */
 function OsGlance({ member }: { member: string | null }) {
-  const isConnected = useConnectionStore((s) => s.status) === 'connected'
   const fetchGlance = useCallback(() => fetchOsUpdatesScoped(member), [member])
-  const { data, refresh } = usePolling<OsUpdatesInfo>(fetchGlance, 20000, { enabled: isConnected })
+  const { data, refresh } = usePolling<OsUpdatesInfo>(fetchGlance, 20000)
   const [asking, setAsking] = useState(false)
   const lookAgain = async () => {
     setAsking(true)
@@ -366,7 +366,7 @@ function OsUpdatesPanel({ member, whereLabel }: ScopedProps) {
     setAuthing(true)
     setAuthError('')
     try {
-      const res = await terminalAuthScoped(member, authUsername.trim(), authPassword)
+      const res = await terminalAuth(authUsername.trim(), authPassword, member)
       if (res.success && res.token) {
         setTermToken(res.token)
         setSudoPassword(authPassword)  // Keep password in memory for sudo -S
@@ -629,17 +629,14 @@ export default function System() {
   const member = pageScope === 'hub' ? null : scopeMember
   const whereLabel = hasFleet ? (member ? `VM ${memberName}` : 'the hub') : ''
 
-  const fetchScopedInfo = useCallback(() => fetchSystemInfoScoped(member), [member])
-  const { data, loading, error, refresh } = usePolling<SystemInfo>(fetchScopedInfo, 30000, {
-    enabled: isConnected,
-  })
-  const memberRef = useRef(member)
-  useEffect(() => { if (memberRef.current !== member) { memberRef.current = member; refresh() } }, [member, refresh])
+  // a new server asks at once; the answer of the one shown before stays until it lands
+  const infoKey = pollKeys.systemInfo(member)
+  const { data, dataKey: infoOf, loading, error, refresh } = usePolling<SystemInfo>(() => fetchSystemInfo(member), 30000, { key: infoKey })
 
   // the global store describes the server the dashboard is signed in to, never a VM
   useEffect(() => {
-    if (data && !member) setSystem(data)
-  }, [data, member, setSystem])
+    if (data && !member && infoOf === infoKey) setSystem(data)
+  }, [data, member, setSystem, infoOf, infoKey])
 
   const info = data
   const diskUsage: DockerDiskUsage[] = info?.docker_disk_usage ?? []

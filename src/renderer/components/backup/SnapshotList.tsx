@@ -63,19 +63,7 @@ export default function SnapshotList({
   const download = useCallback(async (snapshot: SnapshotEntry) => {
     setDownloading(rowKey(snapshot))
     try {
-      const token = apiClient.getAuthToken()
-      const res = await fetch(`${apiClient.getBaseUrl()}/snapshots/${encodeURIComponent(snapshot.filename)}/download`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      })
-      if (!res.ok) throw new Error(`The download failed (${res.status})`)
-      const blobUrl = URL.createObjectURL(await res.blob())
-      const a = document.createElement('a')
-      a.href = blobUrl
-      a.download = snapshot.filename
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(blobUrl)
+      await apiClient.download(`/snapshots/${encodeURIComponent(snapshot.filename)}/download`, snapshot.filename)
       addToast({ type: 'success', message: `Downloaded ${snapshot.filename}` })
     } catch (err) {
       addToast({ type: 'error', message: err instanceof Error ? err.message : 'The download failed' })

@@ -12,7 +12,6 @@
 import { useCallback, useRef, useState } from 'react'
 import { LifeBuoy, Download, Loader2, Upload, RotateCcw, KeyRound, CheckCircle, AlertTriangle, RefreshCw, XCircle } from 'lucide-react'
 import { usePolling } from '../../hooks/usePolling'
-import { useConnectionStore } from '../../stores/connectionStore'
 import { useAuthStore } from '../../stores/authStore'
 import { useToast } from '../common/Toast'
 import { useConfirm } from '../common/ConfirmDialog'
@@ -55,11 +54,10 @@ function readAsBase64(file: File): Promise<string> {
 }
 
 export default function RecoveryBundleCard() {
-  const isConnected = useConnectionStore((s) => s.status === 'connected')
   const isAdmin = useAuthStore((s) => s.userRole) === 'admin'
   const { addToast } = useToast()
   const confirm = useConfirm()
-  const { data, refetch } = usePolling(fetchRecovery, 30000, { enabled: isConnected && isAdmin })
+  const { data, refetch } = usePolling(fetchRecovery, 30000, { enabled: isAdmin })
   const [passphrase, setPassphrase] = useState('')
   const [storePass, setStorePass] = useState(true)
   const [appData, setAppData] = useState<Set<string>>(new Set())
@@ -96,15 +94,7 @@ export default function RecoveryBundleCard() {
   const download = useCallback(async (entry: RecoveryBundleEntry) => {
     setBusy(`dl:${entry.file}`)
     try {
-      const token = apiClient.getAuthToken()
-      const res = await fetch(`${apiClient.getBaseUrl()}/recovery/${encodeURIComponent(entry.file)}/download`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
-      if (!res.ok) throw new Error(`The download failed (${res.status})`)
-      const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url; a.download = entry.file
-      document.body.appendChild(a); a.click(); document.body.removeChild(a)
-      URL.revokeObjectURL(url)
+      await apiClient.download(`/recovery/${encodeURIComponent(entry.file)}/download`, entry.file)
     } catch (err) {
       addToast({ type: 'error', message: err instanceof Error ? err.message : 'The download failed' })
     } finally {
