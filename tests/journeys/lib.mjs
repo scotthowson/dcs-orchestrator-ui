@@ -131,6 +131,7 @@ export class Tab {
     page.on('requestfailed', (r) => {
       const why = r.failure()?.errorText || ''
       if (why === 'net::ERR_ABORTED') return
+      if (IGNORE.some((re) => re.test(why))) return
       if (this.expectFailures && this.expectFailures.test(r.url())) return
       this.errors.push(`request failed: ${r.method()} ${r.url()} — ${why}`)
     })

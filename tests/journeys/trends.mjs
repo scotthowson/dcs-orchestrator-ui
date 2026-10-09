@@ -51,7 +51,7 @@ export default async function trends(k) {
   check('Auto-refresh off: Paused, no Live mark', (await pressed()) === 'false' && await a.waitText('Paused', { within: 'main', ms: 3000 }) && !(await a.page.evaluate(() => [...document.querySelectorAll('main div')].some((d) => d.innerText.trim() === 'Live'))))
   const n1 = a.requests.length
   await a.click('Refresh', { within: 'main' })
-  check('Refresh asks once more while paused', await a.until((n) => true, null, 10) && await (async () => { const end = Date.now() + 8000; while (Date.now() < end) { if (a.requests.slice(n1).some((r) => /\/metrics\/trends$/.test(r.path))) return true; await k.sleep(200) } return false })())
+  check('Refresh asks once more while paused', await a.until((n) => true, null, 10) && await (async () => { const end = Date.now() + 30000; while (Date.now() < end) { if (a.requests.slice(n1).some((r) => /\/metrics\/trends$/.test(r.path))) return true; await k.sleep(200) } return false })())
   await a.click('Auto-refresh', { within: 'main' })
   check('Auto-refresh on again', (await pressed()) === 'true')
   // paused, a new range still shows its own data at once

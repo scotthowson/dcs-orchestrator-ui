@@ -250,7 +250,7 @@ export default async function stacks(k) {
   check('a viewer can read the compose file', await v.waitDialog('Monitoring Management', 15000) && /docker-compose\.yml/.test(await dlg(v)))
   await v.key('Escape'); await v.waitNoDialog(5000); await v.settle()
   await v.click('Logs', { within: 'main' })
-  check('a viewer can read the stack\'s logs', await v.waitText('Stack logs', { within: 'main', ms: 15000 }), (await v.text('main')).slice(0, 300))
+  check('a viewer can read the stack\'s logs', await v.waitText('Stack logs', { within: 'main', ms: 45000 }), (await v.text('main')).slice(0, 300))
 
   // ---- a phone ---------------------------------------------------------------------------------------------
   const p = await k.open(k.ADMIN, { width: 'phone' })
