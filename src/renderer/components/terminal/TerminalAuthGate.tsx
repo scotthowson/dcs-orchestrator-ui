@@ -6,6 +6,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Switch } from '@mantine/core'
 import { Shield, User, Lock, Loader2, AlertCircle, Eye, EyeOff, KeyRound } from 'lucide-react'
 import { terminalAuth } from '../../api/endpoints'
+import { saveTerminalSession } from '../../lib/terminalSession'
 import Hint from '../common/Hint'
 import { BTN_ICON_SM, BTN_SHEET_PRIMARY, TONE_GHOST } from '../../lib/ui'
 
@@ -43,12 +44,12 @@ export default function TerminalAuthGate({ onAuthenticated }: Props) {
       const res = await terminalAuth(username.trim(), password)
       if (res.success && res.token) {
         if (rememberSession) {
-          sessionStorage.setItem('terminal-session', JSON.stringify({
+          saveTerminalSession({
             token: res.token,
             username: res.username,
             // the System page's OS updates restore the session only while it is valid: the API says how long (4 h as shipped)
             expiresAt: Date.now() + (res.expires_in || 14400) * 1000,
-          }))
+          })
         }
         onAuthenticated(res.token, res.username)
       } else {

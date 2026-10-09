@@ -25,6 +25,7 @@ import type { MemberTerminalStatus } from '../../shared/types'
 import { useConnectionStore } from '../stores/connectionStore'
 import { useSystemStore } from '../stores/systemStore'
 import TerminalAuthGate from '../components/terminal/TerminalAuthGate'
+import { readTerminalSession, forgetTerminalSession, readTerminalHistory, saveTerminalHistory } from '../lib/terminalSession'
 import VmCapsule from '../components/fleet/VmCapsule'
 import { DisconnectedBanner } from '../components/common/DisconnectedBanner'
 import { EmptyState, LoadingState } from '../components/common/PageState'
@@ -152,9 +153,7 @@ export default function Terminal() {
   const [cwd, setCwd] = useState('~')
   const [entries, setEntries] = useState<CommandEntry[]>([])
   const [loading, setLoading] = useState(false)
-  const [history, setHistory] = useState<string[]>(() => {
-    try { return JSON.parse(localStorage.getItem('terminal-history') || '[]') } catch { return [] }
-  })
+  const [history, setHistory] = useState<string[]>(readTerminalHistory)
   const [historyIndex, setHistoryIndex] = useState(-1)
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
   const [queueLength, setQueueLength] = useState(0)
@@ -210,30 +209,37 @@ export default function Terminal() {
       return
     }
 
-    const saved = sessionStorage.getItem('terminal-session')
+    // only the session this server issued (kept under its address) is offered back to it
+    const saved = readTerminalSession()
     if (saved) {
-      try {
-        const { token, username } = JSON.parse(saved)
-        if (token) {
-          terminalAuthVerify(token).then((res) => {
-            if (res.valid) {
-              setTerminalToken(token)
-              setTerminalUser(username || res.username)
-              setAuthenticated(true)
-            } else {
-              sessionStorage.removeItem('terminal-session')
-            }
-          }).catch(() => {
-            sessionStorage.removeItem('terminal-session')
-          }).finally(() => setAuthChecking(false))
-          return
+      const { token, username } = saved
+      terminalAuthVerify(token).then((res) => {
+        if (res.valid) {
+          setTerminalToken(token)
+          setTerminalUser(username || res.username)
+          setAuthenticated(true)
+        } else {
+          forgetTerminalSession()
         }
-      } catch {
-        sessionStorage.removeItem('terminal-session')
-      }
+      }).catch(() => {
+        forgetTerminalSession()
+      }).finally(() => setAuthChecking(false))
+      return
     }
     setAuthChecking(false)
   }, [isConnected])
+
+  // another server address while this page stays: the token in memory was issued by the server before, drop it
+  const serverUrl = useConnectionStore((s) => s.serverUrl)
+  const serverRef = useRef(serverUrl)
+  useEffect(() => {
+    if (serverRef.current === serverUrl) return
+    serverRef.current = serverUrl
+    setAuthenticated(false)
+    setTerminalToken('')
+    setTerminalUser('')
+    setEntries([])
+  }, [serverUrl])
 
   // Focus input when authenticated
   useEffect(() => {
@@ -270,7 +276,7 @@ export default function Terminal() {
     if (terminalToken) {
       try { await terminalLogout(terminalToken) } catch { /* ignore */ }
     }
-    sessionStorage.removeItem('terminal-session')
+    forgetTerminalSession()
     setAuthenticated(false)
     setTerminalToken('')
     setTerminalUser('')
@@ -299,7 +305,7 @@ export default function Terminal() {
       setHistory(prev => {
         const filtered = prev.filter(h => h !== command)
         const next = [command, ...filtered].slice(0, 50)
-        localStorage.setItem('terminal-history', JSON.stringify(next))
+        saveTerminalHistory(next)
         return next
       })
       return
@@ -313,7 +319,7 @@ export default function Terminal() {
     setHistory(prev => {
       const filtered = prev.filter(h => h !== command)
       const next = [command, ...filtered].slice(0, 50)
-      localStorage.setItem('terminal-history', JSON.stringify(next))
+      saveTerminalHistory(next)
       return next
     })
 
@@ -359,7 +365,7 @@ export default function Terminal() {
       if (err && typeof err === 'object' && 'status' in err && (err as { status: number }).status === 401) {
         setSessionExpired(true)
         setAuthenticated(false)
-        sessionStorage.removeItem('terminal-session')
+        forgetTerminalSession()
         return
       }
 
@@ -684,7 +690,7 @@ export default function Terminal() {
           </span>
           <button
             type="button"
-            onClick={() => { setHistory([]); localStorage.removeItem('terminal-history') }}
+            onClick={() => { setHistory([]); saveTerminalHistory([]) }}
             className="text-[11px] text-slate-500 hover:text-rose-400 transition-colors px-2 py-1 -my-1 rounded-md"
           >
             Clear the history

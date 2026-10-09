@@ -36,6 +36,7 @@ import { getDefaultServerUrl } from '../lib/env'
 import { corsBlocked, blockedText } from '../lib/discover'
 import { sseClient } from '../lib/sse'
 import { resetUserSync } from '../lib/userSync'
+import { endTerminalSessions } from '../lib/terminalSession'
 import { rememberPassword, rememberedPassword, forgetPassword, rememberedServers } from '../lib/credentials'
 
 const STORAGE_KEY = 'dcs-servers'
@@ -134,6 +135,7 @@ function resetServerData() {
 
 /** Take the dashboard down and drop everything of the server in use; the saved sessions stay as they are */
 function leaveServer() {
+  endTerminalSessions() // first: its server is asked with the session about to be put away
   useAuthStore.getState().suspendSession()
   apiClient.cancelAll()
   useConnectionStore.getState().disconnect()

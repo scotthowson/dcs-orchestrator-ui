@@ -51,6 +51,7 @@ import Hint from '../components/common/Hint'
 import { pageLabel } from '../constants/pageTitles'
 import { Panel } from '../components/dashboard/cardShared'
 import { BTN_CARD_QUIET, BTN_TOOLBAR, BTN_TOOLBAR_QUIET, TONE_OK } from '../lib/ui'
+import { readTerminalSession, saveTerminalSession, forgetTerminalSession } from '../lib/terminalSession'
 
 /** which server a panel talks to: null is the hub (or a server without a fleet) */
 interface ScopedProps { member: string | null; whereLabel: string }
@@ -316,10 +317,8 @@ function OsUpdatesPanel({ member, whereLabel }: ScopedProps) {
   const [termToken, setTermToken] = useState<string | null>(() => {
     if (member) return null
     try {
-      const raw = sessionStorage.getItem('terminal-session')
-      if (!raw) return null
-      const parsed = JSON.parse(raw)
-      if (parsed.expiresAt && parsed.expiresAt > Date.now()) return parsed.token
+      const parsed = readTerminalSession()
+      if (parsed?.expiresAt && parsed.expiresAt > Date.now()) return parsed.token
       return null
     } catch { return null }
   })
@@ -355,7 +354,7 @@ function OsUpdatesPanel({ member, whereLabel }: ScopedProps) {
   const forgetSession = () => {
     setTermToken(null)
     setSudoPassword(null)
-    if (!member) sessionStorage.removeItem('terminal-session')
+    if (!member) forgetTerminalSession()
   }
   // the terminal session is gone (401), or it is not enough on its own (403 "Sudo password required": a session restored
   // from the Terminal page carries no password): sign in again. The API's message has no status code in it — the error's own is read.
@@ -371,11 +370,7 @@ function OsUpdatesPanel({ member, whereLabel }: ScopedProps) {
         setTermToken(res.token)
         setSudoPassword(authPassword)  // Keep password in memory for sudo -S
         if (!member) {
-          sessionStorage.setItem('terminal-session', JSON.stringify({
-            token: res.token,
-            username: res.username,
-            expiresAt: Date.now() + (res.expires_in * 1000),
-          }))
+          saveTerminalSession({ token: res.token, username: res.username, expiresAt: Date.now() + (res.expires_in * 1000) })
         }
         setAuthPassword('')
         addToast({ type: 'success', message: `Signed in as ${res.username}${where}` })
