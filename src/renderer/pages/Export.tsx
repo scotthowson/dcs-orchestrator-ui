@@ -427,7 +427,7 @@ export default function Export() {
           <button type="button" onClick={() => setShowHistory((p) => !p)} aria-expanded={showHistory} className={BTN_TOOLBAR_QUIET}>
             <Clock size={14} />
             History ({history.length})
-            {showHistory ? <ChevronUp size={12} aria-hidden /> : <ChevronDown size={12} aria-hidden />}
+            {showHistory ? <ChevronUp size={14} aria-hidden /> : <ChevronDown size={14} aria-hidden />}
           </button>
         ) : undefined}
       />

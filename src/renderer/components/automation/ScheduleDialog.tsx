@@ -79,7 +79,7 @@ export default function ScheduleDialog({ mode, form, setForm, saving, onSubmit, 
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose} className={`${BTN_SHEET_QUIET} flex-1`}>Cancel</button>
             <button type="submit" disabled={saving || !form.name} className={`${BTN_SHEET_PRIMARY} flex-1`}>
-              {saving ? <Loader2 size={14} className="animate-spin" /> : mode === 'create' ? <Plus size={14} /> : <CheckCircle size={14} />} {mode === 'create' ? 'Create' : 'Save'}
+              {saving ? <Loader2 size={16} className="animate-spin" /> : mode === 'create' ? <Plus size={16} /> : <CheckCircle size={16} />} {mode === 'create' ? 'Create' : 'Save'}
             </button>
           </div>
         </form>

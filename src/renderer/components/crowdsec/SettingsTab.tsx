@@ -47,14 +47,14 @@ function MaintenanceCard() {
             <h3 className="text-sm font-medium text-slate-200">Reload the configuration</h3>
             <p className="text-xs text-slate-500 mt-1 leading-relaxed">CrowdSec re-reads its parsers, scenarios and allowlists without stopping. Detection carries on and nothing is interrupted.</p>
           </div>
-          <button type="button" className={BTN_TOOLBAR_QUIET} disabled={busy !== ''} onClick={() => run('reload')}>{busy === 'reload' ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />} Reload configuration</button>
+          <button type="button" className={BTN_TOOLBAR_QUIET} disabled={busy !== ''} onClick={() => run('reload')}>{busy === 'reload' ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />} Reload configuration</button>
         </div>
         <div className="flex items-center justify-between gap-4 flex-wrap py-3 first:pt-0 last:pb-0">
           <div className="min-w-0 flex-1 basis-64">
             <h3 className="text-sm font-medium text-slate-200">Restart CrowdSec</h3>
             <p className="text-xs text-slate-500 mt-1 leading-relaxed">Stops and starts the container. Needed after editing profiles.yaml or the notification files by hand. Detection pauses for a few seconds; bans stay in place.</p>
           </div>
-          <button type="button" className={BTN_TOOLBAR_DANGER} disabled={busy !== ''} onClick={() => run('restart')}>{busy === 'restart' ? <Loader2 size={13} className="animate-spin" /> : <RotateCw size={13} />} Restart CrowdSec</button>
+          <button type="button" className={BTN_TOOLBAR_DANGER} disabled={busy !== ''} onClick={() => run('restart')}>{busy === 'restart' ? <Loader2 size={14} className="animate-spin" /> : <RotateCw size={14} />} Restart CrowdSec</button>
         </div>
       </div>
     </Panel>

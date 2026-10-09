@@ -89,13 +89,13 @@ export default function StackControls({ stacks, error, onRetry, onRefresh }: {
                 {isAdmin ? (
                   <div className="flex items-center gap-0.5">
                     {!isRunning && (
-                      <Hint label={stackState(s) === 'asleep' ? 'Wake it now (Sablier puts it back to sleep when idle)' : 'Start'}><button type="button" aria-label={`${stackState(s) === 'asleep' ? 'Wake' : 'Start'} ${s.name}`} onClick={() => run(s.name, 'start')} disabled={!!busy} className={`${BTN_ICON_SM} ${TONE_GHOST_OK}`}>{spin('start', <Play size={13} />)}</button></Hint>
+                      <Hint label={stackState(s) === 'asleep' ? 'Wake it now (Sablier puts it back to sleep when idle)' : 'Start'}><button type="button" aria-label={`${stackState(s) === 'asleep' ? 'Wake' : 'Start'} ${s.name}`} onClick={() => run(s.name, 'start')} disabled={!!busy} className={`${BTN_ICON_SM} ${TONE_GHOST_OK}`}>{spin('start', <Play size={12} />)}</button></Hint>
                     )}
                     {isRunning && (
                       <>
-                        <Hint label="Restart"><button type="button" aria-label={`Restart ${s.name}`} onClick={() => run(s.name, 'restart')} disabled={!!busy} className={`${BTN_ICON_SM} ${TONE_GHOST}`}>{spin('restart', <RotateCw size={13} />)}</button></Hint>
-                        <Hint label="Pull the images and recreate what changed"><button type="button" aria-label={`Update ${s.name}`} onClick={() => run(s.name, 'update')} disabled={!!busy} className={`${BTN_ICON_SM} ${TONE_GHOST}`}>{spin('update', <ArrowUpCircle size={13} />)}</button></Hint>
-                        <Hint label="Stop"><button type="button" aria-label={`Stop ${s.name}`} onClick={() => run(s.name, 'stop')} disabled={!!busy} className={`${BTN_ICON_SM} ${TONE_GHOST_DANGER}`}>{spin('stop', <Square size={13} />)}</button></Hint>
+                        <Hint label="Restart"><button type="button" aria-label={`Restart ${s.name}`} onClick={() => run(s.name, 'restart')} disabled={!!busy} className={`${BTN_ICON_SM} ${TONE_GHOST}`}>{spin('restart', <RotateCw size={12} />)}</button></Hint>
+                        <Hint label="Pull the images and recreate what changed"><button type="button" aria-label={`Update ${s.name}`} onClick={() => run(s.name, 'update')} disabled={!!busy} className={`${BTN_ICON_SM} ${TONE_GHOST}`}>{spin('update', <ArrowUpCircle size={12} />)}</button></Hint>
+                        <Hint label="Stop"><button type="button" aria-label={`Stop ${s.name}`} onClick={() => run(s.name, 'stop')} disabled={!!busy} className={`${BTN_ICON_SM} ${TONE_GHOST_DANGER}`}>{spin('stop', <Square size={12} />)}</button></Hint>
                       </>
                     )}
                   </div>

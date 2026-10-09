@@ -633,7 +633,7 @@ export default function Environment() {
           {!selectedStack && (
             <div className="glass rounded-xl border border-white/5">
               <EmptyState
-                icon={<FileCode size={32} />}
+                icon={<FileCode size={28} />}
                 title="Select a stack from the list to view its environment variables"
               />
             </div>
@@ -646,7 +646,7 @@ export default function Environment() {
           {selectedStack && !stackEnvLoading && stackEnvEmpty && stackViewMode === 'table' && (
             <div className="glass rounded-xl border border-white/5">
               <EmptyState
-                icon={<FileCode size={32} />}
+                icon={<FileCode size={28} />}
                 title="No .env file"
                 hint="This stack does not have an .env file. Open the editor to create one."
                 action={

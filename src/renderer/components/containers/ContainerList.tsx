@@ -452,7 +452,7 @@ const ContainerList: React.FC<ContainerListProps> = ({
           </div>
         ) : sorted.length === 0 ? (
           <EmptyState
-            icon={<Box size={32} />}
+            icon={<Box size={28} />}
             title={search ? 'No containers match your search.' : 'No containers found.'}
             hint={emptyHint}
           />
@@ -539,7 +539,7 @@ const ContainerList: React.FC<ContainerListProps> = ({
                 <tr>
                   <td colSpan={COLUMNS.length + 3}>
                     <EmptyState
-                      icon={<Box size={32} />}
+                      icon={<Box size={28} />}
                       title={search ? 'No containers match your search.' : 'No containers found.'}
                       hint={emptyHint}
                     />

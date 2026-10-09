@@ -525,9 +525,9 @@ function VmContainers({ member, live, stack, isAdmin, onStackAction, busyKey, on
                 </div>
                 {isAdmin && (cbusy.startsWith(`${c.name}:`) ? <Loader2 size={12} className="animate-spin text-cyan-400" /> : (
                   <div className="flex items-center gap-0.5">
-                    {!running && <Hint label={sleepy ? 'Wake it now (Sablier puts it back to sleep when idle)' : 'Start'}><button aria-label={`${sleepy ? 'Wake' : 'Start'} ${c.name}`} type="button" onClick={() => act(c.name, 'start')} className={`${BTN_ICON_SM} ${TONE_GHOST_OK}`}><Play size={11} /></button></Hint>}
-                    {running && <Hint label="Restart"><button aria-label={`Restart ${c.name}`} type="button" onClick={() => act(c.name, 'restart')} className={`${BTN_ICON_SM} ${TONE_GHOST}`}><RotateCcw size={11} /></button></Hint>}
-                    {running && <Hint label="Stop"><button aria-label={`Stop ${c.name}`} type="button" onClick={() => act(c.name, 'stop')} className={`${BTN_ICON_SM} ${TONE_GHOST_DANGER}`}><Square size={11} /></button></Hint>}
+                    {!running && <Hint label={sleepy ? 'Wake it now (Sablier puts it back to sleep when idle)' : 'Start'}><button aria-label={`${sleepy ? 'Wake' : 'Start'} ${c.name}`} type="button" onClick={() => act(c.name, 'start')} className={`${BTN_ICON_SM} ${TONE_GHOST_OK}`}><Play size={12} /></button></Hint>}
+                    {running && <Hint label="Restart"><button aria-label={`Restart ${c.name}`} type="button" onClick={() => act(c.name, 'restart')} className={`${BTN_ICON_SM} ${TONE_GHOST}`}><RotateCcw size={12} /></button></Hint>}
+                    {running && <Hint label="Stop"><button aria-label={`Stop ${c.name}`} type="button" onClick={() => act(c.name, 'stop')} className={`${BTN_ICON_SM} ${TONE_GHOST_DANGER}`}><Square size={12} /></button></Hint>}
                   </div>
                 ))}
               </div>
@@ -1143,12 +1143,12 @@ function MemberMenuSheet({ member, vms, onClose, onEdit, onChanged }: { member: 
       <div className="space-y-2">
         <p className="text-[11px] text-slate-500">Added {new Date(member.added_at * 1000).toLocaleString()} by {member.added_by} ({member.source === 'join' ? 'joined with a code' : 'added by address'}) · last answered {member.last_seen ? ago(member.last_seen) : 'never'}{member.last_error ? ` · ${member.last_error}` : ''}</p>
         {note && <p className="text-xs text-slate-300 bg-white/[0.03] border border-white/5 rounded-lg px-3 py-2">{note}</p>}
-        <button type="button" onClick={test} disabled={!!busy} className={`${BTN_SHEET} ${TONE_QUIET} w-full`}>{busy === 'test' ? <Loader2 size={15} className="animate-spin" /> : <PlugZap size={15} />} Test the link and re-match the guest</button>
-        <button type="button" onClick={sync} disabled={!!busy} className={`${BTN_SHEET} ${TONE_QUIET} w-full`}>{busy === 'sync' ? <Loader2 size={15} className="animate-spin" /> : <FolderSync size={15} />} Sync stack files from the VM</button>
-        <button type="button" onClick={() => void relink()} disabled={!!busy} className={`${BTN_SHEET} ${TONE_QUIET} w-full`}>{busy === 'relink' ? <Loader2 size={15} className="animate-spin" /> : <Link2 size={15} />} Relink to the hub (password lost, or "rate limiting login")</button>
-        <button type="button" onClick={onEdit} disabled={!!busy} className={`${BTN_SHEET} ${TONE_QUIET} w-full`}><Pencil size={15} /> Edit name, address, account or guest</button>
-        <button type="button" onClick={remove} disabled={!!busy} className={`${BTN_SHEET} ${TONE_DANGER} w-full`}>{busy === 'remove' ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />} Remove from the fleet</button>
-        {canDestroy && <button ref={destroyRef} type="button" onClick={() => setDestroying(true)} disabled={!!busy || destroying} aria-expanded={destroying} className={`${BTN_SHEET} ${TONE_DANGER} w-full`}><Trash2 size={15} /> Stop and destroy the VM on Proxmox</button>}
+        <button type="button" onClick={test} disabled={!!busy} className={`${BTN_SHEET} ${TONE_QUIET} w-full`}>{busy === 'test' ? <Loader2 size={16} className="animate-spin" /> : <PlugZap size={16} />} Test the link and re-match the guest</button>
+        <button type="button" onClick={sync} disabled={!!busy} className={`${BTN_SHEET} ${TONE_QUIET} w-full`}>{busy === 'sync' ? <Loader2 size={16} className="animate-spin" /> : <FolderSync size={16} />} Sync stack files from the VM</button>
+        <button type="button" onClick={() => void relink()} disabled={!!busy} className={`${BTN_SHEET} ${TONE_QUIET} w-full`}>{busy === 'relink' ? <Loader2 size={16} className="animate-spin" /> : <Link2 size={16} />} Relink to the hub (password lost, or "rate limiting login")</button>
+        <button type="button" onClick={onEdit} disabled={!!busy} className={`${BTN_SHEET} ${TONE_QUIET} w-full`}><Pencil size={16} /> Edit name, address, account or guest</button>
+        <button type="button" onClick={remove} disabled={!!busy} className={`${BTN_SHEET} ${TONE_DANGER} w-full`}>{busy === 'remove' ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />} Remove from the fleet</button>
+        {canDestroy && <button ref={destroyRef} type="button" onClick={() => setDestroying(true)} disabled={!!busy || destroying} aria-expanded={destroying} className={`${BTN_SHEET} ${TONE_DANGER} w-full`}><Trash2 size={16} /> Stop and destroy the VM on Proxmox</button>}
         {canDestroy && destroying && (
           <div role="group" aria-label="Confirm destroying the VM" className="rounded-xl border border-rose-500/25 bg-rose-500/[0.06] p-3 space-y-3 animate-fade-in">
             <p className="text-xs text-rose-200">Stop and destroy VM {member.vmid} ({member.name}) on Proxmox, with its disks? Everything in it is lost.</p>
@@ -1158,7 +1158,7 @@ function MemberMenuSheet({ member, vms, onClose, onEdit, onChanged }: { member: 
             </div>
             <div className="flex gap-2">
               <button type="button" onClick={cancelDestroy} disabled={busy === 'remove'} className={`${BTN_SHEET_QUIET} flex-1`}>Cancel</button>
-              <button type="button" onClick={() => void destroy()} disabled={typed !== member.name || busy === 'remove'} className={`${BTN_SHEET_DANGER} flex-1`}>{busy === 'remove' ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />} Destroy the VM</button>
+              <button type="button" onClick={() => void destroy()} disabled={typed !== member.name || busy === 'remove'} className={`${BTN_SHEET_DANGER} flex-1`}>{busy === 'remove' ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />} Destroy the VM</button>
             </div>
           </div>
         )}
@@ -1473,7 +1473,7 @@ export default function Proxmox() {
               <div className={CARD}>
                 <EmptyState
                   compact
-                  icon={<Box size={22} />}
+                  icon={<Box size={28} />}
                   title={all.length === 0 ? 'No guests on this Proxmox yet' : 'No guest matches'}
                   hint={all.length === 0
                     ? (canBuild ? 'New VM stack builds one; the VMs and containers made in Proxmox show here too.' : 'The VMs and containers made in Proxmox show here.')

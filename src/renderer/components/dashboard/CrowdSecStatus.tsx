@@ -135,7 +135,7 @@ export default function CrowdSecStatus({ data, error, onRetry }: Props) {
           className={BTN_CARD_QUIET}
           title="Remove any ban on your current address and the home public address"
         >
-          {busy === 'me' ? <Loader2 size={11} className="animate-spin" /> : <Unlock size={11} />} Unban me
+          {busy === 'me' ? <Loader2 size={12} className="animate-spin" /> : <Unlock size={12} />} Unban me
         </button>
         {isAdmin && (
           <button
@@ -145,7 +145,7 @@ export default function CrowdSecStatus({ data, error, onRetry }: Props) {
             className={`${BTN_CARD} ${TONE_OK}`}
             title="Whitelist the home public address and your current address so they can never be banned"
           >
-            {busy === 'trust' ? <Loader2 size={11} className="animate-spin" /> : <UserCheck size={11} />} Trust my address
+            {busy === 'trust' ? <Loader2 size={12} className="animate-spin" /> : <UserCheck size={12} />} Trust my address
           </button>
         )}
         <span className="ml-auto text-[10px] text-slate-600">{trusted.length} trusted</span>

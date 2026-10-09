@@ -885,7 +885,7 @@ function RoutesPanel(props: {
           action={isAdmin ? <button type="button" onClick={() => setCurrentPage('templates')} className={BTN_TOOLBAR_QUIET}>Open {pageLabel('templates')}</button> : undefined}
         />
       ) : filteredRoutes.length === 0 ? (
-        <EmptyState icon={<Search size={20} className="text-slate-500" />} title={`No routes match "${searchQuery}"`} />
+        <EmptyState icon={<Search size={28} className="text-slate-500" />} title={`No routes match "${searchQuery}"`} />
       ) : (
         <div className="divide-y divide-white/[0.03]">
           {routesByStack.map(([stack, stackRoutes]) => (
@@ -1038,7 +1038,7 @@ function RecordsPanel(props: {
       ) : records.length === 0 ? (
         <EmptyState icon={<Globe size={28} className="text-slate-500" />} title="The zone has no records" hint="Add one, or deploy a template to create routes" action={isAdmin ? <button type="button" onClick={onAdd} className={`${BTN_TOOLBAR} ${TONE_OK}`}><Plus size={14} /> Add record</button> : undefined} />
       ) : filtered.length === 0 ? (
-        <EmptyState icon={<Search size={20} className="text-slate-500" />} title={searchQuery ? `No records match "${searchQuery}"` : `No ${typeFilter} records`} />
+        <EmptyState icon={<Search size={28} className="text-slate-500" />} title={searchQuery ? `No records match "${searchQuery}"` : `No ${typeFilter} records`} />
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm min-w-[720px]">

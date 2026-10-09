@@ -79,7 +79,7 @@ export default function NotesCard({ cardConfig, onSaveConfig, dashboardEditMode 
           <Hint label="Save (Ctrl+Enter)"><button type="button" aria-label="Save the note" onClick={save} disabled={saving} className={`${BTN_ICON_SM} ${TONE_GHOST_OK}`}><Check size={14} /></button></Hint>
         </>
       ) : (
-        <Hint label="Edit the note"><button type="button" aria-label="Edit the note" onClick={() => setEditing(true)} className={`${BTN_ICON_SM} ${TONE_GHOST}`}><Pencil size={13} /></button></Hint>
+        <Hint label="Edit the note"><button type="button" aria-label="Edit the note" onClick={() => setEditing(true)} className={`${BTN_ICON_SM} ${TONE_GHOST}`}><Pencil size={12} /></button></Hint>
       )) : undefined}
     >
       {editing ? (

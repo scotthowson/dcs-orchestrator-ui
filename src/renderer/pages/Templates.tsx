@@ -1242,7 +1242,7 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
               <div className="flex items-center gap-2">
                 <button type="button" onClick={onClose} className={`${BTN_SHEET_QUIET} flex-1 sm:flex-none`}>Continue in background</button>
                 <button type="button" onClick={handleViewStack} className={`${BTN_SHEET_QUIET} flex-1 sm:flex-none`}>
-                  View stack <ArrowRight size={14} />
+                  View stack <ArrowRight size={16} />
                 </button>
               </div>
             </div>
@@ -1293,25 +1293,25 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
               <button type="button" onClick={onClose} className={`${BTN_SHEET_QUIET} flex-1 sm:flex-none`}>Done</button>
               {isAdmin && onUndeploy && (
                 <button type="button" onClick={handleUndoDeploy} disabled={undeploying} className={`${BTN_SHEET} ${TONE_DANGER} flex-1 sm:flex-none`}>
-                  {undeploying ? <Loader2 size={15} className="animate-spin" /> : <Undo2 size={15} />}
+                  {undeploying ? <Loader2 size={16} className="animate-spin" /> : <Undo2 size={16} />}
                   Undo deploy
                 </button>
               )}
               {isAdmin && outcome !== 'running' && (
                 <button type="button" onClick={handleStartNow} disabled={outcome === 'not-started' && missingSecrets.length > 0} title={outcome === 'not-started' && missingSecrets.length > 0 ? 'Store the missing secrets first' : 'Run the stack start again'} className={`${BTN_SHEET} ${TONE_OK} flex-1 sm:flex-none`}>
-                  <Play size={15} />
+                  <Play size={16} />
                   {outcome === 'failed' ? 'Retry start' : 'Start now'}
                 </button>
               )}
               {outcome === 'running' && (
                 <button type="button" onClick={openContainers} className={`${BTN_SHEET_QUIET} flex-1 sm:flex-none`}>
-                  <Package size={15} />
+                  <Package size={16} />
                   View container{(deployResult.services_added?.length ?? 0) > 1 ? 's' : ''}
                 </button>
               )}
               <button type="button" onClick={handleViewStack} className={`${BTN_SHEET_PRIMARY} flex-1 sm:flex-none`}>
                 View stack
-                <ArrowRight size={15} />
+                <ArrowRight size={16} />
               </button>
             </div>
           </>
@@ -2234,7 +2234,7 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
                   disabled={!targetStack || dryRunLoading}
                   className={`${BTN_SHEET} ${TONE_QUIET} flex-1 sm:flex-none`}
                 >
-                  {dryRunLoading ? <Loader2 size={15} className="animate-spin" /> : <Eye size={15} />}
+                  {dryRunLoading ? <Loader2 size={16} className="animate-spin" /> : <Eye size={16} />}
                   Preview
                 </button>
               )}
@@ -2247,11 +2247,11 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
                   className={`${BTN_SHEET_PRIMARY} flex-1 sm:flex-none`}
                 >
                   {deploying ? (
-                    <Loader2 size={15} className="animate-spin" />
+                    <Loader2 size={16} className="animate-spin" />
                   ) : confirming ? (
-                    <AlertTriangle size={15} />
+                    <AlertTriangle size={16} />
                   ) : (
-                    <Rocket size={15} />
+                    <Rocket size={16} />
                   )}
                   {confirming ? 'Confirm and deploy' : 'Deploy stack'}
                 </button>
@@ -2618,7 +2618,7 @@ function CreateEditModal({ mode, initial, stacks, onClose, onSave, saving }: Cre
               className={`${BTN_SHEET} ${TONE_QUIET} flex-1 sm:flex-none whitespace-nowrap`}
               title="Run docker compose config on the server"
             >
-              {validating ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle size={15} />} Validate
+              {validating ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />} Validate
             </button>
             <button type="button" onClick={requestClose} className={`${BTN_SHEET_QUIET} flex-1 sm:flex-none whitespace-nowrap`}>
               {mode === 'edit' ? 'Close' : 'Cancel'}
@@ -2630,7 +2630,7 @@ function CreateEditModal({ mode, initial, stacks, onClose, onSave, saving }: Cre
                 disabled={!canSave || !hasChanges}
                 className={`${BTN_SHEET_PRIMARY} flex-1 sm:flex-none whitespace-nowrap`}
               >
-                {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+                {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                 Save
               </button>
             )}
@@ -2641,7 +2641,7 @@ function CreateEditModal({ mode, initial, stacks, onClose, onSave, saving }: Cre
                 disabled={!canSave}
                 className={`${BTN_SHEET_PRIMARY} flex-1 sm:flex-none whitespace-nowrap`}
               >
-                {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+                {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                 Create template
               </button>
             )}
@@ -2944,7 +2944,7 @@ function UrlImportModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
               disabled={!compose || importing || !name}
               className={BTN_SHEET_PRIMARY}
             >
-              {importing ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
+              {importing ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
               Import template
             </button>
           </div>

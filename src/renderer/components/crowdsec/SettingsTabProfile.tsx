@@ -272,6 +272,7 @@ export default function ProfileCard({ scenarios }: { scenarios: ScenarioInfo[] }
   const save = async () => {
     if (!draft || !server || !canSave) return
     if (server.mode === 'stock' && profileChanged && !(await confirm({
+      danger: true,
       title: 'Replace the shipped ban profile?',
       message: 'profiles.yaml is still the file that CrowdSec or the DCS installer shipped. DCS will write its own from these settings (the current file is backed up first) and restart CrowdSec. It takes 10 to 40 seconds and the bans stay in place.',
       confirmLabel: 'Save and apply',
@@ -284,6 +285,7 @@ export default function ProfileCard({ scenarios }: { scenarios: ScenarioInfo[] }
     if (!server || busy) return
     const custom = server.mode === 'custom'
     const ok = await confirm({
+      danger: true,
       title: 'Restore the DCS defaults?',
       message: `Every ban length goes back to its default (${lengthWords(server.defaults.duration)}), repeat-offender escalation and the lengths for particular attacks are switched off, and manual bans start at ${lengthWords(MANUAL_DEFAULT)} again. CrowdSec restarts to apply it (10 to 40 seconds); bans stay in place.${custom ? ' The hand-written profiles.yaml is replaced (a backup is kept).' : ''}`,
       confirmLabel: 'Restore the defaults',
@@ -338,7 +340,7 @@ export default function ProfileCard({ scenarios }: { scenarios: ScenarioInfo[] }
             <div className="min-w-0 flex-1">
               <p className="text-sm text-slate-100">Could not read the ban profile</p>
               <p className="text-xs text-slate-300 mt-1 break-words">{poll.error.message}</p>
-              <button type="button" onClick={poll.refresh} className={`${BTN_TOOLBAR_QUIET} mt-2`}><RefreshCw size={13} /> Try again</button>
+              <button type="button" onClick={poll.refresh} className={`${BTN_TOOLBAR_QUIET} mt-2`}><RefreshCw size={14} /> Try again</button>
             </div>
           </div>
         ) : (
@@ -387,7 +389,7 @@ export default function ProfileCard({ scenarios }: { scenarios: ScenarioInfo[] }
       <div className="mt-4 space-y-2">
         {elsewhere && (
           <Notice tone="info" icon={Info} role="status" title="These settings changed on the server while you were editing"
-            action={isAdmin ? <button type="button" className={BTN_TOOLBAR_QUIET} onClick={discard}><Undo2 size={13} /> Load the new values (drops your edits)</button> : undefined}>
+            action={isAdmin ? <button type="button" className={BTN_TOOLBAR_QUIET} onClick={discard}><Undo2 size={14} /> Load the new values (drops your edits)</button> : undefined}>
             Someone else saved, or the file was changed by hand. Saving now would overwrite that.
           </Notice>
         )}
@@ -395,9 +397,9 @@ export default function ProfileCard({ scenarios }: { scenarios: ScenarioInfo[] }
           <Notice tone="attention" icon={locked ? Lock : LockOpen} title={locked ? 'This ban profile was edited by hand' : 'DCS will replace the hand-written profile when you save'}
             action={isAdmin ? (
               <>
-                {locked && <button type="button" className={BTN_TOOLBAR_ATTN} onClick={takeOverFile} disabled={busy}><LockOpen size={13} /> Let DCS manage it</button>}
-                {!locked && <button type="button" className={BTN_TOOLBAR_QUIET} onClick={discard} disabled={busy}><Lock size={13} /> Keep my file</button>}
-                {server.raw && <button type="button" className={BTN_TOOLBAR_QUIET} onClick={() => setShowRaw((v) => !v)} aria-expanded={showRaw}><FileCode size={13} /> {showRaw ? 'Hide the file' : 'Show the file'}</button>}
+                {locked && <button type="button" className={BTN_TOOLBAR_ATTN} onClick={takeOverFile} disabled={busy}><LockOpen size={14} /> Let DCS manage it</button>}
+                {!locked && <button type="button" className={BTN_TOOLBAR_QUIET} onClick={discard} disabled={busy}><Lock size={14} /> Keep my file</button>}
+                {server.raw && <button type="button" className={BTN_TOOLBAR_QUIET} onClick={() => setShowRaw((v) => !v)} aria-expanded={showRaw}><FileCode size={14} /> {showRaw ? 'Hide the file' : 'Show the file'}</button>}
               </>
             ) : undefined}>
             {locked
@@ -423,7 +425,7 @@ export default function ProfileCard({ scenarios }: { scenarios: ScenarioInfo[] }
         )}
         {server.drift && (
           <Notice tone="attention" icon={AlertTriangle} title="The live file no longer matches what DCS wrote"
-            action={isAdmin ? <button type="button" className={BTN_TOOLBAR_ATTN} onClick={applyAgain} disabled={busy}><RefreshCw size={13} /> Apply again</button> : undefined}>
+            action={isAdmin ? <button type="button" className={BTN_TOOLBAR_ATTN} onClick={applyAgain} disabled={busy}><RefreshCw size={14} /> Apply again</button> : undefined}>
             Someone edited profiles.yaml after DCS applied it, or an update replaced it. The values below are the ones DCS saved.
             {live.ip_duration && <> The file itself says {lengthWords(live.ip_duration)} for an address{live.range_duration ? ` and ${lengthWords(live.range_duration)} for a network` : ''}.</>}
             {' '}Applying again puts DCS’s version back; the current file is backed up first.
@@ -494,7 +496,7 @@ export default function ProfileCard({ scenarios }: { scenarios: ScenarioInfo[] }
       {isAdmin && (
         <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between gap-x-4 gap-y-2 flex-wrap">
           <p className="text-xs text-slate-500 leading-relaxed min-w-0 flex-1 basis-64">Want to start over? Every value goes back to how DCS ships it: {lengthWords(server.defaults.duration)} for addresses and networks, no escalation, no lengths for particular attacks, {lengthWords(MANUAL_DEFAULT)} for a manual ban.</p>
-          <button type="button" className={BTN_TOOLBAR_QUIET} onClick={restore} disabled={busy || (atDefaults && mode !== 'custom' && !takeOver)} title={atDefaults && mode !== 'custom' ? 'Everything is at its default already' : 'Set every value back to the DCS default and apply it'}><RotateCcw size={13} /> Restore DCS defaults</button>
+          <button type="button" className={BTN_TOOLBAR_QUIET} onClick={restore} disabled={busy || (atDefaults && mode !== 'custom' && !takeOver)} title={atDefaults && mode !== 'custom' ? 'Everything is at its default already' : 'Set every value back to the DCS default and apply it'}><RotateCcw size={14} /> Restore DCS defaults</button>
         </div>
       )}
 
@@ -582,8 +584,8 @@ export default function ProfileCard({ scenarios }: { scenarios: ScenarioInfo[] }
                 : 'Not saved yet. This one is saved right away, without restarting CrowdSec.'}
             </p>
             <div className="w-full sm:w-auto grid grid-cols-2 sm:flex sm:items-center gap-2">
-              <button type="button" className={BTN_TOOLBAR_QUIET} onClick={discard} disabled={busy || (!edited && !elsewhere)}><Undo2 size={13} /> Discard changes</button>
-              <button type="button" className={BTN_TOOLBAR_OK} onClick={save} disabled={!canSave}>{busy ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />} Save and apply</button>
+              <button type="button" className={BTN_TOOLBAR_QUIET} onClick={discard} disabled={busy || (!edited && !elsewhere)}><Undo2 size={14} /> Discard changes</button>
+              <button type="button" className={BTN_TOOLBAR_OK} onClick={save} disabled={!canSave}>{busy ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Save and apply</button>
             </div>
           </div>
         )}
@@ -632,9 +634,9 @@ function OverridesEditor({ rows, problems, scenarios, presets, rev, editing, dis
                   <div className="flex items-center justify-between gap-2 lg:contents">
                     <CompactLength value={r.duration} onChange={(v) => onPatch(r.id, { duration: v })} presets={presets} ariaLabel={`Ban length, row ${i + 1}`} disabled={disabled} invalid={!!pr.length} />
                     <div className="flex items-center gap-1 shrink-0">
-                      <button type="button" className={BTN_ICON_QUIET} aria-label={`Move row ${i + 1} up`} title="Check this one earlier" disabled={disabled || i === 0} onClick={() => onMove(i, -1)}><ArrowUp size={13} /></button>
-                      <button type="button" className={BTN_ICON_QUIET} aria-label={`Move row ${i + 1} down`} title="Check this one later" disabled={disabled || i === rows.length - 1} onClick={() => onMove(i, 1)}><ArrowDown size={13} /></button>
-                      <button type="button" className={`${BTN_ICON_QUIET} hover:!bg-rose-500/15 hover:!text-rose-300`} aria-label={`Remove row ${i + 1}`} title="Remove this row" disabled={disabled} onClick={() => onRemove(r.id)}><Trash2 size={13} /></button>
+                      <button type="button" className={BTN_ICON_QUIET} aria-label={`Move row ${i + 1} up`} title="Check this one earlier" disabled={disabled || i === 0} onClick={() => onMove(i, -1)}><ArrowUp size={14} /></button>
+                      <button type="button" className={BTN_ICON_QUIET} aria-label={`Move row ${i + 1} down`} title="Check this one later" disabled={disabled || i === rows.length - 1} onClick={() => onMove(i, 1)}><ArrowDown size={14} /></button>
+                      <button type="button" className={`${BTN_ICON_QUIET} hover:!bg-rose-500/15 hover:!text-rose-300`} aria-label={`Remove row ${i + 1}`} title="Remove this row" disabled={disabled} onClick={() => onRemove(r.id)}><Trash2 size={14} /></button>
                     </div>
                   </div>
                 </div>
@@ -652,7 +654,7 @@ function OverridesEditor({ rows, problems, scenarios, presets, rev, editing, dis
         </ol>
       )}
       <div className="mt-2.5 flex items-center gap-3 flex-wrap">
-        <button type="button" className={BTN_TOOLBAR_QUIET} onClick={onAdd} disabled={disabled || rows.length >= maxRows}><Plus size={13} /> Add a length for an attack</button>
+        <button type="button" className={BTN_TOOLBAR_QUIET} onClick={onAdd} disabled={disabled || rows.length >= maxRows}><Plus size={14} /> Add a length for an attack</button>
         <span className="text-[11px] text-slate-500 tabular-nums">{rows.length} of {maxRows}</span>
       </div>
     </div>
@@ -688,8 +690,8 @@ function ResultPanel({ result, onDismiss, onCheck, onOpenFile }: { result: Resul
     <div className="rounded-xl bg-slate-900 shadow-lg">
       <Notice tone={result.tone} icon={result.tone === 'attention' ? AlertTriangle : CircleAlert} role="alert" title={result.title} onDismiss={onDismiss}
         action={<>
-          {result.unknown && <button type="button" className={BTN_TOOLBAR_QUIET} onClick={onCheck}><RefreshCw size={13} /> Check now</button>}
-          {onOpenFile && <button type="button" className={BTN_TOOLBAR_QUIET} onClick={onOpenFile}><FileCode size={13} /> Show the file</button>}
+          {result.unknown && <button type="button" className={BTN_TOOLBAR_QUIET} onClick={onCheck}><RefreshCw size={14} /> Check now</button>}
+          {onOpenFile && <button type="button" className={BTN_TOOLBAR_QUIET} onClick={onOpenFile}><FileCode size={14} /> Show the file</button>}
         </>}>
         <p>{result.body}</p>
         {result.detail && (

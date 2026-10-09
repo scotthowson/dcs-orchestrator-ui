@@ -69,7 +69,7 @@ export function FixButton({ fix, busy, onRun }: { fix: CrowdSecFix; busy: boolea
       title={needsAdmin && !isAdmin ? 'Only an admin can do this' : undefined}
       className={fix.primary ? BTN_TOOLBAR_OK : BTN_TOOLBAR_QUIET}
     >
-      {busy ? <Loader2 size={13} className="animate-spin" /> : fixIcon(fix.id)} {fix.label}
+      {busy ? <Loader2 size={14} className="animate-spin" /> : fixIcon(fix.id)} {fix.label}
     </button>
   )
 }
@@ -135,10 +135,10 @@ export function ProblemView({ s, onRefresh, onDeploy }: { s: CrowdSecStatusRespo
             <p className="text-xs text-slate-500 mt-2">{look.hint}</p>
             <div className="flex flex-wrap items-center gap-2 mt-4">
               {(s.fixes ?? []).map((f) => f.id === 'retry'
-                ? <button key={f.id} type="button" onClick={onRefresh} className={f.primary ? BTN_TOOLBAR_OK : BTN_TOOLBAR_QUIET}><RefreshCw size={13} /> {f.label}</button>
+                ? <button key={f.id} type="button" onClick={onRefresh} className={f.primary ? BTN_TOOLBAR_OK : BTN_TOOLBAR_QUIET}><RefreshCw size={14} /> {f.label}</button>
                 : <FixButton key={f.id} fix={f} busy={busy === f.id} onRun={() => run(f)} />)}
               {state !== 'docker_unavailable' && !(s.fixes ?? []).some((f) => f.id === 'logs') && (
-                <button type="button" onClick={() => setShowLog((v) => !v)} className={BTN_TOOLBAR_QUIET}><ScrollText size={13} /> {showLog ? 'Hide the log' : 'Show the log'}</button>
+                <button type="button" onClick={() => setShowLog((v) => !v)} className={BTN_TOOLBAR_QUIET}><ScrollText size={14} /> {showLog ? 'Hide the log' : 'Show the log'}</button>
               )}
             </div>
           </div>
@@ -340,7 +340,7 @@ export function NotDeployed({ s, onRefresh }: { s: CrowdSecStatusResponse; onRef
             {activity && activity.services.length > 0 && activity.services.map((sv) => (
               <Pill key={sv.service} tone={sv.state === 'running' ? (sv.health === 'unhealthy' ? 'problem' : 'ok') : sv.state === 'exited' || sv.state === 'dead' ? 'problem' : 'info'}>{sv.service} · {sv.state === 'running' && sv.health && sv.health !== 'none' ? sv.health : sv.state}</Pill>
             ))}
-            {phase === 'failed' && <button type="button" onClick={deploy} className={`${BTN_TOOLBAR_ATTN} ml-auto`}><RotateCw size={13} /> Try again</button>}
+            {phase === 'failed' && <button type="button" onClick={deploy} className={`${BTN_TOOLBAR_ATTN} ml-auto`}><RotateCw size={14} /> Try again</button>}
           </div>
           {error && <p className="px-4 py-3 text-sm text-rose-300 break-words">{error}</p>}
           {output.length > 0 && <pre className="px-4 py-3 text-[11px] leading-relaxed font-mono text-slate-500 overflow-x-auto max-h-56 overflow-y-auto scrollbar-thin whitespace-pre-wrap break-words">{output.slice(-40).join('\n')}</pre>}
@@ -357,7 +357,7 @@ export function TooOld() {
       <PackageOpen size={30} className="mx-auto text-amber-400" />
       <h2 className="mt-3 text-lg font-semibold text-slate-100">This DCS is older than the CrowdSec page</h2>
       <p className="mt-1.5 text-sm text-slate-500 max-w-lg mx-auto">The server did not report a CrowdSec state, so it predates the API this page uses. Update DCS on that server and come back.</p>
-      <button type="button" onClick={() => setCurrentPage('updates')} className={`${BTN_TOOLBAR_QUIET} mt-4`}><Boxes size={13} /> Open Updates</button>
+      <button type="button" onClick={() => setCurrentPage('updates')} className={`${BTN_TOOLBAR_QUIET} mt-4`}><Boxes size={14} /> Open Updates</button>
     </div>
   )
 }

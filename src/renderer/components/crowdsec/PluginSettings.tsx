@@ -196,9 +196,9 @@ export default function PluginSettings() {
 
       {isAdmin && (
         <div className="mt-4 pt-4 border-t border-white/5 flex items-center gap-2 flex-wrap">
-          <button type="button" className={BTN_TOOLBAR_OK} disabled={!dirty || invalid || busy} onClick={save}>{busy ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />} Save</button>
-          <button type="button" className={BTN_TOOLBAR_QUIET} disabled={!dirty || busy} onClick={discard}><Undo2 size={13} /> Discard changes</button>
-          <button type="button" className={`${BTN_TOOLBAR_QUIET} sm:ml-auto`} disabled={busy} onClick={useDefaults} title="Fill the form with the defaults; nothing is saved until you press Save"><RotateCcw size={13} /> Defaults</button>
+          <button type="button" className={BTN_TOOLBAR_OK} disabled={!dirty || invalid || busy} onClick={save}>{busy ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Save</button>
+          <button type="button" className={BTN_TOOLBAR_QUIET} disabled={!dirty || busy} onClick={discard}><Undo2 size={14} /> Discard changes</button>
+          <button type="button" className={`${BTN_TOOLBAR_QUIET} sm:ml-auto`} disabled={busy} onClick={useDefaults} title="Fill the form with the defaults; nothing is saved until you press Save"><RotateCcw size={14} /> Defaults</button>
           <p className="text-[11px] text-slate-500 basis-full leading-relaxed">DCS checks every value, keeps the previous file{data.backups && data.backups.length ? ` (${data.backups.length} kept, the newest ${fmtAgo(data.backups[0].created_at)})` : ''} and only then replaces it; the key and every other option in the file stay as they are.</p>
         </div>
       )}

@@ -315,7 +315,7 @@ function BookmarkCard({ item, onDelete, onTogglePin, onNavigate }: {
               aria-label={`${item.pinned ? 'Unpin' : 'Pin'} ${item.label}`}
               className={`${BTN_ICON_SM} ${REVEAL} ${FOCUS_RING} ${item.pinned ? 'text-amber-400 hover:text-amber-300' : 'text-slate-500 hover:text-amber-400'} hover:bg-white/5`}
             >
-              <Star size={13} className={item.pinned ? 'fill-current' : ''} />
+              <Star size={12} className={item.pinned ? 'fill-current' : ''} />
             </button>
           </Hint>
           <Hint label="Delete">
@@ -325,7 +325,7 @@ function BookmarkCard({ item, onDelete, onTogglePin, onNavigate }: {
               aria-label={`Delete ${item.label}`}
               className={`${BTN_ICON_SM} ${REVEAL} ${FOCUS_RING} text-slate-500 hover:text-rose-400 hover:bg-rose-500/10`}
             >
-              <Trash2 size={13} />
+              <Trash2 size={12} />
             </button>
           </Hint>
         </div>
@@ -498,7 +498,7 @@ export default function Bookmarks() {
       {filtered.length === 0 ? (
         bookmarks.length === 0 ? (
           <EmptyState
-            icon={<FolderHeart size={40} />}
+            icon={<FolderHeart size={28} />}
             title="No bookmarks yet"
             hint="Add your first bookmark to quickly reach your favorite pages, stacks and containers."
             action={
@@ -510,7 +510,7 @@ export default function Bookmarks() {
           />
         ) : (
           <EmptyState
-            icon={<FolderHeart size={40} />}
+            icon={<FolderHeart size={28} />}
             title="No matches"
             hint="Try another search or filter."
             action={

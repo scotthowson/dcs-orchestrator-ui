@@ -158,7 +158,7 @@ export default function SimulationCard({ sim }: { sim: Simulation }) {
             <div className="min-w-0 flex-1">
               <p className="text-sm text-slate-100">Could not read the simulation settings</p>
               <p className="text-xs text-slate-300 mt-1 break-words">{error.message}</p>
-              <button type="button" onClick={sim.retry} className={`${BTN_TOOLBAR_QUIET} mt-2`}><RefreshCw size={13} /> Try again</button>
+              <button type="button" onClick={sim.retry} className={`${BTN_TOOLBAR_QUIET} mt-2`}><RefreshCw size={14} /> Try again</button>
             </div>
           </div>
         ) : (
@@ -219,12 +219,12 @@ export default function SimulationCard({ sim }: { sim: Simulation }) {
             <Package size={26} className="mx-auto text-slate-500" aria-hidden="true" />
             <p className="mt-3 text-sm text-slate-300">No scenarios are installed</p>
             <p className="mt-1 text-xs text-slate-500 max-w-md mx-auto">CrowdSec has nothing to detect yet, so there is nothing to simulate. Install a collection from the Hub and its scenarios appear here.</p>
-            <button type="button" className={`${BTN_TOOLBAR_QUIET} mt-4`} onClick={() => goTab('hub')}><ArrowRight size={13} /> Open the Hub</button>
+            <button type="button" className={`${BTN_TOOLBAR_QUIET} mt-4`} onClick={() => goTab('hub')}><ArrowRight size={14} /> Open the Hub</button>
           </div>
         ) : shown.length === 0 ? (
           <div className="mt-3 rounded-xl border border-white/5 bg-white/[0.02] px-5 py-8 text-center">
             <p className="text-sm text-slate-300">No scenario matches.</p>
-            <button type="button" className={`${BTN_TOOLBAR_QUIET} mt-3`} onClick={() => { setQ(''); setFilter('all') }}><X size={13} /> Clear the search</button>
+            <button type="button" className={`${BTN_TOOLBAR_QUIET} mt-3`} onClick={() => { setQ(''); setFilter('all') }}><X size={14} /> Clear the search</button>
           </div>
         ) : (
           <>

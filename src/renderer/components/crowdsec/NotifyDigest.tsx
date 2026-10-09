@@ -115,7 +115,7 @@ export default function DigestCard({ digest, member, isAdmin, alertsOn, webhookR
               {saving && <Loader2 size={14} className="animate-spin text-slate-400" aria-label="Saving" />}
             </div>
             <button type="button" className={`${BTN_TOOLBAR_QUIET} sm:ml-auto`} onClick={sendNow} disabled={sending || !!sendBlocked} title={sendBlocked ?? 'Post the summary of the last 24 hours to Discord now, whatever the hour'}>
-              {sending ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />} Send now
+              {sending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />} Send now
             </button>
           </>
         ) : (

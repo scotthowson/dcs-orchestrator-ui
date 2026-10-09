@@ -53,7 +53,7 @@ export default function ImportSheet({ onClose, onDone }: { onClose: () => void; 
       footer={
         <div className="flex gap-2 justify-end flex-wrap">
           <button type="button" onClick={onClose} className={BTN_TOOLBAR_QUIET}>{result ? 'Close' : 'Cancel'}</button>
-          {!result && <button type="button" onClick={submit} disabled={!text.trim() || busy} className={BTN_TOOLBAR_OK}>{busy ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />} Import{lines ? ` ${lines} entr${lines === 1 ? 'y' : 'ies'}` : ''}</button>}
+          {!result && <button type="button" onClick={submit} disabled={!text.trim() || busy} className={BTN_TOOLBAR_OK}>{busy ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />} Import{lines ? ` ${lines} entr${lines === 1 ? 'y' : 'ies'}` : ''}</button>}
           {result && <button type="button" onClick={() => setResult(null)} className={BTN_TOOLBAR_QUIET}>Import more</button>}
         </div>
       }>
@@ -86,7 +86,7 @@ export default function ImportSheet({ onClose, onDone }: { onClose: () => void; 
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <Segmented<Fmt> value={fmt} onChange={setFmt} ariaLabel="Format" options={[{ value: 'auto', label: 'Detect' }, { value: 'values', label: 'One per line' }, { value: 'csv', label: 'CSV' }, { value: 'json', label: 'JSON' }]} />
             <input ref={file} type="file" accept=".csv,.json,.txt,text/plain,text/csv,application/json" className="hidden" aria-label="Choose a file to import" onChange={(e) => { void load(e.target.files?.[0]); e.target.value = '' }} />
-            <button type="button" onClick={() => file.current?.click()} className={BTN_TOOLBAR_QUIET}><FileUp size={13} /> Choose a file…</button>
+            <button type="button" onClick={() => file.current?.click()} className={BTN_TOOLBAR_QUIET}><FileUp size={14} /> Choose a file…</button>
           </div>
           <div>
             <label className={LABEL} htmlFor="import-text">The list</label>

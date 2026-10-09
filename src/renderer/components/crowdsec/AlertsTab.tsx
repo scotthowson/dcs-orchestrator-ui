@@ -183,7 +183,7 @@ export default function AlertsTab({ seedSearch }: { seedSearch?: string }) {
         <div className="relative w-full sm:w-auto sm:flex-1 sm:min-w-[12rem] sm:max-w-sm order-last sm:order-none">
           <SearchInput size="sm" value={f.q} onChange={(v) => patch({ q: v })} id="alerts-search" maxLength={100} placeholder="Search address, detection, country, network" autoComplete="off" label="Search the alerts" />
         </div>
-        <button type="button" onClick={refresh} className={`${BTN_ICON_QUIET} ml-auto`} aria-label="Refresh the alerts" title="Refresh the alerts"><RefreshCw size={13} className={fetching ? 'animate-spin' : ''} /></button>
+        <button type="button" onClick={refresh} className={`${BTN_ICON_QUIET} ml-auto`} aria-label="Refresh the alerts" title="Refresh the alerts"><RefreshCw size={14} className={fetching ? 'animate-spin' : ''} /></button>
       </div>
       <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:flex-wrap">
         <FilterSelect className="sm:min-w-[9.5rem] sm:max-w-[16rem]" id="alerts-scenario" label="Detection" value={f.scenario} onChange={(v) => patch({ scenario: v })}>
@@ -219,7 +219,7 @@ export default function AlertsTab({ seedSearch }: { seedSearch?: string }) {
           <div className="min-w-0 flex-1">
             <p className="text-sm text-rose-300 break-words">{poll.error.message}</p>
             <p className="text-xs text-slate-500 mt-1">The alerts could not be read. CrowdSec may be restarting.</p>
-            <button type="button" onClick={refresh} className={`${BTN_TOOLBAR_QUIET} mt-3`}><RefreshCw size={13} /> Try again</button>
+            <button type="button" onClick={refresh} className={`${BTN_TOOLBAR_QUIET} mt-3`}><RefreshCw size={14} /> Try again</button>
           </div>
         </div>
       )}
@@ -241,7 +241,7 @@ export default function AlertsTab({ seedSearch }: { seedSearch?: string }) {
               : 'That is the normal state of a well-behaved server, not a fault. When CrowdSec catches a scanner or a brute-forcer it is listed here, with what it did and whether the address is banned.'}
           </p>
           <div className="mt-4 flex items-center justify-center gap-2 flex-wrap">
-            {filtered && <button type="button" onClick={clearFilters} className={BTN_TOOLBAR_QUIET}><X size={13} /> Clear filters</button>}
+            {filtered && <button type="button" onClick={clearFilters} className={BTN_TOOLBAR_QUIET}><X size={14} /> Clear filters</button>}
             {win !== '30d' && <button type="button" onClick={() => setWin(win === '7d' ? '30d' : '7d')} className={BTN_TOOLBAR_QUIET}>Look at {win === '7d' ? 'the last 30 days' : 'the last 7 days'}</button>}
           </div>
         </div>

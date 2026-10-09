@@ -162,7 +162,7 @@ export default function OnDemandDialog({ containerName, member, onDemand, onClos
                 disabled={!!busy || loading}
                 className={`${BTN_SHEET} ${TONE_QUIET} flex-1 sm:flex-none`}
               >
-                {busy === 'off' ? <Loader2 size={14} className="animate-spin" /> : <Sun size={14} />}
+                {busy === 'off' ? <Loader2 size={16} className="animate-spin" /> : <Sun size={16} />}
                 Serve normally
               </button>
             </Hint>
@@ -173,7 +173,7 @@ export default function OnDemandDialog({ containerName, member, onDemand, onClos
             disabled={!!busy || loading || !!cannot}
             className={`${BTN_SHEET_PRIMARY} flex-1 sm:flex-none`}
           >
-            {busy === 'save' ? <Loader2 size={14} className="animate-spin" /> : <Moon size={14} />}
+            {busy === 'save' ? <Loader2 size={16} className="animate-spin" /> : <Moon size={16} />}
             {enabled ? 'Save changes' : 'Start on demand'}
           </button>
         </div>

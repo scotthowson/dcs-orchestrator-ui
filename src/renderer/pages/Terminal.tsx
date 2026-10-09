@@ -671,7 +671,7 @@ export default function Terminal() {
             aria-label="Run the command"
             className={`${BTN_ICON_SM} ${TONE_OK} ml-2`}
           >
-            {loading ? <Loader2 size={13} className="animate-spin" /> : <Play size={13} />}
+            {loading ? <Loader2 size={12} className="animate-spin" /> : <Play size={12} />}
           </button>
         </Hint>
       </div>

@@ -203,7 +203,7 @@ export default function AutomationRuleDialog({ editing, startTrigger, member, on
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <button type="button" onClick={onClose} className={`${BTN_SHEET_QUIET} flex-1 sm:flex-none sm:px-6`}>Cancel</button>
             <button type="submit" disabled={saving || !name.trim()} className={`${BTN_SHEET_PRIMARY} flex-1 sm:flex-none`}>
-              {saving ? <Loader2 size={14} className="animate-spin" /> : (editing ? <Pencil size={14} /> : <Plus size={14} />)}
+              {saving ? <Loader2 size={16} className="animate-spin" /> : (editing ? <Pencil size={16} /> : <Plus size={16} />)}
               {editing ? 'Save changes' : 'Create'}
             </button>
           </div>

@@ -666,7 +666,7 @@ export default function Trends() {
             <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-white/5 shrink-0">
               <button type="button" onClick={() => setShowAlertConfig(false)} className={BTN_SHEET_QUIET}>Cancel</button>
               <button type="button" onClick={handleSaveAlertConfig} disabled={savingConfig} className={BTN_SHEET_PRIMARY}>
-                {savingConfig ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                {savingConfig ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                 Save thresholds
               </button>
             </div>

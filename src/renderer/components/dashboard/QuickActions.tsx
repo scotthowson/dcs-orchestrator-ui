@@ -174,7 +174,7 @@ export default function QuickActions({ cardConfig, onSaveConfig, dashboardEditMo
       badge={isCustom ? <Pill tone="neutral">custom</Pill> : undefined}
       actions={canEdit ? (
         <Hint label="Customize the actions">
-          <button type="button" aria-label="Customize the actions" onClick={() => setEditing(true)} className={`${BTN_ICON_SM} ${TONE_GHOST}`}><Settings2 size={13} /></button>
+          <button type="button" aria-label="Customize the actions" onClick={() => setEditing(true)} className={`${BTN_ICON_SM} ${TONE_GHOST}`}><Settings2 size={12} /></button>
         </Hint>
       ) : undefined}
     >
@@ -360,7 +360,7 @@ function ActionsEditor({ initial, isAdmin, onClose, onSave, onReset }: {
           <div className="ml-auto flex items-center gap-2">
             <button type="button" onClick={onClose} className={BTN_SHEET_QUIET}>Cancel</button>
             <button type="button" onClick={async () => { setSaving(true); try { await onSave(list) } finally { setSaving(false) } }} disabled={!valid || saving} className={BTN_SHEET_PRIMARY}>
-              {saving && <Loader2 size={14} className="animate-spin" />} Save
+              {saving && <Loader2 size={16} className="animate-spin" />} Save
             </button>
           </div>
         </div>

@@ -861,7 +861,7 @@ export default function Topology() {
       </PageHeader>
 
       {!isConnected ? (
-        <EmptyState icon={<WifiOff size={26} />} title="Connect to a server to see the topology map" />
+        <EmptyState icon={<WifiOff size={28} />} title="Connect to a server to see the topology map" />
       ) : (
       <>
       {/* Stats */}
@@ -922,7 +922,7 @@ export default function Topology() {
           <ErrorState title="Could not load the topology" error={error} onRetry={refresh} />
         ) : isEmpty ? (
           <EmptyState
-            icon={<Network size={36} />}
+            icon={<Network size={28} />}
             title="No containers running"
             hint="Start some stacks and the map of their networks appears here."
           />

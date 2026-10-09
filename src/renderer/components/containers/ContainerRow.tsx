@@ -269,7 +269,7 @@ const ContainerRow: React.FC<ContainerRowProps> = ({
                 className={`${BTN_ICON_SM} ${TONE_GHOST_OK}`}
                 aria-label={`${isAsleep(container) ? 'Wake' : 'Start'} ${container.name}`}
               >
-                {quickActionLoading === `${busyKey}start` ? <RefreshCw size={13} className="animate-spin text-emerald-400" /> : <Play size={13} />}
+                {quickActionLoading === `${busyKey}start` ? <RefreshCw size={12} className="animate-spin text-emerald-400" /> : <Play size={12} />}
               </button>
             </Hint>
           )}
@@ -280,7 +280,7 @@ const ContainerRow: React.FC<ContainerRowProps> = ({
                 className={`${BTN_ICON_SM} ${TONE_GHOST}`}
                 aria-label={`Restart ${container.name}`}
               >
-                {quickActionLoading === `${busyKey}restart` ? <RefreshCw size={13} className="animate-spin" /> : <RotateCw size={13} />}
+                {quickActionLoading === `${busyKey}restart` ? <RefreshCw size={12} className="animate-spin" /> : <RotateCw size={12} />}
               </button>
             </Hint>
           )}
@@ -291,7 +291,7 @@ const ContainerRow: React.FC<ContainerRowProps> = ({
                 className={`${BTN_ICON_SM} ${TONE_GHOST_DANGER}`}
                 aria-label={`Stop ${container.name}`}
               >
-                {quickActionLoading === `${busyKey}stop` ? <RefreshCw size={13} className="animate-spin text-rose-400" /> : <SquareStop size={13} />}
+                {quickActionLoading === `${busyKey}stop` ? <RefreshCw size={12} className="animate-spin text-rose-400" /> : <SquareStop size={12} />}
               </button>
             </Hint>
           )}

@@ -106,8 +106,8 @@ export default function SshAccessSheet({ focus, onClose }: { focus?: string; onC
         footer={<button type="button" onClick={onClose} className={`${BTN_SHEET_PRIMARY} w-full`}>Done</button>}>
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <button type="button" onClick={() => saveText(made.key_file, made.private_key)} className={`${BTN_CARD} ${TONE_OK} justify-center py-2.5`}><Download size={14} /> 1 · Download the key <span className="font-mono text-[11px] opacity-80">{made.key_file}</span></button>
-            <button type="button" onClick={() => saveText(made.config_file, made.config)} className={`${BTN_CARD} ${TONE_OK} justify-center py-2.5`}><Download size={14} /> 2 · Download the ssh config <span className="font-mono text-[11px] opacity-80">{made.config_file}</span></button>
+            <button type="button" onClick={() => saveText(made.key_file, made.private_key)} className={`${BTN_CARD} ${TONE_OK} justify-center py-2.5`}><Download size={12} /> 1 · Download the key <span className="font-mono text-[11px] opacity-80">{made.key_file}</span></button>
+            <button type="button" onClick={() => saveText(made.config_file, made.config)} className={`${BTN_CARD} ${TONE_OK} justify-center py-2.5`}><Download size={12} /> 2 · Download the ssh config <span className="font-mono text-[11px] opacity-80">{made.config_file}</span></button>
           </div>
           <div>
             <p className={LABEL}>3 · Put them in place (paste into a terminal on your computer)</p>

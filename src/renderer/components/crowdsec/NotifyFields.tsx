@@ -603,7 +603,7 @@ export function FieldsEditor({ fields, onChange, errors, max, placeholders, disa
       ))}
       {errors.fields && <p role="alert" className="text-[11px] text-rose-300">{errors.fields}</p>}
       <div className="flex items-center gap-3 flex-wrap">
-        <button type="button" className={BTN_TOOLBAR_QUIET} disabled={disabled || fields.length >= max} onClick={() => { const k = newFieldKey(); focusKey.current = k; onChange([...fields, { key: k, name: '', value: '', inline: true }]) }}><Plus size={13} /> Add a field</button>
+        <button type="button" className={BTN_TOOLBAR_QUIET} disabled={disabled || fields.length >= max} onClick={() => { const k = newFieldKey(); focusKey.current = k; onChange([...fields, { key: k, name: '', value: '', inline: true }]) }}><Plus size={14} /> Add a field</button>
         <span className="text-[11px] text-slate-500 tabular-nums">{fields.length} of {max} fields{fields.length >= max ? '. That is the most Discord shows.' : ''}</span>
       </div>
       <p className="text-[11px] text-slate-500 leading-relaxed">A field whose name or value ends up empty in a message (for example the first request of an SSH attack) is left out of that message.</p>

@@ -742,7 +742,7 @@ export default function Updates() {
       <LoadingState label="Connecting to the DCS API…" hint="System, Docker Engine and image updates are shown for the server you are connected to." />
     ) : (
       <EmptyState
-        icon={<ArrowUpCircle size={32} />}
+        icon={<ArrowUpCircle size={28} />}
         title={connStatus === 'error' ? 'The DCS API is not answering' : 'Connect to a server to see its updates'}
         hint={connStatus === 'error'
           ? 'This page (system updates, Docker Engine, VMs and image updates) returns on its own as soon as the API answers again. If it stays away, check the dcs-api service on the server.'
@@ -949,7 +949,7 @@ export default function Updates() {
                       disabled={sysApplying || !!restartingApi || (conflicts.length > 0 && !replaceLocal)}
                       className={`${BTN_SHEET_PRIMARY} w-full`}
                     >
-                      {sysApplying ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                      {sysApplying ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
                       {sysApplying ? 'Updating…' : `Update to ${sysUpdate.latest_version || sysUpdate.latest_name || 'latest'}`}
                     </button>
                   </div>
@@ -1140,7 +1140,7 @@ export default function Updates() {
                   disabled={uiUpdating}
                   className={`${BTN_SHEET_PRIMARY} w-full`}
                 >
-                  {uiUpdating ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                  {uiUpdating ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
                   {uiUpdating ? 'Updating…' : 'Update the dashboard'}
                 </button>
               </div>
@@ -1429,7 +1429,7 @@ export default function Updates() {
           ) : images.length === 0 ? (
             /* Empty state */
             <EmptyState
-              icon={<Package size={32} />}
+              icon={<Package size={28} />}
               title="No images found"
               hint={!isConnected
                 ? 'Connect to the API server to view image update information.'

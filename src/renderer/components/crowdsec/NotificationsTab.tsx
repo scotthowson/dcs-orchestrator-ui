@@ -128,7 +128,7 @@ export default function NotificationsTab() {
         <AlertTriangle size={26} className="mx-auto text-rose-400" />
         <p className="mt-3 text-sm text-slate-200">Could not read the Discord settings.</p>
         <p className="mt-1 text-xs text-slate-500 max-w-md mx-auto break-words">{poll.error.message}</p>
-        <button type="button" onClick={poll.refresh} className={`${BTN_TOOLBAR_QUIET} mt-4`}><RefreshCw size={13} /> Try again</button>
+        <button type="button" onClick={poll.refresh} className={`${BTN_TOOLBAR_QUIET} mt-4`}><RefreshCw size={14} /> Try again</button>
       </div>
     )
   }
@@ -393,7 +393,7 @@ function Editor({ data, refresh, refreshFailed }: { data: CrowdSecNotifyResponse
       addToast({ type: 'info', message: 'The shipped message is in the editor. Press Save and apply to use it.' })
       return
     }
-    if (!(await confirm({ title: 'Reset to the shipped message?', message: `The message, the appearance, the mention, the filters and the delivery settings go back to what CrowdSec ships with. The webhook and the on/off switch stay as they are.${dirty ? '\nThe changes you have not saved are dropped.' : ''}\nCrowdSec restarts for a few seconds.`, confirmLabel: 'Reset and apply' }))) return
+    if (!(await confirm({ danger: true, title: 'Reset to the shipped message?', message: `The message, the appearance, the mention, the filters and the delivery settings go back to what CrowdSec ships with. The webhook and the on/off switch stay as they are.${dirty ? '\nThe changes you have not saved are dropped.' : ''}\nCrowdSec restarts for a few seconds.`, confirmLabel: 'Reset and apply' }))) return
     await execute({
       what: 'Putting the shipped message back', clearDraft: true, call: () => crowdsecResetNotify(member),
       ok: (res) => ({ kind: 'ok', title: 'Back to the shipped message', detail: res.applied?.message, at: Date.now() }),
@@ -503,7 +503,7 @@ function Editor({ data, refresh, refreshFailed }: { data: CrowdSecNotifyResponse
           </div>
           {wide
             ? <aside className="sticky top-4 max-h-[calc(100vh-7rem)] overflow-y-auto scrollbar-thin" aria-label="Preview">{previewPanel()}</aside>
-            : <button type="button" onClick={() => setSheet(true)} className={`${BTN_TOOLBAR_QUIET} w-full`}><Eye size={13} /> Preview the message</button>}
+            : <button type="button" onClick={() => setSheet(true)} className={`${BTN_TOOLBAR_QUIET} w-full`}><Eye size={14} /> Preview the message</button>}
         </div>
         {sheet && !wide && <Sheet title="Preview" subtitle="How the message looks in Discord" icon={<Eye size={18} />} tone="info" wide onClose={() => setSheet(false)}>{previewPanel(true)}</Sheet>}
       </div>
@@ -590,7 +590,7 @@ function Editor({ data, refresh, refreshFailed }: { data: CrowdSecNotifyResponse
                           <p className="text-xs text-slate-500 font-mono break-all">{src.custom.masked}</p>
                         </div>
                         <button type="button" className={BTN_TOOLBAR_DANGER} disabled={busy || customInUse} onClick={removeCustom} title={customInUse ? 'It is the webhook in use right now. Choose another source and save first.' : 'Delete the stored address'}>
-                          {applying?.what === REMOVING ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />} Remove the custom webhook
+                          {applying?.what === REMOVING ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />} Remove the custom webhook
                         </button>
                         {customInUse && <p className="w-full text-[11px] text-slate-500">It is the webhook in use right now. Choose another source and save, then you can remove it.</p>}
                       </div>
@@ -674,7 +674,7 @@ function Editor({ data, refresh, refreshFailed }: { data: CrowdSecNotifyResponse
                 <div className="flex items-start justify-between gap-3 flex-wrap">
                   <p className="text-xs text-slate-500 leading-relaxed flex-1 min-w-[14rem]">Write the message with placeholders such as <span className="font-mono text-slate-300">{'{ip}'}</span> or <span className="font-mono text-slate-300">{'{country_tag}'}</span>. Type <span className="font-mono text-slate-300">{'{'}</span> in a box to get suggestions. In the description and in field values Discord draws **bold**, `code` and [text](link); the footer is plain text.</p>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <button type="button" className={BTN_TOOLBAR_QUIET} onClick={resetShipped} disabled={busy} title="Put the message, the look, the filters and the delivery back to what CrowdSec ships with. The webhook and the switch stay."><RotateCcw size={13} /> Shipped message</button>
+                    <button type="button" className={BTN_TOOLBAR_QUIET} onClick={resetShipped} disabled={busy} title="Put the message, the look, the filters and the delivery back to what CrowdSec ships with. The webhook and the switch stay."><RotateCcw size={14} /> Shipped message</button>
                     <PlaceholderPicker items={ph} label="All placeholders" target={() => reg.last()?.label ?? 'description'} onPick={(n) => (reg.last() ?? { insert: () => {} }).insert(`{${n}}`)} />
                   </div>
                 </div>
@@ -729,7 +729,7 @@ function Editor({ data, refresh, refreshFailed }: { data: CrowdSecNotifyResponse
                 <p className="text-sm text-slate-200">Back to the shipped message</p>
                 <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">Puts the text, the fields, the appearance, the mention, the filters and the delivery back to what CrowdSec ships with. The webhook and the on/off switch stay.</p>
               </div>
-              <button type="button" className={BTN_TOOLBAR_ATTN} onClick={resetShipped} disabled={busy}><RotateCcw size={13} /> Reset to the shipped message</button>
+              <button type="button" className={BTN_TOOLBAR_ATTN} onClick={resetShipped} disabled={busy}><RotateCcw size={14} /> Reset to the shipped message</button>
             </div>
           </div>
 
@@ -774,11 +774,11 @@ function Editor({ data, refresh, refreshFailed }: { data: CrowdSecNotifyResponse
                       </div>
                     )
                     : <div className="min-w-0 flex-1 basis-40"><p className="text-xs text-slate-500">No unsaved changes.</p></div>}
-                  {!wide && <button type="button" className={BTN_TOOLBAR_QUIET} onClick={() => setSheet(true)}><Eye size={13} /> Preview</button>}
-                  {dirty && <button type="button" className={BTN_TOOLBAR_QUIET} onClick={discard}><Undo2 size={13} /> Discard changes</button>}
+                  {!wide && <button type="button" className={BTN_TOOLBAR_QUIET} onClick={() => setSheet(true)}><Eye size={14} /> Preview</button>}
+                  {dirty && <button type="button" className={BTN_TOOLBAR_QUIET} onClick={discard}><Undo2 size={14} /> Discard changes</button>}
                   {dirty && (
                     <button type="button" className={`${BTN_TOOLBAR_OK} min-w-[9.5rem]`} onClick={save} disabled={!canSave} title={totalProblems > 0 ? 'Fix the highlighted fields first' : blockingWebhook ? 'Saves the settings; the webhook problem is shown in the Webhook section' : 'Save the settings and restart CrowdSec to load them'}>
-                      <Save size={13} /> Save and apply
+                      <Save size={14} /> Save and apply
                     </button>
                   )}
                 </div>
@@ -798,7 +798,7 @@ function Editor({ data, refresh, refreshFailed }: { data: CrowdSecNotifyResponse
             footer={
               <div className="flex gap-2 justify-end flex-wrap">
                 <button type="button" className={BTN_TOOLBAR_QUIET} onClick={() => setReview(false)}>Close</button>
-                <button type="button" className={BTN_TOOLBAR_OK} disabled={!canSave} onClick={() => { setReview(false); void save() }}><Save size={13} /> Save and apply</button>
+                <button type="button" className={BTN_TOOLBAR_OK} disabled={!canSave} onClick={() => { setReview(false); void save() }}><Save size={14} /> Save and apply</button>
               </div>
             }>
             <ul className="divide-y divide-white/5" aria-label="Changes">

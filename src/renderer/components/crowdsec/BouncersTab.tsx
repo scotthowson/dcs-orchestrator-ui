@@ -124,7 +124,7 @@ function KeyBox({ value }: { value: string }) {
     <div>
       <div id="bouncer-key" className="rounded-lg bg-slate-800/60 border border-emerald-500/25 px-3 py-3 font-mono text-[13px] text-slate-100 break-all select-all leading-relaxed">{value}</div>
       <div className="mt-2.5 flex items-center gap-3 flex-wrap">
-        <button type="button" autoFocus onClick={copy} className={BTN_TOOLBAR_OK}>{state === 'copied' ? <Check size={13} /> : <Copy size={13} />} {state === 'copied' ? 'Copied' : 'Copy the key'}</button>
+        <button type="button" autoFocus onClick={copy} className={BTN_TOOLBAR_OK}>{state === 'copied' ? <Check size={14} /> : <Copy size={14} />} {state === 'copied' ? 'Copied' : 'Copy the key'}</button>
         {state === 'manual' && <span className="text-xs text-amber-300" role="status">Your browser would not copy it. The key is selected: press Ctrl+C.</span>}
       </div>
     </div>
@@ -163,7 +163,7 @@ function AddBouncerSheet({ existing, onClose, onDone }: { existing: string[]; on
     return (
       <Sheet
         title="Copy the API key now" subtitle={`Bouncer ${made.name} is registered.`} icon={<KeyRound size={18} />} tone="attention" onClose={close}
-        footer={<div className="flex justify-end"><button type="button" onClick={close} className={BTN_TOOLBAR_OK}><Check size={13} /> I have saved the key</button></div>}
+        footer={<div className="flex justify-end"><button type="button" onClick={close} className={BTN_TOOLBAR_OK}><Check size={14} /> I have saved the key</button></div>}
       >
         <div className="space-y-4">
           <KeyBox value={made.key} />
@@ -185,7 +185,7 @@ function AddBouncerSheet({ existing, onClose, onDone }: { existing: string[]; on
       footer={
         <div className="flex gap-2 justify-end flex-wrap">
           <button type="button" onClick={close} disabled={busy} className={BTN_TOOLBAR_QUIET}>Cancel</button>
-          <button type="button" onClick={submit} disabled={!valid || busy} className={`${BTN_TOOLBAR_OK} min-w-[9rem]`}>{busy ? <Loader2 size={13} className="animate-spin" /> : <KeyRound size={13} />} Register and get a key</button>
+          <button type="button" onClick={submit} disabled={!valid || busy} className={`${BTN_TOOLBAR_OK} min-w-[9rem]`}>{busy ? <Loader2 size={14} className="animate-spin" /> : <KeyRound size={14} />} Register and get a key</button>
         </div>
       }
     >
@@ -353,8 +353,8 @@ function BouncerSection({ poll, isAdmin, busy, onAdd, onDelete }: { poll: UsePol
     if (!NAME_RE.test(row.name)) return <span className="text-[11px] text-slate-500" title="This name cannot be removed from the page: use cscli bouncers delete">use cscli</span>
     const k = `del:${row.name}`
     return phone
-      ? <button type="button" className={`${BTN_ICON_QUIET} !w-auto px-2.5 gap-1.5 text-[11px]`} aria-label={`Delete the bouncer ${row.name}`} disabled={busy === k} onClick={() => onDelete(row)}>{busy === k ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />} Delete</button>
-      : <button type="button" className={`${BTN_ICON_QUIET} hover:!bg-rose-500/15 hover:!text-rose-300`} aria-label={`Delete the bouncer ${row.name}`} title="Delete this bouncer" disabled={busy === k} onClick={() => onDelete(row)}>{busy === k ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}</button>
+      ? <button type="button" className={`${BTN_ICON_QUIET} !w-auto px-2.5 gap-1.5 text-[11px]`} aria-label={`Delete the bouncer ${row.name}`} disabled={busy === k} onClick={() => onDelete(row)}>{busy === k ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />} Delete</button>
+      : <button type="button" className={`${BTN_ICON_QUIET} hover:!bg-rose-500/15 hover:!text-rose-300`} aria-label={`Delete the bouncer ${row.name}`} title="Delete this bouncer" disabled={busy === k} onClick={() => onDelete(row)}>{busy === k ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}</button>
   }
 
   return (

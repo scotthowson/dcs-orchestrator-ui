@@ -163,7 +163,7 @@ export default function BackupArchiveTable({
                 <td colSpan={4}>
                   <EmptyState
                     compact
-                    icon={<Archive size={32} />}
+                    icon={<Archive size={28} />}
                     title={`No backup archives found${scopeMember ? ` on the VM ${memberName}` : ''}`}
                     hint="Back up everything or one stack above to make the first archive"
                   />

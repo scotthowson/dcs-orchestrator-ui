@@ -64,7 +64,7 @@ export default function ContainerSpotlight({ cardConfig, onSaveConfig, dashboard
       meta={picked.length || undefined}
       actions={canEdit ? (
         <Hint label="Choose containers">
-          <button type="button" aria-label="Choose containers" onClick={() => setPicking(true)} className={`${BTN_ICON_SM} ${TONE_GHOST}`}><Settings2 size={13} /></button>
+          <button type="button" aria-label="Choose containers" onClick={() => setPicking(true)} className={`${BTN_ICON_SM} ${TONE_GHOST}`}><Settings2 size={12} /></button>
         </Hint>
       ) : undefined}
     >

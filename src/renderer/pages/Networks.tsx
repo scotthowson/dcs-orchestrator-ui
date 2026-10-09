@@ -304,7 +304,7 @@ function NetworkFormModal({ initial, onClose, onSaved }: {
             title={editing && !changed ? 'Nothing changed yet' : undefined}
             className={`${BTN_SHEET_PRIMARY} sm:flex-1 disabled:cursor-not-allowed ${FOCUS_RING}`}
           >
-            {saving ? <Loader2 size={14} className="animate-spin" /> : editing ? <RefreshCw size={14} /> : <Plus size={14} />}
+            {saving ? <Loader2 size={16} className="animate-spin" /> : editing ? <RefreshCw size={16} /> : <Plus size={16} />}
             {saving ? (editing ? 'Rebuilding…' : 'Creating…') : editing ? 'Rebuild network' : 'Create network'}
           </button>
         </div>
@@ -892,7 +892,7 @@ export default function Networks() {
                 className={`${BTN_TOOLBAR} ${FOCUS_RING} border ${active ? 'bg-white/[0.06] border-white/10 text-slate-200' : 'border-transparent text-slate-400 hover:text-slate-200'}`}
               >
                 {label}
-                {active && (sortAsc ? <ChevronUp size={12} aria-hidden /> : <ChevronDown size={12} aria-hidden />)}
+                {active && (sortAsc ? <ChevronUp size={14} aria-hidden /> : <ChevronDown size={14} aria-hidden />)}
               </button>
             )
           })}

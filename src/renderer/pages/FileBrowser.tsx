@@ -379,7 +379,7 @@ export default function FileBrowser() {
       </PageHeader>
 
       {!isConnected ? (
-        <EmptyState icon={<WifiOff size={26} />} title="Connect to a server to browse container files" />
+        <EmptyState icon={<WifiOff size={28} />} title="Connect to a server to browse container files" />
       ) : (
       <>
       {/* ----------------------------------------------------------------- */}
@@ -446,7 +446,7 @@ export default function FileBrowser() {
       {/* ----------------------------------------------------------------- */}
       {!selectedContainer && (
         <EmptyState
-          icon={<Search size={24} />}
+          icon={<Search size={28} />}
           title="Select a running container above to browse its filesystem"
           hint={!containersLoading && containers.length === 0 ? 'Nothing is running here yet — start a stack and its containers show up in the list.' : undefined}
         />
@@ -593,7 +593,7 @@ export default function FileBrowser() {
 
           {/* Empty directory */}
           {sortedEntries.length === 0 && !loading && (
-            <EmptyState compact icon={<FolderOpen size={24} />} title="Directory is empty" />
+            <EmptyState compact icon={<FolderOpen size={28} />} title="Directory is empty" />
           )}
 
           {/* Loading indicator for subsequent fetches */}
@@ -617,7 +617,7 @@ export default function FileBrowser() {
           <div className={`${CARD} overflow-hidden`}>
             <EmptyState
               compact
-              icon={<FolderOpen size={24} />}
+              icon={<FolderOpen size={28} />}
               title="No entries found at the root"
               hint="The container may not support file listing."
             />

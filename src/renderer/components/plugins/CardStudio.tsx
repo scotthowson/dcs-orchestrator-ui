@@ -283,7 +283,7 @@ export default function CardStudio({ onClose, onSaved }: { onClose: () => void; 
           <div className="min-h-0 flex flex-col px-6 py-4">
             <div className="flex items-center justify-between mb-2">
               <span className={label + ' mb-0'}>Live preview</span>
-              <button type="button" onClick={() => setPreviewKey((k) => k + 1)} className={BTN_CARD_QUIET}><Play size={11} /> Run again</button>
+              <button type="button" onClick={() => setPreviewKey((k) => k + 1)} className={BTN_CARD_QUIET}><Play size={12} /> Run again</button>
             </div>
             <div className="flex-1 min-h-0 rounded-xl border border-white/5 bg-slate-900/60 overflow-hidden" style={{ minHeight: '16rem' }}>
               <HtmlCardFrame key={previewKey} html={generated} title="Preview" />
@@ -298,7 +298,7 @@ export default function CardStudio({ onClose, onSaved }: { onClose: () => void; 
           <div className="ml-auto flex items-center gap-2">
             <button type="button" onClick={onClose} className={BTN_SHEET_QUIET}>Close</button>
             <button type="button" onClick={() => void handleSave()} disabled={saving || !title.trim() || !plugin.trim()} className={BTN_SHEET_PRIMARY}>
-              {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} {loadedFrom ? 'Save changes' : 'Save card'}
+              {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} {loadedFrom ? 'Save changes' : 'Save card'}
             </button>
           </div>
         </div>

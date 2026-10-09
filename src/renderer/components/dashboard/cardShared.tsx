@@ -187,7 +187,7 @@ export function CardBody({ children, className = '' }: { children: React.ReactNo
 
 /** the dashboard is not connected and the card has nothing cached */
 export function CardOffline() {
-  return <EmptyState card icon={<ServerOff size={20} />} title="Not connected" hint="It fills in when the dashboard reaches the server." />
+  return <EmptyState card icon={<ServerOff size={22} />} title="Not connected" hint="It fills in when the dashboard reaches the server." />
 }
 
 // ── the accents a person can pick for a shortcut, a bookmark … ───────────────

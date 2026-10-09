@@ -216,7 +216,7 @@ export default function LiveStream({ active, scope, members, memberName, sseConn
       >
         {filtered.length === 0 ? (
           <EmptyState
-            icon={<Radio size={30} />}
+            icon={<Radio size={28} />}
             title="No events yet"
             hint={sseConnected ? waiting : 'The live connection is down — events will appear once it is back.'}
           />

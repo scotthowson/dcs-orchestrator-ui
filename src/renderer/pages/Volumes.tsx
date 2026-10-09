@@ -159,7 +159,7 @@ function BatchDeleteConfirmModal({
             disabled={confirmText !== expected}
             className={`${BTN_SHEET_DANGER} sm:flex-1 disabled:cursor-not-allowed ${FOCUS_RING}`}
           >
-            <Trash2 size={14} />
+            <Trash2 size={16} />
             Delete {count} volume{count !== 1 ? 's' : ''}
           </button>
         </div>
@@ -737,7 +737,7 @@ export default function Volumes() {
                                 className={`${BTN_ICON_SM} ${TONE_GHOST_DANGER} ${REVEAL} ${FOCUS_RING} ml-auto`}
                                 aria-label={`Delete the volume ${vol.name}`}
                               >
-                                <Trash2 size={13} />
+                                <Trash2 size={12} />
                               </button>
                             </Hint>
                           )}

@@ -89,7 +89,7 @@ export default function BanSheet({ initialValue = '', initialReason = '', onClos
         <div className="flex gap-2 justify-end flex-wrap">
           <button type="button" onClick={onClose} className={BTN_TOOLBAR_QUIET}>Cancel</button>
           <button type="button" onClick={submit} disabled={!valid || !durOk || busy || own} className={`${BTN_TOOLBAR_DANGER} min-w-[10rem]`}>
-            {busy ? <Loader2 size={13} className="animate-spin" /> : <Ban size={13} />} {valid && durOk ? `Ban ${target.length > 22 ? `${target.slice(0, 20)}…` : target} ${label}` : 'Ban'}
+            {busy ? <Loader2 size={14} className="animate-spin" /> : <Ban size={14} />} {valid && durOk ? `Ban ${target.length > 22 ? `${target.slice(0, 20)}…` : target} ${label}` : 'Ban'}
           </button>
         </div>
       }

@@ -340,7 +340,7 @@ export default function StackList({ onAction, onSelect, onRefresh, loading = fal
                 Cancel
               </button>
               <button onClick={() => handleDelete(showDeleteModal)} disabled={deleting} className={BTN_SHEET_DANGER}>
-                {deleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                {deleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
                 Delete
               </button>
             </div>
@@ -602,7 +602,7 @@ export default function StackList({ onAction, onSelect, onRefresh, loading = fal
       ) : (
         <div className="glass-subtle rounded-xl">
           <EmptyState
-            icon={<Layers size={32} />}
+            icon={<Layers size={28} />}
             title={filtering ? 'No stacks match your filters' : 'No stacks found'}
             hint={filtering ? 'Try another name or status.' : 'No stacks yet — deploy a template or create a stack.'}
             action={filtering ? (

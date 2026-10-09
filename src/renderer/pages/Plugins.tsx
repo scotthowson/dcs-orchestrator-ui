@@ -653,7 +653,7 @@ export default function Plugins() {
                     />
                     <Hint label="Remove the plugin">
                       <button type="button" onClick={() => askRemove(p.name)} className={`${BTN_ICON_SM} ${TONE_GHOST_DANGER}`} aria-label={`Remove ${p.name}`}>
-                        <Trash2 size={13} />
+                        <Trash2 size={12} />
                       </button>
                     </Hint>
                   </span>
@@ -702,8 +702,8 @@ export default function Plugins() {
                 <button type="button" onClick={() => setShowInstall(false)} className={`${BTN_SHEET_QUIET} flex-1`}>Cancel</button>
                 <button type="button" onClick={handleInstall} disabled={installing || !gitUrl.trim()} className={`${BTN_SHEET_PRIMARY} flex-1`}>
                   {installing
-                    ? <><Loader2 size={14} className="animate-spin" /> Installing…</>
-                    : <><Download size={14} /> Install plugin</>
+                    ? <><Loader2 size={16} className="animate-spin" /> Installing…</>
+                    : <><Download size={16} /> Install plugin</>
                   }
                 </button>
               </div>

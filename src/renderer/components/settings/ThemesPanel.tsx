@@ -579,7 +579,7 @@ function InstallSheet({ isAdmin, serverOk, onClose, onInstalled }: InstallProps)
   const installDocument = async (theme: Theme) => {
     if (where === 'server') {
       if (metas.some((m) => m.name === theme.name)) {
-        const ok = await confirm({ title: 'Replace the server theme?', message: `A theme named "${theme.name}" is stored on the server already. Installing replaces it for everyone who follows it.`, confirmLabel: 'Replace' })
+        const ok = await confirm({ danger: true, title: 'Replace the server theme?', message: `A theme named "${theme.name}" is stored on the server already. Installing replaces it for everyone who follows it.`, confirmLabel: 'Replace' })
         if (!ok) return
       }
       const res = await saveServer(theme)
@@ -588,7 +588,7 @@ function InstallSheet({ isAdmin, serverOk, onClose, onInstalled }: InstallProps)
       onInstalled(res.theme, 'server')
     } else {
       if (localThemes.some((t) => t.name === theme.name)) {
-        const ok = await confirm({ title: 'Replace the theme on this device?', message: `You already have a theme named "${theme.name}" on this device.`, confirmLabel: 'Replace' })
+        const ok = await confirm({ danger: true, title: 'Replace the theme on this device?', message: `You already have a theme named "${theme.name}" on this device.`, confirmLabel: 'Replace' })
         if (!ok) return
       }
       saveLocal(theme)
@@ -611,7 +611,7 @@ function InstallSheet({ isAdmin, serverOk, onClose, onInstalled }: InstallProps)
             onInstalled(res.theme, 'server')
           } catch (err) {
             if (err instanceof ApiError && err.status === 409) {
-              const ok = await confirm({ title: 'Replace the server theme?', message: `${err.message}\n\nReplace it for everyone who follows it?`, confirmLabel: 'Replace' })
+              const ok = await confirm({ danger: true, title: 'Replace the server theme?', message: `${err.message}\n\nReplace it for everyone who follows it?`, confirmLabel: 'Replace' })
               if (!ok) return
               const res = await importFromUrl(u, true)
               addToast({ type: 'success', message: `${res.theme.title} replaced on the server` })
@@ -831,7 +831,7 @@ export default function ThemesPanel() {
         // the server only activates a theme it stores: put the document there first, under the same name
         const stored = metas.find((m) => m.name === doc.name)
         if (stored && !(entry.source === 'built-in' && isBuiltInCopy(themeForMeta(stored)))) {
-          const ok = await confirm({ title: 'Replace the server copy?', message: `The server already stores a theme named "${doc.name}". Setting this one for everyone replaces it.`, confirmLabel: 'Replace and set' })
+          const ok = await confirm({ danger: true, title: 'Replace the server copy?', message: `The server already stores a theme named "${doc.name}". Setting this one for everyone replaces it.`, confirmLabel: 'Replace and set' })
           if (!ok) return
         }
         await saveServer(doc)

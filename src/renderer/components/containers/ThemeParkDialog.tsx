@@ -174,13 +174,13 @@ export default function ThemeParkDialog({ containerName, member, state, onClose,
           {state.enabled && (
             <Hint label="Remove the theme middleware: the app shows its own look again">
               <button type="button" onClick={() => void apply(false)} disabled={!!busy} className={`${BTN_SHEET} ${TONE_DANGER} flex-1 sm:flex-none`}>
-                {busy === 'remove' ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                {busy === 'remove' ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
                 Remove theme
               </button>
             </Hint>
           )}
           <button type="button" onClick={() => void apply(true)} disabled={!!busy || !!cannot} className={`${BTN_SHEET_PRIMARY} flex-1 sm:flex-none`}>
-            {busy === 'apply' ? <Loader2 size={14} className="animate-spin" /> : <Palette size={14} />}
+            {busy === 'apply' ? <Loader2 size={16} className="animate-spin" /> : <Palette size={16} />}
             {state.enabled ? 'Save' : 'Apply theme'}
           </button>
         </div>

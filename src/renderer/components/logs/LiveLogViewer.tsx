@@ -335,7 +335,7 @@ export default function LiveLogViewer({
                   : 'bg-rose-500/10 text-rose-300/80 border border-rose-500/15 hover:bg-rose-500/15'
               }`}
             >
-              <AlertCircle size={11} aria-hidden />
+              <AlertCircle size={12} aria-hidden />
               {levelCounts.error}
             </button>
           )}
@@ -351,7 +351,7 @@ export default function LiveLogViewer({
                   : 'bg-amber-500/10 text-amber-300/80 border border-amber-500/15 hover:bg-amber-500/15'
               }`}
             >
-              <AlertTriangle size={11} aria-hidden />
+              <AlertTriangle size={12} aria-hidden />
               {levelCounts.warn}
             </button>
           )}
@@ -381,7 +381,7 @@ export default function LiveLogViewer({
                   : TONE_QUIET
               }`}
             >
-              <Filter size={13} />
+              <Filter size={12} />
             </button>
           </Hint>
 
@@ -393,7 +393,7 @@ export default function LiveLogViewer({
               onClick={handleExport}
               className={`${BTN_ICON_SM} ${TONE_QUIET} ${FOCUS_RING}`}
             >
-              <Download size={13} />
+              <Download size={12} />
             </button>
           </Hint>
 
@@ -405,7 +405,7 @@ export default function LiveLogViewer({
               onClick={handleClear}
               className={`${BTN_ICON_SM} ${TONE_QUIET} hover:text-rose-300 ${FOCUS_RING}`}
             >
-              <Trash2 size={13} />
+              <Trash2 size={12} />
             </button>
           </Hint>
         </div>
@@ -445,7 +445,7 @@ export default function LiveLogViewer({
         {!loading && filteredLines.length === 0 && (
           <EmptyState
             compact
-            icon={<RefreshCw size={22} />}
+            icon={<RefreshCw size={28} />}
             title={search || levelFilter !== 'all' ? 'No lines match your filter' : 'Waiting for log output…'}
           />
         )}
@@ -490,7 +490,7 @@ export default function LiveLogViewer({
             onClick={scrollToBottom}
             className={`${BTN_CARD_QUIET} !h-9 bg-slate-800/90 shadow-lg animate-fade-in ${FOCUS_RING}`}
           >
-            <ArrowDown size={14} aria-hidden />
+            <ArrowDown size={12} aria-hidden />
             Scroll to bottom
           </button>
         </div>

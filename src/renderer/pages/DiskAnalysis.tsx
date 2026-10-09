@@ -360,7 +360,7 @@ export default function DiskAnalysis() {
       />
 
       {state === 'offline' && (
-        <EmptyState icon={<WifiOff size={26} />} title="Connect to a server to see the disk analysis" />
+        <EmptyState icon={<WifiOff size={28} />} title="Connect to a server to see the disk analysis" />
       )}
 
       {state === 'loading' && <DiskSkeleton />}
@@ -483,10 +483,10 @@ export default function DiskAnalysis() {
                                   className={`${INPUT} flex-1 min-w-0 !px-2 !py-1 !text-xs`}
                                 />
                                 <Hint label="Save the name">
-                                  <button type="button" aria-label="Save" onClick={() => handleRenameLabel(d.mount, renameValue.trim())} className={`${BTN_ICON_SM} ${TONE_GHOST_OK} ${FOCUS_RING}`}><Check size={13} /></button>
+                                  <button type="button" aria-label="Save" onClick={() => handleRenameLabel(d.mount, renameValue.trim())} className={`${BTN_ICON_SM} ${TONE_GHOST_OK} ${FOCUS_RING}`}><Check size={12} /></button>
                                 </Hint>
                                 <Hint label="Cancel">
-                                  <button type="button" aria-label="Cancel" onClick={() => setRenamingMount(null)} className={`${BTN_ICON_SM} ${TONE_GHOST} ${FOCUS_RING}`}><X size={13} /></button>
+                                  <button type="button" aria-label="Cancel" onClick={() => setRenamingMount(null)} className={`${BTN_ICON_SM} ${TONE_GHOST} ${FOCUS_RING}`}><X size={12} /></button>
                                 </Hint>
                               </div>
                             ) : (
@@ -501,7 +501,7 @@ export default function DiskAnalysis() {
                                     onClick={() => { setRenameValue(label); setRenamingMount(d.mount) }}
                                     className={`${BTN_ICON_SM} ${TONE_GHOST} ${REVEAL} ${FOCUS_RING}`}
                                   >
-                                    <Pencil size={11} />
+                                    <Pencil size={12} />
                                   </button>
                                 </Hint>
                               </>

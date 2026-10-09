@@ -43,14 +43,14 @@ export default function ProxmoxCard() {
         <Skeleton label="Checking Proxmox…" rows={4} />
       ) : !s.configured ? (
         <EmptyState card
-          icon={<Server size={20} />}
+          icon={<Server size={22} />}
           title="Not linked"
           hint={`Add the Proxmox URL and an API token in ${pageLabel('config')} → Proxmox`}
           action={<button type="button" onClick={() => setCurrentPage('config')} className={`${BTN_CARD} ${TONE_OK}`}>Open {pageLabel('config')}</button>}
         />
       ) : !s.reachable ? (
         <EmptyState card
-          icon={<Server size={20} />}
+          icon={<Server size={22} />}
           title="Proxmox does not answer"
           hint={s.error || s.hints?.[0] || ''}
           action={<button type="button" onClick={() => setCurrentPage('proxmox')} className={`${BTN_CARD} ${TONE_OK}`}>Open {pageLabel('proxmox')}</button>}

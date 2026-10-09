@@ -99,7 +99,7 @@ export default function PreviewPanel(p: PreviewPanelProps) {
         <div className="border-t border-white/5 pt-3 space-y-2.5">
           <div className="flex items-center gap-3 flex-wrap">
             <button type="button" onClick={p.onTest} disabled={p.testing || !!p.testBlocked} className={BTN_TOOLBAR_OK} title={p.testBlocked ?? 'Post this example to the webhook now'}>
-              {p.testing ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />} Send test message
+              {p.testing ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />} Send test message
             </button>
             <label className="inline-flex items-center gap-2 text-xs text-slate-300 cursor-pointer select-none">
               <input type="checkbox" checked={p.includeMention} onChange={(e) => p.onIncludeMention(e.target.checked)} className="accent-emerald-500" disabled={p.testing} />

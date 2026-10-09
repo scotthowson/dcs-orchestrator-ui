@@ -276,7 +276,7 @@ export default function HostFoldersSheet({ member, onClose }: { member: FleetMem
             </ul>
 
             {!adding ? (
-              <button type="button" onClick={() => { setAdding(true); setPick(free[0]?.id ?? ''); setErr(''); if ((data.mappings ?? []).some((m) => m.id === name.trim())) setName('') }} disabled={locked || !data.can?.attach} className={`${BTN_SHEET} ${TONE_OK} w-full`}><FolderPlus size={15} /> Share a folder of the host</button>
+              <button type="button" onClick={() => { setAdding(true); setPick(free[0]?.id ?? ''); setErr(''); if ((data.mappings ?? []).some((m) => m.id === name.trim())) setName('') }} disabled={locked || !data.can?.attach} className={`${BTN_SHEET} ${TONE_OK} w-full`}><FolderPlus size={16} /> Share a folder of the host</button>
             ) : (
               <div role="group" aria-label="Share a folder of the host" className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.04] p-3 space-y-3 animate-fade-in">
                 {free.length > 0 && (
@@ -320,7 +320,7 @@ export default function HostFoldersSheet({ member, onClose }: { member: FleetMem
                 {!canShare && <p className="text-xs text-amber-200">The token may not {pick ? 'give a folder to a VM' : 'make a new mapping'} yet (see above).</p>}
                 <div className="flex gap-2">
                   <button type="button" onClick={() => setAdding(false)} disabled={!!busy} className={`${BTN_SHEET} ${TONE_QUIET} flex-1`}>Cancel</button>
-                  <button type="button" onClick={share} disabled={!formOk || !canShare || locked} className={`${vmRunning && restart ? BTN_SHEET_DANGER : BTN_SHEET_PRIMARY} flex-[2]`}>{busy === 'share' ? <Loader2 size={15} className="animate-spin" /> : <FolderPlus size={15} />} {vmRunning && restart ? 'Share and restart the VM' : 'Share'}</button>
+                  <button type="button" onClick={share} disabled={!formOk || !canShare || locked} className={`${vmRunning && restart ? BTN_SHEET_DANGER : BTN_SHEET_PRIMARY} flex-[2]`}>{busy === 'share' ? <Loader2 size={16} className="animate-spin" /> : <FolderPlus size={16} />} {vmRunning && restart ? 'Share and restart the VM' : 'Share'}</button>
                 </div>
               </div>
             )}

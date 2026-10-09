@@ -295,7 +295,7 @@ export default function Secrets() {
       ) : filtered.length === 0 ? (
         <div className="glass rounded-xl border border-white/5">
           <EmptyState
-            icon={<KeyRound size={32} />}
+            icon={<KeyRound size={28} />}
             title={search ? 'No secrets match your search' : 'No secrets stored yet'}
             hint={isAdmin ? 'Add a secret, then reference it as ${SECRETS_NAME} in a compose file or .env' : 'An admin can add secrets here'}
             action={isAdmin && !search ? (
@@ -442,7 +442,7 @@ export default function Secrets() {
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={closeAdd} className={`${BTN_SHEET_QUIET} flex-1`}>Cancel</button>
                 <button type="submit" disabled={saving || !trimmedKey || !newValue} className={`${confirmReplace ? BTN_SHEET_DANGER : BTN_SHEET_PRIMARY} flex-1`}>
-                  {saving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} {confirmReplace ? 'Replace' : 'Save'}
+                  {saving ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />} {confirmReplace ? 'Replace' : 'Save'}
                 </button>
               </div>
             </form>

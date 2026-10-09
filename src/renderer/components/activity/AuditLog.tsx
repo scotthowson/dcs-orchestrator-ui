@@ -121,14 +121,14 @@ export default function AuditLog({ entries, loading, isConnected, onScope }: {
       {!loading && entries.length === 0 && (
         <div className={CARD}>
           {isConnected
-            ? <EmptyState compact icon={<FileText size={22} />} title="No audit entries found" hint="Sign-ins, deploys, stack changes and configuration updates are written here." />
-            : <EmptyState compact icon={<WifiOff size={22} />} title="Not connected" hint="The audit log loads once the dashboard is connected to the server." />}
+            ? <EmptyState compact icon={<FileText size={28} />} title="No audit entries found" hint="Sign-ins, deploys, stack changes and configuration updates are written here." />
+            : <EmptyState compact icon={<WifiOff size={28} />} title="Not connected" hint="The audit log loads once the dashboard is connected to the server." />}
         </div>
       )}
 
       {entries.length > 0 && filtered.length === 0 && (
         <div className={CARD}>
-          <EmptyState compact icon={<FileText size={22} />} title="No entries match" hint="Pick another action, or clear the search." />
+          <EmptyState compact icon={<FileText size={28} />} title="No entries match" hint="Pick another action, or clear the search." />
         </div>
       )}
 

@@ -1230,7 +1230,7 @@ function DisconnectedHero() {
 
   return (
     <EmptyState
-      icon={<Shield size={32} />}
+      icon={<Shield size={28} />}
       title={isConnecting ? 'Connecting…' : 'Diagnostics unavailable'}
       hint="Connect to your Docker API to see the system diagnostics."
       action={!isConnecting ? (

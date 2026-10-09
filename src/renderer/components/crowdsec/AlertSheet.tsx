@@ -298,11 +298,11 @@ export function AlertSheet({ id, onClose }: { id: number; onClose: () => void })
       onClose={onClose}
       footer={canAct ? (
         <div className="flex gap-2 justify-end flex-wrap">
-          <button type="button" className={BTN_TOOLBAR_QUIET} onClick={() => { goTab('bans', value); onClose() }} title="Show this address in the list of bans"><ArrowRight size={13} /> Open in Bans</button>
+          <button type="button" className={BTN_TOOLBAR_QUIET} onClick={() => { goTab('bans', value); onClose() }} title="Show this address in the list of bans"><ArrowRight size={14} /> Open in Bans</button>
           <button type="button" className={BTN_TOOLBAR_OK} disabled={busy || lk?.allowed === true} onClick={allow} title={lk?.allowed ? 'Already on the allowlist' : 'Put the address on the allowlist so CrowdSec never bans it'}>
-            {busy ? <Loader2 size={13} className="animate-spin" /> : <UserCheck size={13} />} {lk?.allowed ? 'On the allowlist' : 'Never ban this address'}
+            {busy ? <Loader2 size={14} className="animate-spin" /> : <UserCheck size={14} />} {lk?.allowed ? 'On the allowlist' : 'Never ban this address'}
           </button>
-          {lk?.banned !== true && lk?.allowed !== true && <button type="button" className={BTN_TOOLBAR_DANGER} disabled={busy} onClick={() => setBanning(true)}><Ban size={13} /> Ban this address</button>}
+          {lk?.banned !== true && lk?.allowed !== true && <button type="button" className={BTN_TOOLBAR_DANGER} disabled={busy} onClick={() => setBanning(true)}><Ban size={14} /> Ban this address</button>}
         </div>
       ) : undefined}
     >

@@ -86,7 +86,7 @@ export default function TypedConfirmDialog({ title, word, confirmLabel, warning,
         <div className="flex items-center gap-3 px-6 py-4 border-t border-white/5">
           <button type="button" onClick={close} disabled={busy} className={`${BTN_SHEET_QUIET} flex-1`}>Cancel</button>
           <button type="button" onClick={onConfirm} disabled={typed !== word || busy} className={`${BTN_SHEET_DANGER} flex-1 disabled:cursor-not-allowed`}>
-            {busy ? <Loader2 size={15} className="animate-spin" /> : <RotateCcw size={15} />}
+            {busy ? <Loader2 size={16} className="animate-spin" /> : <RotateCcw size={16} />}
             {confirmLabel}
           </button>
         </div>

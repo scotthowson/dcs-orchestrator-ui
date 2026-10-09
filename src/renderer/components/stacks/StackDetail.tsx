@@ -689,7 +689,7 @@ export default function StackDetail({ stackName, onBack, onAction, isActionLoadi
                 Cancel
               </button>
               <button onClick={handleClone} disabled={cloneLoading || !cloneName.trim()} className={`${BTN_SHEET_PRIMARY} flex-1`}>
-                {cloneLoading ? <Loader2 size={14} className="animate-spin" /> : <Copy size={14} />}
+                {cloneLoading ? <Loader2 size={16} className="animate-spin" /> : <Copy size={16} />}
                 Clone
               </button>
             </div>

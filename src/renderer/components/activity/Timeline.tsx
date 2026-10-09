@@ -395,14 +395,14 @@ function DayHeader({ label, count, collapsed, onToggle }: { label: string; count
 function EmptyEvents({ filtered, onClear }: { filtered: boolean; onClear: () => void }) {
   return filtered ? (
     <EmptyState
-      icon={<Clock size={30} />}
+      icon={<Clock size={28} />}
       title="No events match"
       hint="Pick another type, or clear the search."
       action={<button type="button" onClick={onClear} className={`${BTN_TOOLBAR_QUIET} ${FOCUS_RING}`}><X size={14} /> Show all events</button>}
     />
   ) : (
     <EmptyState
-      icon={<Clock size={30} />}
+      icon={<Clock size={28} />}
       title="No events yet"
       hint="Docker events will appear here as activity occurs."
     />

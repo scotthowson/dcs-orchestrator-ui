@@ -278,11 +278,11 @@ export default function HubTab() {
           {isAdmin && (
             <div className="flex items-center gap-2 flex-wrap">
               <button type="button" className={BTN_TOOLBAR_QUIET} disabled={locked || !hub} onClick={checkUpdates} title="Download the newest list of what the hub offers. Nothing is installed or changed yet.">
-                {busy?.op === 'update' ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />} Check for updates
+                {busy?.op === 'update' ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />} Check for updates
               </button>
               {updatesTotal > 0 && (
                 <button type="button" className={BTN_TOOLBAR_OK} disabled={locked} onClick={upgradeAll} title="Install the newer version of everything that has one, then reload CrowdSec">
-                  {busy?.op === 'upgrade' ? <Loader2 size={13} className="animate-spin" /> : <CircleArrowUp size={13} />} Upgrade all ({updatesTotal})
+                  {busy?.op === 'upgrade' ? <Loader2 size={14} className="animate-spin" /> : <CircleArrowUp size={14} />} Upgrade all ({updatesTotal})
                 </button>
               )}
             </div>
@@ -298,7 +298,7 @@ export default function HubTab() {
           <div className="min-w-0 flex-1">
             <p className="text-sm text-rose-300 break-words">{err}</p>
             <p className="text-xs text-slate-500 mt-1">The list of installed items could not be read. CrowdSec may be restarting.</p>
-            <button type="button" onClick={() => void reload()} className={`${BTN_TOOLBAR_QUIET} mt-3`}><RefreshCw size={13} /> Try again</button>
+            <button type="button" onClick={() => void reload()} className={`${BTN_TOOLBAR_QUIET} mt-3`}><RefreshCw size={14} /> Try again</button>
           </div>
         </div>
       )}
@@ -339,7 +339,7 @@ export default function HubTab() {
                       ? <span className="flex items-center gap-1 flex-wrap justify-end"><Pill tone="ok">installed</Pill>{updateOf(sg.name) && <Pill tone="info">update</Pill>}</span>
                       : isAdmin
                         ? <button type="button" className={`${BTN_TOOLBAR_OK} !h-8`} disabled={locked} onClick={() => void install('collections', sg.name)} aria-label={`Install ${sg.title} (${sg.name})`}>
-                          {busy?.op === 'install' && busy.name === sg.name ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />} Install
+                          {busy?.op === 'install' && busy.name === sg.name ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} Install
                         </button>
                         : <Pill tone="neutral">not installed</Pill>}
                   </div>
@@ -385,7 +385,7 @@ export default function HubTab() {
             ) : shown.length === 0 ? (
               <div className={`${CARD} px-6 py-8 text-center`}>
                 <p className="text-sm text-slate-300">None of the {installed.length} installed {k.label.toLowerCase()} matches “{filter}”.</p>
-                <button type="button" onClick={() => setFilter('')} className={`${BTN_TOOLBAR_QUIET} mt-3`}><X size={13} /> Clear the filter</button>
+                <button type="button" onClick={() => setFilter('')} className={`${BTN_TOOLBAR_QUIET} mt-3`}><X size={14} /> Clear the filter</button>
               </div>
             ) : (
               <ul className={`${CARD} divide-y divide-white/5`}>
@@ -401,7 +401,7 @@ export default function HubTab() {
                     </div>
                     {isAdmin && !it.local && (
                       <button type="button" className={`${BTN_TOOLBAR_QUIET} !h-8 !px-2.5 hover:!bg-rose-500/15 hover:!text-rose-300 hover:!border-rose-500/25`} disabled={locked} onClick={() => void remove(kind, it)} aria-label={`Remove ${it.name}`} title={`Remove ${it.name}`}>
-                        {busy?.op === 'remove' && busy.name === it.name ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}<span className="hidden sm:inline">Remove</span>
+                        {busy?.op === 'remove' && busy.name === it.name ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}<span className="hidden sm:inline">Remove</span>
                       </button>
                     )}
                   </li>
@@ -447,7 +447,7 @@ export default function HubTab() {
                         </div>
                         {isAdmin && !it.installed && (
                           <button type="button" className={`${BTN_TOOLBAR_OK} !h-8 !px-2.5`} disabled={locked} onClick={() => void install(kind, it.name)} aria-label={`Install ${it.name}`}>
-                            {busy?.op === 'install' && busy.name === it.name ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />} Install
+                            {busy?.op === 'install' && busy.name === it.name ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} Install
                           </button>
                         )}
                       </li>

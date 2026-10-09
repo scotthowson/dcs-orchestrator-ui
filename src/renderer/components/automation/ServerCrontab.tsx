@@ -371,7 +371,7 @@ export default function ServerCrontab({ refreshKey, serverName }: {
       {data && entries.length === 0 && (
         <div className="glass border border-white/5 rounded-xl">
           <EmptyState
-            icon={<CalendarClock size={32} />}
+            icon={<CalendarClock size={28} />}
             title={search ? 'No entries match your filter' : 'No cron entries found'}
             hint={search
               ? 'Try adjusting your search query or clearing the filter.'
@@ -472,7 +472,7 @@ export default function ServerCrontab({ refreshKey, serverName }: {
                                 aria-label={`Remove the entry ${entry.command}`}
                                 className={`${BTN_ICON_SM} ${TONE_GHOST_DANGER}`}
                               >
-                                <Trash2 size={13} />
+                                <Trash2 size={12} />
                               </button>
                             </Hint>
                           </td>
@@ -551,7 +551,7 @@ export default function ServerCrontab({ refreshKey, serverName }: {
                   Cancel
                 </button>
                 <button type="button" onClick={handleSaveRaw} disabled={saving} className={`${BTN_SHEET_PRIMARY} flex-1 sm:flex-none`}>
-                  {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                  {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                   Save crontab
                 </button>
               </div>

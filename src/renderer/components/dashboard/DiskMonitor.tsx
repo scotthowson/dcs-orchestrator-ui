@@ -85,8 +85,8 @@ function DiskRow({ mount, disk, custom, label, fallbackName, onLabelChange }: {
                 className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded px-2 py-1 text-xs text-slate-200 focus:outline-none focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/30"
                 placeholder="Custom label…"
               />
-              <Hint label="Save"><button type="button" aria-label="Save the label" onClick={handleSave} className={`${BTN_ICON_SM} ${TONE_GHOST_OK}`}><Check size={13} /></button></Hint>
-              <Hint label="Cancel"><button type="button" aria-label="Cancel" onClick={handleCancel} className={`${BTN_ICON_SM} ${TONE_GHOST}`}><X size={13} /></button></Hint>
+              <Hint label="Save"><button type="button" aria-label="Save the label" onClick={handleSave} className={`${BTN_ICON_SM} ${TONE_GHOST_OK}`}><Check size={12} /></button></Hint>
+              <Hint label="Cancel"><button type="button" aria-label="Cancel" onClick={handleCancel} className={`${BTN_ICON_SM} ${TONE_GHOST}`}><X size={12} /></button></Hint>
             </div>
           ) : (
             <>
@@ -100,7 +100,7 @@ function DiskRow({ mount, disk, custom, label, fallbackName, onLabelChange }: {
                   onClick={() => { setEditValue(label); setEditing(true) }}
                   className={`${BTN_ICON_SM} ${TONE_GHOST} opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100`}
                 >
-                  <Pencil size={11} />
+                  <Pencil size={12} />
                 </button>
               </Hint>
             </>

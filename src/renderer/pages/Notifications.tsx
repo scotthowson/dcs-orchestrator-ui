@@ -837,7 +837,7 @@ export default function Notifications() {
           <div className="glass border border-white/5 rounded-xl">
             <EmptyState
               compact
-              icon={<Bell size={22} />}
+              icon={<Bell size={28} />}
               title="No notification rules yet"
               hint={isAdmin ? 'Pick a preset above to start, or write your own rule.' : 'An admin can add rules.'}
               action={isAdmin ? (
@@ -952,7 +952,7 @@ export default function Notifications() {
               <div className="glass border border-white/5 rounded-xl">
                 <EmptyState
                   compact
-                  icon={<Clock size={20} />}
+                  icon={<Clock size={28} />}
                   title="No notifications sent yet"
                   hint="They appear here as your rules fire, or when you send a test."
                 />
@@ -1133,7 +1133,7 @@ export default function Notifications() {
               <div className="glass border border-white/5 rounded-xl">
                 <EmptyState
                   compact
-                  icon={<Webhook size={20} />}
+                  icon={<Webhook size={28} />}
                   title="No webhooks configured"
                   hint="Add a webhook to receive event notifications via HTTP."
                 />

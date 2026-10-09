@@ -446,9 +446,9 @@ export default function CreateStackOverlay({ onClose, onCreated }: Props) {
               className={`${BTN_SHEET_PRIMARY} flex-1 sm:flex-none`}
             >
               {creating ? (
-                <Loader2 size={15} className="animate-spin" />
+                <Loader2 size={16} className="animate-spin" />
               ) : (
-                <Plus size={15} />
+                <Plus size={16} />
               )}
               Create stack
             </button>

@@ -199,10 +199,10 @@ export default function LogsTab() {
         />
         <div className="flex items-center gap-2 ml-auto sm:order-last">
           <button type="button" onClick={() => void load()} className={BTN_TOOLBAR_QUIET} aria-label="Refresh the log" title="Read the log again now">
-            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /><span className="hidden sm:inline">Refresh</span>
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /><span className="hidden sm:inline">Refresh</span>
           </button>
-          <button type="button" onClick={copyVisible} disabled={!lines.length} className={BTN_TOOLBAR_QUIET} aria-label="Copy the lines shown" title="Copy the lines shown, as text"><Copy size={13} /><span className="hidden sm:inline">Copy</span></button>
-          <button type="button" onClick={download} disabled={!lines.length} className={BTN_TOOLBAR_QUIET} aria-label="Download the lines shown as a .log file" title="Save the lines shown as a .log file"><Download size={13} /><span className="hidden sm:inline">Download .log</span></button>
+          <button type="button" onClick={copyVisible} disabled={!lines.length} className={BTN_TOOLBAR_QUIET} aria-label="Copy the lines shown" title="Copy the lines shown, as text"><Copy size={14} /><span className="hidden sm:inline">Copy</span></button>
+          <button type="button" onClick={download} disabled={!lines.length} className={BTN_TOOLBAR_QUIET} aria-label="Download the lines shown as a .log file" title="Save the lines shown as a .log file"><Download size={14} /><span className="hidden sm:inline">Download .log</span></button>
         </div>
         <Segmented<string>
           value={String(count)}
@@ -241,7 +241,7 @@ export default function LogsTab() {
           <div className="min-w-0 flex-1">
             <p className="text-sm text-rose-300 break-words">{err}</p>
             <p className="text-xs text-slate-500 mt-1">The log could not be read. Docker may be busy or CrowdSec may be restarting.</p>
-            <button type="button" onClick={() => void load()} className={`${BTN_TOOLBAR_QUIET} mt-3`}><RefreshCw size={13} /> Try again</button>
+            <button type="button" onClick={() => void load()} className={`${BTN_TOOLBAR_QUIET} mt-3`}><RefreshCw size={14} /> Try again</button>
           </div>
         </div>
       )}
@@ -260,7 +260,7 @@ export default function LogsTab() {
                   : 'The only lines CrowdSec has written lately are its API requests, which are hidden. Switch on “Include API request lines” to see them.'}
           </p>
           <div className="mt-4 flex items-center justify-center gap-2 flex-wrap">
-            {(level !== 'all' || q) && <button type="button" onClick={() => { setLevel('all'); setQ('') }} className={BTN_TOOLBAR_QUIET}><X size={13} /> Clear the filters</button>}
+            {(level !== 'all' || q) && <button type="button" onClick={() => { setLevel('all'); setQ('') }} className={BTN_TOOLBAR_QUIET}><X size={14} /> Clear the filters</button>}
             {!lapi && <button type="button" onClick={() => setLapi(true)} className={BTN_TOOLBAR_QUIET}>Include API request lines</button>}
             {count < 500 && <button type="button" onClick={() => setCount(500)} className={BTN_TOOLBAR_QUIET}>Read 500 lines</button>}
           </div>

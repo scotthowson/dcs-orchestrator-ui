@@ -359,7 +359,7 @@ export default function Maintenance() {
                 Cancel
               </button>
               <button type="button" onClick={handleDeepPrune} className={`${BTN_SHEET_DANGER} whitespace-nowrap`}>
-                <Trash2 size={14} />
+                <Trash2 size={16} />
                 {everywhere ? 'Delete everywhere' : 'Delete everything'}
               </button>
             </div>
@@ -459,25 +459,25 @@ export default function Maintenance() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {/* Safe prune: nothing to lose (emerald) */}
           <button type="button" onClick={handleSafePrune} disabled={anyActionBusy} className={`${BTN_SHEET} ${TONE_OK}`}>
-            {pruning ? <Loader2 size={14} className="animate-spin" /> : <Scissors size={14} />}
+            {pruning ? <Loader2 size={16} className="animate-spin" /> : <Scissors size={16} />}
             Safe prune
           </button>
 
           {/* Image prune */}
           <button type="button" onClick={handleImagePrune} disabled={anyActionBusy} className={`${BTN_SHEET} ${TONE_QUIET}`}>
-            {imagePruning ? <Loader2 size={14} className="animate-spin" /> : <Image size={14} />}
+            {imagePruning ? <Loader2 size={16} className="animate-spin" /> : <Image size={16} />}
             Image prune
           </button>
 
           {/* Deep prune: destructive (rose) */}
           <button type="button" onClick={() => setShowDeepPruneModal(true)} disabled={anyActionBusy} className={`${BTN_SHEET} ${TONE_DANGER}`}>
-            {deepPruning ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+            {deepPruning ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
             Deep prune
           </button>
 
           {/* Rotate logs */}
           <button type="button" onClick={handleLogRotate} disabled={anyActionBusy} className={`${BTN_SHEET} ${TONE_QUIET}`}>
-            {rotating ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />}
+            {rotating ? <Loader2 size={16} className="animate-spin" /> : <RotateCcw size={16} />}
             Rotate logs
           </button>
         </div>

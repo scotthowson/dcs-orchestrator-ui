@@ -156,9 +156,9 @@ export default function BansTab({ seedSearch }: { seedSearch?: string }) {
         <Segmented<'' | 'ip' | 'range'> value={scope} onChange={setScope} ariaLabel="Kind of ban" options={[{ value: '', label: 'All' }, { value: 'ip', label: 'Addresses' }, { value: 'range', label: 'Networks' }]} />
         <div className="flex items-center gap-2 sm:ml-auto w-full sm:w-auto">
           {isAdmin && <button type="button" onClick={() => setBanning({})} className={`${BTN_TOOLBAR_OK} flex-1 sm:flex-none`}><Plus size={14} /> Ban an address</button>}
-          {isAdmin && <button type="button" onClick={() => setImporting(true)} className={BTN_TOOLBAR_QUIET} title="Ban many addresses from a list or a file"><Upload size={13} /><span className="hidden sm:inline">Import</span></button>}
+          {isAdmin && <button type="button" onClick={() => setImporting(true)} className={BTN_TOOLBAR_QUIET} title="Ban many addresses from a list or a file"><Upload size={14} /><span className="hidden sm:inline">Import</span></button>}
           <div className="relative" ref={menuRef}>
-            <button type="button" onClick={() => setMenu((v) => !v)} disabled={busy === 'export'} className={BTN_TOOLBAR_QUIET} aria-haspopup="menu" aria-expanded={menu} title="Download the list"><Download size={13} /><span className="hidden sm:inline">Export</span></button>
+            <button type="button" onClick={() => setMenu((v) => !v)} disabled={busy === 'export'} className={BTN_TOOLBAR_QUIET} aria-haspopup="menu" aria-expanded={menu} title="Download the list"><Download size={14} /><span className="hidden sm:inline">Export</span></button>
             {menu && (
               <div role="menu" className="absolute right-0 top-10 z-30 w-44 rounded-xl glass border border-white/10 p-1 shadow-xl animate-scale-in">
                 <button role="menuitem" type="button" onClick={() => doExport('csv')} className="w-full text-left px-3 py-2 rounded-lg text-xs text-slate-200 hover:bg-white/10">CSV (spreadsheet)</button>
@@ -196,7 +196,7 @@ export default function BansTab({ seedSearch }: { seedSearch?: string }) {
       {isAdmin && selected.size > 0 && (
         <div className="sticky top-2 z-20 rounded-xl glass border border-emerald-500/20 px-3 py-2 flex items-center gap-3 flex-wrap animate-scale-in" role="region" aria-label="Selected bans">
           <span className="text-sm text-slate-100 tabular-nums">{selected.size} selected</span>
-          <button type="button" onClick={unbanSelected} disabled={busy === 'bulk'} className={BTN_TOOLBAR_DANGER}>{busy === 'bulk' ? <Loader2 size={13} className="animate-spin" /> : <Unlock size={13} />} {busy === 'bulk' && progress ? `Lifting ${progress.done} of ${progress.total}…` : <>Lift {selected.size === 1 ? 'this ban' : `these ${selected.size} bans`}</>}</button>
+          <button type="button" onClick={unbanSelected} disabled={busy === 'bulk'} className={BTN_TOOLBAR_DANGER}>{busy === 'bulk' ? <Loader2 size={14} className="animate-spin" /> : <Unlock size={14} />} {busy === 'bulk' && progress ? `Lifting ${progress.done} of ${progress.total}…` : <>Lift {selected.size === 1 ? 'this ban' : `these ${selected.size} bans`}</>}</button>
           <button type="button" onClick={() => setSelected(new Set())} className="text-xs text-slate-500 hover:text-slate-200 ml-auto">Clear selection</button>
         </div>
       )}
@@ -210,7 +210,7 @@ export default function BansTab({ seedSearch }: { seedSearch?: string }) {
           <p className="mt-3 text-sm text-slate-300">{filtered ? 'No ban matches these filters.' : 'Nothing is banned right now.'}</p>
           <p className="mt-1 text-xs text-slate-500 max-w-md mx-auto">{filtered ? 'Loosen a filter, or clear them all.' : 'When CrowdSec catches a scanner or a brute-forcer, it shows up here with its country, the reason and a live countdown.'}</p>
           <div className="mt-4 flex items-center justify-center gap-2 flex-wrap">
-            {filtered && <button type="button" onClick={clearFilters} className={BTN_TOOLBAR_QUIET}><X size={13} /> Clear filters</button>}
+            {filtered && <button type="button" onClick={clearFilters} className={BTN_TOOLBAR_QUIET}><X size={14} /> Clear filters</button>}
             {isAdmin && !filtered && <button type="button" onClick={() => setBanning({})} className={BTN_TOOLBAR_OK}><Plus size={14} /> Ban an address</button>}
           </div>
         </div>
@@ -265,8 +265,8 @@ export default function BansTab({ seedSearch }: { seedSearch?: string }) {
                       <td className="px-3 py-2.5 whitespace-nowrap"><Expires d={d} /></td>
                       <td className="pr-4 py-2.5">
                         <div className="flex items-center justify-end gap-1.5">
-                          {d.alert_id && d.origin === 'crowdsec' && <button type="button" className={BTN_ICON_QUIET} aria-label={`Details of the alert behind ${d.value ?? d.ip}`} title="The alert behind this ban" onClick={() => setAlertId(d.alert_id as number)}><Info size={13} /></button>}
-                          {isAdmin && <button type="button" className={`${BTN_ICON_QUIET} hover:!bg-rose-500/15 hover:!text-rose-300`} aria-label={`Lift the ban on ${d.value ?? d.ip}`} title="Lift this ban" disabled={busy === `u:${id}`} onClick={() => unbanOne(d)}>{busy === `u:${id}` ? <Loader2 size={13} className="animate-spin" /> : <Unlock size={13} />}</button>}
+                          {d.alert_id && d.origin === 'crowdsec' && <button type="button" className={BTN_ICON_QUIET} aria-label={`Details of the alert behind ${d.value ?? d.ip}`} title="The alert behind this ban" onClick={() => setAlertId(d.alert_id as number)}><Info size={14} /></button>}
+                          {isAdmin && <button type="button" className={`${BTN_ICON_QUIET} hover:!bg-rose-500/15 hover:!text-rose-300`} aria-label={`Lift the ban on ${d.value ?? d.ip}`} title="Lift this ban" disabled={busy === `u:${id}`} onClick={() => unbanOne(d)}>{busy === `u:${id}` ? <Loader2 size={14} className="animate-spin" /> : <Unlock size={14} />}</button>}
                         </div>
                       </td>
                     </tr>
@@ -298,8 +298,8 @@ export default function BansTab({ seedSearch }: { seedSearch?: string }) {
                   <div className="flex items-center justify-between gap-2 mt-3 pt-2.5 border-t border-white/5">
                     <div className="flex items-center gap-2 min-w-0"><Country code={d.country} /><Pill tone={originTone(d.origin ?? '')}>{originLabel(d.origin ?? '')}</Pill></div>
                     <div className="flex items-center gap-1.5">
-                      {d.alert_id && d.origin === 'crowdsec' && <button type="button" className={BTN_ICON_QUIET} aria-label={`Details of the alert behind ${d.value ?? d.ip}`} onClick={() => setAlertId(d.alert_id as number)}><Info size={13} /></button>}
-                      {isAdmin && <button type="button" className={`${BTN_ICON_QUIET} !w-auto px-2.5 gap-1.5 text-[11px]`} aria-label={`Lift the ban on ${d.value ?? d.ip}`} disabled={busy === `u:${id}`} onClick={() => unbanOne(d)}>{busy === `u:${id}` ? <Loader2 size={12} className="animate-spin" /> : <Unlock size={12} />} Lift</button>}
+                      {d.alert_id && d.origin === 'crowdsec' && <button type="button" className={BTN_ICON_QUIET} aria-label={`Details of the alert behind ${d.value ?? d.ip}`} onClick={() => setAlertId(d.alert_id as number)}><Info size={14} /></button>}
+                      {isAdmin && <button type="button" className={`${BTN_ICON_QUIET} !w-auto px-2.5 gap-1.5 text-[11px]`} aria-label={`Lift the ban on ${d.value ?? d.ip}`} disabled={busy === `u:${id}`} onClick={() => unbanOne(d)}>{busy === `u:${id}` ? <Loader2 size={14} className="animate-spin" /> : <Unlock size={14} />} Lift</button>}
                     </div>
                   </div>
                 </div>

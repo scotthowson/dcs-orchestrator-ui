@@ -15,9 +15,9 @@
 // An icon button takes a tone that draws its edge (TONE_QUIET · OK · ATTN · DANGER) or a ghost tone (no
 // edge: a row of icons in a list or a table).
 //
-// Icons (lucide, `size`): ICON.toolbar 14 in a toolbar button and a sheet's button, ICON.card 12 in a
-// card's button, a small icon button and a pill (10), ICON.row 16 at the head of a row, a card or a
-// notice, ICON.hero 20 in a page's or an empty state's tile. A spinner takes the size of what it replaces.
+// Icons (lucide, `size`): 14 in a toolbar button and an icon button, 12 in a card's button and a small icon
+// button, 16 in a sheet's button, at the head of a row, a card or a notice, 10 in a pill, 20 in a page's
+// tile, 28 in an empty state (22 inside a dashboard card). A spinner takes the size of what it replaces.
 //
 //   <button className={BTN_TOOLBAR_QUIET}><RefreshCw size={14} /> Refresh</button>
 //   <button className={`${BTN_ICON} ${TONE_DANGER}`} aria-label="Stop"><Square size={14} /></button>
@@ -70,7 +70,7 @@ export const BTN_SHEET_DANGER = `${BTN_SHEET} font-semibold text-white bg-rose-6
 export const FOCUS_RING = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40'
 
 /** the icon sizes (see the header) */
-export const ICON = { pill: 10, card: 12, toolbar: 14, row: 16, hero: 20 } as const
+export const ICON = { pill: 10, card: 12, toolbar: 14, sheet: 16, row: 16, hero: 20 } as const
 
 // ── headings ────────────────────────────────────────────────────────────────
 // A page's own <h1> is PageHeader's. Under it, three kinds of heading and no others:

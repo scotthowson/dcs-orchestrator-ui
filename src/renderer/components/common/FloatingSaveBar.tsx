@@ -58,7 +58,7 @@ export function FloatingSaveBar({
           disabled={saving}
           className={`${BTN_TOOLBAR} font-semibold text-white bg-emerald-500 hover:bg-emerald-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/70`}
         >
-          {saving && <Loader2 size={12} className="animate-spin" />}
+          {saving && <Loader2 size={14} className="animate-spin" />}
           {saving ? savingLabel : saveLabel}
         </button>
       </div>

@@ -9,7 +9,7 @@
 //   ErrorState    the request failed before anything arrived: what failed, why, Try again
 //
 // Sizes: a page's (the default), `compact` inside a panel or a table, `card` inside a dashboard card
-// (it fills the card's body). Icons of an empty state: 28 on a page, 24 compact, 20 in a card.
+// (it fills the card's body). The icon of an empty state is 28, inside a dashboard card 22.
 // =============================================================================
 
 import type { ReactNode } from 'react'

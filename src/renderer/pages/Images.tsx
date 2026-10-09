@@ -482,7 +482,7 @@ const Images: React.FC = () => {
             {filteredImages.length === 0 ? (
               <div className="col-span-full">
                 <EmptyState
-                  icon={<HardDrive size={32} />}
+                  icon={<HardDrive size={28} />}
                   title={searchQuery ? 'No images match your search.' : 'No images found.'}
                   hint={searchQuery ? 'Try another name or tag.' : 'Run a registry check to discover images, or pull one from Docker Hub.'}
                   action={searchQuery

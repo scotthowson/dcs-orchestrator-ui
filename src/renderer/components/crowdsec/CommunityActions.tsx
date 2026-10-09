@@ -109,7 +109,7 @@ export function RegisterAgainButton({ onDone, label = 'Register again' }: { onDo
   return (
     <>
       <button type="button" className={BTN_TOOLBAR_ATTN} disabled={busy} onClick={() => void run(false)}>
-        {busy ? <Loader2 size={13} className="animate-spin" /> : <RotateCw size={13} />} {busy ? 'Registering…' : label}
+        {busy ? <Loader2 size={14} className="animate-spin" /> : <RotateCw size={14} />} {busy ? 'Registering…' : label}
       </button>
       {paused && <PausedNotice hint={paused} busy={busy} onForce={() => void run(true)} />}
     </>
@@ -154,7 +154,7 @@ export function CheckNowButton({ onDone, availableAt }: { onDone: () => void; av
   return (
     <button type="button" className={BTN_TOOLBAR_QUIET} disabled={busy || !!waitMin} onClick={() => void run()}
       title={waitMin ? 'The community service is checked at most every 10 minutes' : undefined}>
-      {busy ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />} {busy ? 'Checking…' : waitMin ? `Check now (available in ${waitMin} min)` : 'Check now'}
+      {busy ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />} {busy ? 'Checking…' : waitMin ? `Check now (available in ${waitMin} min)` : 'Check now'}
     </button>
   )
 }
@@ -197,6 +197,7 @@ export function EnrolBox({ onDone, onEnrolled, needsRegister = false }: { onDone
     if (force && !(await confirm({ title: 'Enrol while the pause lasts?', message: FORCE_MESSAGE, confirmLabel: 'Do it anyway' }))) return
     // a forced resend repeats a request whose overwrite was confirmed already
     if (overwrite && !force && !(await confirm({
+      danger: true,
       title: 'Replace the existing enrolment?',
       message: 'This engine leaves the console account it is enrolled in now and joins the one this key belongs to. Accept it on app.crowdsec.net afterwards.',
       confirmLabel: 'Replace it',
@@ -283,7 +284,7 @@ export function EnrolBox({ onDone, onEnrolled, needsRegister = false }: { onDone
       )}
       <div className="flex items-center gap-2 flex-wrap">
         <button type="submit" className={BTN_TOOLBAR_OK} disabled={busy || !k || !!keyProblem}>
-          {busy ? <Loader2 size={13} className="animate-spin" /> : <KeyRound size={13} />} {busy ? 'Enrolling…' : 'Enrol'}
+          {busy ? <Loader2 size={14} className="animate-spin" /> : <KeyRound size={14} />} {busy ? 'Enrolling…' : 'Enrol'}
         </button>
         <span className="text-[11px] text-slate-500">CrowdSec keeps the key; this page never shows it again.</span>
       </div>

@@ -187,7 +187,7 @@ export default function UptimeTimeline({ rows, loading, fleetWide, onScope, filt
           ))}
         </div>
       ) : rows.length === 0 ? (
-        <EmptyState compact icon={<Server size={22} />} title={filtered ? 'No container matches' : 'No containers found'} hint={filtered ? 'Try another search or filter.' : emptyHint} />
+        <EmptyState compact icon={<Server size={28} />} title={filtered ? 'No container matches' : 'No containers found'} hint={filtered ? 'Try another search or filter.' : emptyHint} />
       ) : (
         <div className="divide-y divide-white/[0.03]">
           {rows.map((c, idx) => (

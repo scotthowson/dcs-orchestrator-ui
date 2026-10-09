@@ -218,7 +218,7 @@ export default function Automations() {
     return (
       <div className="space-y-5 animate-fade-in">
         <DisconnectedBanner />
-        <EmptyState icon={<Bot size={32} />} title="Connect to a server to manage automation" />
+        <EmptyState icon={<Bot size={28} />} title="Connect to a server to manage automation" />
       </div>
     )
   }
@@ -325,7 +325,7 @@ export default function Automations() {
           ) : shown.length === 0 ? (
             <div className="glass border border-white/5 rounded-xl">
               <EmptyState
-                icon={<Bot size={32} />}
+                icon={<Bot size={28} />}
                 title={rules.length === 0 ? 'No rules yet' : kind === 'timed' ? 'No timed rules' : 'No rules that wait for something to happen'}
                 hint={rules.length === 0
                   ? 'A rule makes DCS do something by itself: a backup every night, a restart when a container turns unhealthy.'

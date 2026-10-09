@@ -166,7 +166,7 @@ export default function RecoveryBundleCard() {
         <span className="text-[10px] text-slate-500 ml-1 hidden sm:inline">rebuilds this install anywhere</span>
         <Hint label="Refresh the list">
           <button type="button" onClick={() => refetch()} aria-label="Refresh the list of bundles" className={`${BTN_ICON_SM} ${TONE_GHOST} ml-auto`}>
-            <RefreshCw size={13} />
+            <RefreshCw size={12} />
           </button>
         </Hint>
       </div>
@@ -271,12 +271,12 @@ export default function RecoveryBundleCard() {
                 </div>
                 <Hint label="Download">
                   <button type="button" onClick={() => download(b)} disabled={busy !== null} aria-label={`Download ${b.file}`} className={`${BTN_ICON_SM} ${TONE_GHOST}`}>
-                    {busy === `dl:${b.file}` ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+                    {busy === `dl:${b.file}` ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
                   </button>
                 </Hint>
                 <Hint label="Restore this bundle here">
                   <button type="button" onClick={() => { setRestoreTarget(b); setRestorePass('') }} disabled={busy !== null} aria-label={`Restore ${b.file} here`} className={`${BTN_ICON_SM} ${TONE_GHOST_DANGER}`}>
-                    <RotateCcw size={13} />
+                    <RotateCcw size={12} />
                   </button>
                 </Hint>
               </div>

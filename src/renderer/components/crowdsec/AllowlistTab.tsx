@@ -210,7 +210,7 @@ function AllowSheet({ data, seed, onClose, onDone }: { data: CrowdSecAllowlistRe
         <div className="flex gap-2 justify-end flex-wrap">
           <button type="button" onClick={onClose} className={BTN_TOOLBAR_QUIET}>Cancel</button>
           <button type="button" onClick={submit} disabled={!valid || !expOk || !!dupe || busy} className={`${BTN_TOOLBAR_OK} min-w-[10rem]`}>
-            {busy ? <Loader2 size={13} className="animate-spin" /> : <ShieldCheck size={13} />} {valid ? `Allow ${target.length > 22 ? `${target.slice(0, 20)}…` : target}` : 'Allow'}
+            {busy ? <Loader2 size={14} className="animate-spin" /> : <ShieldCheck size={14} />} {valid ? `Allow ${target.length > 22 ? `${target.slice(0, 20)}…` : target}` : 'Allow'}
           </button>
         </div>
       }
@@ -350,8 +350,8 @@ export default function AllowlistTab() {
   const removeBtn = (e: CrowdSecAllowEntry, phone: boolean) => {
     const k = `rm:${keyOf(e)}`
     return phone
-      ? <button type="button" className={`${BTN_ICON_QUIET} !w-auto px-2.5 gap-1.5 text-[11px]`} aria-label={`Remove ${e.value} from the allowlist`} disabled={busy === k} onClick={() => removeOne(e)}>{busy === k ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />} Remove</button>
-      : <button type="button" className={`${BTN_ICON_QUIET} hover:!bg-rose-500/15 hover:!text-rose-300`} aria-label={`Remove ${e.value} from the allowlist`} title="Remove from the allowlist" disabled={busy === k} onClick={() => removeOne(e)}>{busy === k ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}</button>
+      ? <button type="button" className={`${BTN_ICON_QUIET} !w-auto px-2.5 gap-1.5 text-[11px]`} aria-label={`Remove ${e.value} from the allowlist`} disabled={busy === k} onClick={() => removeOne(e)}>{busy === k ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />} Remove</button>
+      : <button type="button" className={`${BTN_ICON_QUIET} hover:!bg-rose-500/15 hover:!text-rose-300`} aria-label={`Remove ${e.value} from the allowlist`} title="Remove from the allowlist" disabled={busy === k} onClick={() => removeOne(e)}>{busy === k ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}</button>
   }
   const lockIcon = (e: CrowdSecAllowEntry) => <span className="h-8 w-8 inline-flex items-center justify-center text-slate-500" title={lockReason(e)} role="img" aria-label={`Cannot be removed here. ${lockReason(e)}`}><Lock size={13} /></span>
 
@@ -442,7 +442,7 @@ export default function AllowlistTab() {
                       {isAdmin && !strongest && !connLocal && (
                         <>
                           <button type="button" className={BTN_TOOLBAR_OK} disabled={busy === 'me'} onClick={allowMe} title={data.supports_expiry ? 'Allow this address for 30 days' : 'Allow this address for good'}>
-                            {busy === 'me' ? <Loader2 size={13} className="animate-spin" /> : <UserCheck size={13} />} Add my address
+                            {busy === 'me' ? <Loader2 size={14} className="animate-spin" /> : <UserCheck size={14} />} Add my address
                           </button>
                           <button type="button" className="text-xs text-cyan-400 hover:text-cyan-300 h-9 px-1" onClick={() => setSheet({ value: clientIp, comment: 'My connection', expires: data.supports_expiry ? '30d' : undefined })}>Choose how long…</button>
                         </>
@@ -488,7 +488,7 @@ export default function AllowlistTab() {
                 <p className="mt-3 text-sm text-slate-300">{qNet && !source ? `${qq} is not covered by the allowlist.` : 'No entry matches.'}</p>
                 <p className="mt-1 text-xs text-slate-500">{qNet && !source ? 'CrowdSec can ban it like any other address.' : 'Loosen the search, or clear the filters.'}</p>
                 <div className="mt-4 flex items-center justify-center gap-2 flex-wrap">
-                  <button type="button" onClick={clearFilters} className={BTN_TOOLBAR_QUIET}><X size={13} /> Clear filters</button>
+                  <button type="button" onClick={clearFilters} className={BTN_TOOLBAR_QUIET}><X size={14} /> Clear filters</button>
                   {canAdd && qNet && !source && <button type="button" onClick={() => setSheet({ value: q.trim() })} className={BTN_TOOLBAR_OK}><Plus size={14} /> Allow {q.trim().length > 22 ? `${q.trim().slice(0, 20)}…` : q.trim()}</button>}
                 </div>
               </div>

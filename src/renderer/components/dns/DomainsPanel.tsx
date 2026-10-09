@@ -135,7 +135,7 @@ export default function DomainsPanel({ data, isAdmin, onChanged }: { data: Domai
             />
           </div>
           <button type="submit" disabled={!valid || adding} className={`${BTN_CARD} ${TONE_OK} !h-9 justify-center`}>
-            {adding ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />} Add domain
+            {adding ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />} Add domain
           </button>
           {typed && !valid && <span className="text-[11px] text-slate-500 self-center">{data.domains.some((d) => d.domain === typed) ? 'already here' : 'a name like example.org'}</span>}
         </form>

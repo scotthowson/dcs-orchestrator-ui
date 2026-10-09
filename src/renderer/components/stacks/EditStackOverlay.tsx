@@ -415,7 +415,7 @@ export default function EditStackOverlay({ stack, onClose, onSaved, initialServi
 
   // a rollback replaces the live compose file: ask first
   const askRollback = useCallback(async (versionId: string) => {
-    if (!(await confirm({ title: 'Roll back the compose file', message: `Replace the current docker-compose.yml of ${stack.name} with the version ${versionId}? Your current file is kept in the history.`, confirmLabel: 'Roll back' }))) return
+    if (!(await confirm({ danger: true, title: 'Roll back the compose file', message: `Replace the current docker-compose.yml of ${stack.name} with the version ${versionId}? Your current file is kept in the history.`, confirmLabel: 'Roll back' }))) return
     void handleRollback(versionId)
   }, [confirm, handleRollback, stack.name])
 
@@ -1116,7 +1116,7 @@ export default function EditStackOverlay({ stack, onClose, onSaved, initialServi
         {/* Save labels button */}
         <div className="pt-2">
           <button onClick={handleSaveAnnotations} className={BTN_SHEET_PRIMARY}>
-            <Check size={15} />
+            <Check size={16} />
             Save labels
           </button>
         </div>
@@ -1133,7 +1133,7 @@ export default function EditStackOverlay({ stack, onClose, onSaved, initialServi
     if (composeVersions.length === 0) {
       return (
         <EmptyState
-          icon={<History size={32} />}
+          icon={<History size={28} />}
           title="No version history yet"
           hint="Versions are saved automatically when you edit the compose file."
         />

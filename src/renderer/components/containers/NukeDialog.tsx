@@ -193,7 +193,7 @@ export function NukeDialog({ containerName, member = null, memberName = '', open
           <button onClick={onClose} disabled={busy} className={`${BTN_SHEET_QUIET} flex-1 sm:flex-none`}>{result ? 'Close' : 'Cancel'}</button>
           {!result && (
             <button onClick={go} disabled={!canGo} className={`${BTN_SHEET_DANGER} flex-1 sm:flex-none disabled:cursor-not-allowed`}>
-              {busy ? <Loader2 size={14} className="animate-spin" /> : <Bomb size={14} />}
+              {busy ? <Loader2 size={16} className="animate-spin" /> : <Bomb size={16} />}
               {busy ? 'Reinstalling…' : 'Nuke & reinstall'}
             </button>
           )}

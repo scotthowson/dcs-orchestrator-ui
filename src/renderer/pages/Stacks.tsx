@@ -577,7 +577,7 @@ export default function Stacks() {
                   }}
                   className={BTN_SHEET_PRIMARY}
                 >
-                  <CheckCircle2 size={14} />
+                  <CheckCircle2 size={16} />
                   Done
                 </button>
               </div>

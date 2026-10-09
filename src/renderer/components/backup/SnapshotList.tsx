@@ -149,7 +149,7 @@ export default function SnapshotList({
     return (
       <EmptyState
         compact
-        icon={<Camera size={32} />}
+        icon={<Camera size={28} />}
         title={`No snapshots yet${scopeMember ? ` on the VM ${memberName}` : ''}`}
         hint="Take a config snapshot above before you change something: it takes seconds."
       />
