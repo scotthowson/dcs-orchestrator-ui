@@ -228,7 +228,7 @@ export default function BansTab({ seedSearch }: { seedSearch?: string }) {
                 <col className="w-[5.5rem]" />
               </colgroup>
               <thead>
-                <tr className="text-[10px] uppercase tracking-wider text-slate-500 border-b border-white/5">
+                <tr className="text-xs uppercase tracking-wider text-slate-500 border-b border-white/5">
                   {isAdmin && <th className="w-10 pl-4 py-2.5"><input type="checkbox" aria-label="Select every ban shown" checked={allSelected} onChange={(e) => setSelected(e.target.checked ? new Set(rows.map(idOf)) : new Set())} className="accent-emerald-500" /></th>}
                   <th className="text-left font-semibold px-3 py-2.5">Address</th>
                   <th className="text-left font-semibold px-3 py-2.5">Country</th>

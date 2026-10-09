@@ -499,7 +499,7 @@ export default function AllowlistTab() {
                   <table className="w-full text-sm table-fixed">
                     <caption className="sr-only">Addresses and networks CrowdSec never bans</caption>
                     <thead>
-                      <tr className="text-[10px] uppercase tracking-wider text-slate-500 border-b border-white/5">
+                      <tr className="text-xs uppercase tracking-wider text-slate-500 border-b border-white/5">
                         <th scope="col" className="text-left font-semibold px-4 py-2.5">Address or network</th>
                         <th scope="col" className="text-left font-semibold px-3 py-2.5 w-36">Source</th>
                         <th scope="col" className="text-left font-semibold px-3 py-2.5 w-28">Expires</th>

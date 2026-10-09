@@ -25,6 +25,8 @@ import { collectNeeds, plural, type NeedItem } from '../../lib/needs'
 import { Card, CardOffline } from './cardShared'
 import { Skeleton } from '../common/PageState'
 import { Pill } from '../common/Pill'
+import { BTN_CARD, BTN_ICON_SM, TONE_GHOST } from '../../lib/ui'
+import { REVEAL } from '../../lib/pageKit'
 const HIDDEN_KEY = 'dcs-needs-you-hidden'
 
 function loadHidden(): Record<string, string> {
@@ -124,15 +126,15 @@ export default function NeedsYouCard({ stacks, stacksError, images, backup, disk
               <div className="flex shrink-0 items-center gap-1">
                 {i.fix && isAdmin && (
                   <button type="button" onClick={() => runFix(i)} disabled={!!fixing}
-                    className="h-7 px-2 rounded-md flex items-center gap-1 text-[11px] font-semibold text-indigo-200 bg-indigo-500/15 hover:bg-indigo-500/25 disabled:opacity-50 whitespace-nowrap transition-colors">
+                    className={`${BTN_CARD} font-semibold whitespace-nowrap text-indigo-200 bg-indigo-500/15 hover:bg-indigo-500/25`}>
                     {fixing === i.key ? <Loader2 size={12} className="animate-spin" aria-hidden /> : <Wrench size={12} aria-hidden />} {i.fix.label}
                   </button>
                 )}
                 <button type="button" onClick={() => hide(i)} aria-label={`Hide “${i.title}” until it changes`} title="Hide until it changes"
-                  className="h-7 w-7 rounded-md flex items-center justify-center text-slate-500 hover:text-slate-300 hover:bg-white/5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100 transition-opacity">
-                  <EyeOff size={13} />
+                  className={`${BTN_ICON_SM} ${TONE_GHOST} ${REVEAL}`}>
+                  <EyeOff size={12} />
                 </button>
-                <button type="button" onClick={() => setCurrentPage(i.page, i.payload)} className="h-7 px-2 rounded-md flex items-center gap-1 text-[11px] font-medium text-slate-400 hover:text-slate-200 hover:bg-white/5 whitespace-nowrap">
+                <button type="button" onClick={() => setCurrentPage(i.page, i.payload)} className={`${BTN_CARD} ${TONE_GHOST} whitespace-nowrap`}>
                   {pageLabel(i.page)} <ChevronRight size={12} aria-hidden />
                 </button>
               </div>

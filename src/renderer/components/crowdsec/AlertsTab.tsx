@@ -251,7 +251,7 @@ export default function AlertsTab({ seedSearch }: { seedSearch?: string }) {
               <table className="w-full text-sm">
                 <caption className="sr-only">Alerts in {WIN_LABEL[win]}, newest first</caption>
                 <thead>
-                  <tr className="text-[10px] uppercase tracking-wider text-slate-500 border-b border-white/5">
+                  <tr className="text-xs uppercase tracking-wider text-slate-500 border-b border-white/5">
                     <th scope="col" className="text-left font-semibold pl-4 pr-3 py-2.5 w-24">When</th>
                     <th scope="col" className="text-left font-semibold px-3 py-2.5">Detection</th>
                     <th scope="col" className="text-left font-semibold px-3 py-2.5">Source</th>

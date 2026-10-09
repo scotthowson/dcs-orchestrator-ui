@@ -3831,12 +3831,12 @@ export default function Templates() {
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-white/5">
-                    <th scope="col" className="text-left py-2 px-2 text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Time</th>
-                    <th scope="col" className="text-left py-2 px-2 text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Action</th>
-                    <th scope="col" className="text-left py-2 px-2 text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Template</th>
-                    <th scope="col" className="text-left py-2 px-2 text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Stack</th>
-                    <th scope="col" className="text-left py-2 px-2 text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Services</th>
-                    <th scope="col" className="text-right py-2 px-2 text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Actions</th>
+                    <th scope="col" className="text-left py-2 px-2 text-xs text-slate-500 uppercase tracking-wider font-semibold">Time</th>
+                    <th scope="col" className="text-left py-2 px-2 text-xs text-slate-500 uppercase tracking-wider font-semibold">Action</th>
+                    <th scope="col" className="text-left py-2 px-2 text-xs text-slate-500 uppercase tracking-wider font-semibold">Template</th>
+                    <th scope="col" className="text-left py-2 px-2 text-xs text-slate-500 uppercase tracking-wider font-semibold">Stack</th>
+                    <th scope="col" className="text-left py-2 px-2 text-xs text-slate-500 uppercase tracking-wider font-semibold">Services</th>
+                    <th scope="col" className="text-right py-2 px-2 text-xs text-slate-500 uppercase tracking-wider font-semibold">Actions</th>
                   </tr>
                 </thead>
                 <tbody>

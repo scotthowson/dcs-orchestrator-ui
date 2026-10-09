@@ -596,9 +596,14 @@ export default function Logs() {
                 <span className="text-slate-500">Loading the logs…</span>
               )}
               {!loading && filteredLines.length === 0 && (
-                <span className="text-slate-500">
-                  {hasFilters ? 'No lines match your filters.' : 'No log data available.'}
-                </span>
+                <div className="font-sans">
+                  <EmptyState
+                    compact
+                    icon={<ScrollText size={22} />}
+                    title={hasFilters ? 'No lines match your filters' : 'The log is empty'}
+                    hint={hasFilters ? 'Clear a filter or the search to see more lines.' : 'Lines appear here as the server writes them.'}
+                  />
+                </div>
               )}
               {filteredLines.map((line, idx) => (
                 <div key={idx} className={`${getLineColorClass(line)} hover:bg-white/[0.03] px-1 -mx-1 rounded`}>
@@ -664,9 +669,9 @@ export default function Logs() {
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-white/5 text-left">
-                    <th scope="col" className="px-4 sm:px-5 py-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Filename</th>
-                    <th scope="col" className="px-4 sm:px-5 py-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Size</th>
-                    <th scope="col" className="px-4 sm:px-5 py-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Date</th>
+                    <th scope="col" className="px-4 sm:px-5 py-3 text-xs font-semibold uppercase tracking-wider text-slate-400">Filename</th>
+                    <th scope="col" className="px-4 sm:px-5 py-3 text-xs font-semibold uppercase tracking-wider text-slate-400">Size</th>
+                    <th scope="col" className="px-4 sm:px-5 py-3 text-xs font-semibold uppercase tracking-wider text-slate-400">Date</th>
                   </tr>
                 </thead>
                 <tbody>

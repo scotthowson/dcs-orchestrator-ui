@@ -26,6 +26,11 @@
     outline-offset: 2px;
   }
 
+  /* figures in a table line up in their column (every page's tables) */
+  main td, main th {
+    font-variant-numeric: tabular-nums;
+  }
+
   body {
     @apply bg-slate-950 text-slate-100 overflow-hidden;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;

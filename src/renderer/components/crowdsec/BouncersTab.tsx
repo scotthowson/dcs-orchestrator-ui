@@ -376,7 +376,7 @@ function BouncerSection({ poll, isAdmin, busy, onAdd, onDelete }: { poll: UsePol
             <table className="w-full text-sm table-fixed">
               <caption className="sr-only">Bouncers registered in CrowdSec</caption>
               <thead>
-                <tr className="text-[10px] uppercase tracking-wider text-slate-500 border-b border-white/5">
+                <tr className="text-xs uppercase tracking-wider text-slate-500 border-b border-white/5">
                   <th scope="col" className="text-left font-semibold px-4 py-2.5">Bouncer</th>
                   <th scope="col" className="text-left font-semibold px-3 py-2.5 w-28">Last pull</th>
                   <th scope="col" className="text-left font-semibold px-3 py-2.5 w-32">Status</th>
@@ -478,7 +478,7 @@ function MachineSection({ poll }: { poll: UsePollingResult<CrowdSecMachinesRespo
             <table className="w-full text-sm table-fixed">
               <caption className="sr-only">Machines that report to CrowdSec</caption>
               <thead>
-                <tr className="text-[10px] uppercase tracking-wider text-slate-500 border-b border-white/5">
+                <tr className="text-xs uppercase tracking-wider text-slate-500 border-b border-white/5">
                   <th scope="col" className="text-left font-semibold px-4 py-2.5">Machine</th>
                   <th scope="col" className="text-left font-semibold px-3 py-2.5 w-36">Status</th>
                   <th scope="col" className="text-left font-semibold px-3 py-2.5 w-44">Last seen</th>

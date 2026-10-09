@@ -395,10 +395,10 @@ function PortAllocationMap({ containers }: { containers: ContainerInfo[] }) {
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-white/5">
-            <th scope="col" className="text-left px-3 py-2.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Host port</th>
-            <th scope="col" className="text-left px-3 py-2.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Container port</th>
-            <th scope="col" className="text-left px-3 py-2.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Protocol</th>
-            <th scope="col" className="text-left px-3 py-2.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Container</th>
+            <th scope="col" className="text-left px-3 py-2.5 text-xs font-semibold text-slate-400 uppercase tracking-wider">Host port</th>
+            <th scope="col" className="text-left px-3 py-2.5 text-xs font-semibold text-slate-400 uppercase tracking-wider">Container port</th>
+            <th scope="col" className="text-left px-3 py-2.5 text-xs font-semibold text-slate-400 uppercase tracking-wider">Protocol</th>
+            <th scope="col" className="text-left px-3 py-2.5 text-xs font-semibold text-slate-400 uppercase tracking-wider">Container</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-white/[0.03]">

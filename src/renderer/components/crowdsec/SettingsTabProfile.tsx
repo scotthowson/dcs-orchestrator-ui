@@ -540,7 +540,7 @@ export default function ProfileCard({ scenarios }: { scenarios: ScenarioInfo[] }
               ) : (
                 <>
                   <table className="hidden sm:table w-full mt-3 text-xs">
-                    <thead><tr className="text-[10px] uppercase tracking-wider text-slate-500 text-left"><th className="font-semibold py-1.5 pr-3">File</th><th className="font-semibold py-1.5 pr-3">Kind</th><th className="font-semibold py-1.5 pr-3">Made</th><th className="font-semibold py-1.5 text-right">Size</th></tr></thead>
+                    <thead><tr className="text-xs uppercase tracking-wider text-slate-500 text-left"><th className="font-semibold py-1.5 pr-3">File</th><th className="font-semibold py-1.5 pr-3">Kind</th><th className="font-semibold py-1.5 pr-3">Made</th><th className="font-semibold py-1.5 text-right">Size</th></tr></thead>
                     <tbody className="divide-y divide-white/[0.04]">
                       {server.backups.map((b) => (
                         <tr key={b.name} className="text-slate-500">
