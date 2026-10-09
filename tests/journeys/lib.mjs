@@ -74,7 +74,8 @@ export function browser() {
   browserP ??= puppeteer.launch({
     executablePath: process.env.CHROME || '/usr/bin/google-chrome',
     headless: true,
-    args: ['--hide-scrollbars', '--force-color-profile=srgb', '--disable-features=Translate'],
+    // journeys run side by side in one browser: no tab may be treated as a background tab (its polls would pause)
+    args: ['--hide-scrollbars', '--force-color-profile=srgb', '--disable-features=Translate', '--disable-background-timer-throttling', '--disable-backgrounding-occluded-windows', '--disable-renderer-backgrounding'],
     protocolTimeout: 240000,
   })
   return browserP
@@ -92,6 +93,9 @@ export async function open(who, opts = {}) {
   const page = await ctx.newPage()
   page.setDefaultTimeout(45000)
   await page.setViewport(VIEWPORTS[opts.width || 'desktop'])
+  // each tab behaves as the focused, visible one (the person's), whichever tab of the run was opened last
+  const cdp = await page.createCDPSession()
+  await cdp.send('Emulation.setFocusEmulationEnabled', { enabled: true }).catch(() => {})
   const t = new Tab(ctx, page, who, api, opts)
   // seed the settings on the dashboard's origin without starting the app (it would ask its default server first)
   await page.goto(`${UI}/favicon.svg`, { waitUntil: 'domcontentloaded' })

@@ -248,9 +248,17 @@ export default async function stacks(k) {
   check('a viewer\'s stack detail offers no action', !vAdm.length, JSON.stringify(vAdm))
   await v.click('Compose', { within: 'main', kind: 'button' })
   check('a viewer can read the compose file', await v.waitDialog('Monitoring Management', 15000) && /docker-compose\.yml/.test(await dlg(v)))
+  const e0 = v.requests.length
   await v.key('Escape'); await v.waitNoDialog(5000); await v.settle()
-  await v.click('Logs', { within: 'main' })
-  check('a viewer can read the stack\'s logs', await v.waitText('Stack logs', { within: 'main', ms: 45000 }), (await v.text('main')).slice(0, 300))
+  const detailKept = await v.exists('Logs', { within: 'main' })
+  if (!detailKept) { await v.shot('stacks-viewer-escape'); k.j.note(`after Escape: ${v.requests.slice(e0).map((r) => r.path).join(', ')}; errors ${v.errors.join(' | ')}`) }
+  check('Escape closes the compose viewer and leaves the stack\'s detail open', detailKept, `${await v.h1()} · ${(await v.text('main')).slice(0, 160)}`)
+  if (!detailKept) { await v.click('Open Monitoring Management', { within: 'main' }); await v.waitText('dashdot', { within: 'main', ms: 30000 }) }
+  const r0 = v.requests.length
+  const pressedLogs = await v.click('Logs', { within: 'main' })
+  const logsShown = await v.waitText('Stack logs', { within: 'main', ms: 45000 })
+  if (!logsShown) await v.shot('stacks-viewer-logs-failed')
+  check('a viewer can read the stack\'s logs', logsShown, `pressed ${pressedLogs}; asked ${v.requests.slice(r0).map((r) => r.path).join(', ')}; ${(await v.text('main')).slice(0, 200)}`)
 
   // ---- a phone ---------------------------------------------------------------------------------------------
   const p = await k.open(k.ADMIN, { width: 'phone' })
