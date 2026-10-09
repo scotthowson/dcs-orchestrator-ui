@@ -176,7 +176,7 @@ function ToastItem({
         bg-gradient-to-r ${gradient}
         bg-slate-900/80
         shadow-2xl shadow-black/40
-        transition-all duration-250 ease-[cubic-bezier(0.4,0,0.2,1)]
+        transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]
         ${exiting
           ? 'opacity-0 translate-x-8 scale-95'
           : 'opacity-100 translate-x-0 scale-100'
