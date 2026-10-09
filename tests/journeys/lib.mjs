@@ -38,7 +38,8 @@ export const VIEWPORTS = {
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 // console lines that are the environment's, not the dashboard's (the same list as tests/ui-sweep.mjs)
-const IGNORE = [/net::ERR_NETWORK_CHANGED/, /\[vite\]/, /Download the React DevTools/]
+// (+ the Vite dev server's own hot-reload socket, which drops when the machine is loaded: not the dashboard's)
+const IGNORE = [/net::ERR_NETWORK_CHANGED/, /\[vite\]/, /Download the React DevTools/, /WebSocket connection to .*\(\/@vite\/client\)/]
 
 /** an address that carries a credential: a query parameter named like one, or a long opaque value under one */
 const TOKEN_IN_URL = /[?&#](token|access_token|auth|authorization|session|sid|api_key|apikey|key|password|pass|jwt|bearer)=/i
@@ -92,7 +93,8 @@ export async function open(who, opts = {}) {
   page.setDefaultTimeout(45000)
   await page.setViewport(VIEWPORTS[opts.width || 'desktop'])
   const t = new Tab(ctx, page, who, api, opts)
-  await page.goto(UI, { waitUntil: 'domcontentloaded' })
+  // seed the settings on the dashboard's origin without starting the app (it would ask its default server first)
+  await page.goto(`${UI}/favicon.svg`, { waitUntil: 'domcontentloaded' })
   await page.evaluate((p, user, keep) => {
     if (!keep) localStorage.clear()
     const s = JSON.parse(localStorage.getItem('app-settings') || '{}')

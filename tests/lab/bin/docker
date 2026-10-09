@@ -115,6 +115,7 @@ SPECS = {
         ('Sablier', '', 'acouvreur/sablier:1.6.1', 'running', None, 26 * 3600, 0, [(10000, 10000, 'tcp')], ['bridge'], [], 0.1, 14, 0),
     ],
 }
+SPECS['empty'] = []   # a server that is set up and runs nothing (the pages' empty states)
 SPECS = SPECS.get(PROFILE, SPECS['hub'])
 
 NET_SUBNETS = {'bridge': '172.17.0.0/16', 'proxy': '172.20.0.0/16', 'networking-security_default': '172.21.0.0/16',
@@ -277,6 +278,8 @@ def images():
             created = NOW - (3 + int(sha(ref)[6:8], 16) % 200) * DAY
             out[ref] = {'Repository': repo, 'Tag': tag, 'ID': image_id(c.image), 'Size': size, 'Created': created,
                         'Containers': sum(1 for x in CONTAINERS if image_ref(x.image) == ref), 'dangling': False}
+    if PROFILE == 'empty':
+        return list(out.values())
     # an image no container uses, and a dangling layer left by an update
     out['alpine:3.20'] = {'Repository': 'alpine', 'Tag': '3.20', 'ID': image_id('alpine:3.20'), 'Size': 7_800_000, 'Created': NOW - 90 * DAY, 'Containers': 0, 'dangling': False}
     out['<none>:<none>'] = {'Repository': '<none>', 'Tag': '<none>', 'ID': 'sha256:' + sha('dangling-' + PROFILE), 'Size': 152_000_000, 'Created': NOW - 21 * DAY, 'Containers': 0, 'dangling': True}
@@ -322,7 +325,8 @@ def volumes():
     names = []
     for c in CONTAINERS:
         names += [v for v in c.volumes if v not in names]
-    names.append(f'old-{PROFILE}-cache')
+    if PROFILE != 'empty':
+        names.append(f'old-{PROFILE}-cache')
     out = []
     for v in names:
         users = [c.name for c in CONTAINERS if v in c.volumes]

@@ -58,4 +58,20 @@ session in its Authorization header, never in its address (docs/data-layer.md).
 PUPPETEER_DIR=/tmp/dcs-ui-sweep node tests/data-layer.mjs
 ```
 
+`tests/journeys.mjs` walks every page the way a person uses it, as an admin and as a viewer, against the same lab: one
+scripted journey per page in `tests/journeys/` (every button, tab, filter, sort, dialog, form with its validation and
+read-back, copy button, phone width and the light look), plus the frame around them (`shell`: Ctrl+K, Ctrl+1…0, ?,
+Escape, the section strip, the pages that moved, links to a page, hidden pages, the lock screen, the phone's More
+sheet), two servers with two accounts (`servers`), a viewer pressing everything (`viewer-census`), the requests per
+page against docs/data-layer.md (`polling`), the empty server (`empty-states`, the lab's empty API) and failed requests
+(`error-states`). Every tab is held to no console error, no token in an address and, for a viewer, no 403.
+
+```bash
+PUPPETEER_DIR=/tmp/dcs-ui-sweep MEMBER_API=http://127.0.0.1:41922 EMPTY_API=http://127.0.0.1:41924 WIZARD_API=http://127.0.0.1:41923 \
+  VIEWER_USER=viewer VIEWER_PASS=… node tests/journeys.mjs        # JOURNEYS=stacks,users to run some; report in docs/ui-polish/journeys/
+```
+
+The viewer is an account of role `user` on the hub and on the member API (create it with `POST /auth/users`); the hub
+also needs `austin` (role `user`) for the chat journey.
+
 CI (`.github/workflows/ci.yml`) runs the two Node tests; the browser tests need the lab and run locally.

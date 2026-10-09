@@ -43,6 +43,19 @@ export default async function shell(k) {
   check('the header search button opens the palette', await a.click(/^Search/, { within: 'header' }) && await a.waitDialog('Search', 8000))
   await a.key('Escape'); await a.waitNoDialog(5000)
 
+  // ---- a toast: in the live region, dismissable --------------------------
+  await a.chord('Control', 'k'); await a.waitDialog('Search', 8000)
+  await a.page.keyboard.type('run a health check')
+  await a.until(() => /^Run a health check/.test(document.querySelector('[role="dialog"][aria-label="Search"] button')?.innerText.trim() || ''), null, 8000)
+  await a.key('Enter')
+  const toast = await a.waitToast(/^Health: /, 30000)
+  check('a palette action answers with a toast', !!toast, toast)
+  check('…announced: the toast sits in a live region with a status role', await a.page.evaluate(() => {
+    const t = document.querySelector('[data-toast-region] [data-toast]')
+    return !!t && t.closest('[data-toast-region]').getAttribute('aria-live') === 'polite' && ['status', 'alert'].includes(t.getAttribute('role'))
+  }))
+  check('…and Dismiss takes it away', await a.click('Dismiss', { within: '[data-toast-region]' }) && await a.until(() => !document.querySelector('[data-toast-region] [data-toast]'), null, 5000))
+
   // ---- the shortcuts overlay ---------------------------------------------
   await a.page.evaluate(() => document.activeElement?.blur?.())
   await a.page.keyboard.type('?')

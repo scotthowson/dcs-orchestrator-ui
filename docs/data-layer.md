@@ -153,6 +153,7 @@ were merged, every poll gets the answers of the fastest one.
 | Containers | the list (everywhere / hub) | 10 s + the global 15 s | one stream at 10 s |
 | Containers | a container's stats / processes | 10 s (+ a second sample after 2 s) / 10 s | same |
 | Health | report / containers / events / metrics / score | 5 (15 everywhere) / 10 / 15 (20) / 10 / 15 s | same; report and containers shared with the global poller |
+| Logs | the log tail (`/logs`) | 3 s (5 s for a VM) | same |
 | CrowdSec | status | 15 s (3 s while it deploys, a second stream) | 15 s, 3 s while it deploys (one stream) |
 | CrowdSec | tabs: hub, log, alerts, bans, bouncers, allowlist, settings | 30 / 5 / 15–30 / 15 / 15–60 / 15 / 15–60 s | same; the hub and the log pause in a hidden tab as before |
 

@@ -80,7 +80,7 @@ const SAFE = /^(refresh|reload|cards|table|grid|list|compact|comfortable|details
 const OPENERS = {
   dashboard: ['CPU', 'MEM'],
   stacks: ['New stack', 'Priority', 'Name', 'Status', 'Containers'],
-  containers: ['Batch Select'],
+  containers: ['Batch select'],
   images: ['Batch mode', 'Image Library', 'Docker Hub Search', /^(All|Current|Aging|Stale)\d+$/],
   health: ['OK', 'Bad', 'Off', 'On demand'],
   networks: ['New network', /^Name\b/, 'Driver', 'Containers', /^Inspect /],

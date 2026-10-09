@@ -5,7 +5,8 @@
 # repository, never the real one — and the Vite dev server of this checkout.
 # Nothing here talks to a real Docker daemon: the APIs run with tests/lab/bin
 # first on their PATH, whose `docker` answers the read-only calls from a fixed
-# set of containers and refuses everything that changes state.
+# set of containers and refuses everything that changes state. An empty API (set
+# up, no stacks, no containers) gives the pages' empty states.
 #
 #   tests/lab/lab.sh start     # build the lab (first run) and start everything
 #   tests/lab/lab.sh stop      # stop what `start` started (by the PIDs it saved)
@@ -13,7 +14,7 @@
 #
 # Environment: AIO (the AIO checkout to copy, read-only), LAB (where the lab
 # lives, default /tmp/dcs-ui-lab), PVE_PORT (28021), HUB_PORT (41921),
-# MEMBER_PORT (41922), FRESH_PORT (41923), UI_PORT (3021). The lab admin on the
+# MEMBER_PORT (41922), FRESH_PORT (41923), EMPTY_PORT (41924), UI_PORT (3021). The lab admin on the
 # hub and the member is lab / Lab-Only-Pass-123 — a throwaway account of a
 # throwaway install.
 # =============================================================================
@@ -28,6 +29,7 @@ PVE_PORT="${PVE_PORT:-28021}"
 HUB_PORT="${HUB_PORT:-41921}"
 MEMBER_PORT="${MEMBER_PORT:-41922}"
 FRESH_PORT="${FRESH_PORT:-41923}"
+EMPTY_PORT="${EMPTY_PORT:-41924}"
 UI_PORT="${UI_PORT:-3021}"
 LAB_USER=lab
 LAB_PASS='Lab-Only-Pass-123'
@@ -140,6 +142,7 @@ start() {
     make_install "$LAB/hub" "$HUB_PORT" hub
     make_install "$LAB/member" "$MEMBER_PORT" member
     make_install "$LAB/fresh" "$FRESH_PORT" fresh
+    make_install "$LAB/empty" "$EMPTY_PORT" empty
     if ! pid_alive "$LAB/pve.pid"; then
         log "starting the mock Proxmox on 127.0.0.1:$PVE_PORT"
         spawn "$LAB/pve.pid" "$LAB/pve.log" "$LAB" python3 "$AIO/tests/mock-proxmox.py" "$PVE_PORT" "$PVE_TOKEN_ID" "$PVE_SECRET" "$LAB/pve-state.json"
@@ -148,8 +151,11 @@ start() {
     start_api "$LAB/hub" "$HUB_PORT" hub
     # never set up: the setup wizard's first screens (tests/ui-sweep.mjs, WIZARD_API)
     start_api "$LAB/fresh" "$FRESH_PORT" fresh
+    # set up, with nothing on it: the pages' empty states
+    start_api "$LAB/empty" "$EMPTY_PORT" empty
     init_api "$MEMBER_PORT" member
     init_api "$HUB_PORT" hub
+    init_api "$EMPTY_PORT" empty
     link_member
     if ! pid_alive "$LAB/ui.pid"; then
         log "starting Vite on http://localhost:$UI_PORT"
@@ -176,8 +182,9 @@ stop() {
     stop_pidfile "$LAB/hub.pid"
     stop_pidfile "$LAB/member.pid"
     stop_pidfile "$LAB/fresh.pid"
+    stop_pidfile "$LAB/empty.pid"
     stop_pidfile "$LAB/pve.pid"
-    for d in hub member fresh; do
+    for d in hub member fresh empty; do
         [[ -x "$LAB/$d/.scripts/api-server.sh" ]] && (cd "$LAB/$d" && .scripts/api-server.sh --stop > /dev/null 2>&1 || true)
     done
     log "stopped"
@@ -185,7 +192,7 @@ stop() {
 
 status() {
     local n
-    for n in pve member hub fresh ui; do
+    for n in pve member hub fresh empty ui; do
         if pid_alive "$LAB/$n.pid"; then log "$n: running (pid $(cat "$LAB/$n.pid"))"; else log "$n: stopped"; fi
     done
 }
