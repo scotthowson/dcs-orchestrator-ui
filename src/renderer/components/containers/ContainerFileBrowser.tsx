@@ -26,6 +26,7 @@ import {
   FileJson,
 } from 'lucide-react'
 
+import CloseButton from '../common/CloseButton'
 // ---------------------------------------------------------------------------
 // Props
 // ---------------------------------------------------------------------------
@@ -290,7 +291,7 @@ function FileViewer({ containerName, member = null, filePath, fileName, onClose 
             <div className="min-w-0">
               <h2
                 id="file-viewer-title"
-                className="text-sm font-semibold text-slate-100 truncate"
+                className="text-sm font-semibold text-slate-200 truncate"
                 title={filePath}
               >
                 {fileName}
@@ -319,9 +320,7 @@ function FileViewer({ containerName, member = null, filePath, fileName, onClose 
             </button>
             {/* Close button */}
             <Hint label="Close">
-              <button onClick={onClose} className={`${BTN_ICON} ${TONE_QUIET}`} aria-label="Close file viewer">
-                <X size={16} strokeWidth={2} />
-              </button>
+              <CloseButton label="Close file viewer" onClick={onClose} />
             </Hint>
           </div>
         </div>
@@ -467,7 +466,7 @@ const ContainerFileBrowser: React.FC<Props> = ({ containerName, member = null })
             className="flex items-center gap-2 w-full px-5 py-4 hover:bg-white/[0.03] transition-colors"
           >
             <FolderOpen className="h-4 w-4 text-emerald-400" />
-            <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
+            <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
               File browser
             </h2>
             <ChevronRight

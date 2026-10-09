@@ -17,6 +17,7 @@ import { CARD } from '../../lib/pageKit'
 import type { LogStreamEntry, LiveLogsResponse } from '../../../shared/types'
 import type { RowMember } from '../../../shared/fleetScoped'
 
+import SearchInput from '../common/SearchInput'
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -364,27 +365,7 @@ export default function LiveLogViewer({
         <div className="flex items-center gap-1.5 w-full sm:w-auto">
           {/* Search */}
           <div className="relative flex-1 sm:flex-none">
-            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" aria-hidden />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              aria-label="Filter the lines"
-              placeholder="Filter…"
-              className="w-full sm:w-40 sm:focus:w-56 h-8 pl-8 pr-8 rounded-lg bg-white/5 border border-white/10 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/30 focus:border-emerald-500/30 transition-all"
-            />
-            {search && (
-              <Hint label="Clear the filter">
-                <button
-                  type="button"
-                  aria-label="Clear the filter"
-                  onClick={() => setSearch('')}
-                  className={`absolute right-0.5 top-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-md text-slate-500 hover:text-slate-300 ${FOCUS_RING}`}
-                >
-                  <X size={12} />
-                </button>
-              </Hint>
-            )}
+            <SearchInput size="sm" value={search} onChange={setSearch} label="Filter the lines" placeholder="Filter…" className="sm:w-40 sm:focus-within:w-56" />
           </div>
 
           {/* Filter dropdown */}

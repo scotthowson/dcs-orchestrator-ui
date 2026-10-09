@@ -20,6 +20,7 @@ import { CARD } from '../../lib/pageKit'
 import { Pill } from '../common/Pill'
 import { SkeletonBlock } from '../common/PageState'
 import Segmented from '../common/Segmented'
+import SearchInput from '../common/SearchInput'
 // The sheet lives in its own file; BansTab and OverviewTab import it from here.
 export { AlertSheet }
 
@@ -180,9 +181,7 @@ export default function AlertsTab({ seedSearch }: { seedSearch?: string }) {
           options={WINDOWS.map((w) => ({ value: w, label: w, title: WIN_TITLE[w] }))}
         />
         <div className="relative w-full sm:w-auto sm:flex-1 sm:min-w-[12rem] sm:max-w-sm order-last sm:order-none">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-          <label htmlFor="alerts-search" className="sr-only">Search the alerts</label>
-          <input id="alerts-search" type="search" value={f.q} maxLength={100} onChange={(e) => patch({ q: e.target.value })} placeholder="Search address, detection, country, network" className={`${INPUT} !h-9 !pl-9 !text-xs`} autoComplete="off" />
+          <SearchInput size="sm" value={f.q} onChange={(v) => patch({ q: v })} id="alerts-search" maxLength={100} placeholder="Search address, detection, country, network" autoComplete="off" label="Search the alerts" />
         </div>
         <button type="button" onClick={refresh} className={`${BTN_ICON_QUIET} ml-auto`} aria-label="Refresh the alerts" title="Refresh the alerts"><RefreshCw size={13} className={fetching ? 'animate-spin' : ''} /></button>
       </div>

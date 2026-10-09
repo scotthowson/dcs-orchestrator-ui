@@ -48,6 +48,7 @@ import NeedsYouCard from './NeedsYouCard'
 import ModalOverlay from '../common/ModalOverlay'
 
 import { Pill } from '../common/Pill'
+import CloseButton from '../common/CloseButton'
 const COMPONENT_MAP: Record<string, React.ComponentType<any>> = {
   'needs-you': NeedsYouCard,
   'overview': OverviewCards, 'stack-grid': StackStatusGrid,
@@ -434,7 +435,7 @@ export default function DashboardGrid({
           <div className="glass rounded-2xl p-6 w-full max-w-md mx-4 animate-scale-in border border-white/10" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2"><Plus className="h-4 w-4 text-emerald-400" aria-hidden /><h3 className="text-sm font-semibold text-slate-200">Add cards</h3></div>
-              <Hint label="Close"><button type="button" aria-label="Close" onClick={() => setShowPicker(false)} className={`${BTN_ICON_SM} ${TONE_GHOST}`}><X size={14} /></button></Hint>
+              <Hint label="Close"><CloseButton size="sm" onClick={() => setShowPicker(false)} /></Hint>
             </div>
             <div className="space-y-2 max-h-[60vh] overflow-y-auto scrollbar-thin">
               {hiddenCards.length === 0 ? (

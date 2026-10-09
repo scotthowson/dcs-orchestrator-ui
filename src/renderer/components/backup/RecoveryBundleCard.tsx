@@ -24,7 +24,7 @@ import { fetchRecovery, createRecoveryBundle, restoreRecoveryBundle, uploadRecov
 import { formatBytes, uploadRecoveryBundleFile, uploadRefusal } from '../../api/fleetScopedOps'
 import type { RecoveryBundleEntry, RecoveryLastRestore, RestoreSkippedStack } from '../../../shared/types'
 
-import { FIELD_SM } from '../../lib/fieldStyles'
+import { FIELD_SM, CHOICE_SM, CHOICE_ON, CHOICE_OFF } from '../../lib/fieldStyles'
 /** the warnings of a restore without the ones that name a skipped stack (the red box says those) */
 function otherWarnings(warnings: string[], skipped: RestoreSkippedStack[] | undefined): string[] {
   const p = (skipped ?? []).map((x) => `${x.stack} was not restored:`)
@@ -232,7 +232,7 @@ export default function RecoveryBundleCard() {
                     type="button"
                     aria-pressed={appData.has(s)}
                     onClick={() => setAppData((prev) => { const n = new Set(prev); if (n.has(s)) n.delete(s); else n.add(s); return n })}
-                    className={`h-8 sm:h-7 px-2.5 rounded-lg text-[10px] font-mono border transition-colors ${appData.has(s) ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-200' : 'bg-white/5 border-white/10 text-slate-400 hover:text-slate-200'}`}
+                    className={`${CHOICE_SM} font-mono ${appData.has(s) ? CHOICE_ON : CHOICE_OFF}`}
                   >
                     {s}
                   </button>

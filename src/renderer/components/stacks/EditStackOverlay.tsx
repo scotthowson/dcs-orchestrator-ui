@@ -45,6 +45,7 @@ import type { StackInfo, StackAnnotation, ComposeVersion } from '../../../shared
 import { useModalA11y } from '../../hooks/useModalA11y'
 import { EditorDiagnostics, DiagNumber, CountBadge } from './LintParts'
 import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD, BTN_ICON, BTN_ICON_SM, BTN_SHEET_PRIMARY, TONE_QUIET, TONE_OK, TONE_GHOST, TONE_PRESSED } from '../../lib/ui'
+import CloseButton from '../common/CloseButton'
 interface Props {
   stack: StackInfo
   onClose: () => void
@@ -1408,14 +1409,7 @@ export default function EditStackOverlay({ stack, onClose, onSaved, initialServi
 
             {/* Close */}
             <Hint label="Close">
-              <button
-                type="button"
-                onClick={safeClose}
-                className={`${BTN_ICON} ${TONE_QUIET}`}
-                aria-label="Close"
-              >
-                <X size={16} />
-              </button>
+              <CloseButton onClick={safeClose} />
             </Hint>
           </div>
         </div>
@@ -1492,12 +1486,7 @@ export default function EditStackOverlay({ stack, onClose, onSaved, initialServi
               </div>
             )}
             <Hint label="Close the search">
-              <button aria-label="Close the search"
-                onClick={() => { setSearchOpen(false); setSearchQuery('') }}
-                className={`${BTN_ICON_SM} ${TONE_GHOST}`}
-              >
-                <X size={14} />
-              </button>
+              <CloseButton label="Close the search" size="sm" onClick={() => { setSearchOpen(false); setSearchQuery('') }} />
             </Hint>
           </div>
         )}

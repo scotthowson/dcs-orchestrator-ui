@@ -16,6 +16,8 @@ import { containerState, isAsleep, STATE_META } from '../../lib/containerState'
 
 import { pctTone, TONE_FILL } from '../../lib/tone'
 import { Skeleton, EmptyState } from '../common/PageState'
+import SearchInput from '../common/SearchInput'
+import CloseButton from '../common/CloseButton'
 interface SpotlightConfig { containers: string[] }
 
 function pct(v: string | undefined): number | null {
@@ -122,15 +124,14 @@ export default function ContainerSpotlight({ cardConfig, onSaveConfig, dashboard
           <div className="w-full max-w-md mx-4 max-h-[85vh] flex flex-col bg-slate-900/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl shadow-black/40 animate-scale-in" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
               <div>
-                <h3 className="text-sm font-semibold text-slate-100">Spotlight containers</h3>
+                <h3 className="text-sm font-semibold text-slate-200">Spotlight containers</h3>
                 <p className="text-[11px] text-slate-500">{draft.length} chosen</p>
               </div>
-              <Hint label="Close"><button type="button" aria-label="Close" onClick={() => setPicking(false)} className={`${BTN_ICON_SM} ${TONE_GHOST}`}><X size={16} /></button></Hint>
+              <Hint label="Close"><CloseButton onClick={() => setPicking(false)} /></Hint>
             </div>
             <div className="px-5 py-3">
               <div className="relative">
-                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" aria-hidden />
-                <input aria-label="Filter containers" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Filter containers…" className="w-full pl-8 pr-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/30" />
+                <SearchInput size="sm" value={search} onChange={setSearch} label="Filter containers" placeholder="Filter containers…" />
               </div>
             </div>
             <div className="flex-1 min-h-0 overflow-y-auto scrollbar-none px-3 pb-3 space-y-0.5">

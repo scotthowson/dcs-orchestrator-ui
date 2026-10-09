@@ -41,6 +41,7 @@ import { BTN_TOOLBAR_QUIET, BTN_ICON, BTN_ICON_SM, TONE_GHOST, FOCUS_RING } from
 import { CARD } from '../lib/pageKit'
 import { STATE_META } from '../lib/containerState'
 
+import CloseButton from '../components/common/CloseButton'
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
@@ -382,12 +383,7 @@ function DetailPanel({
               <p className="text-[11px] text-slate-500">Container details</p>
             </div>
           </div>
-          <button type="button" aria-label="Close"
-            onClick={onClose}
-            className={`${BTN_ICON} text-slate-400 hover:text-slate-200 hover:bg-white/5 ${FOCUS_RING}`}
-          >
-            <X size={16} />
-          </button>
+          <CloseButton onClick={onClose} />
         </div>
 
         {/* Body */}

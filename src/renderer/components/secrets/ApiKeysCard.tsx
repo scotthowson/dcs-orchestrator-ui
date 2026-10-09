@@ -62,7 +62,7 @@ export default function ApiKeysCard() {
       <div className="flex items-start gap-3">
         <div className="h-9 w-9 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center shrink-0"><KeyRound size={16} className="text-sky-400" /></div>
         <div className="min-w-0 flex-1">
-          <h2 className="text-sm font-semibold text-slate-100">API keys</h2>
+          <h2 className="text-sm font-semibold text-slate-200">API keys</h2>
           <p className="text-xs text-slate-400 mt-0.5">
             For a dashboard, a script or Home Assistant: something that sends a fixed header instead of signing in. <span className="text-slate-300">Read</span> looks;
             {' '}<span className="text-slate-300">operate</span> also starts, stops, restarts and updates. A key is never an admin: no users, secrets, terminal or settings.

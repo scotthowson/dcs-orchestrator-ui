@@ -56,6 +56,7 @@ import {
 import { pctTone, TONE_FILL, TONE_TEXT, type Tone, GRADE_TONE, scoreGrade } from '../lib/tone'
 import StatTile from '../components/common/StatTile'
 import { Pill } from '../components/common/Pill'
+import SearchInput from '../components/common/SearchInput'
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -763,15 +764,7 @@ export default function Health() {
               />
             </div>
             <div className="relative flex-1 min-w-0 sm:max-w-xs sm:ml-auto">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" aria-hidden />
-              <input
-                type="text"
-                aria-label="Search the containers"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search name, image or state…"
-                className="w-full pl-9 pr-3 py-2 rounded-lg text-xs bg-white/5 border border-white/10 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/30 transition-all"
-              />
+              <SearchInput size="sm" value={searchQuery} onChange={setSearchQuery} label="Search the containers" placeholder="Search name, image or state…" />
             </div>
           </div>
 

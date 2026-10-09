@@ -27,6 +27,8 @@ import { pageLabel } from '../../constants/pageTitles'
 import ModalOverlay from '../common/ModalOverlay'
 
 import { Count } from '../common/Pill'
+import CloseButton from '../common/CloseButton'
+import { BTN_TOOLBAR_OK } from '../../lib/ui'
 const statusConfig: Record<ConnectionStatus, { color: string; ringColor: string; pulse: boolean; label: string }> = {
   connected: {
     color: 'bg-emerald-400',
@@ -130,9 +132,7 @@ function WhatsNewModal({ onClose }: { onClose: () => void }) {
               <p className="text-xs text-slate-400">Latest features and improvements</p>
             </div>
           </div>
-          <button aria-label="Close" onClick={onClose} className="p-2 rounded-lg text-slate-500 hover:text-slate-200 hover:bg-white/5 transition-colors duration-200">
-            <X size={16} />
-          </button>
+          <CloseButton onClick={onClose} />
         </div>
 
         {/* Changelog */}
@@ -169,7 +169,7 @@ function WhatsNewModal({ onClose }: { onClose: () => void }) {
           <p className="text-[10px] text-slate-500">DCS Orchestrator · dashboard v{BUILD_VERSION}</p>
           <button
             onClick={onClose}
-            className="px-4 py-1.5 rounded-lg text-xs font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/25 transition-all press"
+            className={BTN_TOOLBAR_OK}
           >
             Got it
           </button>

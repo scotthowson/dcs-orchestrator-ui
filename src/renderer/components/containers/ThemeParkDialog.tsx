@@ -16,6 +16,7 @@ import ModalOverlay from '../common/ModalOverlay'
 import Hint from '../common/Hint'
 import { BTN_ICON_SM, BTN_SHEET, BTN_SHEET_QUIET, BTN_SHEET_PRIMARY, TONE_DANGER, TONE_GHOST } from '../../lib/ui'
 
+import CloseButton from '../common/CloseButton'
 interface Props {
   containerName: string
   member: RowMember
@@ -79,13 +80,11 @@ export default function ThemeParkDialog({ containerName, member, state, onClose,
             <Palette size={18} className="text-fuchsia-300" />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="text-sm font-semibold text-slate-100">{state.enabled ? `Theme: ${label(state.theme)}${state.managed === false ? ' (from your route)' : ''}` : 'Theme'}</h3>
+            <h3 className="text-sm font-semibold text-slate-200">{state.enabled ? `Theme: ${label(state.theme)}${state.managed === false ? ' (from your route)' : ''}` : 'Theme'}</h3>
             <p className="text-[11px] text-slate-500 truncate"><span className="font-mono">{containerName}</span> · theme.park for {appName}</p>
           </div>
           <Hint label="Close">
-            <button type="button" onClick={onClose} disabled={!!busy} className={`${BTN_ICON_SM} ${TONE_GHOST}`} aria-label="Close">
-              <X size={15} />
-            </button>
+            <CloseButton onClick={onClose} disabled={!!busy} />
           </Hint>
         </div>
 

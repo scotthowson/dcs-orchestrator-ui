@@ -71,7 +71,7 @@ export function StatusCard({ data, isAdmin, enabled, onToggle, busy, refreshFail
         <div className={`h-10 w-10 rounded-xl border border-white/5 flex items-center justify-center shrink-0 ${h.tone === 'ok' ? 'bg-emerald-500/15 text-emerald-400' : h.tone === 'attention' ? 'bg-amber-500/15 text-amber-400' : 'bg-white/[0.05] text-slate-500'}`}><MessageSquare size={18} /></div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <h2 className="text-sm font-semibold text-slate-100">{h.title}</h2>
+            <h2 className="text-sm font-semibold text-slate-200">{h.title}</h2>
             <Pill tone={h.tone} className="hidden sm:inline-flex">{h.tone === 'ok' ? 'working' : h.tone === 'attention' ? 'needs attention' : 'off'}</Pill>
             {refreshFailed && <Pill tone="attention" title="The last refresh failed. What you see is the last answer.">could not refresh</Pill>}
           </div>

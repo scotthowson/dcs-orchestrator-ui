@@ -18,7 +18,8 @@ import {
   THRESHOLD_CONDITIONS, DEFAULT_THRESHOLD, DEFAULT_COOLDOWN_MIN, cronInWords,
 } from './model'
 
-import { INPUT, CAPTION } from '../../lib/fieldStyles'
+import { INPUT, CAPTION, CHOICE_SM, CHOICE_ON, CHOICE_OFF } from '../../lib/fieldStyles'
+import CloseButton from '../common/CloseButton'
 type Trigger = 'schedule' | 'condition'
 
 export default function AutomationRuleDialog({ editing, startTrigger, member, onSaved, onClose }: {
@@ -97,9 +98,7 @@ export default function AutomationRuleDialog({ editing, startTrigger, member, on
             <Zap size={16} className="text-slate-400 shrink-0" aria-hidden />
             <h2 className="text-sm font-semibold text-slate-200 truncate">{title}</h2>
           </div>
-          <button type="button" aria-label="Close" onClick={onClose} className={`${BTN_ICON_SM} ${TONE_GHOST}`}>
-            <X size={16} />
-          </button>
+          <CloseButton onClick={onClose} />
         </div>
 
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
@@ -140,11 +139,7 @@ export default function AutomationRuleDialog({ editing, startTrigger, member, on
                     type="button"
                     aria-pressed={cron === p.cron}
                     onClick={() => setCron(p.cron)}
-                    className={`h-8 sm:h-7 px-2.5 rounded-lg text-[11px] font-medium border transition-colors ${
-                      cron === p.cron
-                        ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
-                        : 'bg-white/[0.03] text-slate-400 border-white/5 hover:bg-white/5 hover:text-slate-300'
-                    }`}
+                    className={`${CHOICE_SM} ${cron === p.cron ? CHOICE_ON : CHOICE_OFF}`}
                   >
                     {p.label}
                   </button>

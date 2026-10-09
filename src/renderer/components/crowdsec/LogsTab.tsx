@@ -19,6 +19,7 @@ import { CARD } from '../../lib/pageKit'
 import { SkeletonBlock } from '../common/PageState'
 import Segmented from '../common/Segmented'
 import { ToggleRow } from '../common/Toggle'
+import SearchInput from '../common/SearchInput'
 type Level = 'all' | 'warn' | 'error'
 const LEVEL_LABEL: Record<Level, string> = { all: 'All levels', warn: 'Warnings and errors', error: 'Errors only' }
 const LINE_CHOICES = [100, 300, 500]
@@ -210,9 +211,7 @@ export default function LogsTab() {
           options={LINE_CHOICES.map((n) => ({ value: String(n), label: `${n} lines`, title: `The newest ${n} lines` }))}
         />
         <div className="relative w-full sm:w-auto sm:flex-1 sm:min-w-[12rem] sm:max-w-xs">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-          <label htmlFor="logs-search" className="sr-only">Filter the log by text</label>
-          <input id="logs-search" type="search" value={q} maxLength={100} onChange={(e) => setQ(e.target.value)} placeholder="Filter by text" className={`${INPUT} !h-9 !pl-9 !text-xs`} autoComplete="off" spellCheck={false} />
+          <SearchInput size="sm" value={q} onChange={setQ} id="logs-search" maxLength={100} placeholder="Filter by text" autoComplete="off" spellCheck={false} label="Filter the log by text" />
         </div>
       </div>
 

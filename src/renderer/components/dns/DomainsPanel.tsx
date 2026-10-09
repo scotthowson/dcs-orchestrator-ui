@@ -97,7 +97,7 @@ export default function DomainsPanel({ data, isAdmin, onChanged }: { data: Domai
       <div className="flex flex-wrap items-center justify-between gap-3 mb-1">
         <div className="flex items-center gap-2 min-w-0">
           <Globe size={15} className="text-cyan-400" aria-hidden />
-          <h3 className="text-sm font-semibold text-slate-100">Domains</h3>
+          <h3 className="text-sm font-semibold text-slate-200">Domains</h3>
           <Pill tone="neutral">{data.domains.length}</Pill>
         </div>
         {data.domains.length > 1 && (

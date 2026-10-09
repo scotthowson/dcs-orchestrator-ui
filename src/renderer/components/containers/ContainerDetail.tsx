@@ -89,6 +89,7 @@ import {
   Moon,
 } from 'lucide-react'
 
+import SearchInput from '../common/SearchInput'
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -1453,7 +1454,7 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
             <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
               <div className="flex items-center gap-2">
                 <Terminal className="h-4 w-4 text-cyan-400" />
-                <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
+                <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                   Running processes
                 </h2>
                 {processes.length > 0 && (
@@ -1527,7 +1528,7 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
               className="flex items-center gap-2 w-full p-5 hover:bg-white/[0.03] transition-colors"
             >
               <Terminal className="h-4 w-4 text-emerald-400" />
-              <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
+              <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                 Run command
               </h2>
               <ChevronDown
@@ -1647,7 +1648,7 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
               className="flex items-center gap-2 w-full py-1.5 -my-1.5 group"
             >
               <Variable className="h-4 w-4 text-cyan-400" />
-              <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
+              <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                 Environment variables
               </h2>
               <span className="text-xs text-slate-500 ml-1">({envEntries.length})</span>
@@ -1667,21 +1668,7 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
               <div className="mt-4 space-y-3">
                 {/* Search/filter input */}
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
-                  <input
-                    type="text"
-                    aria-label="Filter the variables"
-                    placeholder="Filter variables…"
-                    value={envSearch}
-                    onChange={(e) => setEnvSearch(e.target.value)}
-                    className="
-                      w-full pl-9 pr-4 py-2 rounded-lg text-xs font-mono
-                      bg-white/[0.03] border border-white/5
-                      text-slate-300 placeholder-slate-600
-                      focus:outline-none focus:border-cyan-500/30 focus:ring-1 focus:ring-cyan-500/20
-                      transition-all duration-200
-                    "
-                  />
+                  <SearchInput size="sm" value={envSearch} onChange={setEnvSearch} label="Filter the variables" placeholder="Filter variables…" />
                 </div>
 
                 {/* New variables (saved with the other changes) */}
@@ -1856,7 +1843,7 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
           <div className="bg-slate-900/60 backdrop-blur-md border border-white/5 rounded-xl p-5">
             <div className="flex items-center gap-2 mb-4">
               <HardDrive className="h-4 w-4 text-cyan-400" />
-              <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
+              <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                 Volume mounts
               </h2>
               <span className="text-xs text-slate-500 ml-1">({mountEntries.length})</span>
@@ -1924,7 +1911,7 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
           <div className="bg-slate-900/60 backdrop-blur-md border border-white/5 rounded-xl p-5">
             <div className="flex items-center gap-2 mb-4">
               <Globe className="h-4 w-4 text-cyan-400" />
-              <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
+              <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                 Port mappings
               </h2>
               <span className="text-xs text-slate-500 ml-1">({portMappings.length})</span>
@@ -2029,7 +2016,7 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
           <div className="bg-slate-900/60 backdrop-blur-md border border-white/5 rounded-xl p-5">
             <div className="flex items-center gap-2 mb-4">
               <Network className="h-4 w-4 text-purple-400" />
-              <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
+              <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                 Networks
               </h2>
               <span className="text-xs text-slate-500 ml-1">({networks.length})</span>
@@ -2074,7 +2061,7 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
 const SectionHeader: React.FC<{ icon: React.ReactNode; title: string }> = ({ icon, title }) => (
   <div className="flex items-center gap-2">
     {icon}
-    <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">{title}</h2>
+    <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{title}</h2>
   </div>
 )
 

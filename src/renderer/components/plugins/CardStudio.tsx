@@ -20,6 +20,7 @@ import ModalOverlay from '../common/ModalOverlay'
 import Hint from '../common/Hint'
 import { BTN_CARD, BTN_CARD_QUIET, BTN_ICON_SM, BTN_SHEET_PRIMARY, BTN_SHEET_QUIET, TONE_DANGER, TONE_GHOST } from '../../lib/ui'
 
+import CloseButton from '../common/CloseButton'
 type Widget = 'number' | 'gauge' | 'list' | 'badge' | 'text'
 interface DataSpec {
   path: string
@@ -193,7 +194,7 @@ export default function CardStudio({ onClose, onSaved }: { onClose: () => void; 
           <div className="flex items-center gap-3 min-w-0">
             <span className="flex items-center justify-center w-9 h-9 rounded-xl bg-white/5 border border-white/10 shrink-0" aria-hidden><LayoutTemplate size={16} className="text-slate-300" /></span>
             <div className="min-w-0">
-              <h3 className="text-sm font-semibold text-slate-100">Card Studio</h3>
+              <h3 className="text-sm font-semibold text-slate-200">Card Studio</h3>
               <p className="text-[11px] text-slate-500">Build a dashboard card from an endpoint, or write one. It saves as a plugin card.</p>
             </div>
           </div>
@@ -204,7 +205,7 @@ export default function CardStudio({ onClose, onSaved }: { onClose: () => void; 
                 {existing.map((c) => <option key={c.id} value={c.id}>{c.title} · {c.plugin}</option>)}
               </select>
             )}
-            <Hint label="Close"><button type="button" aria-label="Close" onClick={onClose} className={`${BTN_ICON_SM} ${TONE_GHOST}`}><X size={16} /></button></Hint>
+            <Hint label="Close"><CloseButton onClick={onClose} /></Hint>
           </div>
         </div>
 

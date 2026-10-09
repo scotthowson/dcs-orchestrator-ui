@@ -8,6 +8,7 @@ import { X, Keyboard } from 'lucide-react'
 import ModalOverlay from './ModalOverlay'
 import { pageLabel } from '../../constants/pageTitles'
 
+import CloseButton from './CloseButton'
 interface Props {
   open: boolean
   onClose: () => void
@@ -76,19 +77,14 @@ export default function KeyboardShortcutsPanel({ open, onClose }: Props) {
               <p className="text-[11px] text-slate-500">Quick reference for all shortcuts</p>
             </div>
           </div>
-          <button aria-label="Close"
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-500 hover:text-slate-300 hover:bg-white/5 transition-colors"
-          >
-            <X size={16} />
-          </button>
+          <CloseButton onClick={onClose} />
         </div>
 
         {/* Content */}
         <div className="p-6 space-y-5">
           {shortcutGroups.map((group) => (
             <div key={group.title}>
-              <h3 className="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-2.5">
+              <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2.5">
                 {group.title}
               </h3>
               <div className="space-y-1.5">

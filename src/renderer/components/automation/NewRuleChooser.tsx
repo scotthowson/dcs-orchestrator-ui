@@ -9,6 +9,7 @@ import { CalendarClock, Radar, X, ChevronRight, Code2 } from 'lucide-react'
 import ModalOverlay from '../common/ModalOverlay'
 import { BTN_ICON_SM, TONE_GHOST } from '../../lib/ui'
 
+import CloseButton from '../common/CloseButton'
 export type NewRuleChoice = 'timed' | 'condition' | 'cron'
 
 const OPTION = 'w-full flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-4 text-left transition-colors hover:bg-white/[0.06] hover:border-white/[0.15] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40'
@@ -27,7 +28,7 @@ export default function NewRuleChooser({ where, onPick, onClose }: {
             <h2 className="text-base font-semibold text-slate-100">New rule</h2>
             <p className="text-[11px] text-slate-500 mt-0.5">When should it run{where ? ` on ${where}` : ''}?</p>
           </div>
-          <button type="button" aria-label="Close" onClick={onClose} className={`${BTN_ICON_SM} ${TONE_GHOST}`}><X size={16} /></button>
+          <CloseButton onClick={onClose} />
         </div>
         <div className="space-y-2.5">
           <button type="button" onClick={() => onPick('timed')} className={OPTION}>

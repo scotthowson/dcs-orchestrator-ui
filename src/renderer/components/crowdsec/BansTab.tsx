@@ -23,6 +23,7 @@ import { CARD } from '../../lib/pageKit'
 import { Pill } from '../common/Pill'
 import { SkeletonBlock } from '../common/PageState'
 import Segmented from '../common/Segmented'
+import SearchInput from '../common/SearchInput'
 const PAGE = 500
 
 type Sort = NonNullable<CrowdSecDecisionQuery['sort']>
@@ -150,9 +151,7 @@ export default function BansTab({ seedSearch }: { seedSearch?: string }) {
       {/* toolbar */}
       <div className="flex items-center gap-2 flex-wrap">
         <div className="relative w-full sm:w-auto sm:flex-1 sm:min-w-[12rem] sm:max-w-xs">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-          <label htmlFor="bans-search" className="sr-only">Search the bans</label>
-          <input id="bans-search" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search address, reason, country, network" className={`${INPUT} !h-9 !pl-9 !text-xs`} autoComplete="off" />
+          <SearchInput size="sm" value={q} onChange={setQ} id="bans-search" placeholder="Search address, reason, country, network" autoComplete="off" label="Search the bans" />
         </div>
         <Segmented<'' | 'ip' | 'range'> value={scope} onChange={setScope} ariaLabel="Kind of ban" options={[{ value: '', label: 'All' }, { value: 'ip', label: 'Addresses' }, { value: 'range', label: 'Networks' }]} />
         <div className="flex items-center gap-2 sm:ml-auto w-full sm:w-auto">

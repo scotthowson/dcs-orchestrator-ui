@@ -14,9 +14,9 @@
 // =============================================================================
 
 import type { ReactNode } from 'react'
-import { AlertTriangle, CircleAlert, CircleCheck, Info, X, type LucideIcon } from 'lucide-react'
+import { AlertTriangle, CircleAlert, CircleCheck, Info, type LucideIcon } from 'lucide-react'
 import { TONE_TEXT, type Tone } from '../../lib/tone'
-import { BTN_ICON_SM, TONE_GHOST } from '../../lib/ui'
+import CloseButton from './CloseButton'
 
 const BOX: Record<Tone, string> = {
   ok: 'bg-emerald-500/10 border-emerald-500/20',
@@ -48,9 +48,7 @@ export default function Notice({ tone = 'attention', icon, title, children, acti
         {action && <div className="mt-2 flex items-center gap-2 flex-wrap">{action}</div>}
       </div>
       {onDismiss && (
-        <button type="button" onClick={onDismiss} className={`${BTN_ICON_SM} ${TONE_GHOST} -my-1 -mr-1`} aria-label="Dismiss">
-          <X size={12} />
-        </button>
+        <CloseButton size="sm" label="Dismiss" onClick={onDismiss} className="-my-1 -mr-1" />
       )}
     </div>
   )

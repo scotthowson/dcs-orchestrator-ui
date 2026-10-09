@@ -285,6 +285,8 @@ import type { SablierOptions } from '../lib/sablier'
 import ModalOverlay from '../components/common/ModalOverlay'
 
 import { Pill } from '../components/common/Pill'
+import SearchInput from '../components/common/SearchInput'
+import CloseButton from '../components/common/CloseButton'
 function generateRouteYaml(
   serviceName: string,
   containerName: string,
@@ -1198,9 +1200,7 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
               <p className="text-[11px] text-slate-500 truncate">{headerSub}</p>
             </div>
           </div>
-          <button type="button" aria-label="Close" onClick={onClose} className={`${BTN_ICON_SM} text-slate-500 hover:text-slate-200 hover:bg-white/10 shrink-0 ml-2`}>
-            <X size={16} />
-          </button>
+          <CloseButton onClick={onClose} className="shrink-0 ml-2" />
         </div>
 
         {/* Preparing: the deploy request itself (merge, routes, DNS) */}
@@ -1396,7 +1396,7 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
 
                 return allVars.length > 0 ? (
                   <div>
-                    <h4 className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2">
                       Variables
                     </h4>
                     <div className="space-y-2.5">
@@ -1511,7 +1511,7 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
                 return (
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <h4 className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Container names</h4>
+                      <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Container names</h4>
                       <span className="text-[10px] text-slate-500">{active.length} service{active.length === 1 ? '' : 's'}</span>
                     </div>
                     <div className="space-y-2">
@@ -2416,9 +2416,7 @@ function CreateEditModal({ mode, initial, stacks, onClose, onSave, saving }: Cre
               <p className="text-[10px] text-slate-500">Define a reusable stack template</p>
             </div>
           </div>
-          <button type="button" aria-label="Close" onClick={onClose} className={`${BTN_ICON_SM} text-slate-500 hover:text-slate-200 hover:bg-white/10`}>
-            <X size={16} />
-          </button>
+          <CloseButton onClick={onClose} />
         </div>
 
         {/* Content */}
@@ -2760,9 +2758,7 @@ function UrlImportModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
               </p>
             </div>
           </div>
-          <button type="button" aria-label="Close" onClick={onClose} className={`${BTN_ICON_SM} text-slate-500 hover:text-slate-200 hover:bg-white/10`}>
-            <X size={16} />
-          </button>
+          <CloseButton onClick={onClose} />
         </div>
 
         {/* Body — scrollable */}
@@ -3039,15 +3035,7 @@ function GalleryView({ onImport, isAdmin = true }: { onImport: (url: string, nam
           ))}
         </div>
         <div className="relative flex-1 min-w-0 md:max-w-xs">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            aria-label="Search the gallery"
-            placeholder="Search gallery..."
-            className="w-full pl-9 pr-3 py-2 rounded-lg bg-white/5 border border-white/5 text-xs text-slate-300 placeholder-slate-600 focus:outline-none focus:border-emerald-500/50 transition-colors"
-          />
+          <SearchInput size="sm" value={search} onChange={setSearch} label="Search the gallery" placeholder="Search gallery..." />
         </div>
       </div>
 
@@ -3829,12 +3817,10 @@ export default function Templates() {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <History size={14} className="text-slate-400" />
-              <h2 className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Deploy history</h2>
+              <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Deploy history</h2>
               <span className="text-[10px] text-slate-500">{deduplicatedHistory.length} events</span>
             </div>
-            <Hint label="Close the history"><button type="button" aria-label="Close the history" onClick={() => setShowHistory(false)} className={`${BTN_ICON_SM} text-slate-500 hover:text-slate-200 hover:bg-white/10`}>
-              <X size={14} />
-            </button></Hint>
+            <Hint label="Close the history"><CloseButton label="Close the history" size="sm" onClick={() => setShowHistory(false)} /></Hint>
           </div>
           {historyLoading ? (
             <LoadingState compact label="Reading the history…" />
@@ -3901,15 +3887,7 @@ export default function Templates() {
           <div className="space-y-3">
             {/* Search bar */}
             <div className="relative">
-              <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                aria-label="Search the templates"
-                placeholder={`Search ${templates.length} templates...`}
-                className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-white/[0.04] border border-white/5 text-sm text-slate-300 placeholder-slate-600 focus:outline-none focus:border-emerald-500/30 focus:bg-white/[0.06] focus:shadow-lg focus:shadow-emerald-500/5 transition-all duration-200"
-              />
+              <SearchInput value={search} onChange={setSearch} label="Search the templates" placeholder={`Search ${templates.length} templates...`} />
               {search ? (
                 <Hint label="Clear the search"><button type="button" aria-label="Clear the search" onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 grid h-8 w-8 place-items-center rounded-lg text-slate-500 hover:text-slate-200 hover:bg-white/10 transition-colors">
                   <X size={14} />
@@ -3990,7 +3968,7 @@ export default function Templates() {
                       <div className="w-7 h-7 rounded-md flex items-center justify-center bg-white/[0.03] text-slate-400" aria-hidden>
                         <CatIcon size={14} />
                       </div>
-                      <h2 className="text-xs font-bold text-slate-300 uppercase tracking-wider">{def.label}</h2>
+                      <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{def.label}</h2>
                       <Pill tone="neutral" size="xs">{groupTemplates.length}</Pill>
                     </div>
                     {/* Category grid */}

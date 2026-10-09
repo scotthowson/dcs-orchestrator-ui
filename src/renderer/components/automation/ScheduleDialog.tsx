@@ -10,6 +10,7 @@ import ModalOverlay from '../common/ModalOverlay'
 import { BTN_ICON_SM, BTN_SHEET_QUIET, BTN_SHEET_PRIMARY, TONE_GHOST } from '../../lib/ui'
 import { SCHEDULE_PRESETS, SCHEDULE_ACTIONS, SCHEDULE_ACTION_LABELS, SCHEDULE_TARGET_HINTS, SCHEDULE_STACK_ACTIONS, cronInWords } from './model'
 import { INPUT } from '../../lib/fieldStyles'
+import CloseButton from '../common/CloseButton'
 export type ScheduleFormState = { name: string; schedule: string; action: string; target: string }
 export const EMPTY_SCHEDULE_FORM: ScheduleFormState = { name: '', schedule: '@daily', action: 'backup', target: '' }
 
@@ -38,7 +39,7 @@ export default function ScheduleDialog({ mode, form, setForm, saving, onSubmit, 
               <p className="text-[11px] text-slate-500">Runs a DCS task at a time</p>
             </div>
           </div>
-          <button type="button" aria-label="Close" onClick={onClose} className={`${BTN_ICON_SM} ${TONE_GHOST}`}><X className="w-5 h-5" /></button>
+          <CloseButton onClick={onClose} />
         </div>
         <form onSubmit={(e) => { e.preventDefault(); onSubmit() }} className="space-y-4">
           <div>

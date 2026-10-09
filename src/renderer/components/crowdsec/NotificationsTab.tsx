@@ -28,7 +28,7 @@ import DigestCard from './NotifyDigest'
 import { ApiError } from '../../api/client'
 import { getRun, setRun, subscribeRun, type Outcome } from './NotifyRun'
 
-import { BTN_TOOLBAR_ATTN, BTN_TOOLBAR_DANGER, BTN_TOOLBAR_OK, BTN_TOOLBAR_QUIET } from '../../lib/ui'
+import { BTN_TOOLBAR_ATTN, BTN_TOOLBAR_DANGER, BTN_TOOLBAR_OK, BTN_TOOLBAR_QUIET, BTN_CARD_QUIET } from '../../lib/ui'
 import { HINT, INPUT, LABEL } from '../../lib/fieldStyles'
 import { CARD } from '../../lib/pageKit'
 import { Pill, Dot } from '../common/Pill'
@@ -547,7 +547,7 @@ function Editor({ data, refresh, refreshFailed }: { data: CrowdSecNotifyResponse
             <nav aria-label="Sections" className="flex items-center gap-1.5 flex-wrap">
               <span className="text-[11px] text-slate-500 mr-1 shrink-0">Jump to</span>
               {SECTION_ORDER.map((id) => (
-                <button key={id} type="button" onClick={() => reveal(id)} className="h-8 px-3 rounded-lg text-xs text-slate-300 bg-white/5 border border-white/10 hover:bg-white/10 shrink-0 inline-flex items-center gap-1.5 transition-colors">
+                <button key={id} type="button" onClick={() => reveal(id)} className={BTN_CARD_QUIET}>
                   {({ webhook: 'Webhook', appearance: 'Appearance', triggers: 'Triggers', message: 'Message', delivery: 'Delivery' } as Record<SectionId, string>)[id]}
                   {problemCount[id] > 0 && <Dot tone="problem" />}
                 </button>

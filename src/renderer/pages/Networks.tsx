@@ -41,6 +41,8 @@ import { CARD, REVEAL } from '../lib/pageKit'
 import { SEARCH_FIELD, INPUT } from '../lib/fieldStyles'
 import StatTile from '../components/common/StatTile'
 import { Pill } from '../components/common/Pill'
+import SearchInput from '../components/common/SearchInput'
+import CloseButton from '../components/common/CloseButton'
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -171,7 +173,7 @@ function NetworkFormModal({ initial, onClose, onSaved }: {
             <h3 className="text-base font-semibold text-slate-100">{editing ? 'Edit network' : 'Create Docker network'}</h3>
             <p className="text-sm text-slate-400 mt-0.5">{editing ? `${initial?.name} is rebuilt with the settings below` : 'Configure a new isolated network'}</p>
           </div>
-          <button type="button" aria-label="Close" onClick={onClose} className={`${CLOSE_BTN} -mr-1 -mt-1`}><X size={16} /></button>
+          <CloseButton onClick={onClose} className="-mr-1 -mt-1" />
         </div>
 
         {editing && (
@@ -435,9 +437,7 @@ function NetworkDetailPanel({ network, onClose, onRefresh, onEdit, isAdmin }: {
                 Edit
               </button>
             )}
-            <button type="button" aria-label="Close" onClick={onClose} className={CLOSE_BTN}>
-              <X size={18} />
-            </button>
+            <CloseButton onClick={onClose} />
           </div>
         </div>
 
@@ -629,7 +629,7 @@ function NetworkCard({ net, onInspect, onDelete, isAdmin }: {
               ) : (
                 <Network size={14} className={`shrink-0 ${isBuiltIn ? 'text-slate-400' : 'text-cyan-400'}`} aria-hidden />
               )}
-              <h3 className="text-sm font-semibold text-slate-100 truncate group-hover:text-white transition-colors font-mono min-w-0">
+              <h3 className="text-sm font-semibold text-slate-200 truncate group-hover:text-white transition-colors font-mono min-w-0">
                 {net.name}
               </h3>
               {net.member !== undefined && <VmCapsule member={net.member} name={net.member_name} vmid={net.vmid} size="xs" />}
@@ -876,22 +876,7 @@ export default function Networks() {
       {/* Search + sort bar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" aria-hidden />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            aria-label="Search networks"
-            placeholder="Search by network, driver or container…"
-            className={SEARCH_FIELD}
-          />
-          {searchQuery && (
-            <Hint label="Clear the search">
-              <button type="button" aria-label="Clear the search" onClick={() => setSearchQuery('')} className={`${BTN_ICON_SM} ${TONE_GHOST} ${FOCUS_RING} absolute right-1.5 top-1/2 -translate-y-1/2`}>
-                <X size={14} />
-              </button>
-            </Hint>
-          )}
+          <SearchInput value={searchQuery} onChange={setSearchQuery} label="Search networks" placeholder="Search by network, driver or container…" />
         </div>
         <div role="group" aria-label="Sort the networks" className="flex items-center gap-1 shrink-0">
           <span className="text-[10px] uppercase tracking-wider text-slate-500 mr-1" aria-hidden>Sort</span>

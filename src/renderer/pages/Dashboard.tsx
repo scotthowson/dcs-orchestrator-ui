@@ -29,7 +29,7 @@ import { useNotificationStore } from '../stores/notificationStore'
 import { useStackStore } from '../stores/stackStore'
 import { useToast } from '../components/common/Toast'
 import { pageLabel } from '../constants/pageTitles'
-import { BTN_SHEET_PRIMARY, BTN_TOOLBAR_QUIET } from '../lib/ui'
+import { BTN_SHEET_PRIMARY, BTN_TOOLBAR_QUIET, BTN_TOOLBAR_PRIMARY } from '../lib/ui'
 import type { DiskInfo, HealthReport } from '../../shared/types'
 
 import { Pill } from '../components/common/Pill'
@@ -491,7 +491,7 @@ function NeedsYouOffer({ layout }: { layout: ReturnType<typeof useDashboardLayou
       </div>
       <div className="flex items-center gap-2">
         <button type="button" className={BTN_TOOLBAR_QUIET} onClick={() => void layout.saveCardConfig('needs-you', { offer: 'declined' })}>Not now</button>
-        <button type="button" className="px-3 py-2 rounded-lg text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-500 transition-colors" onClick={() => void layout.placeOnTop('needs-you', { offer: 'added' })}>
+        <button type="button" className={BTN_TOOLBAR_PRIMARY} onClick={() => void layout.placeOnTop('needs-you', { offer: 'added' })}>
           Add it to the top
         </button>
       </div>

@@ -57,6 +57,8 @@ import Sheet from '../components/common/Sheet'
 import { INPUT_FLEET, LABEL } from '../lib/fieldStyles'
 import { Pill } from '../components/common/Pill'
 import { type Tone } from '../lib/tone'
+import SearchInput from '../components/common/SearchInput'
+import CloseButton from '../components/common/CloseButton'
 const STATUS_POLL = 20_000
 const LIST_POLL = 15_000
 const TASK_POLL = 30_000
@@ -216,7 +218,7 @@ function ConfirmSheet({ vm, action, onClose, onDone }: { vm: ProxmoxVm; action: 
             <p id={`${ids}-d`} className="text-sm text-slate-400 mt-1">{vm.type === 'qemu' ? 'VM' : 'Container'} {vm.vmid} on {vm.node}{meta.note ? ` — ${meta.note}` : ''}</p>
             {error && <p role="alert" className="text-sm text-rose-400 mt-2">{error}</p>}
           </div>
-          <button onClick={onClose} className="p-2 rounded-lg text-slate-500 hover:text-slate-200 hover:bg-white/5" aria-label="Close"><X size={16} /></button>
+          <CloseButton onClick={onClose} />
         </div>
         <div className="mt-5 flex gap-2">
           <button ref={cancelRef} onClick={onClose} className={`${BTN_SHEET_QUIET} flex-1`}>Cancel</button>
@@ -1438,8 +1440,7 @@ export default function Proxmox() {
               </SectionLabel>
               <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
                 <div className="relative w-full sm:w-auto">
-                  <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                  <input value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search the guests" placeholder="Search name, id, node, tag, stack" className="h-9 pl-8 pr-3 rounded-lg bg-white/5 border border-white/10 text-sm text-slate-200 placeholder-slate-600 w-full sm:w-72 focus:outline-none focus:border-emerald-500/30 focus:ring-1 focus:ring-emerald-500/30" />
+                  <SearchInput size="sm" value={query} onChange={setQuery} label="Search the guests" placeholder="Search name, id, node, tag, stack" className="sm:w-72" />
                 </div>
                 {/* a phone swipes the filters sideways; the counts show from sm up */}
                 <div className="min-w-0 max-w-full overflow-x-auto scrollbar-none">

@@ -23,6 +23,7 @@ import { fetchContainersScoped, scopeContainerRows, rowKey } from '../api/fleetS
 import type { ContainerInfo } from '../../shared/types'
 import type { FleetContainerListResponse, RowMember, ScopeMemberTag } from '../../shared/fleetScoped'
 
+import { BTN_TOOLBAR_QUIET } from '../lib/ui'
 /** The container that is open: its name and the server it runs on (any server when another page named it alone) */
 interface Selection { name: string; member: RowMember; any?: boolean }
 
@@ -192,7 +193,7 @@ const Containers: React.FC = () => {
             <p className="text-sm font-semibold text-slate-200">Waiting for {selected.name}</p>
             <p className="text-xs text-slate-400 mt-1">The container has not been created yet — images may still be pulling. This view updates by itself.</p>
           </div>
-          <button onClick={handleBack} className="px-3 py-1.5 rounded-lg text-xs text-slate-400 bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">Back to the list</button>
+          <button type="button" onClick={handleBack} className={BTN_TOOLBAR_QUIET}>Back to the list</button>
         </div>
       ) : (
         <ContainerList

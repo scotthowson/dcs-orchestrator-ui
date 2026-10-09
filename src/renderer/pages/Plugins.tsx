@@ -57,6 +57,7 @@ import { Panel } from '../components/dashboard/cardShared'
 import { BTN_ICON_SM, BTN_SHEET_PRIMARY, BTN_SHEET_QUIET, BTN_TOOLBAR, BTN_TOOLBAR_QUIET, TONE_GHOST, TONE_GHOST_DANGER, TONE_OK } from '../lib/ui'
 
 import { Pill } from '../components/common/Pill'
+import CloseButton from '../components/common/CloseButton'
 // ---------------------------------------------------------------------------
 // Featured plugins catalog
 // ---------------------------------------------------------------------------
@@ -440,7 +441,7 @@ export default function Plugins() {
         <Panel
           icon={Code}
           title="Create your own plugin"
-          actions={<Hint label="Close the guide"><button type="button" aria-label="Close the guide" onClick={() => setShowGuide(false)} className={`${BTN_ICON_SM} ${TONE_GHOST}`}><X size={14} /></button></Hint>}
+          actions={<Hint label="Close the guide"><CloseButton label="Close the guide" size="sm" onClick={() => setShowGuide(false)} /></Hint>}
         >
           <div className="space-y-3">
             <p className="text-sm text-slate-400">
@@ -498,7 +499,7 @@ export default function Plugins() {
           <div key={cat}>
             <div className="flex items-center gap-2 mb-3">
               <CatIcon size={13} className="text-slate-400" aria-hidden />
-              <h2 className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">{catInfo.label}</h2>
+              <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{catInfo.label}</h2>
               <div className="flex-1 h-px bg-gradient-to-r from-white/[0.06] to-transparent" />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
@@ -527,7 +528,7 @@ export default function Plugins() {
                         </Hint>
                       </div>
                     </div>
-                    <h3 className="text-sm font-semibold text-slate-100 mb-1">{fp.name}</h3>
+                    <h3 className="text-sm font-semibold text-slate-200 mb-1">{fp.name}</h3>
                     <p className="text-xs text-slate-400 leading-relaxed mb-3 line-clamp-2">{fp.description}</p>
                     <div className="flex-1" aria-hidden />
                     <div className="flex items-center gap-3 text-[11px] text-slate-500 mb-4">
@@ -574,7 +575,7 @@ export default function Plugins() {
       <div>
         <div className="flex items-center gap-2 mb-3">
           <Package size={13} className="text-slate-400" aria-hidden />
-          <h2 className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Installed ({plugins.length})</h2>
+          <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Installed ({plugins.length})</h2>
           <div className="flex-1 h-px bg-gradient-to-r from-white/[0.06] to-transparent" />
         </div>
 
@@ -676,7 +677,7 @@ export default function Plugins() {
                 </div>
                 <h2 className="text-base font-semibold text-slate-100">Install from Git</h2>
               </div>
-              <Hint label="Close"><button type="button" aria-label="Close" onClick={() => setShowInstall(false)} className={`${BTN_ICON_SM} ${TONE_GHOST}`}><X size={16} /></button></Hint>
+              <Hint label="Close"><CloseButton onClick={() => setShowInstall(false)} /></Hint>
             </div>
             <div className="space-y-4">
               <div>

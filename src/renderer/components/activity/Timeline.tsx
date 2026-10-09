@@ -24,6 +24,7 @@ import { onDemandEventWord } from '../../lib/containerState'
 
 import { SEARCH_FIELD } from '../../lib/fieldStyles'
 import { Pill } from '../common/Pill'
+import SearchInput from '../common/SearchInput'
 // ---------------------------------------------------------------------------
 // Constants & helpers
 // ---------------------------------------------------------------------------
@@ -485,27 +486,7 @@ export default function Timeline({ events, isConnected }: { events: EventEntry[]
 
         {/* Search */}
         <div className="relative flex-1 min-w-[12rem] max-w-xs">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" aria-hidden />
-          <input
-            type="text"
-            aria-label="Filter events by name"
-            placeholder="Filter by name…"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className={SEARCH_FIELD}
-          />
-          {searchQuery && (
-            <Hint label="Clear the search">
-              <button
-                type="button"
-                aria-label="Clear the search"
-                onClick={() => setSearchQuery('')}
-                className={`${BTN_ICON_SM} ${TONE_GHOST} ${FOCUS_RING} absolute right-1.5 top-1/2 -translate-y-1/2`}
-              >
-                <X size={14} />
-              </button>
-            </Hint>
-          )}
+          <SearchInput value={searchQuery} onChange={setSearchQuery} label="Filter events by name" placeholder="Filter by name…" />
         </div>
 
         {/* Result count */}

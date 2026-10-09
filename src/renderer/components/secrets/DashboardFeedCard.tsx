@@ -58,7 +58,7 @@ export default function DashboardFeedCard() {
       <div className="flex items-start gap-3 flex-wrap">
         <div className="h-9 w-9 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0"><Radio size={16} className="text-emerald-400" /></div>
         <div className="min-w-0 flex-1">
-          <h2 className="text-sm font-semibold text-slate-100 flex items-center gap-2">Dashboard feed
+          <h2 className="text-sm font-semibold text-slate-200 flex items-center gap-2">Dashboard feed
             <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-medium border ${status.enabled ? 'border-emerald-500/25 bg-emerald-500/10 text-emerald-300' : 'border-white/10 bg-white/5 text-slate-400'}`}>{status.enabled ? 'on' : 'off'}</span>
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">A token for a dashboard that cannot sign in (Homarr, Home Assistant, a wall display). It can read the server at a glance and what CrowdSec has been seeing, and nothing else.</p>

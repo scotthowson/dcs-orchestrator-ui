@@ -34,6 +34,7 @@ import PageHeader from '../components/common/PageHeader'
 import { BTN_TOOLBAR_QUIET, BTN_CARD_QUIET, BTN_ICON, FOCUS_RING } from '../lib/ui'
 import { CARD } from '../lib/pageKit'
 import { INPUT } from '../lib/fieldStyles'
+import CloseButton from '../components/common/CloseButton'
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -136,12 +137,7 @@ function FileViewer({ filePath, content, size, where, onClose }: FileViewerProps
               <Download size={12} aria-hidden />
               Save
             </button>
-            <button type="button" aria-label="Close"
-              onClick={onClose}
-              className={`${BTN_ICON} text-slate-400 hover:text-slate-200 hover:bg-white/5 ${FOCUS_RING}`}
-            >
-              <X size={16} />
-            </button>
+            <CloseButton onClick={onClose} />
           </div>
         </div>
 

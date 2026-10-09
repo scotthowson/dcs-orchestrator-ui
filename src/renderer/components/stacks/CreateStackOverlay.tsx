@@ -24,6 +24,7 @@ import Hint from '../common/Hint'
 import { useModalA11y } from '../../hooks/useModalA11y'
 import { BTN_ICON, BTN_SHEET_QUIET, BTN_SHEET_PRIMARY, TONE_QUIET } from '../../lib/ui'
 
+import CloseButton from '../common/CloseButton'
 interface Props {
   onClose: () => void
   onCreated: () => void
@@ -239,9 +240,7 @@ export default function CreateStackOverlay({ onClose, onCreated }: Props) {
             </div>
           </div>
           <Hint label="Close">
-            <button onClick={onClose} className={`${BTN_ICON} ${TONE_QUIET}`} aria-label="Close">
-              <X size={16} />
-            </button>
+            <CloseButton onClick={onClose} />
           </Hint>
         </div>
 

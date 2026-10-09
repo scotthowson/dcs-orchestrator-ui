@@ -22,6 +22,7 @@ import { Pill } from '../common/Pill'
 import SectionHeader from '../common/SectionHeader'
 import { SkeletonBlock } from '../common/PageState'
 import Segmented from '../common/Segmented'
+import SearchInput from '../common/SearchInput'
 type Kind = 'collections' | 'scenarios' | 'parsers'
 const KINDS: { value: Kind; label: string; one: string; blurb: string; tries: string[] }[] = [
   { value: 'collections', label: 'Collections', one: 'collection', blurb: 'A collection is a ready-made bundle for one service, such as Traefik or SSH. It brings the scenarios and parsers that service needs.', tries: ['nginx', 'wordpress', 'postfix', 'mysql', 'appsec'] },
@@ -372,11 +373,7 @@ export default function HubTab() {
               count={filter && shown.length !== installed.length ? `${shown.length} of ${installed.length}` : installed.length}
               className="mb-2"
               right={installed.length > 8 ? (
-                <div className="relative w-full sm:w-64">
-                  <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-                  <label htmlFor="hub-filter" className="sr-only">Filter the installed {k.label.toLowerCase()}</label>
-                  <input id="hub-filter" type="search" value={filter} onChange={(e) => setFilter(e.target.value)} placeholder={`Filter these ${installed.length}`} className={`${INPUT} !h-8 !pl-8 !text-xs`} autoComplete="off" />
-                </div>
+                <SearchInput size="sm" className="w-full sm:w-64" id="hub-filter" value={filter} onChange={setFilter} label={`Filter the installed ${k.label.toLowerCase()}`} placeholder={`Filter these ${installed.length}`} autoComplete="off" />
               ) : undefined}
             />
             {installed.length === 0 ? (
@@ -418,11 +415,7 @@ export default function HubTab() {
             <SectionHeader title={`Find more ${k.label.toLowerCase()}`} className="mb-2" />
             <div className={`${CARD} p-4 space-y-3`}>
               <div>
-                <div className="relative">
-                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-                  <label htmlFor="hub-search" className="sr-only">Search the hub for {k.label.toLowerCase()}</label>
-                  <input id="hub-search" type="search" value={search} maxLength={80} onChange={(e) => setSearch(e.target.value)} placeholder={`Search the hub, for example ${k.tries[0]}`} className={`${INPUT} !pl-9`} autoComplete="off" spellCheck={false} />
-                </div>
+                <SearchInput id="hub-search" value={search} maxLength={80} onChange={setSearch} label={`Search the hub for ${k.label.toLowerCase()}`} placeholder={`Search the hub, for example ${k.tries[0]}`} autoComplete="off" spellCheck={false} />
                 <p className="text-[11px] text-slate-500 mt-1.5 flex items-center gap-1.5 flex-wrap">
                   <span>Type at least two letters. It searches names and descriptions. Try</span>
                   {k.tries.map((t) => <button key={t} type="button" onClick={() => setSearch(t)} className="px-2 h-7 sm:h-5 sm:px-1.5 rounded-md bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10">{t}</button>)}

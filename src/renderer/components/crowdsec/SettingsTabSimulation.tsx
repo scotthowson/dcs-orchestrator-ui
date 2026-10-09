@@ -25,6 +25,7 @@ import Segmented from '../common/Segmented'
 import { Toggle } from '../common/Toggle'
 import Notice from '../common/Notice'
 import { Panel } from '../dashboard/cardShared'
+import SearchInput from '../common/SearchInput'
 const POLL_MS = 30_000
 const SHOWN = 50
 
@@ -203,9 +204,7 @@ export default function SimulationCard({ sim }: { sim: Simulation }) {
       <div className="mt-5">
         <div className="flex items-center gap-2 flex-wrap">
           <div className="relative w-full sm:w-64">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" aria-hidden="true" />
-            <label htmlFor="sim-search" className="sr-only">Search the scenarios</label>
-            <input id="sim-search" type="search" value={q} onChange={(e) => { setQ(e.target.value); setAll(false) }} placeholder="Search scenarios" className={`${INPUT} !h-9 !pl-9 !text-xs`} autoComplete="off" />
+            <SearchInput size="sm" value={q} onChange={(v) => { setQ(v); setAll(false) }} id="sim-search" placeholder="Search scenarios" autoComplete="off" label="Search the scenarios" />
           </div>
           <Segmented<Filter> value={filter} onChange={(v) => { setFilter(v); setAll(false) }} ariaLabel="Which scenarios to list" options={[
             { value: 'all', label: 'All', count: rows.length },

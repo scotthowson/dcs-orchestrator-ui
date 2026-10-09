@@ -14,6 +14,7 @@ import React, {
 import { CheckCircle2, XCircle, AlertTriangle, Info, X } from 'lucide-react'
 import { useNotificationStore } from '../../stores/notificationStore'
 
+import CloseButton from './CloseButton'
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -220,13 +221,7 @@ function ToastItem({
         </div>
 
         {/* Dismiss */}
-        <button
-          onClick={dismiss}
-          className="shrink-0 p-1 rounded-md text-slate-500 hover:text-slate-300 hover:bg-white/5 transition-all duration-150 mt-0.5"
-          aria-label="Dismiss"
-        >
-          <X size={13} />
-        </button>
+        <CloseButton label="Dismiss" size="sm" onClick={dismiss} className="shrink-0 mt-0.5" />
       </div>
 
       {/* Progress bar */}

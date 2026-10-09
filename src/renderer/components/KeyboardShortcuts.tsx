@@ -176,7 +176,7 @@ export function KeyboardShortcuts() {
         <div className="px-6 py-4 space-y-5 max-h-[60vh] overflow-y-auto scrollbar-thin">
           {sections.map((section) => (
             <div key={section.title}>
-              <h3 className="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-2.5">
+              <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2.5">
                 {section.title}
               </h3>
               <div className="space-y-1.5">

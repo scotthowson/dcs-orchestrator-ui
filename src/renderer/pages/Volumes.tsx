@@ -42,6 +42,8 @@ import { CARD, REVEAL } from '../lib/pageKit'
 import { SEARCH_FIELD, INPUT } from '../lib/fieldStyles'
 import StatTile from '../components/common/StatTile'
 import { Pill } from '../components/common/Pill'
+import SearchInput from '../components/common/SearchInput'
+import CloseButton from '../components/common/CloseButton'
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
@@ -462,14 +464,7 @@ export default function Volumes() {
               <ListChecks size={16} className="text-cyan-400" />
               Delete results
             </h3>
-            <button
-              type="button"
-              aria-label="Close the results"
-              onClick={() => setBatchResults(null)}
-              className={`${BTN_ICON_SM} ${TONE_GHOST} ${FOCUS_RING}`}
-            >
-              <X size={14} />
-            </button>
+            <CloseButton label="Close the results" size="sm" onClick={() => setBatchResults(null)} />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
             {batchResults.map((result) => (
@@ -526,31 +521,7 @@ export default function Volumes() {
       {/* Search                                                            */}
       {/* ----------------------------------------------------------------- */}
       <div className="relative">
-        <Search
-          size={16}
-          className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none"
-          aria-hidden
-        />
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          aria-label="Search volumes"
-          placeholder="Search by name, driver or mountpoint…"
-          className={SEARCH_FIELD}
-        />
-        {searchQuery && (
-          <Hint label="Clear the search">
-            <button
-              type="button"
-              aria-label="Clear the search"
-              onClick={() => setSearchQuery('')}
-              className={`${BTN_ICON_SM} ${TONE_GHOST} ${FOCUS_RING} absolute right-1.5 top-1/2 -translate-y-1/2`}
-            >
-              <X size={14} />
-            </button>
-          </Hint>
-        )}
+        <SearchInput value={searchQuery} onChange={setSearchQuery} label="Search volumes" placeholder="Search by name, driver or mountpoint…" />
       </div>
 
       {/* ----------------------------------------------------------------- */}

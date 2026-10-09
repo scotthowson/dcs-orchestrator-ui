@@ -19,7 +19,7 @@ import { AsleepCount } from '../common/StateChip'
 import { containerState, countStates, statesLine, ASLEEP_HINT } from '../../lib/containerState'
 import PageHeader from '../common/PageHeader'
 import SortableTh from '../common/SortableTh'
-import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, TONE_QUIET } from '../../lib/ui'
+import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, TONE_QUIET, BTN_CARD, TONE_GHOST, BTN_TOOLBAR_OK, BTN_TOOLBAR_DANGER, BTN_TOOLBAR_ATTN } from '../../lib/ui'
 import type { FleetScope, ScopeMember } from '../../hooks/useFleetScope'
 import {
   Search,
@@ -39,6 +39,8 @@ import {
   Trash2,
 } from 'lucide-react'
 
+import SearchInput from '../common/SearchInput'
+import CloseButton from '../common/CloseButton'
 // ---------------------------------------------------------------------------
 // Sort helpers
 // ---------------------------------------------------------------------------
@@ -343,28 +345,28 @@ const ContainerList: React.FC<ContainerListProps> = ({
         <div className="flex flex-wrap items-center gap-3 px-4 py-3 rounded-xl bg-cyan-500/[0.06] border border-cyan-500/15 animate-fade-in">
           <div className="flex items-center gap-2 flex-1">
             <span className="text-xs font-semibold text-cyan-400">{selectedContainers.size} selected</span>
-            <button onClick={selectAll} className="text-[11px] text-slate-400 hover:text-cyan-400 transition-colors">Select All</button>
+            <button type="button" onClick={selectAll} className={`${BTN_CARD} ${TONE_GHOST}`}>Select all</button>
             <span className="text-white/10">|</span>
-            <button onClick={clearSelection} className="text-[11px] text-slate-400 hover:text-slate-200 transition-colors">Clear</button>
+            <button type="button" onClick={clearSelection} className={`${BTN_CARD} ${TONE_GHOST}`}>Clear</button>
             {scope === 'all' && <span className="hidden sm:inline text-[10px] text-slate-500">each row acts on its own server</span>}
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <button onClick={() => handleBatchAction('start')} disabled={batchLoading || selectedContainers.size === 0}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/25 transition-all disabled:opacity-50 press">
-              {batchLoading ? <Loader2 size={12} className="animate-spin" /> : <Play size={12} />} Start
+              className={BTN_TOOLBAR_OK}>
+              {batchLoading ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />} Start
             </button>
             <button onClick={() => handleBatchAction('stop')} disabled={batchLoading || selectedContainers.size === 0}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-rose-500/15 text-rose-400 border border-rose-500/20 hover:bg-rose-500/25 transition-all disabled:opacity-50 press">
-              {batchLoading ? <Loader2 size={12} className="animate-spin" /> : <Minus size={12} />} Stop
+              className={BTN_TOOLBAR_DANGER}>
+              {batchLoading ? <Loader2 size={14} className="animate-spin" /> : <Minus size={14} />} Stop
             </button>
             <button onClick={() => handleBatchAction('restart')} disabled={batchLoading || selectedContainers.size === 0}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-500/15 text-amber-400 border border-amber-500/20 hover:bg-amber-500/25 transition-all disabled:opacity-50 press">
-              {batchLoading ? <Loader2 size={12} className="animate-spin" /> : <RotateCw size={12} />} Restart
+              className={BTN_TOOLBAR_ATTN}>
+              {batchLoading ? <Loader2 size={14} className="animate-spin" /> : <RotateCw size={14} />} Restart
             </button>
             <span className="w-px h-5 bg-white/[0.08]" />
             <button onClick={() => handleBatchAction('remove')} disabled={batchLoading || selectedContainers.size === 0}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-rose-500/15 text-rose-400 border border-rose-500/20 hover:bg-rose-500/25 transition-all disabled:opacity-50 press">
-              {batchLoading ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />} Remove
+              className={BTN_TOOLBAR_DANGER}>
+              {batchLoading ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />} Remove
             </button>
           </div>
         </div>
@@ -375,7 +377,7 @@ const ContainerList: React.FC<ContainerListProps> = ({
         <div className="rounded-xl border border-white/5 bg-white/[0.03] p-4 animate-fade-in">
           <div className="flex items-center justify-between mb-3">
             <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Batch Results</p>
-            <button aria-label="Close" onClick={() => setBatchResults(null)} className="text-slate-500 hover:text-slate-300 transition-colors"><X size={14} /></button>
+            <CloseButton size="sm" onClick={() => setBatchResults(null)} />
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
             {batchResults.map((r) => (
@@ -432,20 +434,7 @@ const ContainerList: React.FC<ContainerListProps> = ({
 
       {/* ---- Search bar ---- */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder={scope === 'all' ? 'Search containers, stacks and VMs...' : 'Search containers...'}
-          className="
-            w-full pl-10 pr-4 py-2.5 rounded-xl text-sm
-            bg-white/5 border border-white/10
-            text-slate-200 placeholder-slate-500
-            focus:outline-none focus:ring-1 focus:ring-emerald-500/30 focus:border-emerald-500/30
-            transition-all duration-200
-          "
-        />
+        <SearchInput value={search} onChange={setSearch} placeholder={scope === 'all' ? 'Search containers, stacks and VMs...' : 'Search containers...'} />
         {search && (
           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">
             {sorted.length} result{sorted.length !== 1 ? 's' : ''}

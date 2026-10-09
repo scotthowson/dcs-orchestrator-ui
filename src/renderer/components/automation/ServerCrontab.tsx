@@ -24,9 +24,11 @@ import type { CronEntry, CrontabResponse } from '../../../shared/types'
 import { EmptyState } from '../common/PageState'
 import ModalOverlay from '../common/ModalOverlay'
 
-import { INPUT } from '../../lib/fieldStyles'
+import { INPUT, CHOICE_SM, CHOICE_ON, CHOICE_OFF } from '../../lib/fieldStyles'
 import { Pill } from '../common/Pill'
 import { type Tone } from '../../lib/tone'
+import SearchInput from '../common/SearchInput'
+import CloseButton from '../common/CloseButton'
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
@@ -270,15 +272,7 @@ export default function ServerCrontab({ refreshKey, serverName }: {
 
         {/* Search */}
         <div className="flex-1 min-w-[12rem] relative">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" aria-hidden />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            aria-label="Filter the entries"
-            placeholder="Filter by schedule, command or user…"
-            className="w-full h-[34px] pl-9 pr-3 rounded-lg bg-white/5 border border-white/10 text-xs text-slate-200 placeholder-slate-500 transition-colors focus:outline-none focus-visible:border-emerald-500/40 focus-visible:ring-2 focus-visible:ring-emerald-500/40"
-          />
+          <SearchInput size="sm" value={search} onChange={setSearch} label="Filter the entries" placeholder="Filter by schedule, command or user…" />
         </div>
       </div>
 
@@ -336,11 +330,7 @@ export default function ServerCrontab({ refreshKey, serverName }: {
                   type="button"
                   aria-pressed={newSchedule === p.cron}
                   onClick={() => setNewSchedule(p.cron)}
-                  className={`h-8 sm:h-7 px-2.5 rounded-lg text-[11px] font-medium border transition-colors ${
-                    newSchedule === p.cron
-                      ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
-                      : 'bg-white/[0.03] text-slate-400 border-white/5 hover:bg-white/5 hover:text-slate-300'
-                  }`}
+                  className={`${CHOICE_SM} ${newSchedule === p.cron ? CHOICE_ON : CHOICE_OFF}`}
                 >
                   {p.label}
                 </button>
@@ -528,9 +518,7 @@ export default function ServerCrontab({ refreshKey, serverName }: {
                 <Terminal size={16} className="text-slate-400" aria-hidden />
                 <h2 className="text-sm font-semibold text-slate-200">Raw crontab editor</h2>
               </div>
-              <button type="button" aria-label="Close" onClick={() => setShowRawEditor(false)} className={`${BTN_ICON_SM} ${TONE_GHOST}`}>
-                <X size={16} />
-              </button>
+              <CloseButton onClick={() => setShowRawEditor(false)} />
             </div>
 
             {/* Warning */}

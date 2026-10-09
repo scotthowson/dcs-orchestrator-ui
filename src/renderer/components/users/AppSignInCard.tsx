@@ -24,7 +24,7 @@ import { useConfirm } from '../common/ConfirmDialog'
 import { fetchAutheliaSecondStep, setAutheliaSecondStep, repairAutheliaSecondStep, fetchAutheliaVerificationCode } from '../../api/endpoints'
 import type { AutheliaSecondStep, AutheliaStepMode, AutheliaVerificationCode } from '../../../shared/types'
 import { BTN_CARD, BTN_CARD_QUIET, TONE_OK, SECTION_LABEL, FOCUS_RING } from '../../lib/ui'
-import { CHOICE, CHOICE_ON, CHOICE_OFF } from '../../lib/fieldStyles'
+import { CHOICE, CHOICE_ON, CHOICE_OFF, CHOICE_SM } from '../../lib/fieldStyles'
 const MODES: { id: AutheliaStepMode; label: string; hint: string }[] = [
   { id: 'off', label: 'Password only', hint: 'Authelia asks for the password alone (how every server starts).' },
   { id: 'all', label: 'Every app', hint: 'Every app behind Authelia asks for a code or a passkey after the password.' },
@@ -266,7 +266,7 @@ export default function AppSignInCard() {
                     return (
                       <li key={name}>
                         <button type="button" role="checkbox" aria-checked={on} onClick={() => toggleApp(name)} title={c ? (c.where === 'vm' ? `${c.host} (in a VM)` : c.where ? `${c.host} (${c.where})` : c.host) : 'no route behind Authelia found for it now'}
-                          className={`h-7 px-2 rounded-md text-[11px] border flex items-center gap-1.5 transition-colors ${FOCUS_RING} ${on ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-white/[0.03] border-white/5 text-slate-400 hover:text-slate-200'}`}>
+                          className={`${CHOICE_SM} ${FOCUS_RING} ${on ? CHOICE_ON : CHOICE_OFF}`}>
                           {on ? <Check size={11} aria-hidden /> : <Plus size={11} aria-hidden />}
                           <span className="font-mono">{c ? c.host : state.domain ? `${name}.${state.domain}` : name}</span>
                           {!c && <X size={11} className="text-slate-500" aria-hidden />}

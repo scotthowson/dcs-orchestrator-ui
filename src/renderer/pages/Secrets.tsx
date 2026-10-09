@@ -27,6 +27,8 @@ import ModalOverlay from '../components/common/ModalOverlay'
 import DashboardFeedCard from '../components/secrets/DashboardFeedCard'
 import ApiKeysCard from '../components/secrets/ApiKeysCard'
 
+import SearchInput from '../components/common/SearchInput'
+import CloseButton from '../components/common/CloseButton'
 // Same rule as the server (.lib/secrets.sh): a compose-safe variable name.
 const NAME_RE = /^[A-Za-z_][A-Za-z0-9_]{0,63}$/
 const GENERATED_LENGTH = 32
@@ -244,9 +246,7 @@ export default function Secrets() {
               <h2 className="text-sm font-semibold text-slate-200">{pageLabel('secrets')} guide</h2>
             </div>
             <Hint label="Close the guide">
-              <button type="button" aria-label="Close the guide" onClick={() => setShowGuide(false)} className={`${BTN_ICON_SM} ${TONE_GHOST}`}>
-                <X size={14} />
-              </button>
+              <CloseButton label="Close the guide" size="sm" onClick={() => setShowGuide(false)} />
             </Hint>
           </div>
           <div className="p-5 space-y-3">
@@ -282,19 +282,7 @@ export default function Secrets() {
 
       {/* Search */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" aria-hidden />
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          aria-label="Search the secrets"
-          placeholder="Search secrets…"
-          className="w-full h-11 pl-10 pr-11 rounded-xl bg-white/5 border border-white/10 text-sm text-slate-200 placeholder-slate-500 transition-colors focus:outline-none focus-visible:border-emerald-500/40 focus-visible:ring-2 focus-visible:ring-emerald-500/40"
-        />
-        {search && (
-          <button type="button" aria-label="Clear the search" onClick={() => setSearch('')} className={`absolute right-1.5 top-1/2 -translate-y-1/2 ${BTN_ICON_SM} ${TONE_GHOST}`}>
-            <X size={14} />
-          </button>
-        )}
+        <SearchInput value={search} onChange={setSearch} label="Search the secrets" placeholder="Search secrets…" />
       </div>
 
       {error && <ErrorState title="Something went wrong with the secrets" error={error} onRetry={() => fetchSecrets(scope)} />}
@@ -399,7 +387,7 @@ export default function Secrets() {
           <div className="glass rounded-2xl p-6 w-full max-w-md mx-4 max-h-[92vh] overflow-y-auto border border-white/10 animate-scale-in" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-slate-100">Add secret</h2>
-              <button type="button" aria-label="Close" onClick={closeAdd} className={`${BTN_ICON_SM} ${TONE_GHOST}`}><X className="w-5 h-5" /></button>
+              <CloseButton onClick={closeAdd} />
             </div>
             <form onSubmit={(e) => { e.preventDefault(); handleAdd() }} className="space-y-4">
               <div>

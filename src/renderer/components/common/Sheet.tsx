@@ -19,9 +19,8 @@
 
 import { useId, useRef, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { X } from 'lucide-react'
 import { useModalA11y } from '../../hooks/useModalA11y'
-import { BTN_ICON, TONE_GHOST } from '../../lib/ui'
+import CloseButton from './CloseButton'
 import { TONE_TILE, type Tone } from '../../lib/tone'
 
 export interface SheetProps {
@@ -59,7 +58,7 @@ export default function Sheet({ title, subtitle, icon, tone = 'ok', onClose, chi
               <h3 id={titleId} className="text-base font-semibold text-slate-100 break-words">{title}</h3>
               {subtitle && <div className="text-sm text-slate-400 mt-0.5 break-words">{subtitle}</div>}
             </div>
-            <button type="button" onClick={onClose} className={`${BTN_ICON} ${TONE_GHOST}`} aria-label="Close"><X size={16} /></button>
+            <CloseButton onClick={onClose} />
           </div>
         </div>
         <div className={`min-h-0 flex-1 overflow-y-auto overscroll-contain scrollbar-thin px-5 ${footer ? 'pb-4' : 'pb-5'}`}>{children}</div>

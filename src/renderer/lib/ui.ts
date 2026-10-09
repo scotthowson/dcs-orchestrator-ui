@@ -60,6 +60,8 @@ export const BTN_CARD_QUIET = `${BTN_CARD} ${TONE_QUIET}`
 export const BTN_ICON_QUIET = `${BTN_ICON} ${TONE_QUIET}`
 export const BTN_ICON_SM_QUIET = `${BTN_ICON_SM} ${TONE_QUIET}`
 export const BTN_SHEET_QUIET = `${BTN_SHEET} ${TONE_QUIET}`
+/** a view's one main action at toolbar size (Add it, Reload, Get started): solid emerald */
+export const BTN_TOOLBAR_PRIMARY = `${BTN_TOOLBAR} font-semibold text-white bg-emerald-600 hover:bg-emerald-500`
 /** the sheet's main button: solid emerald, or rose where it destroys something */
 export const BTN_SHEET_PRIMARY = `${BTN_SHEET} font-semibold text-white bg-emerald-600 hover:bg-emerald-500`
 export const BTN_SHEET_DANGER = `${BTN_SHEET} font-semibold text-white bg-rose-600 hover:bg-rose-500`

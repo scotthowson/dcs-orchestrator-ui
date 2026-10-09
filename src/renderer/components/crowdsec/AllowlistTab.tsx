@@ -28,6 +28,7 @@ import { SkeletonBlock } from '../common/PageState'
 import Segmented from '../common/Segmented'
 import Sheet from '../common/Sheet'
 import { Panel } from '../dashboard/cardShared'
+import SearchInput from '../common/SearchInput'
 type Source = CrowdSecAllowEntry['source']
 
 /** where an entry comes from, in the words the person sees, with an honest tooltip */
@@ -462,9 +463,7 @@ export default function AllowlistTab() {
             {many && (
               <div className="flex items-center gap-2 flex-wrap">
                 <div className="relative w-full sm:w-auto sm:flex-1 sm:min-w-[12rem] sm:max-w-xs">
-                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-                  <label htmlFor="allow-search" className="sr-only">Search the allowlist</label>
-                  <input id="allow-search" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search address, network or note" className={`${INPUT} !h-9 !pl-9 !text-xs`} autoComplete="off" />
+                  <SearchInput size="sm" value={q} onChange={setQ} id="allow-search" placeholder="Search address, network or note" autoComplete="off" label="Search the allowlist" />
                 </div>
                 <Segmented<'' | Source>
                   value={source} onChange={setSource} ariaLabel="Where an entry comes from"

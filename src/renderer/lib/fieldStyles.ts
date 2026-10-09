@@ -18,7 +18,7 @@
 //
 // A button that is not styled by lib/ui takes FOCUS_RING (lib/ui).
 // =============================================================================
-import { BTN_TOOLBAR } from './ui'
+import { BTN_CARD, BTN_TOOLBAR } from './ui'
 
 export { FOCUS_RING } from './ui'
 
@@ -46,5 +46,7 @@ export const HINT = 'text-[11px] text-slate-500 mt-1'
 
 /** one choice among a few (Auto-lock, Session duration, Mode…): toolbar size; the chosen one is emerald */
 export const CHOICE = `${BTN_TOOLBAR} border`
+/** the same at card size, for a row of presets (a schedule, a ban length, a stack) */
+export const CHOICE_SM = `${BTN_CARD} border`
 export const CHOICE_ON = 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
 export const CHOICE_OFF = 'bg-white/[0.03] border-white/5 text-slate-400 hover:text-slate-200 hover:border-white/10'

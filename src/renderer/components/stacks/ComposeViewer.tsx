@@ -38,6 +38,7 @@ import type { ComposeValidateResponse, StackEnvResponse } from '../../../shared/
 import { useModalA11y } from '../../hooks/useModalA11y'
 import { DiagNumber, EditorDiagnostics, CountBadge } from './LintParts'
 import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_ICON, BTN_ICON_SM, TONE_QUIET, TONE_OK, TONE_GHOST, TONE_PRESSED } from '../../lib/ui'
+import CloseButton from '../common/CloseButton'
 interface ComposeViewerProps {
   stackName: string
   /** the docker-compose.yml as read from the API (the caller does not open the viewer when the read failed) */
@@ -1048,7 +1049,7 @@ export function ComposeViewer({ stackName, content, onClose, isAdmin = false }: 
             <div className="min-w-0">
               <h2
                 id="compose-viewer-title"
-                className="text-sm font-semibold text-slate-100 truncate"
+                className="text-sm font-semibold text-slate-200 truncate"
               >
                 {formattedName}
               </h2>
@@ -1236,14 +1237,7 @@ export function ComposeViewer({ stackName, content, onClose, isAdmin = false }: 
 
             {/* Close button (always visible) */}
             <Hint label="Close">
-              <button
-                type="button"
-                onClick={onClose}
-                className={`${BTN_ICON} ${TONE_QUIET}`}
-                aria-label="Close"
-              >
-                <X size={16} />
-              </button>
+              <CloseButton onClick={onClose} />
             </Hint>
           </div>
         </div>
@@ -1321,16 +1315,10 @@ export function ComposeViewer({ stackName, content, onClose, isAdmin = false }: 
               </div>
             )}
             <Hint label="Close the search">
-              <button
-                onClick={() => {
+              <CloseButton label="Close the search" size="sm" onClick={() => {
                   setSearchOpen(false)
                   setSearchQuery('')
-                }}
-                className={`${BTN_ICON_SM} ${TONE_GHOST}`}
-                aria-label="Close the search"
-              >
-                <X size={14} />
-              </button>
+                }} />
             </Hint>
           </div>
         )}

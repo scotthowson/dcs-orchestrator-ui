@@ -18,6 +18,7 @@ import { BTN_ICON_SM, TONE_GHOST, FOCUS_RING } from '../../lib/ui'
 import { CARD, CARD_HOVER } from '../../lib/pageKit'
 import type { AuditEntry } from '../../../shared/types'
 
+import SearchInput from '../common/SearchInput'
 const AUDIT_LIMIT = 200
 const AUDIT_POLL_MS = 15000
 
@@ -104,27 +105,7 @@ export default function AuditLog({ entries, loading, isConnected, onScope }: {
 
         {/* Search */}
         <div className="relative flex-1 min-w-[12rem] max-w-xs">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" aria-hidden />
-          <input
-            type="text"
-            aria-label="Search the audit log"
-            placeholder="Search the audit log…"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="w-full rounded-lg h-9 pl-9 pr-9 text-xs text-slate-200 placeholder-slate-500 bg-white/5 border border-white/10 focus:outline-none focus:ring-1 focus:ring-emerald-500/30 focus:border-emerald-500/30 transition-colors"
-          />
-          {query && (
-            <Hint label="Clear the filter">
-              <button
-                type="button"
-                aria-label="Clear the filter"
-                onClick={() => setQuery('')}
-                className={`${BTN_ICON_SM} ${TONE_GHOST} ${FOCUS_RING} absolute right-1 top-1/2 -translate-y-1/2`}
-              >
-                <X size={12} />
-              </button>
-            </Hint>
-          )}
+          <SearchInput size="sm" value={query} onChange={setQuery} label="Search the audit log" placeholder="Search the audit log…" />
         </div>
 
         {/* Result count */}

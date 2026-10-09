@@ -13,12 +13,13 @@ import { useOutside } from './kit'
 import { AUTO_COLORS, COLOR_PRESETS, LIM, cpLen, patternProblem, newFieldKey, type ColorMode, type Errors, type FormField } from './NotifyModel'
 
 import { BTN_ICON_QUIET, BTN_TOOLBAR_QUIET } from '../../lib/ui'
-import { HINT, INPUT } from '../../lib/fieldStyles'
+import { HINT, INPUT, CHOICE_SM, CHOICE_ON, CHOICE_OFF } from '../../lib/fieldStyles'
 import { CARD } from '../../lib/pageKit'
 import { Pill } from '../common/Pill'
 import Segmented from '../common/Segmented'
 import Sheet from '../common/Sheet'
 import { Toggle } from '../common/Toggle'
+import SearchInput from '../common/SearchInput'
 // ---------------------------------------------------------------------------
 // Small things
 // ---------------------------------------------------------------------------
@@ -155,9 +156,7 @@ function PlaceholderList({ items, onPick, target, onClose }: { items: CrowdSecPl
     <div>
       <p className="text-[11px] text-slate-500 mb-2">Inserting into <span className="text-slate-300">{target}</span>. Placeholders are replaced by the real values when a message is sent.</p>
       <div className="relative mb-2">
-        <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-        <label htmlFor="ph-search" className="sr-only">Search the placeholders</label>
-        <input id="ph-search" autoFocus value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={onKey} placeholder="Search: ip, country, link…" autoComplete="off" spellCheck={false} className={`${INPUT} !h-9 !pl-9 !text-xs`} role="combobox" aria-expanded="true" aria-controls="ph-list" aria-autocomplete="list" aria-activedescendant={found[active] ? `ph-opt-${found[active].name}` : undefined} />
+        <SearchInput size="sm" value={q} onChange={setQ} id="ph-search" autoFocus onKeyDown={onKey} placeholder="Search: ip, country, link…" autoComplete="off" spellCheck={false} role="combobox" aria-expanded="true" aria-controls="ph-list" aria-autocomplete="list" aria-activedescendant={found[active] ? `ph-opt-${found[active].name}` : undefined} label="Search the placeholders" />
       </div>
       <div id="ph-list" ref={listRef} role="listbox" aria-label="Placeholders" className="max-h-72 overflow-y-auto scrollbar-thin -mx-1 px-1">
         {found.length === 0 && <p className="text-xs text-slate-500 py-6 text-center">No placeholder matches “{q}”.</p>}
@@ -517,7 +516,7 @@ export function PillChoice<T extends string>({ value, onChange, options, ariaLab
         const on = o.value === value
         return (
           <button key={o.value} type="button" aria-pressed={on} disabled={disabled} onClick={() => onChange(o.value)}
-            className={`h-8 px-3 rounded-lg text-xs font-medium border transition-colors disabled:opacity-50 ${on ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/25' : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10'}`}>{o.label}</button>
+            className={`${CHOICE_SM} ${on ? CHOICE_ON : CHOICE_OFF}`}>{o.label}</button>
         )
       })}
     </div>

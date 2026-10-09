@@ -1,6 +1,7 @@
 import React from 'react'
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react'
 
+import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, TONE_GHOST } from '../../lib/ui'
 interface Props {
   children: React.ReactNode
   fallbackMessage?: string
@@ -38,18 +39,20 @@ export class ErrorBoundary extends React.Component<Props, State> {
             <div className="flex items-center gap-2">
               <button
                 onClick={this.handleReset}
-                className="press flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium bg-white/[0.06] border border-white/10 text-slate-300 hover:bg-white/[0.1] transition-all"
+                type="button"
+                className={BTN_TOOLBAR_QUIET}
               >
-                <RefreshCw className="h-3.5 w-3.5" />
-                Try Again
+                <RefreshCw size={14} aria-hidden />
+                Try again
               </button>
               {this.props.onNavigateHome && (
                 <button
                   onClick={this.props.onNavigateHome}
-                  className="press flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-300 hover:bg-white/5 transition-all"
+                  type="button"
+                  className={`${BTN_TOOLBAR} ${TONE_GHOST}`}
                 >
-                  <Home className="h-3.5 w-3.5" />
-                  Go to Dashboard
+                  <Home size={14} aria-hidden />
+                  Go to the dashboard
                 </button>
               )}
             </div>

@@ -113,7 +113,7 @@ function CardTitle({ icon, children, aside }: { icon: React.ReactNode; children:
     <div className="flex items-center justify-between gap-3 mb-4">
       <div className="flex items-center gap-2 min-w-0">
         {icon}
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">{children}</h2>
+        <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{children}</h2>
       </div>
       {aside}
     </div>

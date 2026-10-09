@@ -280,7 +280,7 @@ function ExportCard({ card, selected, onToggle, onExport, isLoading, isConnected
             <Icon className="w-5 h-5 text-slate-300" />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="text-sm font-semibold text-slate-100 leading-tight">{card.title}</h3>
+            <h3 className="text-sm font-semibold text-slate-200 leading-tight">{card.title}</h3>
             <p className="text-xs text-slate-400 mt-1 leading-relaxed">{card.description}</p>
           </div>
         </div>

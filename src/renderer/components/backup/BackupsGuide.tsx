@@ -12,6 +12,7 @@ import Hint from '../common/Hint'
 import { pageLabel } from '../../constants/pageTitles'
 import { BTN_ICON_SM, TONE_GHOST } from '../../lib/ui'
 
+import CloseButton from '../common/CloseButton'
 const SECTIONS = [
   {
     title: 'Backup, snapshot or bundle?',
@@ -300,9 +301,7 @@ export default function BackupsGuide({ onClose }: { onClose: () => void }) {
           <h2 className="text-sm font-semibold text-slate-200">{pageLabel('backup')} guide</h2>
         </div>
         <Hint label="Close the guide">
-          <button type="button" aria-label="Close the guide" onClick={onClose} className={`${BTN_ICON_SM} ${TONE_GHOST}`}>
-            <X size={14} />
-          </button>
+          <CloseButton label="Close the guide" size="sm" onClick={onClose} />
         </Hint>
       </div>
       <div className="p-5 space-y-3">

@@ -16,6 +16,7 @@ import ModalOverlay from '../common/ModalOverlay'
 import Hint from '../common/Hint'
 import { BTN_ICON_SM, BTN_SHEET, BTN_SHEET_QUIET, BTN_SHEET_PRIMARY, TONE_GHOST, TONE_QUIET } from '../../lib/ui'
 
+import CloseButton from '../common/CloseButton'
 interface Props {
   containerName: string
   member: RowMember
@@ -88,13 +89,11 @@ export default function OnDemandDialog({ containerName, member, onDemand, onClos
             <Moon size={18} className="text-indigo-300" />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="text-sm font-semibold text-slate-100">{enabled ? 'On demand' : 'Start on demand'}</h3>
+            <h3 className="text-sm font-semibold text-slate-200">{enabled ? 'On demand' : 'Start on demand'}</h3>
             <p className="text-[11px] text-slate-500 truncate font-mono">{containerName}</p>
           </div>
           <Hint label="Close">
-            <button type="button" onClick={onClose} disabled={!!busy} className={`${BTN_ICON_SM} ${TONE_GHOST}`} aria-label="Close">
-              <X size={15} />
-            </button>
+            <CloseButton onClick={onClose} disabled={!!busy} />
           </Hint>
         </div>
 

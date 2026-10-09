@@ -19,6 +19,7 @@ import { sendChatTyping } from '../../api/chat'
 import { BTN_ICON_SM, TONE_GHOST, TONE_GHOST_DANGER } from '../../lib/ui'
 import type { ChatMessage } from '../../../shared/types'
 
+import CloseButton from '../common/CloseButton'
 interface Group { key: string; user: string; role: string; ts: number; day: string; items: ChatMessage[] }
 
 function dayOf(ts: number): string {
@@ -231,7 +232,7 @@ export default function ChatPanel({ onClose }: { onClose: () => void }) {
       {/* header: the room, who is online, the small settings, clear (admin), close */}
       <div className="flex items-start gap-2 px-4 pt-3 pb-2 border-b border-white/5">
         <div className="min-w-0 flex-1">
-          <h2 className="text-sm font-semibold text-slate-100">Chat</h2>
+          <h2 className="text-sm font-semibold text-slate-200">Chat</h2>
           <p className="text-[11px] text-slate-500 truncate" title={room?.name}>Everyone signed in to {room?.name || 'this server'}</p>
           <p className="mt-1 flex items-center gap-1.5 text-[11px] text-slate-400" aria-live="polite">
             <span aria-hidden className={`h-2 w-2 rounded-full shrink-0 ${onlineNames.length ? 'bg-emerald-400' : 'bg-slate-600'}`} />
@@ -246,9 +247,7 @@ export default function ChatPanel({ onClose }: { onClose: () => void }) {
             <Eraser size={15} aria-hidden />
           </button>
         )}
-        <button type="button" aria-label="Close the chat" title="Close (Esc)" onClick={onClose} className={`${BTN_ICON_SM} ${TONE_GHOST}`}>
-          <X size={16} aria-hidden />
-        </button>
+        <CloseButton label="Close the chat" title="Close (Esc)" onClick={onClose} />
       </div>
 
       {showSettings && (

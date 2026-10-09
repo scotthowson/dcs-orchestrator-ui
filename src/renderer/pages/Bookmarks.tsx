@@ -24,6 +24,7 @@ import type { PageId } from '../../shared/types'
 
 import { SEARCH_FIELD, INPUT } from '../lib/fieldStyles'
 import { Pill } from '../components/common/Pill'
+import SearchInput from '../components/common/SearchInput'
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -474,27 +475,7 @@ export default function Bookmarks() {
       {/* Search & Filter */}
       <div className="flex items-center gap-3 flex-wrap">
         <div className="relative flex-1 min-w-[12rem] max-w-md">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" aria-hidden />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            aria-label="Search bookmarks"
-            placeholder="Search bookmarks…"
-            className={SEARCH_FIELD}
-          />
-          {search && (
-            <Hint label="Clear the search">
-              <button
-                type="button"
-                aria-label="Clear the search"
-                onClick={() => setSearch('')}
-                className={`${BTN_ICON_SM} ${TONE_GHOST} ${FOCUS_RING} absolute right-1.5 top-1/2 -translate-y-1/2`}
-              >
-                <X size={14} />
-              </button>
-            </Hint>
-          )}
+          <SearchInput value={search} onChange={setSearch} label="Search bookmarks" placeholder="Search bookmarks…" />
         </div>
         <div className="min-w-0 max-w-full overflow-x-auto scrollbar-none">
           <SegmentedControl

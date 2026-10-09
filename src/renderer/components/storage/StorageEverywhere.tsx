@@ -284,7 +284,7 @@ export function VmDisks({ data }: { data: StorageOverview }) {
       <div className="flex items-center justify-between gap-3 mb-1">
         <div className="flex items-center gap-2">
           <Server size={14} className="text-violet-300" aria-hidden />
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">Virtual machines</h2>
+          <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Virtual machines</h2>
         </div>
         <Pill tone="fleet">{data.vms.length} VM{data.vms.length !== 1 ? 's' : ''}</Pill>
       </div>

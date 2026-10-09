@@ -118,7 +118,7 @@ export function MobileNav() {
                 if (!items.length) return null
                 return (
                   <section key={section.id}>
-                    <h3 className="px-1 mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                    <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider px-1 mb-2 flex items-center gap-1.5">
                       <section.icon size={12} aria-hidden />{section.label}
                     </h3>
                     <div className="grid grid-cols-2 gap-2">

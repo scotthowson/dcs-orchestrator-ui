@@ -3,6 +3,7 @@ import { WifiOff, RefreshCw, HeartPulse } from 'lucide-react'
 import { useConnectionStore } from '../../stores/connectionStore'
 import { useApiLink } from '../../hooks/useApiLink'
 
+import { BTN_TOOLBAR_QUIET, FOCUS_RING } from '../../lib/ui'
 /** On every page that shows server data: says so, in the first seconds, when the API stops answering */
 export function DisconnectedBanner() {
   const connect = useConnectionStore((s) => s.connect)
@@ -43,11 +44,12 @@ export function DisconnectedBanner() {
         </span>
         {!reconnecting && !trouble && (
           <button
+            type="button"
             onClick={() => { void connect() }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white/[0.06] border border-white/10 text-slate-300 hover:bg-white/[0.1] transition-all press focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
+            className={`${BTN_TOOLBAR_QUIET} ${FOCUS_RING}`}
           >
-            <RefreshCw className="w-3 h-3" />
-            Retry
+            <RefreshCw size={14} aria-hidden />
+            Try again
           </button>
         )}
       </div>

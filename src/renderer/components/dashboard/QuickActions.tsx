@@ -37,6 +37,7 @@ import { BTN_CARD, BTN_CARD_QUIET, BTN_ICON_SM, BTN_SHEET_PRIMARY, BTN_SHEET_QUI
 
 import { EmptyState } from '../common/PageState'
 import { Pill } from '../common/Pill'
+import CloseButton from '../common/CloseButton'
 export type ActionKind = 'page' | 'url' | 'stack' | 'container' | 'maintenance' | 'schedule' | 'automation'
 export interface ActionDef {
   id: string
@@ -267,11 +268,11 @@ function ActionsEditor({ initial, isAdmin, onClose, onSave, onReset }: {
           <div className="flex items-center gap-2.5">
             <span className="flex items-center justify-center w-9 h-9 rounded-xl bg-white/5 border border-white/10"><Rocket size={16} className="text-slate-300" aria-hidden /></span>
             <div>
-              <h3 className="text-sm font-semibold text-slate-100">Quick actions</h3>
+              <h3 className="text-sm font-semibold text-slate-200">Quick actions</h3>
               <p className="text-[11px] text-slate-500">Your shortcuts, in your order. Saved to your dashboard.</p>
             </div>
           </div>
-          <Hint label="Close"><button type="button" aria-label="Close" onClick={onClose} className={`${BTN_ICON_SM} ${TONE_GHOST}`}><X size={16} /></button></Hint>
+          <Hint label="Close"><CloseButton onClick={onClose} /></Hint>
         </div>
         <div className="flex-1 min-h-0 overflow-y-auto scrollbar-none px-6 py-4 space-y-2">
           {list.length === 0 && <p className="text-xs text-slate-500 text-center py-6">No actions yet — add one below.</p>}

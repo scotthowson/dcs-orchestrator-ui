@@ -41,6 +41,7 @@ import type { NotificationRule, NotificationHistoryEntry, Webhook as WebhookType
 import { LoadingState, EmptyState } from '../components/common/PageState'
 import ModalOverlay from '../components/common/ModalOverlay'
 
+import CloseButton from '../components/common/CloseButton'
 // ---------------------------------------------------------------------------
 // Constants & Helpers
 // ---------------------------------------------------------------------------
@@ -622,12 +623,10 @@ export default function Notifications() {
           <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <BookOpen size={14} className="text-cyan-400" />
-              <h2 className="text-sm font-semibold text-slate-100">Notification guide</h2>
+              <h2 className="text-sm font-semibold text-slate-200">Notification guide</h2>
             </div>
             <Hint label="Close the guide">
-              <button aria-label="Close the guide" onClick={() => setShowGuide(false)} className={`${BTN_ICON_SM} ${TONE_GHOST}`}>
-                <X size={14} />
-              </button>
+              <CloseButton label="Close the guide" size="sm" onClick={() => setShowGuide(false)} />
             </Hint>
           </div>
           <div className="p-5 space-y-4">
@@ -686,7 +685,7 @@ export default function Notifications() {
       {isAdmin && <div className="glass border border-white/5 rounded-xl p-4 md:p-5">
         <div className="flex items-center gap-2 mb-4">
           <Zap size={14} className="text-slate-400" />
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">Quick add — notification presets</h2>
+          <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Quick add — notification presets</h2>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {PRESET_TEMPLATES.map((preset) => {
@@ -824,7 +823,7 @@ export default function Notifications() {
 
       {/* ── Rule list ───────────────────────────────────────────────────── */}
       <div>
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">Notification rules</h2>
+        <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Notification rules</h2>
 
         {/* Loading */}
         {rulesLoading && !rulesData && (
@@ -1231,12 +1230,7 @@ export default function Notifications() {
                 <Plus size={16} className="text-emerald-400" />
                 <h3 className="text-sm font-semibold text-slate-200">New notification rule</h3>
               </div>
-              <button aria-label="Close"
-                onClick={() => setShowAddModal(false)}
-                className={`${BTN_ICON} ${TONE_GHOST}`}
-              >
-                <X size={16} />
-              </button>
+              <CloseButton onClick={() => setShowAddModal(false)} />
             </div>
 
             {/* Form */}

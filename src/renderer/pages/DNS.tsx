@@ -59,6 +59,8 @@ import ModalOverlay from '../components/common/ModalOverlay'
 import DomainsPanel from '../components/dns/DomainsPanel'
 
 import { Pill } from '../components/common/Pill'
+import SearchInput from '../components/common/SearchInput'
+import CloseButton from '../components/common/CloseButton'
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -141,7 +143,7 @@ function DeleteRouteModal({ route, onConfirm, onCancel, busy }: {
             <Trash2 size={18} className="text-rose-400" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-slate-100">Delete route</h3>
+            <h3 className="text-sm font-semibold text-slate-200">Delete route</h3>
             <p className="text-[10px] text-slate-500">{vm ? `Removes the route file on the VM ${vm}` : 'Removes the Traefik route file and its Cloudflare record'}</p>
           </div>
         </div>
@@ -239,11 +241,11 @@ function RecordModal({ zone, zoneId, initial, onClose, onSaved }: {
               {editing ? <Pencil size={16} className="text-cyan-400" /> : <Plus size={16} className="text-cyan-400" />}
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-slate-100">{editing ? 'Edit record' : 'Add record'}</h3>
+              <h3 className="text-sm font-semibold text-slate-200">{editing ? 'Edit record' : 'Add record'}</h3>
               <p className="text-[10px] text-slate-500 font-mono">{fqdn}</p>
             </div>
           </div>
-          <button type="button" aria-label="Close" onClick={onClose} className={`${BTN_ICON_SM} text-slate-500 hover:text-slate-200 hover:bg-white/10`}><X size={16} /></button>
+          <CloseButton onClick={onClose} />
         </div>
 
         <div className="px-6 pb-4 space-y-4 overflow-y-auto scrollbar-thin">
@@ -356,7 +358,7 @@ function DeleteRecordModal({ record, zone, onConfirm, onCancel, busy }: {
         <div className="flex items-center gap-3 mb-4">
           <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/10"><Trash2 size={18} className="text-rose-400" /></div>
           <div>
-            <h3 className="text-sm font-semibold text-slate-100">Delete DNS record</h3>
+            <h3 className="text-sm font-semibold text-slate-200">Delete DNS record</h3>
             <p className="text-[10px] text-slate-500">Removed from Cloudflare immediately</p>
           </div>
         </div>
@@ -718,13 +720,7 @@ export default function DNS() {
           />
         </div>
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-          <input
-            type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-            aria-label={tab === 'routes' ? 'Search the routes' : 'Search the records'}
-            placeholder={tab === 'routes' ? 'Search routes by subdomain, service or stack…' : 'Search records by name, content or comment…'}
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm bg-white/5 border border-white/10 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/30 focus:border-emerald-500/30 transition-all"
-          />
+          <SearchInput value={searchQuery} onChange={setSearchQuery} label={tab === 'routes' ? 'Search the routes' : 'Search the records'} placeholder={tab === 'routes' ? 'Search routes by subdomain, service or stack…' : 'Search records by name, content or comment…'} />
         </div>
       </div>
 
@@ -771,7 +767,7 @@ function CertificatesPanel({ data, loading, onRefresh }: { data: RouteCertificat
       <div className="flex items-center justify-between gap-3 mb-3">
         <div className="flex items-center gap-2 min-w-0">
           <Lock size={15} className={tone} />
-          <h3 className="text-sm font-semibold text-slate-100">Proxy health</h3>
+          <h3 className="text-sm font-semibold text-slate-200">Proxy health</h3>
           {data && (
             <Pill tone="neutral" className="truncate" title="ACME challenge Traefik is configured for">{challengeLabel}</Pill>
           )}

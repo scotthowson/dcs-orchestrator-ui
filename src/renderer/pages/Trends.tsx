@@ -49,6 +49,7 @@ import { BTN_ICON_SM, BTN_SHEET_PRIMARY, BTN_SHEET_QUIET, BTN_TOOLBAR, BTN_TOOLB
 
 import { pctTone, quiet } from '../lib/tone'
 import StatTile from '../components/common/StatTile'
+import CloseButton from '../components/common/CloseButton'
 // ---------------------------------------------------------------------------
 // Types & Constants
 // ---------------------------------------------------------------------------
@@ -616,7 +617,7 @@ export default function Trends() {
                 <Settings2 size={16} className="text-slate-300" aria-hidden />
                 <h3 className="text-sm font-semibold text-slate-200">Alert thresholds</h3>
               </div>
-              <Hint label="Close"><button type="button" aria-label="Close" onClick={() => setShowAlertConfig(false)} className={`${BTN_ICON_SM} ${TONE_GHOST}`}><X size={16} /></button></Hint>
+              <Hint label="Close"><CloseButton onClick={() => setShowAlertConfig(false)} /></Hint>
             </div>
 
             <div className="flex-1 overflow-y-auto p-5 space-y-5">

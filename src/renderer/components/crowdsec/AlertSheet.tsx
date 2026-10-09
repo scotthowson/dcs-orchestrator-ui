@@ -130,7 +130,7 @@ function Section({ title, right, children }: { title: string; right?: React.Reac
   return (
     <section aria-label={title}>
       <div className="flex items-center justify-between gap-2 mb-1.5">
-        <h4 className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">{title}</h4>
+        <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{title}</h4>
         {right}
       </div>
       {children}

@@ -21,6 +21,7 @@ import { AlertTriangle, Loader2, RotateCcw, X } from 'lucide-react'
 import ModalOverlay from '../common/ModalOverlay'
 import { BTN_ICON_SM, BTN_SHEET_DANGER, BTN_SHEET_QUIET, TONE_GHOST } from '../../lib/ui'
 
+import CloseButton from '../common/CloseButton'
 export default function TypedConfirmDialog({ title, word, confirmLabel, warning, detail, subjectLabel, subject, busy = false, onConfirm, onClose }: {
   title: string
   /** what has to be typed */
@@ -48,9 +49,7 @@ export default function TypedConfirmDialog({ title, word, confirmLabel, warning,
             </div>
             <h2 className="text-base font-semibold text-slate-100">{title}</h2>
           </div>
-          <button type="button" aria-label="Close" onClick={close} disabled={busy} className={`${BTN_ICON_SM} ${TONE_GHOST}`}>
-            <X size={16} />
-          </button>
+          <CloseButton onClick={close} disabled={busy} />
         </div>
 
         <div className="px-6 py-5 space-y-4">
