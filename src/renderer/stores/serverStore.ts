@@ -227,7 +227,9 @@ export const useServerStore = create<ServerState>((set, get) => {
       } catch (err) {
         if (stale() || err instanceof ApiCancelledError) return false
         apiClient.setAuthToken(null)
-        if (err instanceof ApiError && err.status === 401) {
+        // only the server refusing this very token ends the session; anything else (no answer, a timeout, a 401 to a
+        // request that went out without it) keeps it for the next try
+        if (err instanceof ApiError && err.status === 401 && !err.withoutToken) {
           get().updateServer(id, { session: null })
           if (!get().signInReason) set({ signInReason: 'expired' })
         } else {

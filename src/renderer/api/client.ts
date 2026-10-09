@@ -9,6 +9,8 @@
 import { getDefaultServerUrl } from '../lib/env'
 
 export class ApiError extends Error {
+  /** a 401 to a request that went out without the session token: it says nothing about the session (set by requestOnce) */
+  public withoutToken = false
   constructor(
     public status: number,
     message: string,
@@ -166,6 +168,7 @@ export class ApiClient {
     const controller = new AbortController()
     this.inflight.add(controller)
     const timeoutId = setTimeout(() => controller.abort(), timeoutOverride ?? this.timeout)
+    const sentToken = !!this.authToken
 
     const init: RequestInit = {
       method,
@@ -219,6 +222,14 @@ export class ApiClient {
       // the API session untouched.
       if (response.status === 401) {
         if (epoch !== this.epoch) throw new ApiCancelledError(path)
+        // a request that went out without the token (the session was being checked again, or the dashboard was leaving
+        // a server that stopped answering) is refused for that alone: it must not end the session that is still good.
+        // On a busy hub that is how two signed-in dashboards were sent to "Session expired" by an API restart.
+        if (!sentToken) {
+          const e = new ApiError(401, errorMessage, errorData)
+          e.withoutToken = true
+          throw e
+        }
         if (!isCredentialCheckPath(path)) {
           this.authToken = null
           window.dispatchEvent(new CustomEvent<AuthExpiredDetail>('api-auth-expired', { detail: { baseUrl, epoch, path } }))
