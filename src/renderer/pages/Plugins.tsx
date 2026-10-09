@@ -42,7 +42,7 @@ import {
   Database,
   Info,
 } from 'lucide-react'
-import { Badge, Switch } from '@mantine/core'
+import { Switch } from '@mantine/core'
 import { usePluginStore } from '../stores/pluginStore'
 import { useConnectionStore } from '../stores/connectionStore'
 import { DisconnectedBanner } from '../components/common/DisconnectedBanner'
@@ -56,6 +56,7 @@ import { EmptyState } from '../components/common/PageState'
 import { Panel } from '../components/dashboard/cardShared'
 import { BTN_ICON_SM, BTN_SHEET_PRIMARY, BTN_SHEET_QUIET, BTN_TOOLBAR, BTN_TOOLBAR_QUIET, TONE_GHOST, TONE_GHOST_DANGER, TONE_OK } from '../lib/ui'
 
+import { Pill } from '../components/common/Pill'
 // ---------------------------------------------------------------------------
 // Featured plugins catalog
 // ---------------------------------------------------------------------------
@@ -517,7 +518,7 @@ export default function Plugins() {
                       </div>
                       <div className="flex items-center gap-1.5">
                         {isInstalled && (
-                          <Badge component="span" color="emerald" leftSection={<CheckCircle size={10} />}>Installed</Badge>
+                          <Pill tone="ok" icon={<CheckCircle size={10} />}>Installed</Pill>
                         )}
                         <Hint label={<PluginDetails name={fp.name} version={fp.version} description={fp.description} hooks={fp.scaffold?.hooks ? Object.keys(fp.scaffold.hooks) : undefined} tags={fp.tags} author={fp.author} Icon={Icon} />} position="left">
                           <button type="button" className={`${BTN_ICON_SM} ${TONE_GHOST}`} aria-label="Plugin details">

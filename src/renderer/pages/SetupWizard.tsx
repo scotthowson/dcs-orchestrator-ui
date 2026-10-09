@@ -41,17 +41,11 @@ import PasswordStrengthMeter from '../components/auth/PasswordStrength'
 import ShowPasswordButton from '../components/auth/ShowPasswordButton'
 import { pageLabel } from '../constants/pageTitles'
 import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD, BTN_ICON_SM, BTN_SHEET_QUIET, BTN_SHEET_PRIMARY, TONE_OK, TONE_DANGER, TONE_GHOST, TONE_GHOST_DANGER, FOCUS_RING } from '../lib/ui'
-import { CHOICE, CHOICE_ON, CHOICE_OFF } from '../lib/fieldStyles'
+import { CHOICE, CHOICE_ON, CHOICE_OFF, INPUT, INPUT_ICON, LABEL, FIELD, FIELD_SM } from '../lib/fieldStyles'
 // ---------------------------------------------------------------------------
 // The pieces every step is drawn with
 // ---------------------------------------------------------------------------
 
-/** the wizard's fields: 42 px, an emerald ring on focus (an icon on the left → pl-9) */
-const W_FIELD = 'py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-colors'
-const W_INPUT = `w-full px-3 ${W_FIELD}`
-const W_INPUT_ICON = `w-full pl-9 pr-3 ${W_FIELD}`
-const W_INPUT_PW = `w-full pl-9 pr-12 ${W_FIELD}`
-const W_LABEL = 'block text-xs font-medium text-slate-400 mb-1.5'
 /** Geoblock's country list as typed: two letters per country, comma separated (the API checks each one against ISO 3166-1; "UK" is GB) */
 const GEOBLOCK_COUNTRIES_RE = /^\s*[A-Za-z]{2}(\s*,\s*[A-Za-z]{2})*\s*$/
 const geoblockCountriesOk = (s: string) => GEOBLOCK_COUNTRIES_RE.test(s) && !/\bUK\b/i.test(s)
@@ -1174,7 +1168,7 @@ export default function SetupWizard({ onComplete }: WizardProps) {
                       onChange={(e) => { setServerUrlInput(e.target.value); setConnected(false) }}
                       onKeyDown={(e) => e.key === 'Enter' && handleConnect()}
                       placeholder="http://192.168.1.50:9876"
-                      className={`${W_INPUT_ICON} font-mono`}
+                      className={`${INPUT_ICON} font-mono`}
                     />
                   </div>
                   <button
@@ -1319,7 +1313,7 @@ export default function SetupWizard({ onComplete }: WizardProps) {
                           value={restorePass}
                           onChange={(e) => setRestorePass(e.target.value)}
                           placeholder="Bundle passphrase"
-                          className={W_INPUT_ICON}
+                          className={INPUT_ICON}
                         />
                       </div>
                       {restoreError && <p className="text-[10px] text-rose-400">{restoreError}</p>}
@@ -1344,7 +1338,7 @@ export default function SetupWizard({ onComplete }: WizardProps) {
               <div className="space-y-4">
                 {/* Username */}
                 <div>
-                  <label htmlFor="wizard-username" className={W_LABEL}>Username</label>
+                  <label htmlFor="wizard-username" className={LABEL}>Username</label>
                   <div className="relative">
                     <User size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                     <input
@@ -1353,7 +1347,7 @@ export default function SetupWizard({ onComplete }: WizardProps) {
                       value={adminUsername}
                       onChange={(e) => setAdminUsername(e.target.value)}
                       placeholder="admin"
-                      className={W_INPUT_ICON}
+                      className={INPUT_ICON}
                     />
                   </div>
                   {adminUsername && adminUsername.length < 3 && (
@@ -1363,7 +1357,7 @@ export default function SetupWizard({ onComplete }: WizardProps) {
 
                 {/* Password */}
                 <div>
-                  <label htmlFor="wizard-password" className={W_LABEL}>Password</label>
+                  <label htmlFor="wizard-password" className={LABEL}>Password</label>
                   <div className="relative">
                     <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                     <input
@@ -1373,7 +1367,7 @@ export default function SetupWizard({ onComplete }: WizardProps) {
                       onChange={(e) => setAdminPassword(e.target.value)}
                       onKeyDown={(e) => { if (e.key === 'Enter' && !needsAdmin && canNext()) handleNext() }}
                       placeholder={needsAdmin ? 'Min 8 chars, uppercase + number' : 'Enter your password'}
-                      className={W_INPUT_PW}
+                      className={`${INPUT_ICON} !pr-12`}
                     />
                     <ShowPasswordButton shown={showPassword} onToggle={() => setShowPassword(!showPassword)} />
                   </div>
@@ -1384,7 +1378,7 @@ export default function SetupWizard({ onComplete }: WizardProps) {
                 {/* Confirm Password — only for new account creation */}
                 {needsAdmin && (
                   <div>
-                    <label htmlFor="wizard-confirm-password" className={W_LABEL}>Confirm password</label>
+                    <label htmlFor="wizard-confirm-password" className={LABEL}>Confirm password</label>
                     <div className="relative">
                       <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                       <input
@@ -1394,7 +1388,7 @@ export default function SetupWizard({ onComplete }: WizardProps) {
                         onChange={(e) => setAdminConfirm(e.target.value)}
                         onKeyDown={(e) => { if (e.key === 'Enter' && canNext()) handleNext() }}
                         placeholder="Repeat password"
-                        className={W_INPUT_ICON}
+                        className={INPUT_ICON}
                       />
                     </div>
                     {adminConfirm && adminPassword !== adminConfirm && (
@@ -1420,7 +1414,7 @@ export default function SetupWizard({ onComplete }: WizardProps) {
               <div className="space-y-4">
                 {/* Server Name */}
                 <div>
-                  <label htmlFor="wiz-server-name" className={W_LABEL}>Server name</label>
+                  <label htmlFor="wiz-server-name" className={LABEL}>Server name</label>
                   <div className="relative">
                     <Server size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                     <input id="wiz-server-name"
@@ -1428,14 +1422,14 @@ export default function SetupWizard({ onComplete }: WizardProps) {
                       value={envVars.SERVER_NAME || ''}
                       onChange={(e) => setEnvVars({ ...envVars, SERVER_NAME: e.target.value })}
                       placeholder="My Docker Server"
-                      className={W_INPUT_ICON}
+                      className={INPUT_ICON}
                     />
                   </div>
                 </div>
 
                 {/* Timezone */}
                 <div>
-                  <label htmlFor="wiz-timezone" className={W_LABEL}>Timezone</label>
+                  <label htmlFor="wiz-timezone" className={LABEL}>Timezone</label>
                   <div className="relative">
                     <Clock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 z-10" />
                     <input id="wiz-timezone"
@@ -1464,7 +1458,7 @@ export default function SetupWizard({ onComplete }: WizardProps) {
                       }}
                       placeholder="Select or type a timezone…"
                       autoComplete="off"
-                      className={W_INPUT_ICON}
+                      className={INPUT_ICON}
                     />
                     {tzDropdownOpen && (
                       <div className="absolute top-full left-0 right-0 mt-1 bg-slate-800 border border-white/10 rounded-lg shadow-xl max-h-48 overflow-y-auto z-50 scrollbar-thin">
@@ -1496,7 +1490,7 @@ export default function SetupWizard({ onComplete }: WizardProps) {
 
                 {/* Domain */}
                 <div>
-                  <label htmlFor="wiz-domain" className={W_LABEL}>Domain</label>
+                  <label htmlFor="wiz-domain" className={LABEL}>Domain</label>
                   <div className="relative">
                     <Globe size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                     <input id="wiz-domain"
@@ -1504,14 +1498,14 @@ export default function SetupWizard({ onComplete }: WizardProps) {
                       value={envVars.PROXY_DOMAIN || ''}
                       onChange={(e) => setEnvVars({ ...envVars, PROXY_DOMAIN: e.target.value })}
                       placeholder="example.com"
-                      className={W_INPUT_ICON}
+                      className={INPUT_ICON}
                     />
                   </div>
                 </div>
 
                 {/* Data Directory */}
                 <div>
-                  <label htmlFor="wiz-data-directory" className={W_LABEL}>Data directory</label>
+                  <label htmlFor="wiz-data-directory" className={LABEL}>Data directory</label>
                   <div className="relative">
                     <FolderOpen size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                     <input id="wiz-data-directory"
@@ -1519,7 +1513,7 @@ export default function SetupWizard({ onComplete }: WizardProps) {
                       value={envVars.APP_DATA_DIR || ''}
                       onChange={(e) => setEnvVars({ ...envVars, APP_DATA_DIR: e.target.value })}
                       placeholder="./App-Data"
-                      className={W_INPUT_ICON}
+                      className={INPUT_ICON}
                     />
                   </div>
                 </div>
@@ -1527,22 +1521,22 @@ export default function SetupWizard({ onComplete }: WizardProps) {
                 {/* PUID / PGID */}
                 <div className="grid grid-cols-2 gap-2 sm:gap-3">
                   <div>
-                    <label className={W_LABEL}>User ID (PUID)</label>
+                    <label className={LABEL}>User ID (PUID)</label>
                     <input aria-label="User ID (PUID)"
                       type="number"
                       value={envVars.PUID || ''}
                       onChange={(e) => setEnvVars({ ...envVars, PUID: e.target.value })}
-                      className={W_INPUT}
+                      className={INPUT}
                     />
                   </div>
                   <div>
-                    <label className={W_LABEL}>Group ID (PGID)</label>
+                    <label className={LABEL}>Group ID (PGID)</label>
                     <input aria-label="Group ID (PGID)"
                       type="number"
                       value={envVars.PGID || ''}
                       onChange={(e) => setEnvVars({ ...envVars, PGID: e.target.value })}
                       onKeyDown={(e) => { if (e.key === 'Enter' && canNext()) handleNext() }}
-                      className={W_INPUT}
+                      className={INPUT}
                     />
                   </div>
                 </div>
@@ -1582,19 +1576,19 @@ export default function SetupWizard({ onComplete }: WizardProps) {
                       </p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div className="sm:col-span-2">
-                          <label htmlFor="wiz-proxmox-url" className={W_LABEL}>Proxmox URL</label>
+                          <label htmlFor="wiz-proxmox-url" className={LABEL}>Proxmox URL</label>
                           <input id="wiz-proxmox-url" type="text" value={pveUrl} onChange={(e) => { setPveUrl(e.target.value); setPveTest(null) }} placeholder={defaults?.system?.proxmox?.hint_url || 'https://pve.example.com:8006'}
-                            className={W_INPUT} />
+                            className={INPUT} />
                         </div>
                         <div>
-                          <label htmlFor="wiz-api-token-id" className={W_LABEL}>API token ID</label>
+                          <label htmlFor="wiz-api-token-id" className={LABEL}>API token ID</label>
                           <input id="wiz-api-token-id" type="text" value={pveTokenId} onChange={(e) => { setPveTokenId(e.target.value); setPveTest(null) }} placeholder="dcs@pve!dcs"
-                            className={W_INPUT} />
+                            className={INPUT} />
                         </div>
                         <div>
-                          <label htmlFor="wiz-token-secret" className={W_LABEL}>Token secret</label>
+                          <label htmlFor="wiz-token-secret" className={LABEL}>Token secret</label>
                           <input id="wiz-token-secret" type="password" value={pveSecret} onChange={(e) => { setPveSecret(e.target.value); setPveTest(null) }} placeholder={usingSavedSecret ? 'saved already — leave empty to keep it' : 'shown once when the token is made'} autoComplete="off"
-                            className={W_INPUT} />
+                            className={INPUT} />
                         </div>
                       </div>
                       <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -1693,35 +1687,35 @@ export default function SetupWizard({ onComplete }: WizardProps) {
                       {notifyMode === 'self' && (
                         <div className="grid grid-cols-2 gap-3 animate-fade-in">
                           <div>
-                            <label htmlFor="wiz-ntfy-port" className={W_LABEL}>ntfy port</label>
+                            <label htmlFor="wiz-ntfy-port" className={LABEL}>ntfy port</label>
                             <input id="wiz-ntfy-port"
                               type="text"
                               inputMode="numeric"
                               value={ntfyPort}
                               onChange={(e) => setNtfyPort(e.target.value.replace(/\D/g, ''))}
                               placeholder="8093"
-                              className={W_INPUT}
+                              className={INPUT}
                             />
                           </div>
                           <div>
-                            <label htmlFor="wiz-topic" className={W_LABEL}>Topic</label>
+                            <label htmlFor="wiz-topic" className={LABEL}>Topic</label>
                             <input id="wiz-topic"
                               type="text"
                               value={envVars.NTFY_TOPIC || ''}
                               onChange={(e) => setEnvVars({ ...envVars, NTFY_TOPIC: e.target.value })}
                               placeholder="dcs"
-                              className={W_INPUT}
+                              className={INPUT}
                             />
                           </div>
                           <p className="col-span-2 text-[10px] text-slate-500">
                             The wizard deploys the ntfy template and starts it. On your phone, subscribe to topic <span className="font-mono text-slate-300">{(envVars.NTFY_TOPIC || 'dcs').trim() || 'dcs'}</span> on <span className="font-mono text-slate-300">http://{'<server-ip>'}:{ntfyPort || '8093'}</span>{enableTraefik && envVars.PROXY_DOMAIN ? <> or <span className="font-mono text-slate-300">https://ntfy.{envVars.PROXY_DOMAIN}</span></> : null}.
                           </p>
                           <div className="col-span-2">
-                            <label className={W_LABEL}>Deploy into stack</label>
+                            <label className={LABEL}>Deploy into stack</label>
                             <select aria-label="Deploy into stack"
                               value={notifyStack}
                               onChange={(e) => setNotifyStack(e.target.value)}
-                              className={W_INPUT}
+                              className={INPUT}
                             >
                               {stacks.map((st) => <option key={st.name} value={st.name}>{st.name}</option>)}
                             </select>
@@ -1729,48 +1723,48 @@ export default function SetupWizard({ onComplete }: WizardProps) {
                         </div>
                       )}
                       <div className="pt-3 mt-1 border-t border-white/[0.03] animate-fade-in">
-                        <label htmlFor="wiz-discord-webhook-optional" className={W_LABEL}>Discord webhook <span className="text-slate-600">(optional)</span></label>
+                        <label htmlFor="wiz-discord-webhook-optional" className={LABEL}>Discord webhook <span className="text-slate-600">(optional)</span></label>
                         <input id="wiz-discord-webhook-optional"
                           type="text"
                           value={envVars.DISCORD_WEBHOOK_URL || ''}
                           onChange={(e) => setEnvVars({ ...envVars, DISCORD_WEBHOOK_URL: e.target.value.trim() })}
                           placeholder="https://discord.com/api/webhooks/…"
                           spellCheck={false}
-                          className={`${W_INPUT} font-mono`}
+                          className={`${INPUT} font-mono`}
                         />
                         <p className="text-[10px] text-slate-500 mt-1">Server Settings → Integrations → Webhooks in Discord. Every notification also lands in that channel as a rich embed, whether or not ntfy is on.</p>
                       </div>
                       {notifyMode === 'external' && (
                         <div className="space-y-3 animate-fade-in">
                           <div>
-                            <label htmlFor="wiz-ntfy-server-url" className={W_LABEL}>ntfy server URL</label>
+                            <label htmlFor="wiz-ntfy-server-url" className={LABEL}>ntfy server URL</label>
                             <input id="wiz-ntfy-server-url"
                               type="text"
                               value={envVars.NTFY_URL || ''}
                               onChange={(e) => setEnvVars({ ...envVars, NTFY_URL: e.target.value })}
                               placeholder="https://ntfy.sh"
-                              className={W_INPUT}
+                              className={INPUT}
                             />
                           </div>
                           <div className="grid grid-cols-2 gap-3">
                             <div>
-                              <label htmlFor="wiz-topic-2" className={W_LABEL}>Topic</label>
+                              <label htmlFor="wiz-topic-2" className={LABEL}>Topic</label>
                               <input id="wiz-topic-2"
                                 type="text"
                                 value={envVars.NTFY_TOPIC || ''}
                                 onChange={(e) => setEnvVars({ ...envVars, NTFY_TOPIC: e.target.value })}
                                 placeholder="dcs"
-                                className={W_INPUT}
+                                className={INPUT}
                               />
                             </div>
                             <div>
-                              <label htmlFor="wiz-access-token-optional" className={W_LABEL}>Access token <span className="text-slate-600">(optional)</span></label>
+                              <label htmlFor="wiz-access-token-optional" className={LABEL}>Access token <span className="text-slate-600">(optional)</span></label>
                               <input id="wiz-access-token-optional"
                                 type="password"
                                 value={envVars.NTFY_TOKEN || ''}
                                 onChange={(e) => setEnvVars({ ...envVars, NTFY_TOKEN: e.target.value })}
                                 placeholder="tk_…"
-                                className={W_INPUT}
+                                className={INPUT}
                               />
                             </div>
                           </div>
@@ -1804,11 +1798,11 @@ export default function SetupWizard({ onComplete }: WizardProps) {
                     <div className="px-4 py-4 space-y-3 border-t border-white/[0.03] animate-fade-in">
                       {/* Log Level */}
                       <div>
-                        <label className={W_LABEL}>Log level</label>
+                        <label className={LABEL}>Log level</label>
                         <select aria-label="Log level"
                           value={envVars.LOG_LEVEL || 'INFO'}
                           onChange={(e) => setEnvVars({ ...envVars, LOG_LEVEL: e.target.value })}
-                          className={W_INPUT}
+                          className={INPUT}
                         >
                           <option value="ERROR">ERROR</option>
                           <option value="WARNING">WARNING</option>
@@ -1847,14 +1841,14 @@ export default function SetupWizard({ onComplete }: WizardProps) {
                       {/* Number: Service start delay */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
                         <div>
-                          <label className={W_LABEL}>Start delay (seconds)</label>
+                          <label className={LABEL}>Start delay (seconds)</label>
                           <input aria-label="Start delay (seconds)"
                             type="number"
                             min="0"
                             max="60"
                             value={envVars.SERVICE_START_DELAY || '5'}
                             onChange={(e) => setEnvVars({ ...envVars, SERVICE_START_DELAY: e.target.value })}
-                            className={W_INPUT}
+                            className={INPUT}
                           />
                         </div>
                       </div>
@@ -1879,23 +1873,23 @@ export default function SetupWizard({ onComplete }: WizardProps) {
                   {showBackup && (
                     <div className="px-4 py-4 space-y-3 border-t border-white/[0.03] animate-fade-in">
                       <div>
-                        <label htmlFor="wiz-backup-source-directory" className={W_LABEL}>Backup source directory</label>
+                        <label htmlFor="wiz-backup-source-directory" className={LABEL}>Backup source directory</label>
                         <input id="wiz-backup-source-directory"
                           type="text"
                           value={envVars.BACKUP_SOURCE_DIR || ''}
                           onChange={(e) => setEnvVars({ ...envVars, BACKUP_SOURCE_DIR: e.target.value })}
                           placeholder="/path/to/source"
-                          className={W_INPUT}
+                          className={INPUT}
                         />
                       </div>
                       <div>
-                        <label htmlFor="wiz-backup-destination-directory" className={W_LABEL}>Backup destination directory</label>
+                        <label htmlFor="wiz-backup-destination-directory" className={LABEL}>Backup destination directory</label>
                         <input id="wiz-backup-destination-directory"
                           type="text"
                           value={envVars.BACKUP_DEST_DIR || ''}
                           onChange={(e) => setEnvVars({ ...envVars, BACKUP_DEST_DIR: e.target.value })}
                           placeholder="/path/to/destination"
-                          className={W_INPUT}
+                          className={INPUT}
                         />
                       </div>
                       <p className="text-[10px] text-slate-500">Configure after setup if unsure</p>
@@ -1936,7 +1930,7 @@ export default function SetupWizard({ onComplete }: WizardProps) {
                         <div className="space-y-3 animate-fade-in">
                           {/* Domain (read-only, inherited from PROXY_DOMAIN) */}
                           <div>
-                            <label className={W_LABEL}>Domain</label>
+                            <label className={LABEL}>Domain</label>
                             <div className="flex items-center gap-2">
                               <input aria-label="Domain"
                                 type="text"
@@ -1954,11 +1948,11 @@ export default function SetupWizard({ onComplete }: WizardProps) {
 
                           {/* Where the proxy services are deployed */}
                           <div>
-                            <label className={W_LABEL}>Deploy into stack</label>
+                            <label className={LABEL}>Deploy into stack</label>
                             <select aria-label="Deploy into stack"
                               value={proxyStack}
                               onChange={(e) => setProxyStack(e.target.value)}
-                              className={W_INPUT}
+                              className={INPUT}
                             >
                               {stacks.map((st) => <option key={st.name} value={st.name}>{st.name}</option>)}
                             </select>
@@ -1967,7 +1961,7 @@ export default function SetupWizard({ onComplete }: WizardProps) {
 
                           {/* Email for Let's Encrypt */}
                           <div>
-                            <label htmlFor="wiz-lets-encrypt-email" className={W_LABEL}>
+                            <label htmlFor="wiz-lets-encrypt-email" className={LABEL}>
                               Let's Encrypt email <span className="text-rose-400" aria-hidden>*</span>
                             </label>
                             <input id="wiz-lets-encrypt-email"
@@ -1976,7 +1970,7 @@ export default function SetupWizard({ onComplete }: WizardProps) {
                               onChange={(e) => setTraefikEmail(e.target.value)}
                               placeholder="you@your-domain.com"
                               aria-invalid={!!traefikEmail.trim() && !traefikEmailValid}
-                              className={W_INPUT}
+                              className={INPUT}
                             />
                             {/* the step cannot be left without it: an empty field says so calmly, a wrong address is an error */}
                             {traefikEmailValid
@@ -1988,13 +1982,13 @@ export default function SetupWizard({ onComplete }: WizardProps) {
 
                           {/* Trusted LAN */}
                           <div>
-                            <label htmlFor="wiz-trusted-lan-subnet" className={W_LABEL}>Trusted LAN subnet</label>
+                            <label htmlFor="wiz-trusted-lan-subnet" className={LABEL}>Trusted LAN subnet</label>
                             <input id="wiz-trusted-lan-subnet"
                               type="text"
                               value={traefikTrustedLan}
                               onChange={(e) => setTraefikTrustedLan(e.target.value)}
                               placeholder="192.168.1.0/24"
-                              className={`${W_INPUT} font-mono`}
+                              className={`${INPUT} font-mono`}
                             />
                           </div>
 
@@ -2041,7 +2035,7 @@ export default function SetupWizard({ onComplete }: WizardProps) {
                             </div>
                             {traefikGeoblock && (
                               <div className="pb-2 animate-fade-in">
-                                <label htmlFor="wiz-geoblock-countries" className={W_LABEL}>
+                                <label htmlFor="wiz-geoblock-countries" className={LABEL}>
                                   Allowed countries <span className="text-rose-400" aria-hidden>*</span>
                                 </label>
                                 <input id="wiz-geoblock-countries"
@@ -2050,7 +2044,7 @@ export default function SetupWizard({ onComplete }: WizardProps) {
                                   onChange={(e) => setTraefikGeoblockCountries(e.target.value)}
                                   placeholder="GB,US,DE"
                                   aria-invalid={traefikGeoblockCountries.trim() !== '' && !geoblockCountriesOk(traefikGeoblockCountries) ? true : undefined}
-                                  className={`${W_INPUT} font-mono`}
+                                  className={`${INPUT} font-mono`}
                                 />
                                 <p className={`text-[10px] mt-1 ${traefikGeoblockCountries.trim() !== '' && !geoblockCountriesOk(traefikGeoblockCountries) ? 'text-rose-400' : 'text-slate-500'}`}>
                                   {/\bUK\b/i.test(traefikGeoblockCountries) ? 'The United Kingdom is GB.' : 'ISO 3166-1 alpha-2 codes, comma separated. Needed before you can continue.'}
@@ -2075,7 +2069,7 @@ export default function SetupWizard({ onComplete }: WizardProps) {
 
                           {/* Cloudflare DNS (optional) */}
                           <div>
-                            <label htmlFor="wiz-cloudflare-dns-api-token-optional" className={W_LABEL}>
+                            <label htmlFor="wiz-cloudflare-dns-api-token-optional" className={LABEL}>
                               Cloudflare DNS API token <span className="text-[9px] text-slate-500">(optional)</span>
                             </label>
                             <input id="wiz-cloudflare-dns-api-token-optional"
@@ -2083,7 +2077,7 @@ export default function SetupWizard({ onComplete }: WizardProps) {
                               value={cfDnsToken}
                               onChange={(e) => setCfDnsToken(e.target.value)}
                               placeholder="Leave empty for HTTP challenge"
-                              className={`${W_INPUT} font-mono`}
+                              className={`${INPUT} font-mono`}
                             />
                             <p className="text-[10px] text-slate-500 mt-1">Needed for the DNS challenge (wildcard certificates), dynamic DNS and the {pageLabel('dns')} page. Stored encrypted as the secret <span className="font-mono text-slate-400">CF_DNS_API_TOKEN</span>; leave empty to use the HTTP-01 challenge.</p>
                           </div>
@@ -2112,19 +2106,19 @@ export default function SetupWizard({ onComplete }: WizardProps) {
                               {enableDDNS && (
                                 <div className="animate-fade-in space-y-3">
                                   <div>
-                                    <label htmlFor="wiz-subdomains-to-monitor" className={W_LABEL}>Subdomains to monitor</label>
+                                    <label htmlFor="wiz-subdomains-to-monitor" className={LABEL}>Subdomains to monitor</label>
                                     <input id="wiz-subdomains-to-monitor"
                                       type="text"
                                       value={ddnsSubdomains}
                                       onChange={(e) => setDdnsSubdomains(e.target.value)}
                                       placeholder="@,www,traefik,ui"
-                                      className={`${W_INPUT} font-mono`}
+                                      className={`${INPUT} font-mono`}
                                     />
                                     <p className="text-[10px] text-slate-500 mt-1">Use @ for root domain. Comma-separated.</p>
                                   </div>
 
                                   <div>
-                                    <span className={W_LABEL}>Check interval</span>
+                                    <span className={LABEL}>Check interval</span>
                                     <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Check interval">
                                       {[
                                         { value: 60, label: '1 min' },
@@ -2188,7 +2182,7 @@ export default function SetupWizard({ onComplete }: WizardProps) {
                               value={autheliaUser}
                               onChange={(e) => setAutheliaUser(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ''))}
                               placeholder="admin"
-                              className={W_INPUT}
+                              className={INPUT}
                             />
                           </div>
                           <div>
@@ -2198,7 +2192,7 @@ export default function SetupWizard({ onComplete }: WizardProps) {
                               value={autheliaDisplay}
                               onChange={(e) => setAutheliaDisplay(e.target.value)}
                               placeholder="John Doe"
-                              className={W_INPUT}
+                              className={INPUT}
                             />
                           </div>
                         </div>
@@ -2209,7 +2203,7 @@ export default function SetupWizard({ onComplete }: WizardProps) {
                             value={autheliaEmail}
                             onChange={(e) => setAutheliaEmail(e.target.value)}
                             placeholder={`admin@${envVars.PROXY_DOMAIN || 'yourdomain.com'}`}
-                            className={W_INPUT}
+                            className={INPUT}
                           />
                         </div>
                         <div>
@@ -2219,7 +2213,7 @@ export default function SetupWizard({ onComplete }: WizardProps) {
                             value={autheliaPassword}
                             onChange={(e) => setAutheliaPassword(e.target.value)}
                             placeholder="Minimum 8 characters"
-                            className={W_INPUT}
+                            className={INPUT}
                           />
                         </div>
                         <div className="flex items-start gap-2 p-2.5 rounded-lg bg-cyan-500/5 border border-cyan-500/10">
@@ -2290,11 +2284,11 @@ export default function SetupWizard({ onComplete }: WizardProps) {
                   {showPreferences && (
                     <div className="px-4 py-4 space-y-3 border-t border-white/[0.03] animate-fade-in">
                       <div>
-                        <label className={W_LABEL}>Mode</label>
+                        <label className={LABEL}>Mode</label>
                         <select aria-label="Mode"
                           value={prefTheme}
                           onChange={(e) => setPrefTheme(e.target.value as 'dark' | 'light' | 'system')}
-                          className={W_INPUT}
+                          className={INPUT}
                         >
                           <option value="system">System (follows this device)</option>
                           <option value="dark">Dark</option>
@@ -2302,11 +2296,11 @@ export default function SetupWizard({ onComplete }: WizardProps) {
                         </select>
                       </div>
                       <div>
-                        <label className={W_LABEL}>Session duration</label>
+                        <label className={LABEL}>Session duration</label>
                         <select aria-label="Session duration"
                           value={prefSessionMinutes}
                           onChange={(e) => setPrefSessionMinutes(Number(e.target.value))}
-                          className={W_INPUT}
+                          className={INPUT}
                         >
                           <option value={60}>1 hour</option>
                           <option value={240}>4 hours</option>
@@ -2316,11 +2310,11 @@ export default function SetupWizard({ onComplete }: WizardProps) {
                         </select>
                       </div>
                       <div>
-                        <label className={W_LABEL}>Auto-lock</label>
+                        <label className={LABEL}>Auto-lock</label>
                         <select aria-label="Auto-lock"
                           value={prefAutoLock}
                           onChange={(e) => setPrefAutoLock(Number(e.target.value))}
-                          className={W_INPUT}
+                          className={INPUT}
                         >
                           <option value={0}>Off</option>
                           <option value={5}>5 minutes</option>
@@ -2330,23 +2324,23 @@ export default function SetupWizard({ onComplete }: WizardProps) {
                         </select>
                       </div>
                       <div>
-                        <label htmlFor="wiz-app-name" className={W_LABEL}>App name</label>
+                        <label htmlFor="wiz-app-name" className={LABEL}>App name</label>
                         <input id="wiz-app-name"
                           type="text"
                           value={prefAppName}
                           onChange={(e) => setPrefAppName(e.target.value)}
                           placeholder="DCS Orchestrator"
-                          className={W_INPUT}
+                          className={INPUT}
                         />
                       </div>
                       <div>
-                        <label htmlFor="wiz-app-subtitle" className={W_LABEL}>App subtitle</label>
+                        <label htmlFor="wiz-app-subtitle" className={LABEL}>App subtitle</label>
                         <input id="wiz-app-subtitle"
                           type="text"
                           value={prefAppSubtitle}
                           onChange={(e) => setPrefAppSubtitle(e.target.value)}
                           placeholder="The server's name"
-                          className={W_INPUT}
+                          className={INPUT}
                         />
                       </div>
                       <p className="text-[10px] text-slate-500">These can be changed later on the {pageLabel('settings')} page</p>
@@ -2412,7 +2406,7 @@ export default function SetupWizard({ onComplete }: WizardProps) {
                           }}
                           onBlur={() => commitEdit(index)}
                           autoFocus
-                          className={`flex-1 min-w-[8rem] px-2 ${W_FIELD} !py-1 !text-xs font-mono`}
+                          className={`flex-1 min-w-[8rem] ${FIELD_SM} !px-2 font-mono`}
                         />
                       ) : (
                         <span className="flex-1 min-w-[8rem] text-xs font-mono text-slate-300 truncate" title={stack.name}>
@@ -2550,7 +2544,7 @@ export default function SetupWizard({ onComplete }: WizardProps) {
                           }}
                           autoFocus
                           placeholder={formatStackName(stack.name)}
-                          className={`flex-1 min-w-0 px-2 ${W_FIELD} !py-1 !text-xs`}
+                          className={`flex-1 min-w-0 ${FIELD_SM} !px-2`}
                         />
                         <button
                           type="button"
@@ -2589,7 +2583,7 @@ export default function SetupWizard({ onComplete }: WizardProps) {
                   onChange={(e) => setNewStackName(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))}
                   onKeyDown={(e) => e.key === 'Enter' && addStack()}
                   placeholder="new-stack-name"
-                  className={`flex-1 min-w-0 px-3 ${W_FIELD} !py-2 font-mono`}
+                  className={`flex-1 min-w-0 ${FIELD} font-mono`}
                 />
                 <button
                   type="button"

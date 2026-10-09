@@ -2,11 +2,11 @@
 // MaintenanceSummary — dangling images and volumes a cleanup would remove
 // =============================================================================
 
-import { Badge } from '@mantine/core'
 import { useConnectionStore } from '../../stores/connectionStore'
 import type { MaintenanceReport } from '../../../shared/types'
 import { Card, CardOffline } from './cardShared'
 import { Skeleton, ErrorState } from '../common/PageState'
+import { Pill } from '../common/Pill'
 interface Props {
   data: MaintenanceReport | null
   error?: Error | null
@@ -37,7 +37,7 @@ export default function MaintenanceSummary({ data, error, onRetry }: Props) {
       card="maintenance"
       open="maintenance"
       tone={hasDangling ? 'attention' : undefined}
-      badge={hasDangling ? <Badge component="span" color="amber">Cleanup available</Badge> : undefined}
+      badge={hasDangling ? <Pill tone="attention">Cleanup available</Pill> : undefined}
     >
       <div className="grid grid-cols-2 gap-2">
         <Tile label="Dangling images" value={images.dangling} />

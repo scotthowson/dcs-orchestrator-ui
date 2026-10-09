@@ -6,7 +6,7 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Server } from 'lucide-react'
-import { Badge, Tooltip } from '@mantine/core'
+import { Tooltip } from '@mantine/core'
 import VmCapsule from '../fleet/VmCapsule'
 import { EmptyState } from '../common/PageState'
 import { WINDOW_MIN, availabilityText, availabilityTone, type Minute, type SegStatus, type Timeline, type UptimeRow } from './uptimeModel'
@@ -14,6 +14,7 @@ import { StateChip } from '../common/StateChip'
 import { containerState } from '../../lib/containerState'
 
 import { TONE_TEXT } from '../../lib/tone'
+import { Pill } from '../common/Pill'
 export interface TimelineRow extends UptimeRow {
   key: string
   image?: string
@@ -108,11 +109,11 @@ export function UptimeStatusBadge({ state, health, onDemand, sablierUp }: { stat
   const h = health.toLowerCase()
   // asleep on demand: the shared chip (indigo moon, amber when Sablier is not there to wake it)
   if (s !== 'running' && s !== 'restarting' && onDemand) return <StateChip state={containerState({ state, on_demand: true, sablier_up: sablierUp })} size="xs" />
-  if (s === 'running' && h === 'healthy') return <Badge component="span" color="emerald">Healthy</Badge>
-  if (s === 'running' && h === 'unhealthy') return <Badge component="span" color="rose">Unhealthy</Badge>
-  if (s === 'running') return <Badge component="span" color="emerald">Running</Badge>
-  if (s === 'restarting') return <Badge component="span" color="amber">Restarting</Badge>
-  return <Badge component="span" color="slate">Stopped</Badge>
+  if (s === 'running' && h === 'healthy') return <Pill tone="ok">Healthy</Pill>
+  if (s === 'running' && h === 'unhealthy') return <Pill tone="problem">Unhealthy</Pill>
+  if (s === 'running') return <Pill tone="ok">Running</Pill>
+  if (s === 'restarting') return <Pill tone="attention">Restarting</Pill>
+  return <Pill tone="neutral">Stopped</Pill>
 }
 
 /** a container's availability over the window, "estimated" with the reason when part of it is not known */

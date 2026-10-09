@@ -62,3 +62,14 @@ export function loadTone(load: number, cores: number | undefined): Tone {
   const perCore = load / cores
   return perCore >= 2 ? 'problem' : perCore >= 1 ? 'attention' : 'ok'
 }
+
+/** a health score as a grade: A from 90, B from 75, C from 60, D from 40, F below */
+export function scoreGrade(score: number): string {
+  if (score >= 90) return 'A'
+  if (score >= 75) return 'B'
+  if (score >= 60) return 'C'
+  if (score >= 40) return 'D'
+  return 'F'
+}
+/** the tone of a grade: A fine, B information, C and D need a look, F a problem */
+export const GRADE_TONE: Record<string, Tone> = { A: 'ok', B: 'info', C: 'attention', D: 'attention', F: 'problem' }

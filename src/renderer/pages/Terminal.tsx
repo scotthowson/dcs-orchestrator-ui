@@ -16,7 +16,6 @@ import {
   Loader2,
   WifiOff,
 } from 'lucide-react'
-import { Badge } from '@mantine/core'
 import { execTerminalCommandAuth, terminalAuthVerify, terminalLogout } from '../api/endpoints'
 import { execMemberTerminalCommand, fetchMemberTerminal } from '../api/fleetScopedOps'
 import { useFleetScope } from '../hooks/useFleetScope'
@@ -32,6 +31,7 @@ import PageHeader from '../components/common/PageHeader'
 import Hint from '../components/common/Hint'
 import { BTN_CARD, BTN_ICON_SM, BTN_TOOLBAR_QUIET, TONE_DANGER, TONE_GHOST, TONE_OK, TONE_QUIET, BTN_TOOLBAR } from '../lib/ui'
 
+import { Pill } from '../components/common/Pill'
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -504,7 +504,7 @@ export default function Terminal() {
         page="terminal"
         badge={<>
           {member && <VmCapsule member={member} name={memberName} vmid={scopeMembers.find((m) => m.id === member)?.vmid} />}
-          <Badge component="span" color="emerald" leftSection={<Lock size={10} />}>Unlocked</Badge>
+          <Pill tone="ok" icon={<Lock size={10} />}>Unlocked</Pill>
         </>}
         subtitle={<>Signed in as <span className="font-mono text-slate-300">{terminalUser}</span> with a Linux account{member ? <> · shell inside the VM <span className="font-mono text-slate-300">{memberName}</span></> : null}</>}
         actions={<>
@@ -594,7 +594,7 @@ export default function Terminal() {
                     <Clock size={9} aria-hidden />
                     {new Date(entry.timestamp).toLocaleTimeString()}
                   </span>
-                  <Badge component="span" color={entry.exitCode === 0 ? 'emerald' : 'rose'}>exit {entry.exitCode}</Badge>
+                  <Pill tone={entry.exitCode === 0 ? 'ok' : 'problem'}>exit {entry.exitCode}</Pill>
                   <Hint label={copiedIndex === idx ? 'Copied' : 'Copy the output'}>
                     <button type="button" onClick={(e) => { e.stopPropagation(); handleCopyOutput(idx) }} aria-label="Copy the output" className={`${BTN_ICON_SM} ${TONE_GHOST}`}>
                       {copiedIndex === idx ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}

@@ -6,7 +6,6 @@
 
 import { useState, useEffect, useMemo, type ReactNode, useCallback, useRef, useId } from 'react'
 import { createPortal } from 'react-dom'
-import { Badge } from '@mantine/core'
 import {
   Network, RefreshCw, Plus, Trash2, X, Check,
   Globe, Lock, AlertCircle, Loader2, Unplug, Plug, Eye,
@@ -41,6 +40,7 @@ import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD, BTN_CARD_QUIET, BTN_ICON, BTN
 import { CARD, REVEAL } from '../lib/pageKit'
 import { SEARCH_FIELD, INPUT } from '../lib/fieldStyles'
 import StatTile from '../components/common/StatTile'
+import { Pill } from '../components/common/Pill'
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -457,7 +457,7 @@ function NetworkDetailPanel({ network, onClose, onRefresh, onEdit, isAdmin }: {
               <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">Network properties</h3>
 
               <div className="grid grid-cols-2 gap-4">
-                {prop('Driver', <Badge color="cyan">{detail.driver}</Badge>)}
+                {prop('Driver', <Pill tone="info">{detail.driver}</Pill>)}
                 {prop('Scope', <p className="text-sm font-medium text-slate-200">{detail.scope}</p>)}
                 {prop('Subnet', <p className="text-sm text-slate-200 font-mono break-all">{detail.subnet || 'Auto-assigned'}</p>)}
                 {prop('Gateway', <p className="text-sm text-slate-200 font-mono break-all">{detail.gateway || 'Auto-assigned'}</p>)}
@@ -664,9 +664,9 @@ function NetworkCard({ net, onInspect, onDelete, isAdmin }: {
 
         {/* Driver + scope tags */}
         <div className="flex flex-wrap items-center gap-1.5 mb-3">
-          <Badge color="cyan">{net.driver}</Badge>
-          <Badge color="slate">{net.scope}</Badge>
-          {isBuiltIn && <Badge color="slate">built-in</Badge>}
+          <Pill tone="info">{net.driver}</Pill>
+          <Pill tone="neutral">{net.scope}</Pill>
+          {isBuiltIn && <Pill tone="neutral">built-in</Pill>}
         </div>
 
         {/* Connected containers */}

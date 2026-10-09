@@ -4,12 +4,12 @@
 // =============================================================================
 
 import { Bot } from 'lucide-react'
-import { Badge } from '@mantine/core'
 import { useConnectionStore } from '../../stores/connectionStore'
 import { pageLabel } from '../../constants/pageTitles'
 import type { AutomationListResponse, ScheduleListResponse } from '../../../shared/types'
 import { Card, CardBody, CardOffline } from './cardShared'
 import { Skeleton, EmptyState, ErrorState } from '../common/PageState'
+import { Pill } from '../common/Pill'
 interface Props {
   data: AutomationListResponse | null
   /** the timed rules (GET /schedules); null while unknown */
@@ -45,7 +45,7 @@ export default function ActiveAutomations({ data, schedules, error, onRetry }: P
                 <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${a.enabled ? 'bg-emerald-400' : 'bg-slate-600'}`} role="img" aria-label={a.enabled ? 'On' : 'Off'} />
                 <span className="text-[11px] text-slate-300 truncate">{a.name}</span>
               </div>
-              <Badge component="span" color={a.timed ? 'cyan' : 'amber'}>{a.timed ? 'Timed' : 'Condition'}</Badge>
+              <Pill tone={a.timed ? 'info' : 'attention'}>{a.timed ? 'Timed' : 'Condition'}</Pill>
             </div>
           ))}
         </CardBody>

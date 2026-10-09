@@ -26,6 +26,7 @@ import type { ConnectionStatus } from '../../../shared/types'
 import { pageLabel } from '../../constants/pageTitles'
 import ModalOverlay from '../common/ModalOverlay'
 
+import { Count } from '../common/Pill'
 const statusConfig: Record<ConnectionStatus, { color: string; ringColor: string; pulse: boolean; label: string }> = {
   connected: {
     color: 'bg-emerald-400',
@@ -479,17 +480,7 @@ export function Header() {
         >
           <Bell size={14} />
           {unreadCount > 0 && (
-            <span className="
-              absolute -top-1 -right-1
-              flex items-center justify-center
-              min-w-[16px] h-4 px-1 rounded-full
-              bg-rose-500 text-white
-              text-[9px] font-bold leading-none tabular-nums
-              ring-2 ring-slate-900
-              animate-scale-in
-            ">
-              {unreadCount > 99 ? '99+' : unreadCount}
-            </span>
+            <Count alert n={unreadCount > 99 ? '99+' : unreadCount} className="absolute -top-1 -right-1 animate-scale-in" />
           )}
         </button>
 

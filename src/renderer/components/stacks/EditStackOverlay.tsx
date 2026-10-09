@@ -43,25 +43,14 @@ import { useSettingsStore } from '../../stores/settingsStore'
 import { useComposeLinter, useEnvLinter } from '../../hooks/useComposeLinter'
 import type { StackInfo, StackAnnotation, ComposeVersion } from '../../../shared/types'
 import { useModalA11y } from '../../hooks/useModalA11y'
-import { EditorDiagnostics, DiagNumber } from './LintParts'
-import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD, BTN_ICON, BTN_ICON_SM, BTN_SHEET_PRIMARY, TONE_QUIET, TONE_OK, TONE_GHOST } from '../../lib/ui'
-
+import { EditorDiagnostics, DiagNumber, CountBadge } from './LintParts'
+import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD, BTN_ICON, BTN_ICON_SM, BTN_SHEET_PRIMARY, TONE_QUIET, TONE_OK, TONE_GHOST, TONE_PRESSED } from '../../lib/ui'
 interface Props {
   stack: StackInfo
   onClose: () => void
   onSaved: () => void
   /** Open in compose edit mode with this service's block selected */
   initialService?: string
-}
-
-/** the pressed state of a toggle button: the cyan the dashboard gives a chosen mode (Batch mode, Edit mode) */
-const TONE_ON = 'bg-cyan-500/15 border border-cyan-500/25 text-cyan-400 hover:bg-cyan-500/25'
-
-/** the number of errors (or, without any, warnings) a tab carries */
-function CountBadge({ errors, warnings }: { errors: number; warnings: number }) {
-  if (errors > 0) return <span className="inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-rose-500/20 text-[9px] font-bold text-rose-400 tabular-nums" aria-label={`${errors} error${errors === 1 ? '' : 's'}`}>{errors}</span>
-  if (warnings > 0) return <span className="inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-amber-500/20 text-[9px] font-bold text-amber-400 tabular-nums" aria-label={`${warnings} warning${warnings === 1 ? '' : 's'}`}>{warnings}</span>
-  return null
 }
 
 /** Pretty-print stack category names */
@@ -1298,7 +1287,7 @@ export default function EditStackOverlay({ stack, onClose, onSaved, initialServi
                         setSearchQuery('')
                       }
                     }}
-                    className={`${BTN_TOOLBAR} ${composeEditMode ? TONE_ON : TONE_QUIET}`}
+                    className={`${BTN_TOOLBAR} ${composeEditMode ? TONE_PRESSED : TONE_QUIET}`}
                   >
                     <Pencil size={14} />
                     <span className="hidden sm:inline">{composeEditMode ? 'Editing' : 'Edit'}</span>
@@ -1312,7 +1301,7 @@ export default function EditStackOverlay({ stack, onClose, onSaved, initialServi
                       aria-label="Diff view"
                       aria-pressed={showDiff}
                       onClick={() => setShowDiff((prev) => !prev)}
-                      className={`${BTN_TOOLBAR} ${showDiff ? TONE_ON : TONE_QUIET}`}
+                      className={`${BTN_TOOLBAR} ${showDiff ? TONE_PRESSED : TONE_QUIET}`}
                     >
                       <GitCompare size={14} />
                       <span className="hidden sm:inline">Diff</span>
@@ -1363,7 +1352,7 @@ export default function EditStackOverlay({ stack, onClose, onSaved, initialServi
                         if (!searchOpen) setTimeout(() => searchInputRef.current?.focus(), 0)
                         else setSearchQuery('')
                       }}
-                      className={`${BTN_ICON} ${searchOpen ? TONE_ON : TONE_QUIET}`}
+                      className={`${BTN_ICON} ${searchOpen ? TONE_PRESSED : TONE_QUIET}`}
                     >
                       <Search size={14} />
                     </button>
@@ -1395,7 +1384,7 @@ export default function EditStackOverlay({ stack, onClose, onSaved, initialServi
                       if (envEditMode) setEnvEditMode(false)
                       else { setEnvEditMode(true); setEnvContent(envContent || '') }
                     }}
-                    className={`${BTN_TOOLBAR} ${envEditMode ? TONE_ON : TONE_QUIET}`}
+                    className={`${BTN_TOOLBAR} ${envEditMode ? TONE_PRESSED : TONE_QUIET}`}
                   >
                     <Pencil size={14} />
                     <span className="hidden sm:inline">{envEditMode ? 'Editing' : 'Edit'}</span>

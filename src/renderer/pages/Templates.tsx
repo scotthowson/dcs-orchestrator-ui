@@ -51,7 +51,7 @@ import {
   Satellite, Home, Check, Cpu,
 } from 'lucide-react'
 import { createPortal } from 'react-dom'
-import { Badge, SegmentedControl, Select, Switch } from '@mantine/core'
+import { SegmentedControl, Select, Switch } from '@mantine/core'
 import { useComposeLinter, useEnvLinter } from '../hooks/useComposeLinter'
 import { usePolling } from '../hooks/usePolling'
 import { useConnectionStore } from '../stores/connectionStore'
@@ -161,7 +161,7 @@ function getCategoryIcon(category: string): React.ElementType {
 /** a template's category: its icon and its name in one neutral pill */
 function CategoryChip({ category, size = 'sm' }: { category: string; size?: 'sm' | 'xs' }) {
   const Icon = getCategoryIcon(category)
-  return <Badge component="span" color="slate" size={size} leftSection={<Icon size={size === 'xs' ? 9 : 10} />}>{category}</Badge>
+  return <Pill size={size} icon={<Icon size={10} />}>{category}</Pill>
 }
 
 function matchesCategory(template: TemplateInfo, filter: CategoryId): boolean {
@@ -284,6 +284,7 @@ import { SABLIER_DEFAULTS, SABLIER_SESSIONS, SABLIER_THEMES, SABLIER_THEME_NOTES
 import type { SablierOptions } from '../lib/sablier'
 import ModalOverlay from '../components/common/ModalOverlay'
 
+import { Pill } from '../components/common/Pill'
 function generateRouteYaml(
   serviceName: string,
   containerName: string,
@@ -1093,12 +1094,12 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
           <div key={name} className="flex flex-wrap items-center gap-2">
             <span className="font-mono text-[11px] text-slate-200">{name}</span>
             {exists ? (
-              <Badge component="span" color="emerald" size="xs">stored</Badge>
+              <Pill tone="ok" size="xs">stored</Pill>
             ) : willCreate ? (
-              <Badge component="span" color="cyan" size="xs">stored when you deploy</Badge>
+              <Pill tone="info" size="xs">stored when you deploy</Pill>
             ) : (
               <>
-                <Badge component="span" color="amber" size="xs">missing</Badge>
+                <Pill tone="attention" size="xs">missing</Pill>
                 <input
                   type="password"
                   value={secretDrafts[name] ?? ''}
@@ -1943,14 +1944,14 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
                       </span>
                       <span className="flex items-center gap-1.5">
                         {warnCount > 0 && (
-                          <Badge component="span" color="amber" size="xs">
+                          <Pill tone="attention" size="xs">
                             {warnCount} {warnCount === 1 ? 'warning' : 'warnings'}
-                          </Badge>
+                          </Pill>
                         )}
                         {infoCount > 0 && (
-                          <Badge component="span" color="slate" size="xs">
+                          <Pill tone="neutral" size="xs">
                             {infoCount} {infoCount === 1 ? 'suggestion' : 'suggestions'}
-                          </Badge>
+                          </Pill>
                         )}
                       </span>
                       <ChevronDown
@@ -1989,12 +1990,12 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
                   </div>
                   <div className="flex flex-wrap gap-1.5 mt-2 pl-[22px]">
                     {deployHookPlugins.map((p) => (
-                      <Badge key={p.name} component="span" color="cyan">
+                      <Pill key={p.name} tone="info">
                         {p.name}
                         <span className="opacity-70 ml-1">
                           {(p.hooks ?? []).filter((h) => h === 'pre-deploy' || h === 'post-deploy').join(', ')}
                         </span>
-                      </Badge>
+                      </Pill>
                     ))}
                   </div>
                 </div>
@@ -2845,7 +2846,7 @@ function UrlImportModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
                 >
                   Variables
                   {detectedVars.length > 0 && (
-                    <Badge component="span" color="emerald" size="xs">{detectedVars.length}</Badge>
+                    <Pill tone="ok" size="xs">{detectedVars.length}</Pill>
                   )}
                 </button>
               </div>
@@ -3173,9 +3174,9 @@ function TemplateCard({ template, onDeploy, onEdit, onDelete, onExport, deploySt
         <div className="flex items-center gap-2 min-w-0 flex-wrap">
           <CategoryChip category={template.category} />
           {deployStatus && deployStatus.state !== 'none' && (
-            <Badge component="span" color={running ? 'emerald' : 'slate'} leftSection={<Circle size={6} className={running ? 'fill-emerald-400 text-emerald-400 animate-pulse' : 'fill-slate-500 text-slate-500'} />}>
+            <Pill tone={running ? 'ok' : 'neutral'} icon={<Circle size={6} className={running ? 'fill-emerald-400 text-emerald-400 animate-pulse' : 'fill-slate-500 text-slate-500'} />}>
               {running ? 'Running' : 'Deployed'}
-            </Badge>
+            </Pill>
           )}
         </div>
         {/* (on a phone, where nothing hovers, they are always there) */}
@@ -3859,7 +3860,7 @@ export default function Templates() {
                         {new Date(entry.timestamp).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                       </td>
                       <td className="py-2 px-2">
-                        <Badge component="span" color={entry.action === 'deploy' ? 'emerald' : 'slate'}>{entry.action}</Badge>
+                        <Pill tone={entry.action === 'deploy' ? 'ok' : 'neutral'}>{entry.action}</Pill>
                       </td>
                       <td className="py-2 px-2 font-mono text-slate-300">{entry.template}</td>
                       <td className="py-2 px-2 font-mono text-slate-400">{entry.target_stack}</td>
@@ -3990,7 +3991,7 @@ export default function Templates() {
                         <CatIcon size={14} />
                       </div>
                       <h2 className="text-xs font-bold text-slate-300 uppercase tracking-wider">{def.label}</h2>
-                      <Badge component="span" color="slate" size="xs">{groupTemplates.length}</Badge>
+                      <Pill tone="neutral" size="xs">{groupTemplates.length}</Pill>
                     </div>
                     {/* Category grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

@@ -5,7 +5,6 @@
 // progress it follows and what the last "back up everything" did on each server.
 // =============================================================================
 
-import { Badge } from '@mantine/core'
 import { AlertTriangle, CheckCircle, Loader2, RotateCcw, Shield, XCircle } from 'lucide-react'
 import Hint from '../common/Hint'
 import VmCapsule from '../fleet/VmCapsule'
@@ -15,6 +14,7 @@ import type { ScopeMember } from '../../hooks/useFleetScope'
 import type { BackupStatusResponse, BackupTriggerResponse } from '../../../shared/types'
 import type { MemberOutcome } from '../../../shared/fleetScopedOps'
 
+import { Pill } from '../common/Pill'
 /** the last restore's warnings, without the ones that name a skipped stack (the red box says those) */
 function restoreWarnings(r: NonNullable<BackupStatusResponse['last_restore']>): string[] {
   const skipped = (r.skipped ?? []).map((x) => `${x.stack} was not restored:`)
@@ -80,7 +80,7 @@ export default function BackupStatusPanel({
               <CheckCircle size={24} className="text-emerald-400" />
             </div>
             <div className="flex-1 min-w-0">
-              <Badge component="span" color="emerald" leftSection={dot('bg-emerald-400')}>Idle</Badge>
+              <Pill tone="ok" icon={dot('bg-emerald-400')}>Idle</Pill>
               {data?.last_backup ? (
                 <div className="mt-2 space-y-1">
                   <p className="text-sm text-slate-300">
@@ -146,7 +146,7 @@ export default function BackupStatusPanel({
                 <Loader2 size={24} className="text-cyan-400 animate-spin" />
               </div>
               <div className="flex-1 min-w-0">
-                <Badge component="span" color="cyan" leftSection={dot('bg-cyan-400 animate-pulse')}>Running</Badge>
+                <Pill tone="info" icon={dot('bg-cyan-400 animate-pulse')}>Running</Pill>
                 {data?.filename && <p className="mt-1.5 text-slate-300 font-mono text-xs break-all">{data.filename}</p>}
                 {data?.progress && <p className="text-xs text-slate-500 mt-0.5">{data.progress}</p>}
               </div>
@@ -182,7 +182,7 @@ export default function BackupStatusPanel({
               <AlertTriangle size={24} className="text-rose-400" />
             </div>
             <div className="flex-1 min-w-0">
-              <Badge component="span" color="rose" leftSection={dot('bg-rose-400')}>Error</Badge>
+              <Pill tone="problem" icon={dot('bg-rose-400')}>Error</Pill>
               {/* the list below names every part that is missing: the message itself stays short */}
               <p className={`mt-2 text-sm text-rose-300 break-words ${(data?.warnings?.length ?? 0) > 0 ? 'line-clamp-3' : ''}`} title={data?.error}>{data?.error || 'An error occurred during the last backup'}</p>
               {(data?.warnings?.length ?? 0) > 0 && (
@@ -202,7 +202,7 @@ export default function BackupStatusPanel({
                 <RotateCcw size={24} className="text-amber-400 animate-spin" />
               </div>
               <div className="flex-1 min-w-0">
-                <Badge component="span" color="amber" leftSection={dot('bg-amber-400 animate-pulse')}>Restoring</Badge>
+                <Pill tone="attention" icon={dot('bg-amber-400 animate-pulse')}>Restoring</Pill>
                 {data?.filename && <p className="mt-1.5 text-slate-300 font-mono text-xs break-all">{data.filename}</p>}
                 {data?.progress && <p className="text-xs text-slate-500 mt-0.5">{data.progress}</p>}
               </div>

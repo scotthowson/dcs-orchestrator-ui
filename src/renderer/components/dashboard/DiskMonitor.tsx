@@ -5,7 +5,6 @@
 
 import { useState, useCallback } from 'react'
 import { HardDrive, Pencil, Check, X, FolderPlus, AlertTriangle, ShieldAlert } from 'lucide-react'
-import { Badge } from '@mantine/core'
 import { useSettingsStore } from '../../stores/settingsStore'
 import Hint from '../common/Hint'
 import { BTN_ICON_SM, TONE_GHOST, TONE_GHOST_OK } from '../../lib/ui'
@@ -13,6 +12,7 @@ import type { DiskInfo, CustomDiskEntry } from '../../../shared/types'
 import { Card, CardBody } from './cardShared'
 import { PCT_PROBLEM, pctTone, TONE_FILL, TONE_TEXT } from '../../lib/tone'
 import { EmptyState } from '../common/PageState'
+import { Pill } from '../common/Pill'
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -91,7 +91,7 @@ function DiskRow({ mount, disk, custom, label, fallbackName, onLabelChange }: {
           ) : (
             <>
               <span className="text-xs font-semibold text-slate-200 truncate" title={mount}>{displayName}</span>
-              {custom && <Badge component="span" color="slate">custom</Badge>}
+              {custom && <Pill tone="neutral">custom</Pill>}
               {nearCapacity && <span className="shrink-0 inline-flex" role="img" aria-label="Near capacity" title="Near capacity"><ShieldAlert size={12} className="text-rose-400" /></span>}
               <Hint label="Rename">
                 <button

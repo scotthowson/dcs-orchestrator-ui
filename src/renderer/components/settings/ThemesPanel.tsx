@@ -52,6 +52,7 @@ import {
 } from '../../../shared/themes'
 
 import Sheet from '../common/Sheet'
+import { Count, Pill } from '../common/Pill'
 // ---------------------------------------------------------------------------
 // Bits
 // ---------------------------------------------------------------------------
@@ -161,9 +162,9 @@ function LookPair({ theme, mode, onPick }: { theme: Theme; mode: ThemeMode; onPi
 }
 
 function SourceChip({ source }: { source: ThemeSource }) {
-  if (source === 'server') return <span className="inline-flex items-center gap-1 text-[10px] text-cyan-400"><Server size={10} /> Server</span>
-  if (source === 'local') return <span className="inline-flex items-center gap-1 text-[10px] text-slate-400"><Smartphone size={10} /> This device</span>
-  return <span className="inline-flex items-center gap-1 text-[10px] text-slate-500"><Sparkles size={10} /> Built in</span>
+  if (source === 'server') return <Pill tone="info" icon={<Server size={10} aria-hidden />}>Server</Pill>
+  if (source === 'local') return <Pill icon={<Smartphone size={10} aria-hidden />}>This device</Pill>
+  return <Pill icon={<Sparkles size={10} aria-hidden />}>Built in</Pill>
 }
 
 // ---------------------------------------------------------------------------
@@ -341,7 +342,7 @@ function ThemeStudio({ initial, editing, isAdmin, serverOk, onClose, onSaved }: 
       <button key={m} type="button" role="tab" aria-selected={look === m} onClick={() => setLook(m)} className={`${SEG_ITEM} ${look === m ? SEG_ON : SEG_OFF}`}>
         {m === 'dark' ? <Moon size={13} /> : <Sun size={13} />}
         {m === 'dark' ? 'Dark look' : 'Light look'}
-        {bad > 0 && <span className="ml-0.5 inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-amber-500/15 text-amber-400 text-[9px] font-semibold tabular-nums" title={`${bad} contrast ${bad === 1 ? 'warning' : 'warnings'}`}>{bad}</span>}
+        {bad > 0 && <Count n={bad} tone="attention" label={`${bad} contrast ${bad === 1 ? 'warning' : 'warnings'}`} className="ml-0.5" />}
       </button>
     )
   }

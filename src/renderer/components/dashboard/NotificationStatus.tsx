@@ -3,12 +3,12 @@
 // =============================================================================
 
 import { Bell } from 'lucide-react'
-import { Badge } from '@mantine/core'
 import { useConnectionStore } from '../../stores/connectionStore'
 import { pageLabel } from '../../constants/pageTitles'
 import type { NotificationHistoryResponse } from '../../../shared/types'
 import { Card, CardBody, CardOffline } from './cardShared'
 import { Skeleton, EmptyState, ErrorState } from '../common/PageState'
+import { Pill } from '../common/Pill'
 interface Props {
   data: NotificationHistoryResponse | null
   error?: Error | null
@@ -38,7 +38,7 @@ export default function NotificationStatus({ data, error, onRetry }: Props) {
             return (
               <div key={`${h.timestamp}-${h.title}`} className="flex items-center justify-between gap-2 rounded-lg bg-white/[0.03] border border-white/5 px-2.5 py-1.5">
                 <div className="flex items-center gap-2 min-w-0">
-                  <Badge component="span" color={h.type === 'error' ? 'rose' : h.type === 'warning' ? 'amber' : 'slate'}>{h.type}</Badge>
+                  <Pill tone={h.type === 'error' ? 'problem' : h.type === 'warning' ? 'attention' : 'neutral'}>{h.type}</Pill>
                   <span className="text-[11px] text-slate-400 truncate">{h.title}</span>
                 </div>
                 <span className={`shrink-0 w-2 h-2 rounded-full ${ok ? 'bg-emerald-400' : 'bg-rose-400'}`} role="img" aria-label={ok ? 'Delivered' : 'Not delivered'} />

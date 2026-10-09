@@ -39,6 +39,7 @@ import type { ApiUser, InviteCode, SessionInfo as SessionEntry } from '../../sha
 import { LoadingState, EmptyState } from '../components/common/PageState'
 import AppSignInCard from '../components/users/AppSignInCard'
 
+import { FIELD_SM } from '../lib/fieldStyles'
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -104,9 +105,6 @@ function RolePill({ role, className = '' }: { role: string; className?: string }
     </span>
   )
 }
-
-/** the fields of this page's forms */
-const FIELD = 'h-[34px] px-3 rounded-lg text-xs bg-white/5 border border-white/10 text-slate-200 placeholder-slate-500 transition-colors focus:outline-none focus-visible:border-emerald-500/40 focus-visible:ring-2 focus-visible:ring-emerald-500/40'
 
 /** the heading of a card on this page */
 function CardTitle({ icon, children, count }: { icon: React.ReactNode; children: React.ReactNode; count?: number }) {
@@ -424,7 +422,7 @@ export default function Users() {
                           value={user.role}
                           onChange={(e) => handleChangeRole(user.username, e.target.value as Role)}
                           aria-label={`Role of ${user.username}`}
-                          className={`${FIELD} h-8 px-2 text-[11px] text-slate-300 hover:text-slate-100 cursor-pointer`}
+                          className={`${FIELD_SM} !h-8 !px-2 !text-[11px] text-slate-300 hover:text-slate-100 cursor-pointer`}
                         >
                           <option value="user">User</option>
                           <option value="admin">Admin</option>
@@ -491,7 +489,7 @@ export default function Users() {
                 aria-label="Username"
                 placeholder="Username, e.g. dcs-bot"
                 autoComplete="off"
-                className={`${FIELD} font-mono`}
+                className={`${FIELD_SM} font-mono`}
               />
               <input
                 type="password"
@@ -500,7 +498,7 @@ export default function Users() {
                 aria-label="Password"
                 placeholder="Password, 8+ characters"
                 autoComplete="new-password"
-                className={FIELD}
+                className={FIELD_SM}
               />
             </div>
             <div className="flex items-center gap-2">
@@ -509,7 +507,7 @@ export default function Users() {
                 id="new-user-role"
                 value={newUser.role}
                 onChange={(e) => setNewUser((s) => ({ ...s, role: e.target.value as Role }))}
-                className={`${FIELD} px-2 text-slate-300`}
+                className={`${FIELD_SM} !px-2 text-slate-300`}
               >
                 <option value="user">User</option>
                 <option value="admin">Admin</option>
@@ -543,7 +541,7 @@ export default function Users() {
                 id="invite-role"
                 value={newInviteRole}
                 onChange={(e) => setNewInviteRole(e.target.value as 'user' | 'admin')}
-                className={`${FIELD} h-8 px-2 text-slate-300`}
+                className={`${FIELD_SM} !h-8 !px-2 text-slate-300`}
               >
                 <option value="user">User</option>
                 <option value="admin">Admin</option>

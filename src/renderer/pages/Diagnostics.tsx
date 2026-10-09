@@ -12,7 +12,7 @@ import {
   Lock, Trash2, RotateCcw, ExternalLink,
 } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
-import { Switch, Badge } from '@mantine/core'
+import { Switch } from '@mantine/core'
 import { usePolling } from '../hooks/usePolling'
 import { useFleetScope } from '../hooks/useFleetScope'
 import {
@@ -39,6 +39,7 @@ import type {
   NetworkInfo, EventEntry, SystemInfo, HealthScoreResponse,
 } from '../../shared/types'
 
+import { Pill } from '../components/common/Pill'
 // =============================================================================
 // Types
 // =============================================================================
@@ -1415,9 +1416,9 @@ export default function Diagnostics() {
       <PageHeader
         page="diagnostics"
         badge={isConnected ? (
-          <Badge
-            color="emerald"
-            leftSection={
+          <Pill
+            tone="ok"
+            icon={
               <span className="relative flex h-1.5 w-1.5" aria-hidden>
                 <span className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-75" />
                 <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400" />
@@ -1425,7 +1426,7 @@ export default function Diagnostics() {
             }
           >
             Live
-          </Badge>
+          </Pill>
         ) : undefined}
         actions={isConnected ? (
           <button type="button" onClick={refreshAll} disabled={isLoading} className={`${BTN_TOOLBAR_QUIET} ${FOCUS_RING}`}>

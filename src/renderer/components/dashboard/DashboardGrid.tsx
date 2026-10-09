@@ -4,7 +4,6 @@
 
 import React, { useCallback, useRef, useState, useEffect } from 'react'
 import { X, RotateCcw, Settings2, Plus, Check, Move, LayoutDashboard, Box, Puzzle } from 'lucide-react'
-import { Badge } from '@mantine/core'
 import { createPortal } from 'react-dom'
 import type { DashboardCard } from '../../../shared/types'
 import { getCardEntry, clampCardSize, CARD_ICONS, H_UNIT, GRID_COLS } from './cardRegistry'
@@ -48,6 +47,7 @@ import ProxmoxCard from './ProxmoxCard'
 import NeedsYouCard from './NeedsYouCard'
 import ModalOverlay from '../common/ModalOverlay'
 
+import { Pill } from '../common/Pill'
 const COMPONENT_MAP: Record<string, React.ComponentType<any>> = {
   'needs-you': NeedsYouCard,
   'overview': OverviewCards, 'stack-grid': StackStatusGrid,
@@ -486,7 +486,7 @@ export default function DashboardGrid({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <p className="text-xs font-medium text-slate-200">{pc.title}</p>
-                          <Badge component="span" color="slate">Plugin</Badge>
+                          <Pill tone="neutral">Plugin</Pill>
                         </div>
                         <p className="text-[11px] text-slate-500 truncate">{pc.description}</p>
                       </div>

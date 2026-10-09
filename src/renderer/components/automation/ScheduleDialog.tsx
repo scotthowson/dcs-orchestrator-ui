@@ -8,10 +8,8 @@ import { createPortal } from 'react-dom'
 import { Plus, Pencil, X, Loader2, CheckCircle } from 'lucide-react'
 import ModalOverlay from '../common/ModalOverlay'
 import { BTN_ICON_SM, BTN_SHEET_QUIET, BTN_SHEET_PRIMARY, TONE_GHOST } from '../../lib/ui'
-import {
-  FIELD, SCHEDULE_PRESETS, SCHEDULE_ACTIONS, SCHEDULE_ACTION_LABELS, SCHEDULE_TARGET_HINTS, SCHEDULE_STACK_ACTIONS, cronInWords,
-} from './model'
-
+import { SCHEDULE_PRESETS, SCHEDULE_ACTIONS, SCHEDULE_ACTION_LABELS, SCHEDULE_TARGET_HINTS, SCHEDULE_STACK_ACTIONS, cronInWords } from './model'
+import { INPUT } from '../../lib/fieldStyles'
 export type ScheduleFormState = { name: string; schedule: string; action: string; target: string }
 export const EMPTY_SCHEDULE_FORM: ScheduleFormState = { name: '', schedule: '@daily', action: 'backup', target: '' }
 
@@ -45,18 +43,18 @@ export default function ScheduleDialog({ mode, form, setForm, saving, onSubmit, 
         <form onSubmit={(e) => { e.preventDefault(); onSubmit() }} className="space-y-4">
           <div>
             <label htmlFor={`${uid}-name`} className="block text-xs font-medium text-slate-400 mb-1.5">Name</label>
-            <input id={`${uid}-name`} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Daily backup" autoComplete="off" className={FIELD} autoFocus />
+            <input id={`${uid}-name`} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Daily backup" autoComplete="off" className={INPUT} autoFocus />
           </div>
           <div>
             <label htmlFor={`${uid}-schedule`} className="block text-xs font-medium text-slate-400 mb-1.5">When</label>
-            <select id={`${uid}-schedule`} value={form.schedule} onChange={(e) => setForm({ ...form, schedule: e.target.value })} className={FIELD}>
+            <select id={`${uid}-schedule`} value={form.schedule} onChange={(e) => setForm({ ...form, schedule: e.target.value })} className={INPUT}>
               {SCHEDULE_PRESETS.map((o) => <option key={o.value} value={o.value} className="bg-slate-900">{o.label}</option>)}
               {custom && <option value={custom} className="bg-slate-900">{cronInWords(custom) ?? custom} ({custom})</option>}
             </select>
           </div>
           <div>
             <label htmlFor={`${uid}-action`} className="block text-xs font-medium text-slate-400 mb-1.5">Action</label>
-            <select id={`${uid}-action`} value={form.action} onChange={(e) => setForm({ ...form, action: e.target.value })} className={FIELD}>
+            <select id={`${uid}-action`} value={form.action} onChange={(e) => setForm({ ...form, action: e.target.value })} className={INPUT}>
               {SCHEDULE_ACTIONS.map((a) => <option key={a} value={a} className="bg-slate-900">{SCHEDULE_ACTION_LABELS[a] || a}</option>)}
             </select>
             {SCHEDULE_TARGET_HINTS[form.action] && (
@@ -73,7 +71,7 @@ export default function ScheduleDialog({ mode, form, setForm, saving, onSubmit, 
               onChange={(e) => setForm({ ...form, target: e.target.value })}
               placeholder={form.action === 'custom' ? '/path/to/script.sh' : needsTarget ? 'Stack name, e.g. media-services' : 'Leave empty for all'}
               autoComplete="off"
-              className={FIELD}
+              className={INPUT}
             />
             {form.action === 'custom' && <p className="text-[10px] text-slate-500 mt-1">Path to an executable script on the server</p>}
           </div>

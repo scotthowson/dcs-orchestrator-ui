@@ -12,7 +12,6 @@ import * as Icons from 'lucide-react'
 import {
   Rocket, Zap, Settings2, X, Plus, ArrowUp, ArrowDown, Trash2, Loader2, RotateCcw,
 } from 'lucide-react'
-import { Badge } from '@mantine/core'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { useConnectionStore } from '../../stores/connectionStore'
 import { useAuthStore } from '../../stores/authStore'
@@ -37,6 +36,7 @@ import Hint from '../common/Hint'
 import { BTN_CARD, BTN_CARD_QUIET, BTN_ICON_SM, BTN_SHEET_PRIMARY, BTN_SHEET_QUIET, BTN_TOOLBAR_QUIET, TONE_GHOST, TONE_GHOST_DANGER, TONE_OK } from '../../lib/ui'
 
 import { EmptyState } from '../common/PageState'
+import { Pill } from '../common/Pill'
 export type ActionKind = 'page' | 'url' | 'stack' | 'container' | 'maintenance' | 'schedule' | 'automation'
 export interface ActionDef {
   id: string
@@ -170,7 +170,7 @@ export default function QuickActions({ cardConfig, onSaveConfig, dashboardEditMo
   return (
     <Card
       card="quick-actions"
-      badge={isCustom ? <Badge component="span" color="slate">custom</Badge> : undefined}
+      badge={isCustom ? <Pill tone="neutral">custom</Pill> : undefined}
       actions={canEdit ? (
         <Hint label="Customize the actions">
           <button type="button" aria-label="Customize the actions" onClick={() => setEditing(true)} className={`${BTN_ICON_SM} ${TONE_GHOST}`}><Settings2 size={13} /></button>

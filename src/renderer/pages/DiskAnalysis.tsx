@@ -5,7 +5,6 @@
 // =============================================================================
 
 import { useState, useMemo, useCallback } from 'react'
-import { Badge } from '@mantine/core'
 import {
   HardDrive, Trash2, RefreshCw, Loader2, WifiOff,
   Database, Layers, Box, Archive, PieChart,
@@ -32,6 +31,7 @@ import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_ICON_SM, TONE_DANGER, TONE_GHOST, T
 import { CARD, REVEAL } from '../lib/pageKit'
 import { INPUT } from '../lib/fieldStyles'
 import StatTile from '../components/common/StatTile'
+import { Pill } from '../components/common/Pill'
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
@@ -410,7 +410,7 @@ export default function DiskAnalysis() {
                 <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 mb-3">
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Total storage</span>
-                    <Badge color="slate">{storageTotals.driveCount} drive{storageTotals.driveCount !== 1 ? 's' : ''}</Badge>
+                    <Pill tone="neutral">{storageTotals.driveCount} drive{storageTotals.driveCount !== 1 ? 's' : ''}</Pill>
                   </div>
                   <div className="flex items-center gap-3 text-xs">
                     <span className="text-slate-500">
@@ -442,7 +442,7 @@ export default function DiskAnalysis() {
             >
               <CardTitle
                 icon={<HardDrive size={14} className="text-cyan-400" aria-hidden />}
-                aside={<Badge color="slate">{mountedDrives.length} drive{mountedDrives.length !== 1 ? 's' : ''}</Badge>}
+                aside={<Pill tone="neutral">{mountedDrives.length} drive{mountedDrives.length !== 1 ? 's' : ''}</Pill>}
               >
                 {everywhere ? `${overview?.hub.name || 'This server'} — drives` : 'Mounted drives'}
               </CardTitle>
@@ -646,7 +646,7 @@ export default function DiskAnalysis() {
                         <td className="px-3 py-2.5 text-right font-mono text-slate-300 text-xs tabular-nums">{row.active}</td>
                         <td className="px-3 py-2.5 text-right font-mono text-slate-300 text-xs tabular-nums">{row.size}</td>
                         <td className="px-3 py-2.5 text-right">
-                          <Badge color="cyan">{row.reclaimable}</Badge>
+                          <Pill tone="info">{row.reclaimable}</Pill>
                         </td>
                       </tr>
                     ))}

@@ -12,7 +12,6 @@
 // =============================================================================
 
 import { useMemo, useState } from 'react'
-import { Badge } from '@mantine/core'
 import { CheckCircle2, ChevronRight, EyeOff, Loader2, Wrench } from 'lucide-react'
 import { useAuthStore } from '../../stores/authStore'
 import { useToast } from '../common/Toast'
@@ -25,6 +24,7 @@ import type { BackupStatusResponse, CrowdSecCommunityResponse, DiskInfo, ImageCh
 import { collectNeeds, plural, type NeedItem } from '../../lib/needs'
 import { Card, CardOffline } from './cardShared'
 import { Skeleton } from '../common/PageState'
+import { Pill } from '../common/Pill'
 const HIDDEN_KEY = 'dcs-needs-you-hidden'
 
 function loadHidden(): Record<string, string> {
@@ -95,8 +95,8 @@ export default function NeedsYouCard({ stacks, stacksError, images, backup, disk
 
   const problems = shown.filter((i) => i.severity === 'problem').length
   const badge = shown.length
-    ? <Badge component="span" color={problems ? 'rose' : 'amber'}>{shown.length}</Badge>
-    : <Badge component="span" color="emerald">All good</Badge>
+    ? <Pill tone={problems ? 'problem' : 'attention'}>{shown.length}</Pill>
+    : <Pill tone="ok">All good</Pill>
 
   return (
     <Card card="needs-you" badge={badge} tone={problems ? 'problem' : shown.length ? 'attention' : undefined} clickable={false}>

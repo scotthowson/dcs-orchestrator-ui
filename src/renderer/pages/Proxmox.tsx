@@ -12,7 +12,7 @@
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { Badge, SegmentedControl, Tooltip } from '@mantine/core'
+import { SegmentedControl, Tooltip } from '@mantine/core'
 import {
   RotateCcw, Server, Cpu, MemoryStick, HardDrive, Clock, Play, Power, Square, RotateCw, Zap, Pause, PlayCircle,
   RefreshCw, Search, AlertTriangle, Settings2, ShieldCheck, Boxes, Box, Tag, ListChecks, X, Loader2,
@@ -55,6 +55,8 @@ import { containerState, countStates, countsFrom, statesLine, fineCount, problem
 
 import Sheet from '../components/common/Sheet'
 import { INPUT_FLEET, LABEL } from '../lib/fieldStyles'
+import { Pill } from '../components/common/Pill'
+import { type Tone } from '../lib/tone'
 const STATUS_POLL = 20_000
 const LIST_POLL = 15_000
 const TASK_POLL = 30_000
@@ -117,7 +119,7 @@ function StatusDot({ status, className = '' }: { status: string; className?: str
 }
 /** a VM wears the fleet's violet, like every capsule of a VM; a container (LXC) is told apart in cyan */
 function TypeChip({ type }: { type: ProxmoxVm['type'] }) {
-  return <Badge component="span" color={type === 'qemu' ? 'violet' : 'cyan'}>{type === 'qemu' ? 'VM' : 'LXC'}</Badge>
+  return <Pill tone={type === 'qemu' ? 'fleet' : 'info'}>{type === 'qemu' ? 'VM' : 'LXC'}</Pill>
 }
 /** Proxmox tags as pills (the ones DCS wants in emerald); past `max`, a +N that names the rest */
 function TagChips({ tags, max, wanted = [] }: { tags: string[]; max?: number; wanted?: string[] }) {
@@ -125,8 +127,8 @@ function TagChips({ tags, max, wanted = [] }: { tags: string[]; max?: number; wa
   const rest = tags.slice(shown.length)
   return (
     <>
-      {shown.map((t) => <Badge key={t} component="span" color={wanted.includes(t) ? 'emerald' : 'slate'}>{t}</Badge>)}
-      {rest.length > 0 && <Tooltip label={`Also tagged ${rest.join(', ')}`}><Badge component="span" color="slate">+{rest.length}</Badge></Tooltip>}
+      {shown.map((t) => <Pill key={t} tone={wanted.includes(t) ? 'ok' : 'neutral'}>{t}</Pill>)}
+      {rest.length > 0 && <Tooltip label={`Also tagged ${rest.join(', ')}`}><Pill tone="neutral">+{rest.length}</Pill></Tooltip>}
     </>
   )
 }
@@ -306,8 +308,8 @@ function HubCard({ fleet, stacks, isHub, memberCount, onStacks, onStack, pveSelf
       <CardHead icon={Home} title="This server" right={<VmCapsule />} />
       <div className="flex items-center gap-2 min-w-0">
         <span className="text-sm font-semibold text-slate-100 truncate">{fleet?.server_name || fleet?.hostname || 'DCS'}</span>
-        {isHub && <Badge component="span" color="violet">hub</Badge>}
-        {role === 'member' && <Badge component="span" color="violet">member</Badge>}
+        {isHub && <Pill tone="fleet">hub</Pill>}
+        {role === 'member' && <Pill tone="fleet">member</Pill>}
       </div>
       <p className="text-[11px] text-slate-500 mt-0.5 truncate">
         DCS {fleet?.version || '…'}{fleet?.hostname ? ` · ${fleet.hostname}` : ''}
@@ -622,12 +624,12 @@ interface VmRowProps {
 
 /** the DCS chip a member row wears, in the fleet's violet: version, and the member's name when it differs from the guest's (offline: the guest is off, so the recorded version in grey; a member that does not answer, in rose) */
 function DcsChip({ vm, member, live, offline = false }: { vm: ProxmoxVm; member: FleetMemberBase; live?: FleetMemberLive; offline?: boolean }) {
-  const color = offline ? 'slate' : live && !live.reachable ? 'rose' : 'violet'
+  const tone: Tone = offline ? 'neutral' : live && !live.reachable ? 'problem' : 'fleet'
   return (
     <Tooltip label={`${member.name} at ${member.url}${member.matched_by ? ` — ${MATCH_LABEL[member.matched_by]}` : ''}`}>
-      <Badge component="span" color={color} leftSection={<Satellite size={10} />}>
+      <Pill tone={tone} icon={<Satellite size={10} />}>
         DCS {member.version || '?'}{member.name !== vm.name ? ` · ${member.name}` : ''}{offline ? ' · offline' : ''}
-      </Badge>
+      </Pill>
     </Tooltip>
   )
 }
@@ -1323,8 +1325,8 @@ export default function Proxmox() {
 
   // the fleet's violet, as on every capsule: this server is the hub, or a member of one
   const roleChip = role === 'member'
-    ? <Badge component="span" color="violet" leftSection={<Satellite size={10} />}>member of {fleet.data?.hub?.name || fleet.data?.hub?.url}</Badge>
-    : isHub ? <Badge component="span" color="violet" leftSection={<Satellite size={10} />}>hub · {memberCount} member{memberCount === 1 ? '' : 's'}</Badge>
+    ? <Pill tone="fleet" icon={<Satellite size={10} />}>member of {fleet.data?.hub?.name || fleet.data?.hub?.url}</Pill>
+    : isHub ? <Pill tone="fleet" icon={<Satellite size={10} />}>hub · {memberCount} member{memberCount === 1 ? '' : 's'}</Pill>
     : null
 
   // the overview row: the cards that apply here, side by side; the builds take a full row of their own while any exist

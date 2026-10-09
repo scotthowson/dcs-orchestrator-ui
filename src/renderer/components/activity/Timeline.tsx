@@ -6,7 +6,7 @@
 // =============================================================================
 
 import React, { useState, useMemo, useCallback, useEffect } from 'react'
-import { SegmentedControl, Badge } from '@mantine/core'
+import { SegmentedControl } from '@mantine/core'
 import {
   Play, Square, Plus, Trash2, RefreshCw, Download,
   Box, Network, HardDrive, Database,
@@ -23,6 +23,7 @@ import type { EventEntry } from '../../../shared/types'
 import { onDemandEventWord } from '../../lib/containerState'
 
 import { SEARCH_FIELD } from '../../lib/fieldStyles'
+import { Pill } from '../common/Pill'
 // ---------------------------------------------------------------------------
 // Constants & helpers
 // ---------------------------------------------------------------------------
@@ -327,7 +328,7 @@ const TimelineCard = React.memo(function TimelineCard({ event, index, fresh }: {
                 `} title={odWord ? (odWord === 'fell asleep' ? 'On demand: Sablier stopped it while idle — the first request wakes it' : 'On demand: a request woke it') : undefined}>
                   {odWord ?? event.action}
                 </span>
-                <Badge color="slate" leftSection={badge.icon}>{badge.label}</Badge>
+                <Pill tone="neutral" icon={badge.icon}>{badge.label}</Pill>
               </div>
 
               {/* Resource name */}

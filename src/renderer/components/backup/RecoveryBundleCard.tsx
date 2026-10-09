@@ -24,6 +24,7 @@ import { fetchRecovery, createRecoveryBundle, restoreRecoveryBundle, uploadRecov
 import { formatBytes, uploadRecoveryBundleFile, uploadRefusal } from '../../api/fleetScopedOps'
 import type { RecoveryBundleEntry, RecoveryLastRestore, RestoreSkippedStack } from '../../../shared/types'
 
+import { FIELD_SM } from '../../lib/fieldStyles'
 /** the warnings of a restore without the ones that name a skipped stack (the red box says those) */
 function otherWarnings(warnings: string[], skipped: RestoreSkippedStack[] | undefined): string[] {
   const p = (skipped ?? []).map((x) => `${x.stack} was not restored:`)
@@ -41,9 +42,6 @@ function restoreFacts(r: Pick<RecoveryLastRestore, 'stopped' | 'started' | 'set_
   if ((r.pruned ?? []).length) out.push(`Older copies from before a restore removed: ${r.pruned.length}`)
   return out
 }
-
-/** the fields of this card: one look, one focus ring */
-const FIELD = 'h-[34px] px-3 rounded-lg text-xs bg-white/5 border border-white/10 text-slate-200 placeholder-slate-500 transition-colors focus:outline-none focus-visible:border-emerald-500/40 focus-visible:ring-2 focus-visible:ring-emerald-500/40'
 
 function readAsBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -205,7 +203,7 @@ export default function RecoveryBundleCard() {
                 aria-label="Passphrase for the bundle"
                 placeholder={data?.passphrase_set ? 'Stored passphrase is used (type one to override)' : 'Passphrase for the bundle (8+ characters)'}
                 autoComplete="new-password"
-                className={`${FIELD} w-full pl-9`}
+                className={`w-full ${FIELD_SM} !pl-9`}
               />
             </div>
             <button
@@ -316,7 +314,7 @@ export default function RecoveryBundleCard() {
                 aria-label="Passphrase of this bundle"
                 placeholder={data?.passphrase_set ? 'Passphrase (stored one is used when empty)' : 'Passphrase of this bundle'}
                 autoComplete="off"
-                className={`${FIELD} flex-1`}
+                className={`${FIELD_SM} flex-1`}
               />
               <button type="button" onClick={restore} disabled={busy !== null || (!data?.passphrase_set && !restorePass)} className={`${BTN_TOOLBAR} ${TONE_DANGER} justify-center`}>
                 {busy === 'restore' ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />}

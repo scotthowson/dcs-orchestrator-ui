@@ -8,7 +8,7 @@
 // =============================================================================
 
 import { useEffect, useRef, useState } from 'react'
-import { Badge, Progress, RingProgress, Text, Tooltip } from '@mantine/core'
+import { Progress, RingProgress, Text, Tooltip } from '@mantine/core'
 import { Loader2, RefreshCw, Trash2, ChevronDown, CheckCircle2, XCircle, Clock, Server, Layers, Circle, MinusCircle } from 'lucide-react'
 import { retryFleetJob, deleteFleetJob, fetchFleetJob } from '../../api/endpoints'
 import type { FleetJob, FleetJobStep } from '../../../shared/types'
@@ -18,6 +18,8 @@ import { ago } from './fleetShared'
 import { BTN_CARD, BTN_CARD_QUIET, BTN_ICON_QUIET, TONE_OK } from '../../lib/ui'
 
 import { CopyButton } from '../common/CopyButton'
+import { Pill } from '../common/Pill'
+import { type Tone } from '../../lib/tone'
 // the theme's status colours (lib/themeEngine sets them; the fallbacks are the stock dark look); a template's own
 // steps wear the fleet's violet (Mantine's violet, which every theme keeps)
 const C = { done: 'var(--dcs-success, #34d399)', running: 'var(--dcs-info, #22d3ee)', failed: 'var(--dcs-danger, #fb7185)', pending: 'color-mix(in srgb, var(--dcs-text-muted, #94a3b8) 20%, transparent)', template: 'var(--mantine-color-violet-5)' }
@@ -40,15 +42,15 @@ function jobStatus(j: FleetJob): string {
 }
 
 /** what a build is called and drawn as: `cls` tints its icon tile, `color` is the Mantine colour of its pill */
-type Tone = { text: string; cls: string; color: 'emerald' | 'cyan' | 'slate' | 'rose' | 'amber' }
-function tone(j: FleetJob): Tone {
-  if (j.kind === 'bake' && j.status === 'done') return { text: 'template ready', cls: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/25', color: 'emerald' }
-  if (j.kind === 'bake' && j.status === 'running') return { text: 'baking', cls: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/25', color: 'cyan' }
-  if (j.status === 'queued') return { text: 'waiting', cls: 'bg-white/5 text-slate-400 border-white/10', color: 'slate' }
-  if (j.status === 'running') return { text: 'building', cls: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/25', color: 'cyan' }
-  if (j.status === 'failed') return { text: 'failed', cls: 'bg-rose-500/10 text-rose-300 border-rose-500/25', color: 'rose' }
-  if (j.manual && !j.member_id) return { text: 'install by hand', cls: 'bg-amber-500/10 text-amber-300 border-amber-500/25', color: 'amber' }
-  return { text: 'ready', cls: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/25', color: 'emerald' }
+type JobLook = { text: string; cls: string; tone: Tone }
+function look(j: FleetJob): JobLook {
+  if (j.kind === 'bake' && j.status === 'done') return { text: 'template ready', cls: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/25', tone: 'ok' }
+  if (j.kind === 'bake' && j.status === 'running') return { text: 'baking', cls: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/25', tone: 'info' }
+  if (j.status === 'queued') return { text: 'waiting', cls: 'bg-white/5 text-slate-400 border-white/10', tone: 'neutral' }
+  if (j.status === 'running') return { text: 'building', cls: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/25', tone: 'info' }
+  if (j.status === 'failed') return { text: 'failed', cls: 'bg-rose-500/10 text-rose-300 border-rose-500/25', tone: 'problem' }
+  if (j.manual && !j.member_id) return { text: 'install by hand', cls: 'bg-amber-500/10 text-amber-300 border-amber-500/25', tone: 'attention' }
+  return { text: 'ready', cls: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/25', tone: 'ok' }
 }
 function took(j: FleetJob): string {
   if (j.started_at && j.finished_at) { const s = j.finished_at - j.started_at; return s >= 120 ? `took ${Math.round(s / 60)} min` : `took ${s} s` }
@@ -139,7 +141,7 @@ export function FleetJobCard({ job, onChanged, compact = false }: { job: FleetJo
     return () => { alive = false }
   }, [open, job.id, job.updated_at, lastLogAt])
   const log = (full && full.id === job.id && full.updated_at >= job.updated_at ? full.log : job.log) ?? []
-  const t = tone(job)
+  const t = look(job)
   const cur = jobCurrent(job)
   const doneCount = job.steps.filter((s) => s.state === 'done').length
   const retry = async () => { setBusy('retry'); try { await retryFleetJob(job.id); onChanged() } finally { setBusy('') } }
@@ -172,7 +174,7 @@ export function FleetJobCard({ job, onChanged, compact = false }: { job: FleetJo
             <p className="text-sm font-semibold text-slate-100 truncate max-w-full">{title}</p>
             {job.kind !== 'bake' && <span className="text-[11px] text-violet-300/90 inline-flex items-center gap-1"><Server size={11} />VM{job.vmid ? ` #${job.vmid}` : ''}</span>}
             {job.cloned_from ? <span className="text-[11px] text-violet-300/90">cloned from template {job.cloned_from}</span> : null}
-            <Badge component="span" color={t.color}>{t.text}</Badge>
+            <Pill tone={t.tone}>{t.text}</Pill>
           </div>
           <p className="text-[11px] text-slate-500 mt-0.5 break-words">
             <span className="text-slate-300">{os}</span> · {sizeText(job)} · <span className="font-mono">{job.ip}</span>{took(job) ? ` · ${took(job)}` : ''}
@@ -252,11 +254,11 @@ export function JobsSummary({ jobs, onChanged, compact = false, title = 'VMs bei
         <p className="text-[11px] text-slate-500 mt-0.5">{title}{eta > 0 && active > 0 ? ` · about ${eta} min left` : ''}</p>
         <div className="flex items-center gap-1.5 flex-wrap mt-2">
           {([
-            { n: done.length, text: 'done', color: 'emerald' },
-            { n: running.length, text: 'building', color: 'cyan' },
-            { n: queued.length, text: 'waiting', color: 'slate' },
-            { n: failed.length, text: 'failed', color: 'rose' },
-          ] as const).filter((c) => c.n > 0).map((c) => <Badge key={c.text} component="span" color={c.color} className="tabular-nums">{c.n} {c.text}</Badge>)}
+            { n: done.length, text: 'done', tone: 'ok' },
+            { n: running.length, text: 'building', tone: 'info' },
+            { n: queued.length, text: 'waiting', tone: 'neutral' },
+            { n: failed.length, text: 'failed', tone: 'problem' },
+          ] as const).filter((c) => c.n > 0).map((c) => <Pill key={c.text} tone={c.tone} className="tabular-nums">{c.n} {c.text}</Pill>)}
         </div>
       </div>
       {clearable.length > 0 && active === 0 && (

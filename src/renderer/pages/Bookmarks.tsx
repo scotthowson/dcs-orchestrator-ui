@@ -4,7 +4,7 @@
 // =============================================================================
 
 import React, { useState, useCallback, useId } from 'react'
-import { Badge, SegmentedControl } from '@mantine/core'
+import { SegmentedControl } from '@mantine/core'
 import {
   Bookmark, Plus, Trash2, Star, Layers,
   Box, HardDrive, Network, HeartPulse, Monitor, Settings2,
@@ -23,6 +23,7 @@ import { CARD, CARD_HOVER, REVEAL } from '../lib/pageKit'
 import type { PageId } from '../../shared/types'
 
 import { SEARCH_FIELD, INPUT } from '../lib/fieldStyles'
+import { Pill } from '../components/common/Pill'
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -291,7 +292,7 @@ function BookmarkCard({ item, onDelete, onTogglePin, onNavigate }: {
               </button>
             </h3>
             {item.pinned && <Star size={11} className="text-amber-400 fill-amber-400 shrink-0" aria-hidden />}
-            <Badge color="slate">{item.type}</Badge>
+            <Pill tone="neutral">{item.type}</Pill>
           </div>
           <p className="text-xs text-slate-500 font-mono truncate mt-0.5">{item.target}</p>
           {item.notes && (

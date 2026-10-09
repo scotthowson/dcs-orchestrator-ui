@@ -42,6 +42,9 @@ export const TONE_ATTN = 'bg-amber-500/10 border border-amber-500/25 text-amber-
 /** destructive: stop, remove, reset — rose */
 export const TONE_DANGER = 'bg-rose-500/5 border border-rose-500/20 text-rose-300 hover:bg-rose-500/15'
 
+/** a toolbar toggle that is on (Edit, Show the changes, Search): the emerald of a chosen option, with aria-pressed */
+export const TONE_PRESSED = 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/15'
+
 /** no edge: the icons of a list row or a table row */
 export const TONE_GHOST = 'text-slate-300 hover:bg-white/10'
 export const TONE_GHOST_OK = 'text-emerald-300 hover:bg-emerald-500/10'

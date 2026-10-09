@@ -5,7 +5,6 @@
 
 import { useState, useMemo, useCallback, useEffect, useRef, useId, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { Badge } from '@mantine/core'
 import {
   HardDrive,
   Search,
@@ -42,6 +41,7 @@ import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_ICON_SM, BTN_SHEET_QUIET, BTN_SHEET
 import { CARD, REVEAL } from '../lib/pageKit'
 import { SEARCH_FIELD, INPUT } from '../lib/fieldStyles'
 import StatTile from '../components/common/StatTile'
+import { Pill } from '../components/common/Pill'
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
@@ -729,7 +729,7 @@ export default function Volumes() {
 
                       {/* Driver */}
                       <td className="hidden sm:table-cell px-3 py-3">
-                        <Badge color="cyan">{vol.driver}</Badge>
+                        <Pill tone="info">{vol.driver}</Pill>
                       </td>
 
                       {/* Mountpoint */}

@@ -3,21 +3,22 @@
 // =============================================================================
 
 import { Archive, Lock } from 'lucide-react'
-import { Badge } from '@mantine/core'
 import { useConnectionStore } from '../../stores/connectionStore'
 import { useAuthStore } from '../../stores/authStore'
 import { pageLabel } from '../../constants/pageTitles'
 import type { BackupStatusResponse } from '../../../shared/types'
 import { Card, CardOffline } from './cardShared'
 import { Skeleton, EmptyState, ErrorState } from '../common/PageState'
+import { Pill } from '../common/Pill'
+import { type Tone } from '../../lib/tone'
 /** idle is fine, a backup in progress is information, a failed one is a problem */
-function statusChip(status: string): { color: string; label: string } {
+function statusChip(status: string): { tone: Tone; label: string } {
   switch (status) {
-    case 'running': return { color: 'cyan', label: 'Running' }
-    case 'restoring': return { color: 'cyan', label: 'Restoring' }
-    case 'error': return { color: 'rose', label: 'Error' }
-    case 'idle': return { color: 'emerald', label: 'Idle' }
-    default: return { color: 'emerald', label: status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Idle' }
+    case 'running': return { tone: 'info', label: 'Running' }
+    case 'restoring': return { tone: 'info', label: 'Restoring' }
+    case 'error': return { tone: 'problem', label: 'Error' }
+    case 'idle': return { tone: 'ok', label: 'Idle' }
+    default: return { tone: 'ok', label: status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Idle' }
   }
 }
 
@@ -41,7 +42,7 @@ export default function BackupStatusCard({ data, error, onRetry }: Props) {
   const chip = statusChip(status)
 
   return (
-    <Card card="backup-status" badge={<Badge component="span" color={chip.color}>{chip.label}</Badge>} open="backup" tone={status === 'error' ? 'problem' : undefined}>
+    <Card card="backup-status" badge={<Pill tone={chip.tone}>{chip.label}</Pill>} open="backup" tone={status === 'error' ? 'problem' : undefined}>
       {status === 'running' && progress && (
         <div className="mb-3">
           <div className="h-1.5 w-full rounded-full bg-slate-800/60 overflow-hidden">

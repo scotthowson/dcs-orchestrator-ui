@@ -4,7 +4,6 @@
 // =============================================================================
 
 import { useState } from 'react'
-import { Badge } from '@mantine/core'
 import { ShieldAlert, ShieldOff, Loader2, Unlock, UserCheck } from 'lucide-react'
 import { useConnectionStore } from '../../stores/connectionStore'
 import { useAuthStore } from '../../stores/authStore'
@@ -16,6 +15,7 @@ import { pageLabel } from '../../constants/pageTitles'
 import { BTN_CARD, BTN_CARD_QUIET, TONE_OK } from '../../lib/ui'
 import { Card, CardBody, CardOffline } from './cardShared'
 import { Skeleton, EmptyState, ErrorState } from '../common/PageState'
+import { Pill } from '../common/Pill'
 interface Props {
   data: CrowdSecStatusResponse | null
   error?: Error | null
@@ -84,7 +84,7 @@ export default function CrowdSecStatus({ data, error, onRetry }: Props) {
       card="crowdsec"
       icon={banned || attention.length > 0 ? ShieldAlert : undefined}
       tone={banned ? 'problem' : attention.length > 0 ? 'attention' : undefined}
-      badge={<Badge component="span" color={attention.length > 0 || activeBans > 0 ? 'amber' : 'emerald'}>{attention.length > 0 ? 'needs attention' : `${activeBans} active ban${activeBans === 1 ? '' : 's'}`}</Badge>}
+      badge={<Pill tone={attention.length > 0 || activeBans > 0 ? 'attention' : 'ok'}>{attention.length > 0 ? 'needs attention' : `${activeBans} active ban${activeBans === 1 ? '' : 's'}`}</Pill>}
       open="crowdsec"
       clickable={false}
     >

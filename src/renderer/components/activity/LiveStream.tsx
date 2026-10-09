@@ -14,7 +14,7 @@
 // =============================================================================
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Badge, SegmentedControl } from '@mantine/core'
+import { SegmentedControl } from '@mantine/core'
 import { Radio, Trash2, ArrowDown, ArrowDownToLine } from 'lucide-react'
 import { sseClient, fleetTagOf, type SSEMessage, type SSEEventType, type FleetTag } from '../../lib/sse'
 import type { ScopeMember } from '../../hooks/useFleetScope'
@@ -22,6 +22,8 @@ import VmCapsule from '../fleet/VmCapsule'
 import { EmptyState } from '../common/PageState'
 import { BTN_TOOLBAR, TONE_QUIET, FOCUS_RING } from '../../lib/ui'
 import { CARD, CARD_HOVER } from '../../lib/pageKit'
+import { Pill } from '../common/Pill'
+import { type Tone } from '../../lib/tone'
 const MAX_EVENTS = 500
 
 type FilterKey = SSEEventType | 'all'
@@ -35,13 +37,13 @@ const FILTER_TABS: { key: FilterKey; label: string }[] = [
 ]
 
 /** Docker events are the ones to watch (cyan); the rest is a steady stream, told apart by its label (slate) */
-const TYPE_COLOR: Record<SSEEventType, 'cyan' | 'slate'> = {
-  'docker-event': 'cyan',
-  metrics: 'slate',
-  'log-line': 'slate',
-  'health-score': 'slate',
-  keepalive: 'slate',
-  chat: 'slate',   // (never on '*': the chat is not server activity)
+const TYPE_TONE: Record<SSEEventType, Tone> = {
+  'docker-event': 'info',
+  metrics: 'neutral',
+  'log-line': 'neutral',
+  'health-score': 'neutral',
+  keepalive: 'neutral',
+  chat: 'neutral',   // (never on '*': the chat is not server activity)
 }
 
 /** An event as the tab keeps it: the message plus where it happened (fleet view only) */
@@ -227,9 +229,9 @@ export default function LiveStream({ active, scope, members, memberName, sseConn
                   <span className="text-xs text-slate-500 font-mono tabular-nums">
                     {formatTimestamp(event.timestamp)}
                   </span>
-                  <Badge color={TYPE_COLOR[event.type] ?? 'cyan'}>
+                  <Pill tone={TYPE_TONE[event.type] ?? 'info'}>
                     {event.type}
-                  </Badge>
+                  </Pill>
                   {tag && (
                     <VmCapsule member={tag.member} name={tag.member_name} vmid={tag.vmid} size="xs" onClick={() => onScope(tag.member)} />
                   )}

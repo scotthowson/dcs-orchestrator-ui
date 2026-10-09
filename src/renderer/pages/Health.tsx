@@ -26,7 +26,7 @@ import {
   ArrowUp,
   Moon,
 } from 'lucide-react'
-import { Badge, SegmentedControl, Tooltip } from '@mantine/core'
+import { SegmentedControl, Tooltip } from '@mantine/core'
 import { usePolling } from '../hooks/usePolling'
 import { useFleetScope } from '../hooks/useFleetScope'
 import FleetScopeChips from '../components/fleet/FleetScopeChips'
@@ -53,8 +53,9 @@ import {
   WINDOW_MIN, buildTimeline, coverageOf, ownerKey, isNotableEvent, availabilityText, availabilityTone, formatAverageUptime,
 } from '../components/health/uptimeModel'
 
-import { pctTone, TONE_FILL, TONE_TEXT, type Tone } from '../lib/tone'
+import { pctTone, TONE_FILL, TONE_TEXT, type Tone, GRADE_TONE, scoreGrade } from '../lib/tone'
 import StatTile from '../components/common/StatTile'
+import { Pill } from '../components/common/Pill'
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -113,23 +114,23 @@ const ON_DEMAND_HINT = ASLEEP_HINT
 
 function healthBadge(health: string): React.ReactNode {
   const h = health.toLowerCase()
-  if (h === 'healthy') return <Badge component="span" color="emerald">Healthy</Badge>
-  if (h === 'unhealthy') return <Badge component="span" color="rose">Unhealthy</Badge>
-  if (h === 'starting') return <Badge component="span" color="amber">Starting</Badge>
+  if (h === 'healthy') return <Pill tone="ok">Healthy</Pill>
+  if (h === 'unhealthy') return <Pill tone="problem">Unhealthy</Pill>
+  if (h === 'starting') return <Pill tone="attention">Starting</Pill>
   if (h === 'sleeping') return <StateChip state="asleep" size="xs" onDemandTag={false} />
-  return <Badge component="span" color="slate">{health || 'N/A'}</Badge>
+  return <Pill tone="neutral">{health || 'N/A'}</Pill>
 }
 
 function stateBadge(state: string, onDemand?: boolean, sablierUp?: boolean | null): React.ReactNode {
   const s = state.toLowerCase()
-  if (s === 'running') return <Badge component="span" color="emerald">Running</Badge>
+  if (s === 'running') return <Pill tone="ok">Running</Pill>
   // asleep on demand: the same chip on every page (indigo moon; amber when Sablier is not there to wake it)
   if (onDemand && s !== 'restarting' && s !== 'paused') return <StateChip state={containerState({ state, on_demand: true, sablier_up: sablierUp })} size="xs" />
-  if (s === 'exited' || s === 'stopped') return <Badge component="span" color="slate">Stopped</Badge>
-  if (s === 'restarting') return <Badge component="span" color="amber">Restarting</Badge>
-  if (s === 'paused') return <Badge component="span" color="amber">Paused</Badge>
-  if (s === 'dead') return <Badge component="span" color="rose">Dead</Badge>
-  return <Badge component="span" color="slate">{state ? state.charAt(0).toUpperCase() + state.slice(1) : 'Unknown'}</Badge>
+  if (s === 'exited' || s === 'stopped') return <Pill tone="neutral">Stopped</Pill>
+  if (s === 'restarting') return <Pill tone="attention">Restarting</Pill>
+  if (s === 'paused') return <Pill tone="attention">Paused</Pill>
+  if (s === 'dead') return <Pill tone="problem">Dead</Pill>
+  return <Pill tone="neutral">{state ? state.charAt(0).toUpperCase() + state.slice(1) : 'Unknown'}</Pill>
 }
 
 // ---------------------------------------------------------------------------
@@ -182,16 +183,6 @@ const gradeColors: Record<string, string> = {
 const gradeStroke: Record<string, string> = {
   A: '#10b981', B: '#06b6d4', C: '#f59e0b', D: '#f97316', F: '#f43f5e',
 }
-const gradeBadge: Record<string, string> = { A: 'emerald', B: 'cyan', C: 'amber', D: 'orange', F: 'rose' }
-
-function getGrade(score: number): string {
-  if (score >= 90) return 'A'
-  if (score >= 75) return 'B'
-  if (score >= 60) return 'C'
-  if (score >= 40) return 'D'
-  return 'F'
-}
-
 function ScoreGauge({ score, grade, loading, size = 140 }: { score: number; grade: string; loading: boolean; size?: number }) {
   const strokeWidth = 9
   const radius = (size - strokeWidth) / 2
@@ -470,7 +461,7 @@ export default function Health() {
 
   // Health score data
   const score = healthScoreData?.score ?? 0
-  const grade = healthScoreData?.grade ?? getGrade(score)
+  const grade = healthScoreData?.grade ?? scoreGrade(score)
   const factors = healthScoreData?.factors
 
   // Export health report as JSON file
@@ -658,7 +649,7 @@ export default function Health() {
         <Panel
           icon={HeartPulse}
           title="Health score"
-          badge={!scoreLoading && healthScoreData ? <Badge component="span" color={gradeBadge[grade] ?? 'slate'}>Grade {grade}</Badge> : undefined}
+          badge={!scoreLoading && healthScoreData ? <Pill tone={GRADE_TONE[grade] ?? 'neutral'}>Grade {grade}</Pill> : undefined}
         >
           <div className="flex items-start gap-5 md:gap-8">
             <div className="flex flex-col items-center gap-2">
@@ -689,7 +680,7 @@ export default function Health() {
               <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-2.5">Stack scores</p>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
                 {healthScoreData.stacks.map((stack) => {
-                  const sg = stack.grade || getGrade(stack.score)
+                  const sg = stack.grade || scoreGrade(stack.score)
                   return (
                     <div key={`${stack.member ?? ''}|${stack.stack}`} className="rounded-lg bg-white/[0.03] px-3 py-2 border border-white/5">
                       <div className="flex items-center justify-between gap-1">

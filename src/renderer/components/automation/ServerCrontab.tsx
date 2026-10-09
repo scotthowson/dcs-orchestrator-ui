@@ -7,7 +7,7 @@
 // =============================================================================
 
 import { Fragment, useState, useMemo, useCallback, useEffect, useId, useRef } from 'react'
-import { SegmentedControl, Badge } from '@mantine/core'
+import { SegmentedControl } from '@mantine/core'
 import {
   CalendarClock, Clock, Terminal, User, Server, Plus, Trash2, Edit3, Save, X, Search, FileText,
   AlertTriangle, Loader2, ChevronDown, ChevronRight, Copy, Check,
@@ -24,6 +24,9 @@ import type { CronEntry, CrontabResponse } from '../../../shared/types'
 import { EmptyState } from '../common/PageState'
 import ModalOverlay from '../common/ModalOverlay'
 
+import { INPUT } from '../../lib/fieldStyles'
+import { Pill } from '../common/Pill'
+import { type Tone } from '../../lib/tone'
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
@@ -45,16 +48,13 @@ const PRESET_SCHEDULES: { label: string; cron: string }[] = [
 /** a column header of the entries table (static) */
 const TH = 'px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-400'
 
-/** the fields of this page's forms: one look, one focus ring */
-const FIELD = 'w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs text-slate-200 font-mono placeholder-slate-600 transition-colors focus:outline-none focus-visible:border-emerald-500/40 focus-visible:ring-2 focus-visible:ring-emerald-500/40'
-
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 /** the user's own entries are the editable ones (emerald); the system's are neutral */
-function sourceTone(source: CronEntry['source']): 'emerald' | 'slate' {
-  return source === 'user' ? 'emerald' : 'slate'
+function sourceTone(source: CronEntry['source']): Tone {
+  return source === 'user' ? 'ok' : 'neutral'
 }
 
 function sourceIcon(source: CronEntry['source']) {
@@ -302,7 +302,7 @@ export default function ServerCrontab({ refreshKey, serverName }: {
                 type="text"
                 value={newSchedule}
                 onChange={(e) => setNewSchedule(e.target.value)}
-                className={`${FIELD} sm:w-48`}
+                className={`${INPUT} font-mono sm:w-48`}
                 placeholder="* * * * *"
                 autoComplete="off"
                 spellCheck={false}
@@ -317,7 +317,7 @@ export default function ServerCrontab({ refreshKey, serverName }: {
                 type="text"
                 value={newCommand}
                 onChange={(e) => setNewCommand(e.target.value)}
-                className={FIELD}
+                className={`${INPUT} font-mono`}
                 placeholder="/usr/bin/my-script.sh --arg"
                 autoComplete="off"
                 spellCheck={false}
@@ -465,7 +465,7 @@ export default function ServerCrontab({ refreshKey, serverName }: {
 
                         {/* Source badge */}
                         <td className="px-4 py-3 whitespace-nowrap">
-                          <Badge component="span" color={sourceTone(entry.source)} leftSection={sourceIcon(entry.source)}>{entry.source}</Badge>
+                          <Pill tone={sourceTone(entry.source)} icon={sourceIcon(entry.source)}>{entry.source}</Pill>
                           {entry.user && (
                             <span className="text-[10px] text-slate-500 ml-1.5">{entry.user}</span>
                           )}

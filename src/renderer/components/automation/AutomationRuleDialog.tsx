@@ -18,10 +18,7 @@ import {
   THRESHOLD_CONDITIONS, DEFAULT_THRESHOLD, DEFAULT_COOLDOWN_MIN, cronInWords,
 } from './model'
 
-/** the fields of the rule dialog: one look, one focus ring */
-const FIELD = 'w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs text-slate-200 placeholder-slate-600 transition-colors focus:outline-none focus-visible:border-emerald-500/40 focus-visible:ring-2 focus-visible:ring-emerald-500/40'
-const LABEL = 'text-[10px] text-slate-500 uppercase tracking-wider mb-1.5 block font-semibold'
-
+import { INPUT, CAPTION } from '../../lib/fieldStyles'
 type Trigger = 'schedule' | 'condition'
 
 export default function AutomationRuleDialog({ editing, startTrigger, member, onSaved, onClose }: {
@@ -107,15 +104,15 @@ export default function AutomationRuleDialog({ editing, startTrigger, member, on
 
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
           <div>
-            <label htmlFor={`${uid}-name`} className={LABEL}>Rule name</label>
+            <label htmlFor={`${uid}-name`} className={CAPTION}>Rule name</label>
             <input id={`${uid}-name`} type="text" value={name} onChange={(e) => setName(e.target.value)}
-              placeholder={trigger === 'condition' ? 'e.g. Restart unhealthy containers' : 'e.g. Nightly prune'} autoComplete="off" className={FIELD} autoFocus />
+              placeholder={trigger === 'condition' ? 'e.g. Restart unhealthy containers' : 'e.g. Nightly prune'} autoComplete="off" className={INPUT} autoFocus />
           </div>
 
           {/* an existing rule may change what it waits for, as it always could */}
           {editing && (
             <div>
-              <span className={LABEL}>Runs</span>
+              <span className={CAPTION}>Runs</span>
               <SegmentedControl
                 fullWidth
                 aria-label="What the rule waits for"
@@ -131,11 +128,11 @@ export default function AutomationRuleDialog({ editing, startTrigger, member, on
 
           {trigger === 'schedule' && (
             <div>
-              <label htmlFor={`${uid}-cron`} className={LABEL}>Cron expression</label>
+              <label htmlFor={`${uid}-cron`} className={CAPTION}>Cron expression</label>
               <input id={`${uid}-cron`} type="text" value={cron} onChange={(e) => setCron(e.target.value)} placeholder="* * * * *"
-                autoComplete="off" spellCheck={false} className={`${FIELD} font-mono`} />
+                autoComplete="off" spellCheck={false} className={`${INPUT} font-mono`} />
               <p className="text-[10px] text-slate-500 mt-1 mb-2">{cronWords ? `${cronWords}, in the server's time zone` : 'minute hour day-of-month month day-of-week, in the server\'s time zone'}</p>
-              <span className={LABEL}>Quick presets</span>
+              <span className={CAPTION}>Quick presets</span>
               <div className="flex flex-wrap gap-1.5">
                 {CRON_PRESETS.map((p) => (
                   <button
@@ -158,8 +155,8 @@ export default function AutomationRuleDialog({ editing, startTrigger, member, on
 
           {trigger === 'condition' && (
             <div>
-              <label htmlFor={`${uid}-condition`} className={LABEL}>When</label>
-              <select id={`${uid}-condition`} value={condition} onChange={(e) => setCondition(e.target.value)} className={`${FIELD} cursor-pointer`}>
+              <label htmlFor={`${uid}-condition`} className={CAPTION}>When</label>
+              <select id={`${uid}-condition`} value={condition} onChange={(e) => setCondition(e.target.value)} className={`${INPUT} cursor-pointer`}>
                 {CONDITION_OPTIONS.map((c) => <option key={c.value} value={c.value} className="bg-slate-900 text-slate-200">{c.label}</option>)}
               </select>
 
@@ -167,15 +164,15 @@ export default function AutomationRuleDialog({ editing, startTrigger, member, on
               <div className="grid grid-cols-2 gap-3 mt-3">
                 {THRESHOLD_CONDITIONS.has(condition) && (
                   <div>
-                    <label htmlFor={`${uid}-threshold`} className={LABEL}>Threshold (%)</label>
+                    <label htmlFor={`${uid}-threshold`} className={CAPTION}>Threshold (%)</label>
                     <input id={`${uid}-threshold`} type="number" inputMode="numeric" min={1} max={100} step={1} value={threshold}
-                      onChange={(e) => setThreshold(e.target.value)} placeholder={String(DEFAULT_THRESHOLD)} autoComplete="off" className={FIELD} />
+                      onChange={(e) => setThreshold(e.target.value)} placeholder={String(DEFAULT_THRESHOLD)} autoComplete="off" className={INPUT} />
                   </div>
                 )}
                 <div>
-                  <label htmlFor={`${uid}-cooldown`} className={LABEL}>Cooldown (minutes)</label>
+                  <label htmlFor={`${uid}-cooldown`} className={CAPTION}>Cooldown (minutes)</label>
                   <input id={`${uid}-cooldown`} type="number" inputMode="numeric" min={0} step={1} value={cooldown}
-                    onChange={(e) => setCooldown(e.target.value)} placeholder={String(DEFAULT_COOLDOWN_MIN)} autoComplete="off" className={FIELD} />
+                    onChange={(e) => setCooldown(e.target.value)} placeholder={String(DEFAULT_COOLDOWN_MIN)} autoComplete="off" className={INPUT} />
                 </div>
               </div>
               <p className="text-[10px] text-slate-500 mt-1">
@@ -186,16 +183,16 @@ export default function AutomationRuleDialog({ editing, startTrigger, member, on
           )}
 
           <div>
-            <label htmlFor={`${uid}-action`} className={LABEL}>Then</label>
-            <select id={`${uid}-action`} value={actionType} onChange={(e) => setActionType(e.target.value)} className={`${FIELD} cursor-pointer`}>
+            <label htmlFor={`${uid}-action`} className={CAPTION}>Then</label>
+            <select id={`${uid}-action`} value={actionType} onChange={(e) => setActionType(e.target.value)} className={`${INPUT} cursor-pointer`}>
               {AUTOMATION_ACTIONS.map((a) => <option key={a.value} value={a.value} className="bg-slate-900 text-slate-200">{a.label}</option>)}
             </select>
           </div>
 
           <div>
-            <label htmlFor={`${uid}-target`} className={LABEL}>Target</label>
+            <label htmlFor={`${uid}-target`} className={CAPTION}>Target</label>
             <input id={`${uid}-target`} type="text" value={actionTarget} onChange={(e) => setActionTarget(e.target.value)}
-              placeholder={AUTOMATION_TARGET_PLACEHOLDERS[actionType] ?? 'Stack name, container name, or "*" for all'} autoComplete="off" className={FIELD} />
+              placeholder={AUTOMATION_TARGET_PLACEHOLDERS[actionType] ?? 'Stack name, container name, or "*" for all'} autoComplete="off" className={INPUT} />
             <p className="text-[10px] text-slate-500 mt-1">
               {AUTOMATION_TARGET_HINTS[actionType] ?? (trigger === 'condition'
                 ? 'Leave empty or use "*": a container action then applies to the containers that matched the condition.'

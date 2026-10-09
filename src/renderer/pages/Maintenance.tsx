@@ -42,6 +42,7 @@ import type { FleetTarget, MemberOutcome, FleetMaintenanceReport, FleetOrphanRep
 import { EmptyState } from '../components/common/PageState'
 import ModalOverlay from '../components/common/ModalOverlay'
 
+import { Pill } from '../components/common/Pill'
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -505,10 +506,10 @@ export default function Maintenance() {
                 </div>
                 <p className="text-xl md:text-2xl font-bold text-slate-100 tabular-nums">{report.containers.total}</p>
                 <div className="flex items-center gap-2 mt-1.5">
-                  <Badge component="span" color="emerald" leftSection={dot('bg-emerald-400')} title="Running">{report.containers.running}</Badge>
+                  <Pill tone="ok" icon={dot('bg-emerald-400')} title="Running">{report.containers.running}</Pill>
                   {/* asleep on demand is not stopped: Sablier stopped them on purpose, and a prune leaves them alone */}
                   {(report.containers.sleeping ?? 0) > 0 && <Badge component="span" color="indigo" leftSection={<Moon size={9} aria-hidden />} title="Asleep on demand (Sablier wakes them on the first request; a prune leaves them alone)">{report.containers.sleeping}</Badge>}
-                  <Badge component="span" color={report.containers.stopped - (report.containers.sleeping ?? 0) > 0 ? 'rose' : 'slate'} leftSection={dot(report.containers.stopped - (report.containers.sleeping ?? 0) > 0 ? 'bg-rose-400' : 'bg-slate-500')} title="Stopped">{Math.max(0, report.containers.stopped - (report.containers.sleeping ?? 0))}</Badge>
+                  <Pill tone={report.containers.stopped - (report.containers.sleeping ?? 0) > 0 ? 'problem' : 'neutral'} icon={dot(report.containers.stopped - (report.containers.sleeping ?? 0) > 0 ? 'bg-rose-400' : 'bg-slate-500')} title="Stopped">{Math.max(0, report.containers.stopped - (report.containers.sleeping ?? 0))}</Pill>
                 </div>
               </div>
 
@@ -521,9 +522,9 @@ export default function Maintenance() {
                 <p className="text-xl md:text-2xl font-bold text-slate-100 tabular-nums">{report.images.total}</p>
                 <div className="flex items-center gap-2 mt-1.5">
                   {report.images.dangling > 0 ? (
-                    <Badge component="span" color="amber" leftSection={dot('bg-amber-400')}>{report.images.dangling} dangling</Badge>
+                    <Pill tone="attention" icon={dot('bg-amber-400')}>{report.images.dangling} dangling</Pill>
                   ) : (
-                    <Badge component="span" color="emerald" leftSection={dot('bg-emerald-400')}>clean</Badge>
+                    <Pill tone="ok" icon={dot('bg-emerald-400')}>clean</Pill>
                   )}
                 </div>
               </div>
@@ -537,9 +538,9 @@ export default function Maintenance() {
                 <p className="text-xl md:text-2xl font-bold text-slate-100 tabular-nums">{report.volumes.total}</p>
                 <div className="flex items-center gap-2 mt-1.5">
                   {report.volumes.dangling > 0 ? (
-                    <Badge component="span" color="amber" leftSection={dot('bg-amber-400')}>{report.volumes.dangling} dangling</Badge>
+                    <Pill tone="attention" icon={dot('bg-amber-400')}>{report.volumes.dangling} dangling</Pill>
                   ) : (
-                    <Badge component="span" color="emerald" leftSection={dot('bg-emerald-400')}>clean</Badge>
+                    <Pill tone="ok" icon={dot('bg-emerald-400')}>clean</Pill>
                   )}
                 </div>
               </div>
@@ -552,7 +553,7 @@ export default function Maintenance() {
                 </div>
                 <p className="text-xl md:text-2xl font-bold text-slate-100 tabular-nums">{report.networks.total}</p>
                 <div className="flex items-center gap-2 mt-1.5">
-                  <Badge component="span" color="cyan">{report.networks.custom} custom</Badge>
+                  <Pill tone="info">{report.networks.custom} custom</Pill>
                 </div>
               </div>
 
@@ -585,7 +586,7 @@ export default function Maintenance() {
         <div className="flex items-center justify-between mb-3">
           <h2 id="maint-orphans-title" className="text-sm font-semibold text-slate-200">Orphan detection</h2>
           {!orphansLoading && orphans && allClean && (
-            <Badge component="span" color="emerald" leftSection={<CheckCircle2 size={10} />}>All clean</Badge>
+            <Pill tone="ok" icon={<CheckCircle2 size={10} />}>All clean</Pill>
           )}
         </div>
 
@@ -617,7 +618,7 @@ export default function Maintenance() {
                           <td className={`px-4 py-2 font-mono text-slate-200 text-xs whitespace-nowrap ${everywhere ? 'min-w-[17rem]' : ''}`}><span className="inline-flex items-center gap-2">{c.name}{everywhere && <VmCapsule member={c.member} name={c.member_name} vmid={c.vmid} size="xs" onClick={() => setScope(c.member ?? 'hub')} />}</span></td>
                           <td className="px-4 py-2 font-mono text-slate-400 text-xs">{c.image}</td>
                           <td className="px-4 py-2">
-                            <Badge component="span" color="rose">{c.status}</Badge>
+                            <Pill tone="problem">{c.status}</Pill>
                           </td>
                         </tr>
                       ))}
@@ -677,7 +678,7 @@ export default function Maintenance() {
                         <tr key={rowKey(vol.member, vol.name)} className="hover:bg-white/[0.03] transition-colors duration-150">
                           <td className={`px-4 py-2 font-mono text-slate-200 text-xs whitespace-nowrap ${everywhere ? 'min-w-[17rem]' : ''}`}><span className="inline-flex items-center gap-2">{vol.name}{everywhere && <VmCapsule member={vol.member} name={vol.member_name} vmid={vol.vmid} size="xs" onClick={() => setScope(vol.member ?? 'hub')} />}</span></td>
                           <td className="px-4 py-2">
-                            <Badge component="span" color="slate">{vol.driver}</Badge>
+                            <Pill tone="neutral">{vol.driver}</Pill>
                           </td>
                         </tr>
                       ))}
@@ -768,7 +769,7 @@ export default function Maintenance() {
                           <td className="px-4 py-2 text-right font-mono text-slate-300 text-xs tabular-nums">{row.active}</td>
                           <td className="px-4 py-2 text-right font-mono text-slate-300 text-xs">{row.size}</td>
                           <td className="px-4 py-2 text-right">
-                            <Badge component="span" color="cyan">{row.reclaimable}</Badge>
+                            <Pill tone="info">{row.reclaimable}</Pill>
                           </td>
                         </tr>
                       ))}

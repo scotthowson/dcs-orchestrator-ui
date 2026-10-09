@@ -20,6 +20,7 @@ import type { ScopeMember } from '../../hooks/useFleetScope'
 import type { BackupConfigResponse, SnapshotCreateResponse } from '../../../shared/types'
 import type { BackupStackChoice } from '../../../shared/fleetScopedOps'
 
+import { INPUT } from '../../lib/fieldStyles'
 /** the drop-down value of a stack: where it lives, then its name */
 const stackKey = (member: string | null, name: string) => `${member ?? ''}|${name}`
 const parseStackKey = (key: string): { member: string | null; name: string } => {
@@ -27,7 +28,6 @@ const parseStackKey = (key: string): { member: string | null; name: string } => 
   return { member: i > 0 ? key.slice(0, i) : null, name: key.slice(i + 1) }
 }
 
-const FIELD = 'w-full min-w-0 h-10 rounded-xl px-3 text-sm bg-white/5 border border-white/10 text-slate-200 placeholder-slate-500 transition-colors focus:outline-none focus-visible:border-emerald-500/40 focus-visible:ring-2 focus-visible:ring-emerald-500/40 disabled:opacity-50 disabled:cursor-not-allowed'
 const OPEN = 'bg-cyan-500/15 border border-cyan-500/25 text-cyan-400 hover:bg-cyan-500/25'
 
 type Panel = 'settings' | 'recovery' | null
@@ -232,7 +232,7 @@ export default function MakeCopy({
             value={selectedStack}
             onChange={(e) => setSelectedStack(e.target.value)}
             disabled={!isConfigured && !everywhere}
-            className={FIELD}
+            className={INPUT}
           >
             <option value="" className="bg-slate-900 text-slate-400">
               {visibleStacks.length === 0 ? 'No stacks here' : 'Choose a stack…'}
@@ -287,7 +287,7 @@ export default function MakeCopy({
             aria-label="Label of the snapshot (optional)"
             placeholder="Label (optional), e.g. before-traefik"
             disabled={creating}
-            className={FIELD}
+            className={INPUT}
           />
           <button type="button" onClick={takeSnapshot} disabled={creating} className={`${BTN_SHEET_QUIET} w-full`}>
             {creating ? <Loader2 size={15} className="animate-spin" /> : <Camera size={15} />}

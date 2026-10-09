@@ -5,7 +5,7 @@
 // registry (constants/pageTitles.ts), so the heading always says what the
 // sidebar, the breadcrumb and the command palette say.
 //
-//   <PageHeader page="proxmox" badge={<Badge …>hub</Badge>} subtitle="3 of 5 guests running"
+//   <PageHeader page="proxmox" badge={<Pill …>hub</Pill>} subtitle="3 of 5 guests running"
 //     actions={<><button className={BTN_TOOLBAR_QUIET}>Refresh</button></>}>
 //     <FleetScopeChips … />        // children: what sits under the line (scope chips, filters)
 //   </PageHeader>

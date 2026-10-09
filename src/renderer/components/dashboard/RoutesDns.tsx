@@ -3,12 +3,12 @@
 // =============================================================================
 
 import { Globe, ExternalLink, AlertTriangle, ShieldCheck, ShieldOff, Layers } from 'lucide-react'
-import { Badge } from '@mantine/core'
 import { usePolling } from '../../hooks/usePolling'
 import { useConnectionStore } from '../../stores/connectionStore'
 import { fetchRoutes, fetchDnsStatus } from '../../api/endpoints'
 import { Card, CardBody } from './cardShared'
 import { Skeleton, EmptyState, ErrorState } from '../common/PageState'
+import { Pill } from '../common/Pill'
 export default function RoutesDns() {
   const isConnected = useConnectionStore((s) => s.status === 'connected')
   const routes = usePolling(fetchRoutes, 60000, { enabled: isConnected })
@@ -26,7 +26,7 @@ export default function RoutesDns() {
       open="dns"
       clickable={false}
       badge={dns.data ? (
-        <Badge component="span" color={dnsOk ? 'emerald' : 'slate'} leftSection={dnsOk ? <ShieldCheck size={11} /> : <ShieldOff size={11} />}>{dnsLabel}</Badge>
+        <Pill tone={dnsOk ? 'ok' : 'neutral'} icon={dnsOk ? <ShieldCheck size={11} /> : <ShieldOff size={11} />}>{dnsLabel}</Pill>
       ) : undefined}
     >
       {routes.error && !routes.data ? (
