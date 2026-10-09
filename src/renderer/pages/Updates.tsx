@@ -647,6 +647,14 @@ export default function Updates() {
   // ---- Update every image with a confirmed update or a stale age, each on its own DCS ----
   const handleUpdateAllStale = useCallback(async () => {
     if (bulkUpdating || bulkTargets.length === 0) return
+    // many images at once, each recreating the containers on its old copy: asked first, like Update everything
+    const n = bulkTargets.length
+    const ok = await confirm({
+      title: `Update ${n} image${n === 1 ? '' : 's'} now?`,
+      message: `${n === 1 ? 'The image is' : `The ${n} images are`} pulled${imgScope === 'all' ? ' on the server each one runs on' : scopeName ? ` on ${scopeName}` : ''} and the containers on an older copy are recreated. Apps restart briefly while their container is recreated.`,
+      confirmLabel: n === 1 ? 'Update the image' : 'Update the images',
+    })
+    if (!ok) return
     setBulkUpdating(true)
     setBulkResults({})
     let successCount = 0
@@ -699,7 +707,7 @@ export default function Updates() {
 
     refresh()
     setBulkUpdating(false)
-  }, [bulkUpdating, bulkTargets, addToast, refresh, imgScope, scopeMember, scopeName])
+  }, [bulkUpdating, bulkTargets, addToast, refresh, imgScope, scopeMember, scopeName, confirm])
 
   // ---- Disconnected ----
   if (!isConnected) {
@@ -1160,7 +1168,16 @@ export default function Updates() {
                 <Hint label="Every answering VM fetches the hub's code, keeps its data and stacks, and restarts its API in place">
                   <button
                     type="button"
-                    onClick={() => handleUpdateFleet('all')}
+                    onClick={async () => {
+                      // a DCS update of every VM (each restarts its API): asked first, like Update everything below
+                      const n = fv.behind > 0 ? fv.behind : fleetMembers.filter((m) => m.reachable).length
+                      const ok = await confirm({
+                        title: `Update ${n === 1 ? 'the VM' : `the ${n} VMs`} now?`,
+                        message: `Every answering VM fetches the hub's code (DCS ${fv.hub.version}), keeps its data, accounts, stacks and settings, and restarts its API in place. Its apps keep running.`,
+                        confirmLabel: n === 1 ? 'Update the VM' : 'Update the VMs',
+                      })
+                      if (ok) void handleUpdateFleet('all')
+                    }}
                     disabled={fleetUpdating || fv.pending || fleetMembers.every((m) => !m.reachable)}
                     className={`${BTN_TOOLBAR} ${TONE_OK} shrink-0`}
                   >

@@ -229,7 +229,7 @@ export default function Maintenance() {
     const { verb, done, call, setBusy } = opts
     if (everywhere && !opts.confirmed) {
       const ok = await confirm({
-        title: `${verb} everywhere`,
+        title: `Run ${verb.toLowerCase()} everywhere?`,
         message: `Run ${verb.toLowerCase()} on the hub and on ${vmCount} VM${vmCount === 1 ? '' : 's'}? Each server cleans its own Docker; one that fails does not stop the others.`,
         confirmLabel: 'Run everywhere',
         danger: opts.danger,
@@ -315,7 +315,7 @@ export default function Maintenance() {
                 <AlertTriangle size={18} className="text-rose-400" />
               </div>
               <div>
-                <h2 className="text-base font-semibold text-slate-100">Deep prune</h2>
+                <h2 className="text-base font-semibold text-slate-100">{everywhere ? 'Deep prune everywhere?' : 'Run a deep prune?'}</h2>
                 <p className="text-[11px] text-slate-500">Destructive action</p>
               </div>
             </div>

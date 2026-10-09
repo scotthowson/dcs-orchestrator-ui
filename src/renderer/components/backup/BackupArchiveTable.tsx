@@ -271,7 +271,7 @@ export default function BackupArchiveTable({
 
       {restoreTarget && (
         <TypedConfirmDialog
-          title="Confirm restore"
+          title="Restore this backup?"
           word="RESTORE"
           confirmLabel="Restore backup"
           warning={<>The stacks it holds are stopped and their files, App-Data and volumes go back to this backup{hasFleet ? targetMember ? ` on the VM ${restoreTarget.member_name ?? memberName}` : ' on the hub' : ''}; they start again afterwards.{restoreTarget.kind === 'stack' ? '' : ' A full backup also brings back the install\'s own state: the root .env, accounts, secrets and settings.'}</>}

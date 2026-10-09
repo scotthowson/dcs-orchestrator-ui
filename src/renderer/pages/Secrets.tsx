@@ -157,9 +157,15 @@ export default function Secrets() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [keyValid, keyExists, confirmReplace, newValue, trimmedKey, setSecret, addToast, scope, scopeMember])
 
-  /** Delete: ask first (the shared confirmation, focus on Cancel), then remove it from the server that keeps it */
+  /** Everywhere is a view: a new secret is stored on the server picked above, so it is asked for before anything is typed */
+  const openAdd = () => {
+    if (scope === 'all') { addToast({ type: 'info', message: 'Everywhere is a view: pick the hub or one VM above, then add the secret there' }); return }
+    setShowAddModal(true)
+  }
+
+  /** Delete: ask first (the shared confirmation, focus on Cancel), then remove it from the server that keeps it (its row says which) */
   const handleDelete = useCallback(async (entry: SecretEntry) => {
-    if (scope === 'all') { addToast({ type: 'info', message: 'Everywhere is a view: pick the hub or one VM above, then change it there' }); return }
+    const target = entry.member || scopeMember
     const where = entry.member !== undefined && entry.member ? ` on the VM ${entry.member_name ?? entry.member}` : ''
     const ok = await confirm({
       title: 'Delete this secret?',
@@ -168,9 +174,11 @@ export default function Secrets() {
       danger: true,
     })
     if (!ok) return
-    const done = await deleteSecret(entry.key, scopeMember)
+    const done = await deleteSecret(entry.key, target)
     if (done) addToast({ type: 'success', message: `Deleted ${entry.key}` })
-  }, [deleteSecret, addToast, scope, scopeMember, confirm])
+    // Everywhere lists the same name once per server: read the list again rather than dropping every row of that name
+    if (done && scope === 'all') fetchSecrets(scope)
+  }, [deleteSecret, fetchSecrets, addToast, scope, scopeMember, confirm])
 
   const copyReference = async (entry: SecretEntry) => {
     const id = secretKey(entry)
@@ -225,7 +233,7 @@ export default function Secrets() {
             </button>
           </Hint>
           {isAdmin && (
-            <button type="button" onClick={() => setShowAddModal(true)} className={`${BTN_TOOLBAR} ${TONE_OK}`}>
+            <button type="button" onClick={openAdd} className={`${BTN_TOOLBAR} ${TONE_OK}`}>
               <Plus size={14} /> Add secret
             </button>
           )}
@@ -289,14 +297,14 @@ export default function Secrets() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" role="status" aria-label="Reading the secrets">
           {[1, 2, 3].map((i) => <div key={i} className="rounded-xl p-4 h-24 skeleton" aria-hidden />)}
         </div>
-      ) : filtered.length === 0 ? (
+      ) : error && entries.length === 0 ? null /* failed: the ErrorState above says so, never "No secrets stored yet" */ : filtered.length === 0 ? (
         <div className="surface">
           <EmptyState
             icon={<KeyRound size={28} />}
             title={search ? 'No secrets match your search' : 'No secrets stored yet'}
             hint={isAdmin ? 'Add a secret, then reference it as ${SECRETS_NAME} in a compose file or .env' : 'An admin can add secrets here'}
             action={isAdmin && !search ? (
-              <button type="button" onClick={() => setShowAddModal(true)} className={`${BTN_TOOLBAR} ${TONE_OK}`}>
+              <button type="button" onClick={openAdd} className={`${BTN_TOOLBAR} ${TONE_OK}`}>
                 <Plus size={14} /> Add secret
               </button>
             ) : undefined}

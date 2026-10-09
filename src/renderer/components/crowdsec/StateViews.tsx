@@ -59,12 +59,13 @@ function fixIcon(id: string) {
 export function FixButton({ fix, busy, onRun }: { fix: CrowdSecFix; busy: boolean; onRun: () => void }) {
   const { isAdmin } = useCs()
   const needsAdmin = fix.kind === 'api'
+  // a fix the server runs is an admin's: a viewer is not offered it
+  if (needsAdmin && !isAdmin) return null
   return (
     <button
       type="button"
       onClick={onRun}
-      disabled={busy || (needsAdmin && !isAdmin)}
-      title={needsAdmin && !isAdmin ? 'Only an admin can do this' : undefined}
+      disabled={busy}
       className={fix.primary ? BTN_TOOLBAR_OK : BTN_TOOLBAR_QUIET}
     >
       {busy ? <Loader2 size={14} className="animate-spin" /> : fixIcon(fix.id)} {fix.label}
@@ -304,6 +305,8 @@ export function NotDeployed({ s, onRefresh }: { s: CrowdSecStatusResponse; onRef
 
         <div className={`${CARD} p-4 md:p-5 lg:col-span-2 flex flex-col`}>
           <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Deploy</p>
+          {/* a viewer is not offered the deployment (the server answers 403): the form is an admin's */}
+          {!isAdmin ? <p className="mt-3 text-sm text-slate-400">Only an admin can deploy CrowdSec. Once it runs, this page shows its bans and alerts to every account.</p> : <>
           <div className="mt-3 space-y-3 flex-1">
             <div>
               <label className={LABEL} htmlFor="cs-stack">Stack</label>
@@ -324,9 +327,9 @@ export function NotDeployed({ s, onRefresh }: { s: CrowdSecStatusResponse; onRef
             <button type="button" onClick={deploy} disabled={!canDeploy || deploying || !stack} className={`${BTN_TOOLBAR_OK} w-full h-11 text-sm`}>
               {deploying ? <Loader2 size={16} className="animate-spin" /> : <Rocket size={16} />} {deploying ? 'Deploying…' : 'Deploy CrowdSec'}
             </button>
-            {!isAdmin && <p className="text-[11px] text-amber-300 text-center">Only an admin can deploy.</p>}
             <button type="button" onClick={() => setCurrentPage('templates', { search: 'crowdsec' })} className="w-full text-[11px] text-slate-500 hover:text-slate-300 inline-flex items-center justify-center gap-1"><ExternalLink size={11} /> Prefer the Templates page? Open the template there</button>
           </div>
+          </>}
         </div>
       </div>
 

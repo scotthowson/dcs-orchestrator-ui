@@ -37,7 +37,7 @@ import {
   authListSessions, authRevokeSession, authDeleteInvite, authLogoutAll,
 } from '../api/endpoints'
 import type { ApiUser, InviteCode, SessionInfo as SessionEntry } from '../../shared/types'
-import { LoadingState, EmptyState } from '../components/common/PageState'
+import { LoadingState, EmptyState, ErrorState } from '../components/common/PageState'
 import AppSignInCard from '../components/users/AppSignInCard'
 
 import { FIELD_SM } from '../lib/fieldStyles'
@@ -141,6 +141,9 @@ export default function Users() {
   const [revokingSession, setRevokingSession] = useState<string | null>(null)
   const [deletingInvite, setDeletingInvite] = useState<string | null>(null)
   const [signingOut, setSigningOut] = useState<string | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [loaded, setLoaded] = useState(false)
+  const [sessionsError, setSessionsError] = useState<string | null>(null)
 
   // Fetch data
   const fetchData = useCallback(async () => {
@@ -149,13 +152,18 @@ export default function Users() {
       const [usersRes, invitesRes, sessionsRes] = await Promise.all([
         authListUsers(),
         authListInvites(),
-        authListSessions().catch(() => ({ sessions: [], total: 0 })),
+        authListSessions().catch((err: unknown) => err instanceof Error ? err : new Error('The server did not answer')),
       ])
-      setSessions(sessionsRes.sessions)
+      // a failed sessions list is said in its panel, never shown as "No active sessions"
+      if (sessionsRes instanceof Error) setSessionsError(sessionsRes.message)
+      else { setSessions(sessionsRes.sessions); setSessionsError(null) }
       setUsers(usersRes.users ?? [])
       setInvites(invitesRes.invites ?? [])
-    } catch {
-      // Data may not be available if auth isn't configured
+      setLoadError(null)
+      setLoaded(true)
+    } catch (err) {
+      // the kit's failed state, never zeros and "No users registered yet"
+      setLoadError(err instanceof Error ? err.message : 'The server did not answer')
     } finally {
       setLoading(false)
     }
@@ -260,6 +268,17 @@ export default function Users() {
     }
   }, [addToast, fetchData])
 
+  // one session: destructive (whoever uses it is signed out), so it asks first like every other Revoke here
+  const askRevokeSession = useCallback(async (s: { id: string; username: string; ip: string }) => {
+    const ok = await confirm({
+      title: 'Revoke this session?',
+      message: `Sign out the session ${s.id} of ${s.username}${s.ip ? ` (${s.ip})` : ''}? ${s.username === currentUser ? 'If it is this one, you sign in again.' : 'They can sign in again.'}`,
+      confirmLabel: 'Revoke session',
+      danger: true,
+    })
+    if (ok) await handleRevokeSession(s.id.replace('...', ''))
+  }, [confirm, currentUser, handleRevokeSession])
+
   // Every session of an account at once (POST /auth/logout-all): a lost phone, a shared password. Your own account
   // too — that ends this session as well, so the dashboard signs out itself instead of hitting a 401 on the next poll.
   const askLogoutAll = useCallback(async (username: string) => {
@@ -316,7 +335,7 @@ export default function Users() {
       setCopiedCode(code)
       addToast({ type: 'info', message: 'Invite code copied' })
       setTimeout(() => setCopiedCode(null), 2000)
-    })
+    }, () => addToast({ type: 'error', message: 'Could not copy the invite code: select it and copy it by hand' }))
   }, [addToast])
 
   // Disconnected state
@@ -342,6 +361,10 @@ export default function Users() {
         }
       />
 
+      {loadError && !loaded ? (
+        <ErrorState title="Could not read the accounts" error={loadError} onRetry={fetchData} />
+      ) : (<>
+      {loadError && <p role="alert" className="text-xs text-rose-300">Could not refresh the accounts: {loadError}</p>}
       {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 stagger-children">
         <StatTile icon={UsersIcon} label="Registered users" value={users.length} tone="ok" loading={loading && users.length === 0} />
@@ -631,7 +654,9 @@ export default function Users() {
             </div>
           </div>
           <div className="p-4">
-            {sessions.length === 0 ? (
+            {sessionsError && sessions.length === 0 ? (
+              <ErrorState title="Could not read the sessions" error={sessionsError} onRetry={fetchData} />
+            ) : sessions.length === 0 ? (
               <EmptyState compact title="No active sessions" />
             ) : (
               <ul className="space-y-2">
@@ -656,7 +681,7 @@ export default function Users() {
                       </div>
                       <button
                         type="button"
-                        onClick={() => handleRevokeSession(s.id.replace('...', ''))}
+                        onClick={() => askRevokeSession(s)}
                         disabled={revokingSession === s.id}
                         aria-label={`Revoke the session ${s.id} of ${s.username}`}
                         className={`${BTN_CARD} ${TONE_DANGER}`}
@@ -673,6 +698,7 @@ export default function Users() {
         </section>
       </div>
 
+      </>)}
       {/* ── Sign-in to your apps: Authelia's second step ── */}
       <section className="surface p-4 md:p-5 space-y-4" aria-labelledby="app-sign-in-title">
         <div className="flex items-center gap-2">

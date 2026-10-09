@@ -231,7 +231,7 @@ export default function SnapshotList({
 
       {restoreTarget && (
         <TypedConfirmDialog
-          title="Confirm restore"
+          title="Restore this snapshot?"
           word="RESTORE"
           confirmLabel="Restore snapshot"
           warning={<>The configuration{hasFleet ? (restoreTarget.member ?? scopeMember) ? ` on the VM ${restoreTarget.member_name ?? memberName}` : ' on the hub' : ''} goes back to this snapshot: every stack&apos;s files (a stack in a VM gets them there too), settings, alert and automation rules, schedules, Traefik routes and templates. No data is touched and no stack is stopped or started.</>}

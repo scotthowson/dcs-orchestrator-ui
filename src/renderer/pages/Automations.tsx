@@ -103,6 +103,8 @@ export default function Automations() {
   // both stores answered (a list that grows by half a second later reads as a flicker)
   const ready = (!!autoData || !!autoError) && !(schedLoading && schedules.length === 0 && !schedError)
   const loading = schedLoading || autoLoading
+  // a list that failed and holds nothing is not "0 rules": the tiles and chips show a dash, the ErrorState says why
+  const failed = (!!schedError || !!autoError) && rules.length === 0
 
   const refreshAll = () => {
     if (shownTab === 'cron') { setCronRefresh((n) => n + 1); return }
@@ -274,7 +276,7 @@ export default function Automations() {
 
       {/* the rules at a glance, both kinds */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {tiles.map((t) => <StatTile key={t.label} icon={t.icon} label={t.label} value={ready ? t.value : '–'} tone={t.tone} />)}
+        {tiles.map((t) => <StatTile key={t.label} icon={t.icon} label={t.label} value={ready && !failed ? t.value : '–'} tone={t.tone} />)}
       </div>
 
       {showGuide && <AutomationGuide onClose={() => setShowGuide(false)} />}
@@ -285,7 +287,7 @@ export default function Automations() {
           <button type="button" role="tab" aria-selected={shownTab === 'rules'} onClick={() => pickTab('rules')}
             className={`${TAB_BTN} ${shownTab === 'rules' ? 'text-emerald-400 border-emerald-400' : 'text-slate-500 border-transparent hover:text-slate-300'}`}>
             <ListChecks size={14} aria-hidden /> Rules
-            <span className="text-[10px] tabular-nums text-slate-500">{ready ? stats.total : ''}</span>
+            <span className="text-[10px] tabular-nums text-slate-500">{ready && !failed ? stats.total : ''}</span>
           </button>
           <button type="button" role="tab" aria-selected={shownTab === 'cron'} onClick={() => pickTab('cron')}
             className={`${TAB_BTN} ${shownTab === 'cron' ? 'text-emerald-400 border-emerald-400' : 'text-slate-500 border-transparent hover:text-slate-300'}`}>
@@ -303,7 +305,7 @@ export default function Automations() {
               <button key={c.value} type="button" aria-pressed={kind === c.value} onClick={() => setKind(c.value)}
                 className={`${CHIP} ${kind === c.value ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-200' : 'bg-white/[0.03] border-white/[0.06] text-slate-400 hover:text-slate-200 hover:bg-white/[0.06]'}`}>
                 <c.icon size={11} aria-hidden /> {c.label}
-                <span className="tabular-nums text-slate-500">{ready ? c.count : ''}</span>
+                <span className="tabular-nums text-slate-500">{ready && !failed ? c.count : ''}</span>
               </button>
             ))}
           </div>
@@ -315,7 +317,7 @@ export default function Automations() {
             <div className="space-y-3" role="status" aria-label="Reading the rules">
               {[0, 1, 2].map((i) => <div key={i} className="surface h-[5.5rem] skeleton" aria-hidden />)}
             </div>
-          ) : shown.length === 0 ? (
+          ) : failed ? null /* failed: the ErrorState above says so, never "No rules yet" */ : shown.length === 0 ? (
             <div className="surface">
               <EmptyState
                 icon={<Bot size={28} />}

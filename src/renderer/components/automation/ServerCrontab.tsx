@@ -127,9 +127,10 @@ export default function ServerCrontab({ refreshKey, serverName }: {
 
   // Copy a schedule or a command
   const handleCopy = useCallback((text: string, key: string) => {
-    navigator.clipboard.writeText(text)
-    setCopied(key)
-    setTimeout(() => setCopied((c) => (c === key ? null : c)), 2000)
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(key)
+      setTimeout(() => setCopied((c) => (c === key ? null : c)), 2000)
+    }, () => { /* the browser refused: nothing was copied, the button stays as it was */ })
   }, [])
 
   // Open raw editor
@@ -157,9 +158,13 @@ export default function ServerCrontab({ refreshKey, serverName }: {
     }
   }, [rawContent, addToast, refreshUser])
 
+  // a schedule crontab accepts: five fields or one of its @ words (crontab refuses the whole file otherwise)
+  const scheduleOk = /^@(reboot|yearly|annually|monthly|weekly|daily|midnight|hourly)$/.test(newSchedule.trim())
+    || /^([\d*,/A-Za-z-]+\s+){4}[\d*,/A-Za-z-]+$/.test(newSchedule.trim())
+
   // Add new cron entry
   const handleAddEntry = useCallback(async () => {
-    if (!newCommand.trim()) return
+    if (!newCommand.trim() || !scheduleOk) return
     const newLine = `${newSchedule} ${newCommand}`
     const currentRaw = crontabText(userData?.raw).trim()
     const updatedRaw = (currentRaw ? currentRaw + '\n' : '') + newLine + '\n'
@@ -180,7 +185,7 @@ export default function ServerCrontab({ refreshKey, serverName }: {
     } finally {
       setSaving(false)
     }
-  }, [newSchedule, newCommand, userData, addToast, refreshUser])
+  }, [newSchedule, newCommand, scheduleOk, userData, addToast, refreshUser])
 
   // Delete cron entry (asks first)
   const handleDeleteEntry = useCallback(async (schedule: string, command: string) => {
@@ -294,7 +299,10 @@ export default function ServerCrontab({ refreshKey, serverName }: {
                 placeholder="* * * * *"
                 autoComplete="off"
                 spellCheck={false}
+                aria-invalid={!scheduleOk}
+                aria-describedby={scheduleOk ? undefined : `${uid}-schedule-error`}
               />
+              {!scheduleOk && <p id={`${uid}-schedule-error`} role="alert" className="text-[10px] text-rose-300 mt-1 sm:w-48">Five fields (minute hour day month weekday) or @hourly, @daily…</p>}
             </div>
 
             {/* Command input */}
@@ -334,7 +342,7 @@ export default function ServerCrontab({ refreshKey, serverName }: {
 
           {/* Actions */}
           <div className="flex items-center gap-2">
-            <button type="submit" disabled={saving || !newCommand.trim()} className={`${BTN_TOOLBAR} ${TONE_OK}`}>
+            <button type="submit" disabled={saving || !newCommand.trim() || !scheduleOk} className={`${BTN_TOOLBAR} ${TONE_OK}`}>
               {saving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
               Add entry
             </button>

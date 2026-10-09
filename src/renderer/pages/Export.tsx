@@ -30,6 +30,7 @@ import { useConnectionStore } from '../stores/connectionStore'
 import { useAuthStore } from '../stores/authStore'
 import { DisconnectedBanner } from '../components/common/DisconnectedBanner'
 import { useToast } from '../components/common/Toast'
+import { useConfirm } from '../components/common/ConfirmDialog'
 import PageHeader from '../components/common/PageHeader'
 import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD, TONE_OK, TONE_QUIET, TONE_GHOST, TONE_GHOST_DANGER } from '../lib/ui'
 // ---------------------------------------------------------------------------
@@ -318,6 +319,7 @@ export default function Export() {
   const userRole = useAuthStore((s) => s.userRole)
   const isAdmin = userRole === 'admin'
   const { addToast } = useToast()
+  const confirm = useConfirm()
 
   const [loadingMap, setLoadingMap] = useState<Record<string, boolean>>({})
   const [fullReportLoading, setFullReportLoading] = useState(false)
@@ -410,10 +412,18 @@ export default function Export() {
     setBatchLoading(false)
   }, [selectedCards, addToast, addHistoryEntry])
 
-  const clearHistory = useCallback(() => {
+  // the list of what was exported on this device: rose, so it asks first (the files already saved stay where they are)
+  const clearHistory = useCallback(async () => {
+    const ok = await confirm({
+      title: 'Clear the export history?',
+      message: 'The list of exports made on this device is emptied. The files you saved are not touched.',
+      confirmLabel: 'Clear the history',
+      danger: true,
+    })
+    if (!ok) return
     setHistory([])
     addToast({ type: 'success', message: 'Export history cleared' })
-  }, [addToast])
+  }, [addToast, confirm])
 
   const allSelected = selectedCards.size === exportCards.length
 

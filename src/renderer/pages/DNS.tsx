@@ -145,7 +145,7 @@ function DeleteRouteModal({ route, onConfirm, onCancel, busy }: {
             <Trash2 size={18} className="text-rose-400" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-slate-200">Delete route</h3>
+            <h3 className="text-sm font-semibold text-slate-200">Delete this route?</h3>
             <p className="text-[10px] text-slate-500">{vm ? `Removes the route file on the VM ${vm}` : 'Removes the Traefik route file and its Cloudflare record'}</p>
           </div>
         </div>
@@ -360,7 +360,7 @@ function DeleteRecordModal({ record, zone, onConfirm, onCancel, busy }: {
         <div className="flex items-center gap-3 mb-4">
           <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/10"><Trash2 size={18} className="text-rose-400" /></div>
           <div>
-            <h3 className="text-sm font-semibold text-slate-200">Delete DNS record</h3>
+            <h3 className="text-sm font-semibold text-slate-200">Delete this DNS record?</h3>
             <p className="text-[10px] text-slate-500">Removed from Cloudflare immediately</p>
           </div>
         </div>
@@ -887,6 +887,8 @@ function RoutesPanel(props: {
                 const routeKey = `${route.stack}/${route.service}`
                 const isEditing = editingRoute === routeKey
                 const sub = route.subdomain.split('.')[0]
+                // a route under another domain (a hand-written route file) is shown by its own name, never as sub.<domain>
+                const under = !!domain && route.subdomain.endsWith(`.${domain}`)
                 const rec = recordByName.get(route.subdomain)
                 const missing = cfConfigured && (missingByFqdn.has(route.subdomain) || (!rec && route.subdomain.endsWith(`.${domain}`)))
                 return (
@@ -910,8 +912,8 @@ function RoutesPanel(props: {
                         </div>
                       ) : (
                         <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 min-w-0 flex-1">
-                          <span className="text-sm font-mono text-cyan-400 truncate max-w-full" title={route.subdomain}>{sub}</span>
-                          <span className="text-[10px] text-slate-600 font-mono shrink-0">.{domain}</span>
+                          <span className="text-sm font-mono text-cyan-400 truncate max-w-full" title={route.subdomain}>{under ? route.subdomain.slice(0, -(domain.length + 1)) : route.subdomain}</span>
+                          {under && <span className="text-[10px] text-slate-600 font-mono shrink-0">.{domain}</span>}
                           {(route as FleetRoute).member && <VmCapsule member={(route as FleetRoute).member} name={(route as FleetRoute).member_name} vmid={(route as FleetRoute).vmid} size="xs" />}
                           {route.conflict && <Pill tone="problem" icon={<AlertTriangle size={10} />} title="Two routes claim this subdomain">conflict</Pill>}
                           {route.crowdsec === 'bypass' && <Pill tone="attention" icon={<ShieldOff size={10} />} title="CrowdSec's bouncer never checks this route: it does not use Traefik's traefik-chain, so an address CrowdSec has banned can still reach it.">unprotected</Pill>}

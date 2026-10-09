@@ -5,7 +5,7 @@
 // a warning, what is being restored, the word to type, Cancel and the action.
 //
 //   <TypedConfirmDialog
-//     title="Confirm restore" word="RESTORE" confirmLabel="Restore backup"
+//     title="Restore this backup?" word="RESTORE" confirmLabel="Restore backup"
 //     warning="This will overwrite the configuration and data files."
 //     detail="This action cannot be undone." subjectLabel="Restoring from"
 //     subject={<>…the archive…</>} busy={restoring} onConfirm={run} onClose={close} />
