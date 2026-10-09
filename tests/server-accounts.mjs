@@ -81,7 +81,12 @@ cdp.on('Fetch.requestPaused', (e) => {
   if (e.request.method === 'POST' && u.pathname === '/terminal/exec') return answer({ command: body.command, cwd: '/home/scott', exit_code: 0, output: '/home/scott\n', success: true, timestamp: new Date().toISOString() })
   return cdp.send('Fetch.continueRequest', { requestId: e.requestId }).catch(() => {})
 })
-const openPage = (id) => page.evaluate(async (id) => { (await import('/src/renderer/stores/settingsStore.ts')).useSettingsStore.getState().setCurrentPage(id) }, id)
+// the very store module the app loaded (after a hot update the dev server serves it as settingsStore.ts?t=…, and a plain
+// import would make a second store the app never reads)
+const openPage = (id) => page.evaluate(async (id) => {
+  const url = performance.getEntriesByType('resource').map((e) => e.name).filter((n) => /\/src\/renderer\/stores\/settingsStore\.ts(\?|$)/.test(n)).pop() || '/src/renderer/stores/settingsStore.ts'
+  ;(await import(url)).useSettingsStore.getState().setCurrentPage(id)
+}, id)
 const terminalSignIn = async () => {
   await openPage('terminal')
   await page.waitForSelector('#terminal-username', { timeout: 30000 })
@@ -285,7 +290,10 @@ await page.type('input[aria-label="Command"]', 'echo history-marker-of-A'); awai
 await sleep(800)
 const logoutsBefore = terminalLogouts.length
 const answersBefore = terminalLogoutAnswers.length
-await page.evaluate(async () => { await (await import('/src/renderer/stores/authStore.ts')).useAuthStore.getState().logout() })
+await page.evaluate(async () => {
+  const url = performance.getEntriesByType('resource').map((e) => e.name).filter((n) => /\/src\/renderer\/stores\/authStore\.ts(\?|$)/.test(n)).pop() || '/src/renderer/stores/authStore.ts'
+  await (await import(url)).useAuthStore.getState().logout()
+})
 await sleep(1500)
 check('sign-out: the terminal session ended on A', terminalLogouts.slice(logoutsBefore).some((b) => b.includes(TERMINAL_TOKEN)) && terminalLogoutAnswers.slice(answersBefore).includes(200), `${terminalLogouts.length - logoutsBefore} logout(s), A answered ${terminalLogoutAnswers.slice(answersBefore).join(',')}`)
 check('…no terminal token left in this tab', (await storedAnywhere(TERMINAL_TOKEN)).length === 0, (await storedAnywhere(TERMINAL_TOKEN)).join(','))
