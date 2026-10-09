@@ -21,7 +21,7 @@ import { useSettingsStore } from '../stores/settingsStore'
 import { useToast } from '../components/common/Toast'
 import { useConfirm } from '../components/common/ConfirmDialog'
 import { DisconnectedBanner } from '../components/common/DisconnectedBanner'
-import { EmptyState } from '../components/common/PageState'
+import { EmptyState, ErrorState } from '../components/common/PageState'
 import {
   fetchProxmoxStatus, fetchProxmoxNodes, fetchProxmoxVms, fetchProxmoxVm, fetchProxmoxTasks, proxmoxVmAction, proxmoxVmBalloon,
   fetchFleetStatus, fetchFleetOverview, fetchFleetDiscover, fetchStacks, startStack, stopStack, restartStack,
@@ -156,7 +156,7 @@ function HostViewMark({ onClick }: { onClick?: () => void }) {
 
 const ACTION_META: Record<ProxmoxVmAction, { label: string; icon: React.ElementType; danger: boolean; question: (v: ProxmoxVm) => string; note?: string }> = {
   start:    { label: 'Start',     icon: Play,       danger: false, question: (v) => `Start ${v.name}?` },
-  shutdown: { label: 'Shut down', icon: Power,      danger: false, question: (v) => `Shut down ${v.name} cleanly?`, note: 'Sends ACPI power-off (VM) or a clean stop (container); the guest gets time to close.' },
+  shutdown: { label: 'Shut down', icon: Power,      danger: true,  question: (v) => `Shut down ${v.name} cleanly?`, note: 'Sends ACPI power-off (VM) or a clean stop (container); the guest gets time to close.' },
   stop:     { label: 'Stop',      icon: Square,     danger: true,  question: (v) => `Stop ${v.name} now?`, note: 'Like pulling the plug: nothing inside gets to save. Use Shut down unless it hangs.' },
   reboot:   { label: 'Reboot',    icon: RotateCw,   danger: false, question: (v) => `Reboot ${v.name}?` },
   reset:    { label: 'Reset',     icon: Zap,        danger: true,  question: (v) => `Hard-reset ${v.name}?`, note: 'A hardware reset. Only for a VM that no longer answers.' },
@@ -963,7 +963,9 @@ function VmSheet({ vm, member, live, isAdmin, busyKey, pveUrl, refreshTick = 0, 
             <p className="text-[11px] text-slate-400 mt-2">Balloon device on — floor {fmtBytes(balloonBytes)}{d.guest_mem_total ? ` · the guest sees ${fmtBytes(d.guest_mem_total)} with ${fmtBytes(d.guest_mem_free)} free` : ''}. Proxmox reports the guest's real use and can reclaim idle memory.</p>
           ) : (
             <div className="mt-2 flex items-start gap-2 flex-wrap">
-              <p className="text-[11px] text-amber-200/90 flex-1 min-w-[14rem] flex items-start gap-1.5"><AlertTriangle size={12} className="shrink-0 mt-px" /><span>{running ? "Proxmox shows the host's view of this VM's memory — enable ballooning (takes effect at the next reboot)" : 'No balloon device is reported while the VM is off — enabling ballooning now takes effect at the next boot'}</span></p>
+              <p className="text-[11px] text-amber-200/90 flex-1 min-w-[14rem] flex items-start gap-1.5"><AlertTriangle size={12} className="shrink-0 mt-px" /><span>{running
+                ? `Proxmox shows the host's view of this VM's memory — ${isAdmin ? 'enable ballooning (takes effect at the next reboot)' : 'an admin can enable ballooning for the real figure'}`
+                : `No balloon device is reported while the VM is off${isAdmin ? ' — enabling ballooning now takes effect at the next boot' : ''}`}</span></p>
               {isAdmin && <button type="button" onClick={enableBalloon} disabled={busy} className={`${BTN_CARD} ${TONE_ATTN}`}>{busy ? <Loader2 size={12} className="animate-spin" /> : <MemoryStick size={12} />} Enable ballooning</button>}
             </div>
           )}
@@ -1460,7 +1462,7 @@ export default function Proxmox() {
               </div>
             </div>
             {vms.error && !vms.data ? (
-              <div className={`${CARD} p-4 md:p-5 text-sm text-rose-300`}>{vms.error.message}</div>
+              <ErrorState title="Could not read the guests" error={vms.error} onRetry={() => vms.refresh()} />
             ) : !vms.data ? (
               <div role="status" aria-label="Reading the guests" className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3">{[0, 1, 2, 3].map((i) => <GuestCardSkeleton key={i} />)}</div>
             ) : list.length === 0 ? (

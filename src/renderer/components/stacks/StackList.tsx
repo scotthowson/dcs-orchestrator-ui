@@ -302,7 +302,7 @@ export default function StackList({ onAction, onSelect, onRefresh, loading = fal
                 <Trash2 className="w-5 h-5 text-rose-400" />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-slate-200">Delete stack</h3>
+                <h3 className="text-sm font-semibold text-slate-200">Delete {showDeleteModal}?</h3>
                 <p className="text-xs text-slate-400">
                   {(() => {
                     const vmStack = stacks.find((st) => st.name === showDeleteModal && st.placement === 'vm')
@@ -318,11 +318,6 @@ export default function StackList({ onAction, onSelect, onRefresh, loading = fal
                 </p>
               </div>
             </div>
-            <p className="text-sm text-slate-300">
-              Are you sure you want to delete{' '}
-              <span className="font-mono text-rose-400">{showDeleteModal}</span>?
-            </p>
-
             {deleteError && (
               <div className="flex items-center gap-2 rounded-lg bg-rose-500/10 border border-rose-500/20 px-3 py-2" role="alert">
                 <AlertTriangle size={14} className="text-rose-400 shrink-0" />
@@ -336,7 +331,7 @@ export default function StackList({ onAction, onSelect, onRefresh, loading = fal
               </button>
               <button onClick={() => handleDelete(showDeleteModal)} disabled={deleting} className={BTN_SHEET_DANGER}>
                 {deleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
-                Delete
+                Delete stack
               </button>
             </div>
           </div>

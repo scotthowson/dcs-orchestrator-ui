@@ -311,8 +311,11 @@ export default function Environment() {
     enabled: activeTab === 'root',
   })
 
+  // the file is read again every minute: an edit not saved yet stays in the editor (Refresh asks before it drops one)
+  const rootDirtyRef = useRef(false)
+  rootDirtyRef.current = rootRaw !== rootOriginal
   useEffect(() => {
-    if (rootEnvData) {
+    if (rootEnvData && !rootDirtyRef.current) {
       setRootRaw(rootEnvData.raw)
       setRootOriginal(rootEnvData.raw)
       setRootValidation(null)
@@ -387,6 +390,9 @@ export default function Environment() {
     memberRef.current = member
     setSelectedStack('')
     setRootValidation(null)
+    // the other server's file replaces this one (the switch asked first when there were edits)
+    setRootRaw('')
+    setRootOriginal('')
     refreshRoot()
     refreshStacks()
   }, [member, refreshRoot, refreshStacks])
@@ -461,19 +467,40 @@ export default function Environment() {
     setScope(next)
   }, [pageScope, hasChanges, confirm, setScope])
 
+  /** edits not saved yet are dropped only when the person says so */
+  const askDiscard = useCallback((what: string) => confirm({ title: 'Discard unsaved changes?', message: `The .env you are editing has unsaved changes. ${what} drops them.`, confirmLabel: 'Discard changes', danger: true }), [confirm])
+
+  // another stack's file: ask first when this one has edits
+  const chooseStack = useCallback(async (next: string) => {
+    if (next === selectedStack) return
+    if (stackHasChanges && !(await askDiscard('Opening another stack\'s .env'))) return
+    setSelectedStack(next)
+  }, [selectedStack, stackHasChanges, askDiscard])
+
   const stackRefreshing = activeTab === 'stack' && stackEnvLoading
   const refreshing = (activeTab === 'root' && rootLoading) || stackRefreshing
-  const refreshCurrent = activeTab === 'root' ? refreshRoot : () => {
-    if (selectedStack) {
-      setStackEnvLoading(true)
-      fetchStackEnv(selectedStack, member)
-        .then((data) => {
-          setStackEnvData(data)
-          setStackRaw(data.raw)
-          setStackOriginal(data.raw)
-        })
-        .finally(() => setStackEnvLoading(false))
+  const refreshCurrent = async () => {
+    if (activeTab === 'root') {
+      if (rootHasChanges) {
+        if (!(await askDiscard('Reading the file again'))) return
+        // not dirty any more: the answer of the refresh fills the editor
+        rootDirtyRef.current = false
+        setRootRaw(rootOriginal)
+      }
+      refreshRoot()
+      return
     }
+    if (!selectedStack) { refreshStacks(); return }
+    if (stackHasChanges && !(await askDiscard('Reading the file again'))) return
+    setStackEnvLoading(true)
+    fetchStackEnv(selectedStack, member)
+      .then((data) => {
+        setStackEnvData(data)
+        setStackRaw(data.raw)
+        setStackOriginal(data.raw)
+      })
+      .catch((err) => addToast({ type: 'error', message: `Could not read the .env of ${selectedStack}: ${err instanceof Error ? err.message : String(err)}` }))
+      .finally(() => setStackEnvLoading(false))
   }
 
   /** the Table / Editor switch of a file */
@@ -505,7 +532,7 @@ export default function Environment() {
         badge={member ? <VmCapsule member={member} name={memberName} vmid={scopeMembers.find((m) => m.id === member)?.vmid} /> : undefined}
         subtitle={hasFleet ? `The root and per-stack .env files on ${whereLabel}` : undefined}
         actions={
-          <button type="button" aria-label="Refresh" onClick={refreshCurrent} disabled={refreshing} className={BTN_TOOLBAR_QUIET}>
+          <button type="button" aria-label="Refresh" onClick={() => void refreshCurrent()} disabled={refreshing} className={BTN_TOOLBAR_QUIET}>
             <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
             <span className="hidden sm:inline">Refresh</span>
           </button>
@@ -596,7 +623,7 @@ export default function Environment() {
               <select
                 aria-label="Stack"
                 value={selectedStack}
-                onChange={(e) => setSelectedStack(e.target.value)}
+                onChange={(e) => void chooseStack(e.target.value)}
                 disabled={stacksLoading && stacks.length === 0}
                 className="w-full appearance-none h-[34px] rounded-lg bg-white/5 border border-white/10 pl-3 pr-9 text-xs font-medium text-slate-200 transition-colors focus:outline-none focus-visible:border-emerald-500/40 focus-visible:ring-2 focus-visible:ring-emerald-500/40 disabled:opacity-50"
               >

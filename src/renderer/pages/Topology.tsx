@@ -477,7 +477,8 @@ function DetailPanel({
         </div>
       </div>
     </ModalOverlay>,
-    document.body,
+    // in fullscreen only the fullscreen card is on screen: the details open inside it
+    document.fullscreenElement ?? document.body,
   )
 }
 
@@ -507,6 +508,8 @@ export default function Topology() {
   const reduceMotionPref = useSettingsStore((s) => s.reduceMotion)
   // Zoom & pan
   const containerRef = useRef<HTMLDivElement>(null)
+  // fullscreen takes the whole card: the map with its tools (Leave fullscreen, zoom) and the details it opens
+  const cardRef = useRef<HTMLDivElement>(null)
   const svgRef = useRef<SVGSVGElement>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [exporting, setExporting] = useState(false)
@@ -589,11 +592,16 @@ export default function Topology() {
 
   // --- Fullscreen: the map fills the screen, then re-fits ---
   const toggleFullscreen = useCallback(() => {
-    const el = containerRef.current
+    const el = cardRef.current
     if (!el) return
-    if (document.fullscreenElement) void document.exitFullscreen()
-    else void el.requestFullscreen?.()
-  }, [])
+    // the browser may refuse (no permission, the dashboard in a frame without allowfullscreen): say so, never throw
+    const refused = (err: unknown) => addToast({ type: 'error', message: `Fullscreen is not available here${err instanceof Error && err.message ? `: ${err.message}` : ''}` })
+    try {
+      if (document.fullscreenElement) document.exitFullscreen().catch(refused)
+      else if (el.requestFullscreen) el.requestFullscreen().catch(refused)
+      else refused(null)
+    } catch (err) { refused(err) }
+  }, [addToast])
   useEffect(() => {
     const onChange = () => {
       setIsFullscreen(!!document.fullscreenElement)
@@ -813,8 +821,10 @@ export default function Topology() {
   const subtitle = scopeMember
     ? `Stacks, containers and networks inside the VM ${memberName}`
     : scope === 'all' && hasFleet
-      ? 'The hub\'s own map — every VM has its own network, one chip away'
-      : undefined
+      ? 'The hub and every VM that answers, on one map'
+      : hasFleet
+        ? 'The hub\'s own map — every VM has its own network, one chip away'
+        : undefined
 
   const tools = [
     { fn: handleZoomIn, icon: ZoomIn, title: 'Zoom in', disabled: false },
@@ -837,7 +847,7 @@ export default function Topology() {
 
       <PageHeader
         page="topology"
-        badge={hasFleet ? <VmCapsule member={scopeMember} name={memberName} vmid={scopeVmid} /> : undefined}
+        badge={hasFleet && !fleetMap ? <VmCapsule member={scopeMember} name={memberName} vmid={scopeVmid} /> : undefined}
         subtitle={subtitle}
         actions={isConnected ? (
           <button type="button" onClick={refresh} disabled={loading} className={`${BTN_TOOLBAR_QUIET} ${FOCUS_RING}`}>
@@ -865,7 +875,7 @@ export default function Topology() {
       </div>
 
       {/* Canvas card */}
-      <div className={`${CARD} p-3 md:p-6`}>
+      <div ref={cardRef} className={`${CARD} p-3 md:p-6 ${isFullscreen ? 'bg-slate-950' : ''}`}>
         {/* Toolbar */}
         <div className="flex items-center justify-between gap-2 mb-3 md:mb-4">
           <div className="flex items-center gap-2 min-w-0">
@@ -912,7 +922,7 @@ export default function Topology() {
             ref={containerRef}
             className={`relative overflow-hidden rounded-lg border border-white/[0.03] ${isFullscreen ? 'bg-slate-950' : 'bg-slate-950/50'}`}
             style={{
-              height: isFullscreen ? '100vh' : 'clamp(300px, 55vh, 640px)',
+              height: isFullscreen ? 'calc(100vh - 6rem)' : 'clamp(300px, 55vh, 640px)',
               cursor: isPanning ? 'grabbing' : 'grab',
               touchAction: 'none',
             }}

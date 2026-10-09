@@ -122,8 +122,8 @@ export default function StackDetail({ stackName, onBack, onAction, isActionLoadi
     const vm = `the VM #${stack.vmid}${stack.member_name ? ` (${stack.member_name})` : ''}`
     if (action !== 'start') {
       const ok = await confirm(action === 'shutdown'
-        ? { title: 'Shut down the VM', message: `Shut down ${vm}? Every container in it stops until the VM is started again.`, confirmLabel: 'Shut down', danger: true }
-        : { title: 'Reboot the VM', message: `Reboot ${vm}? Its containers stop and start again with it.`, confirmLabel: 'Reboot' })
+        ? { title: 'Shut down the VM?', message: `Shut down ${vm}? Every container in it stops until the VM is started again.`, confirmLabel: 'Shut down VM', danger: true }
+        : { title: 'Reboot the VM?', message: `Reboot ${vm}? Its containers stop and start again with it.`, confirmLabel: 'Reboot VM' })
       if (!ok) return
     }
     setVmBusy(action)
@@ -252,8 +252,8 @@ export default function StackDetail({ stackName, onBack, onAction, isActionLoadi
   const moveFiles = useCallback(async (dir: 'push' | 'pull') => {
     const vm = stack?.member_name ? `the VM ${stack.member_name}` : 'the VM'
     const ok = await confirm(dir === 'push'
-      ? { title: 'Push the files to the VM', message: `Copy the hub's files of ${stackName} into ${vm}? The VM's copies of those files are overwritten (nothing is removed there).`, confirmLabel: 'Push' }
-      : { title: 'Pull the files from the VM', message: `Replace the hub's files of ${stackName} with ${vm}'s, file for file? The compose file it replaces is kept in the history.`, confirmLabel: 'Pull' })
+      ? { title: 'Push the files to the VM?', message: `Copy the hub's files of ${stackName} into ${vm}? The VM's copies of those files are overwritten (nothing is removed there).`, confirmLabel: 'Push files', danger: true }
+      : { title: 'Pull the files from the VM?', message: `Replace the hub's files of ${stackName} with ${vm}'s, file for file? The compose file it replaces is kept in the history.`, confirmLabel: 'Pull files', danger: true })
     if (!ok) return
     setFilesBusy(dir)
     try {
@@ -312,9 +312,9 @@ export default function StackDetail({ stackName, onBack, onAction, isActionLoadi
   // stop, restart and update ask first; starting does not
   const askThen = async (action: 'stop' | 'restart' | 'update') => {
     const ask = {
-      stop: { title: 'Stop stack', message: `Stop every container in ${stackName}?`, confirmLabel: 'Stop', danger: true },
-      restart: { title: 'Restart stack', message: `Restart every container in ${stackName}?`, confirmLabel: 'Restart', danger: false },
-      update: { title: 'Update stack', message: `Pull the latest images for ${stackName} and apply rolling updates?`, confirmLabel: 'Update', danger: false },
+      stop: { title: `Stop ${stackName}?`, message: `Stop every container in ${stackName}? What it serves is unavailable until it is started again.`, confirmLabel: 'Stop stack', danger: true },
+      restart: { title: `Restart ${stackName}?`, message: `Restart every container in ${stackName}?`, confirmLabel: 'Restart stack', danger: false },
+      update: { title: `Update ${stackName}?`, message: `Pull the latest images for ${stackName} and apply rolling updates?`, confirmLabel: 'Update stack', danger: false },
     }[action]
     if (await confirm(ask)) onAction(stackName, action)
   }
@@ -718,9 +718,20 @@ const TH = 'px-3 py-3 text-xs font-semibold uppercase tracking-wider text-slate-
 function ContainersTable({ containers, onContainerClick, member = null, isAdmin = false, onChanged }: { containers: ContainerInfo[]; onContainerClick?: (name: string) => void; member?: string | null; isAdmin?: boolean; onChanged?: () => void }) {
   // start / stop / restart straight from the row — through the hub for a VM's containers
   const [busy, setBusy] = useState('')
+  const { addToast } = useToast()
+  const confirm = useConfirm()
   const quick = async (e: { stopPropagation: () => void }, name: string, a: 'start' | 'stop' | 'restart') => {
-    e.stopPropagation(); setBusy(`${name}:${a}`)
-    try { await (a === 'start' ? startContainer : a === 'stop' ? stopContainer : restartContainer)(name, member) } catch { /* the row keeps its state */ } finally { setBusy(''); onChanged?.() }
+    e.stopPropagation()
+    // stopping takes something away: it asks first, like the Containers page
+    if (a === 'stop' && !(await confirm({ title: `Stop ${name}?`, message: `Stop the container ${name}? What it serves is unavailable until it is started again.`, confirmLabel: 'Stop', danger: true }))) return
+    setBusy(`${name}:${a}`)
+    try {
+      const r = await (a === 'start' ? startContainer : a === 'stop' ? stopContainer : restartContainer)(name, member)
+      if (r.success === false) addToast({ type: 'error', message: `Could not ${a} ${name}: ${r.output || 'unknown error'}`, duration: 6000 })
+    } catch (err) {
+      // the row keeps its state: say why
+      addToast({ type: 'error', message: `Could not ${a} ${name}: ${err instanceof Error ? err.message : String(err)}`, duration: 6000 })
+    } finally { setBusy(''); onChanged?.() }
   }
   if (containers.length === 0) {
     return (

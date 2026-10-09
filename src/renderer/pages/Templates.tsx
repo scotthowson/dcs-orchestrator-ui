@@ -64,7 +64,6 @@ import { useSystemStore } from '../stores/systemStore'
 import { useAuthStore } from '../stores/authStore'
 import { useToast } from '../components/common/Toast'
 import { useConfirm } from '../components/common/ConfirmDialog'
-import { FloatingSaveBar } from '../components/common/FloatingSaveBar'
 import PageHeader from '../components/common/PageHeader'
 import Hint from '../components/common/Hint'
 import { pageLabel } from '../constants/pageTitles'
@@ -1329,7 +1328,7 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
                   data={stackChoices}
                   value={targetStack || null}
                   onChange={(v) => { if (v) { setTargetStack(v); setConfirming(false) } }}
-                  placeholder="Select a stack..."
+                  placeholder="Select a stack…"
                   searchable={!isMobile && stackChoices.length > 8}
                   nothingFoundMessage="No stack matches"
                   spellCheck={false}
@@ -2395,14 +2394,6 @@ function CreateEditModal({ mode, initial, stacks, onClose, onSave, saving }: Cre
 
   return createPortal(
     <ModalOverlay onClose={requestClose} className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
-      <FloatingSaveBar
-        hasChanges={mode === 'edit' && hasChanges}
-        saving={saving}
-        onSave={handleSaveInPlace}
-        onDiscard={handleDiscard}
-        message={`Unsaved changes to template ${name || 'untitled'}`}
-        zIndex={10000}
-      />
       <div className="absolute inset-0" onClick={requestClose} />
       <div className="relative w-full max-w-[95vw] xl:max-w-[1400px] mx-3 md:mx-4 max-h-[95vh] bg-slate-900 border border-white/10 rounded-2xl shadow-2xl shadow-black/40 flex flex-col animate-scale-in overflow-hidden">
         {/* Header */}
@@ -2416,7 +2407,8 @@ function CreateEditModal({ mode, initial, stacks, onClose, onSave, saving }: Cre
               <p className="text-[10px] text-slate-500">Define a reusable stack template</p>
             </div>
           </div>
-          <CloseButton onClick={onClose} />
+          {/* the ✕ asks about unsaved changes like Close and Escape do */}
+          <CloseButton onClick={() => void requestClose()} />
         </div>
 
         {/* Content */}
@@ -2453,7 +2445,7 @@ function CreateEditModal({ mode, initial, stacks, onClose, onSave, saving }: Cre
                   id={`${uid}-description`}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Brief description..."
+                  placeholder="Brief description…"
                   className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/5 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500/30 transition-colors"
                 />
               </div>
@@ -2620,6 +2612,12 @@ function CreateEditModal({ mode, initial, stacks, onClose, onSave, saving }: Cre
             >
               {validating ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />} Validate
             </button>
+            {/* the editor's own Discard (a floating save bar here sat over this footer, a second Save beside this one) */}
+            {mode === 'edit' && hasChanges && (
+              <button type="button" onClick={handleDiscard} disabled={saving} className={`${BTN_SHEET_QUIET} flex-1 sm:flex-none whitespace-nowrap`}>
+                Discard
+              </button>
+            )}
             <button type="button" onClick={requestClose} className={`${BTN_SHEET_QUIET} flex-1 sm:flex-none whitespace-nowrap`}>
               {mode === 'edit' ? 'Close' : 'Cancel'}
             </button>
@@ -2786,7 +2784,7 @@ function UrlImportModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
                   className={`${BTN_TOOLBAR} ${TONE_QUIET} shrink-0`}
                 >
                   {fetching ? <Loader2 size={14} className="animate-spin" /> : <Eye size={14} />}
-                  {fetching ? 'Fetching...' : 'Preview'}
+                  {fetching ? 'Fetching…' : 'Preview'}
                 </button>
               </div>
               {isGitHub && !hasFetched && (
@@ -3035,7 +3033,7 @@ function GalleryView({ onImport, isAdmin = true }: { onImport: (url: string, nam
           ))}
         </div>
         <div className="relative flex-1 min-w-0 md:max-w-xs">
-          <SearchInput size="sm" value={search} onChange={setSearch} label="Search the gallery" placeholder="Search gallery..." />
+          <SearchInput size="sm" value={search} onChange={setSearch} label="Search the gallery" placeholder="Search the gallery…" />
         </div>
       </div>
 
@@ -3073,7 +3071,7 @@ function GalleryView({ onImport, isAdmin = true }: { onImport: (url: string, nam
                   className={`${BTN_CARD} ${TONE_OK} mt-auto w-full justify-center`}
                 >
                   {isImporting ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
-                  {isImporting ? 'Importing...' : 'Import'}
+                  {isImporting ? 'Importing…' : 'Import'}
                 </button>
               )}
             </div>
@@ -3082,7 +3080,8 @@ function GalleryView({ onImport, isAdmin = true }: { onImport: (url: string, nam
       </div>
 
       {filtered.length === 0 && (
-        <EmptyState compact title="No templates match your search" />
+        <EmptyState compact icon={<Search size={28} />} title="No templates match your search" hint="Try another name or category."
+          action={<button type="button" onClick={() => { setSearch(''); setCategory('all') }} className={BTN_TOOLBAR_QUIET}><X size={14} /> Clear the filters</button>} />
       )}
     </div>
   )
@@ -3887,12 +3886,9 @@ export default function Templates() {
           <div className="space-y-3">
             {/* Search bar */}
             <div className="relative">
-              <SearchInput value={search} onChange={setSearch} label="Search the templates" placeholder={`Search ${templates.length} templates...`} />
-              {search ? (
-                <Hint label="Clear the search"><button type="button" aria-label="Clear the search" onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 grid h-8 w-8 place-items-center rounded-lg text-slate-500 hover:text-slate-200 hover:bg-white/10 transition-colors">
-                  <X size={14} />
-                </button></Hint>
-              ) : (
+              <SearchInput value={search} onChange={setSearch} label="Search the templates" placeholder={`Search ${templates.length} templates…`} />
+              {/* the field draws its own ✕ once something is typed; the / hint shows while it is empty */}
+              {!search && (
                 <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-600 font-mono hidden sm:inline" aria-hidden>/</span>
               )}
             </div>
@@ -3951,6 +3947,7 @@ export default function Templates() {
             <EmptyState
               icon={<Search size={28} />}
               title="No templates match your filter"
+              hint="Try another name or category."
               action={<button type="button" onClick={() => { setSearch(''); setActiveCategory('all') }} className={BTN_TOOLBAR_QUIET}><X size={14} /> Clear the filters</button>}
             />
           )}

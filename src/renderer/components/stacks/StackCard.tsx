@@ -15,7 +15,8 @@ import { BTN_CARD_QUIET, BTN_ICON, BTN_ICON_SM, TONE_GHOST, TONE_GHOST_OK, TONE_
 import type { StackInfo } from '../../../shared/types'
 import AppDataLabel from './AppDataLabel'
 import { AsleepCount } from '../common/StateChip'
-import { STACK_META } from '../../lib/containerState'
+import { STACK_META, stackState } from '../../lib/containerState'
+import { useConfirm } from '../common/ConfirmDialog'
 import { serverHostname, memberHost, portUrl } from '../../lib/hosts'
 
 import { REVEAL } from '../../lib/pageKit'
@@ -66,6 +67,14 @@ export default function StackCard({ stack, isActionLoading, onAction, onSelect, 
   const isRunning = stack.status === 'running'
   const isAsleep = !isRunning && !!stack.sleeping   // Sablier keeps every container of it asleep on purpose
   const cantWake = isAsleep && stack.sablier_up === false   // ...but Sablier is not running: nothing can wake it
+  // running, but some of its containers are down: the stack's detail says "Partly down", so does its card
+  const partial = isRunning && stackState(stack) === 'partial'
+  const confirm = useConfirm()
+  // stopping takes something away: it asks first, like the stack's own Stop
+  const runAction = async (action: 'start' | 'stop' | 'restart' | 'update') => {
+    if (action === 'stop' && !(await confirm({ title: `Stop ${stack.name}?`, message: `Stop every container in ${stack.name}? What it serves is unavailable until it is started again.`, confirmLabel: 'Stop stack', danger: true }))) return
+    onAction(stack.name, action)
+  }
   const lastActionTimestamps = useStackStore((s) => s.lastActionTimestamps)
   const lastAction = lastActionTimestamps[stack.name]
   const stackAnnotations = useSettingsStore((s) => s.stackAnnotations) ?? {}
@@ -223,7 +232,9 @@ export default function StackCard({ stack, isActionLoading, onAction, onSelect, 
               className={`
                 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium
                 ${
-                  isRunning
+                  partial
+                    ? 'bg-amber-500/15 text-amber-400 ring-1 ring-amber-500/25'
+                  : isRunning
                     ? 'bg-emerald-500/15 text-emerald-400 ring-1 ring-emerald-500/25'
                     : cantWake
                       ? 'bg-amber-500/15 text-amber-400 ring-1 ring-amber-500/25'
@@ -232,12 +243,12 @@ export default function StackCard({ stack, isActionLoading, onAction, onSelect, 
                       : 'bg-slate-500/15 text-slate-400 ring-1 ring-slate-500/25'
                 }
               `}
-              title={cantWake ? STACK_META.stuck.hint : isAsleep ? STACK_META.asleep.hint : undefined}
+              title={partial ? STACK_META.partial.hint : cantWake ? STACK_META.stuck.hint : isAsleep ? STACK_META.asleep.hint : undefined}
             >
               {isAsleep
                 ? <Moon size={11} aria-hidden className="shrink-0" />
-                : <span className={`w-1.5 h-1.5 rounded-full ${isRunning ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />}
-              {isRunning ? 'Running' : cantWake ? STACK_META.stuck.label : isAsleep ? STACK_META.asleep.label : 'Stopped'}
+                : <span className={`w-1.5 h-1.5 rounded-full ${partial ? 'bg-amber-400' : isRunning ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />}
+              {partial ? STACK_META.partial.label : isRunning ? 'Running' : cantWake ? STACK_META.stuck.label : isAsleep ? STACK_META.asleep.label : 'Stopped'}
             </span>
           </div>
           {stack.placement === 'vm' && (
@@ -359,7 +370,7 @@ export default function StackCard({ stack, isActionLoading, onAction, onSelect, 
               return (
                 <Hint key={action} label={label}>
                   <button
-                    onClick={() => onAction(stack.name, action)}
+                    onClick={() => void runAction(action)}
                     disabled={isDisabled}
                     aria-label={`${label} ${stack.name}`}
                     className={`${BTN_ICON} ${tone} disabled:cursor-not-allowed`}

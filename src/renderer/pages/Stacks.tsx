@@ -9,6 +9,7 @@ import { useStackStore } from '../stores/stackStore'
 import { useSettingsStore } from '../stores/settingsStore'
 import { useAuthStore } from '../stores/authStore'
 import { useToast } from '../components/common/Toast'
+import { useConfirm } from '../components/common/ConfirmDialog'
 import {
   fetchStacks,
   startStack,
@@ -56,6 +57,7 @@ export default function Stacks() {
   const caps = usePolling(fetchProxmoxCapabilities, 60000, { key: pollKeys.proxmoxCapabilities, enabled: hubMode && isAdmin })
   const navigationPayload = useSettingsStore((s) => s.navigationPayload)
   const { addToast } = useToast()
+  const confirm = useConfirm()
 
   // React to navigation payloads (e.g. "View Stack" after deploy)
   // Only consume if the payload has keys relevant to THIS page (highlight, resetView)
@@ -150,7 +152,7 @@ export default function Stacks() {
         update: 'Updating',
       }
 
-      addToast({ type: 'info', message: `${gerund[action]} stack "${stackName}"...`, duration: 2000 })
+      addToast({ type: 'info', message: `${gerund[action]} stack "${stackName}"…`, duration: 2000 })
 
       try {
         const actionFn = {
@@ -166,7 +168,6 @@ export default function Stacks() {
           // "Starting X (background)": the API answered before anything ran — follow the
           // stack's activity and only then say how it ended
           useStackStore.getState().recordAction(stackName)
-          addToast({ type: 'info', message: `${gerund[action]} "${stackName}"…`, duration: 4000 })
           refresh()
           addToast(activityOutcome(await waitForStackActivity(stackName), stackName, action))
         } else if (result.success) {
@@ -245,6 +246,13 @@ export default function Stacks() {
     async (action: 'start' | 'stop' | 'restart' | 'update') => {
       const names = Array.from(selectedStacks)
       if (names.length === 0) return
+      // stopping takes something away: ask first, like Stop all
+      if (action === 'stop' && !(await confirm({
+        title: `Stop ${names.length === 1 ? names[0] : `${names.length} stacks`}?`,
+        message: `Stop every container in ${names.join(', ')}? What ${names.length === 1 ? 'it serves' : 'they serve'} is unavailable until started again.`,
+        confirmLabel: names.length === 1 ? 'Stop stack' : 'Stop stacks',
+        danger: true,
+      }))) return
 
       setBatchLoading(action)
       setBatchResults(null)
@@ -260,7 +268,7 @@ export default function Stacks() {
 
       addToast({
         type: 'info',
-        message: `${gerund[action]} ${names.length} stack${names.length !== 1 ? 's' : ''}...`,
+        message: `${gerund[action]} ${names.length} stack${names.length !== 1 ? 's' : ''}…`,
         duration: 3000,
       })
 
@@ -280,7 +288,6 @@ export default function Stacks() {
         let results = response.results
         const queued = results.filter((r) => r.success && startedInBackground(r.message))
         if (queued.length > 0) {
-          addToast({ type: 'info', message: `${gerund[action]} ${queued.length} stack${queued.length !== 1 ? 's' : ''}…`, duration: 4000 })
           const ended = new Map(await Promise.all(queued.map(async (r) => [r.stack, activityOutcome(await waitForStackActivity(r.stack), r.stack, action)] as const)))
           results = results.map((r) => {
             const o = ended.get(r.stack)
@@ -295,7 +302,7 @@ export default function Stacks() {
         if (failCount === 0) {
           addToast({
             type: 'success',
-            message: `All ${successCount} stack${successCount !== 1 ? 's' : ''} ${action === 'update' ? 'updated' : action + 'ed'} successfully!`,
+            message: `All ${successCount} stack${successCount !== 1 ? 's' : ''} ${{ start: 'started', stop: 'stopped', restart: 'restarted', update: 'updated' }[action]} successfully!`,
           })
         } else {
           addToast({
@@ -317,7 +324,7 @@ export default function Stacks() {
         setBatchLoading(null)
       }
     },
-    [selectedStacks, addToast, refresh],
+    [selectedStacks, addToast, refresh, confirm],
   )
 
   // Handle edit callback from StackCard
@@ -488,7 +495,7 @@ export default function Stacks() {
                   <p className="text-xs text-slate-500">
                     {isComplete
                       ? `Completed ${batchResults.length} of ${batchTotal}`
-                      : `Processing ${batchTotal} stack${batchTotal !== 1 ? 's' : ''}...`}
+                      : `Processing ${batchTotal} stack${batchTotal !== 1 ? 's' : ''}…`}
                   </p>
                 </div>
               </div>
