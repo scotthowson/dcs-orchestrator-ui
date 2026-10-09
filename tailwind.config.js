@@ -22,11 +22,11 @@ export default {
         xs: '2px',
       },
       animation: {
-        'fade-in': 'fadeIn 0.4s ease-out',
-        'fade-in-up': 'fadeInUp 0.5s ease-out',
-        'slide-in': 'slideIn 0.3s ease-out',
-        'slide-in-right': 'slideInRight 0.4s ease-out',
-        'scale-in': 'scaleIn 0.3s ease-out',
+        'fade-in': 'fadeIn 0.2s ease-out',
+        'fade-in-up': 'fadeInUp 0.25s ease-out',
+        'slide-in': 'slideIn 0.2s ease-out',
+        'slide-in-right': 'slideInRight 0.2s ease-out',
+        'scale-in': 'scaleIn 0.18s ease-out',
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'pulse-glow': 'pulseGlow 2s ease-in-out infinite',
         'glow': 'glow 2s ease-in-out infinite alternate',
@@ -41,9 +41,10 @@ export default {
         'orbit-reverse': 'orbit 10s linear infinite reverse',
       },
       keyframes: {
+        // (index.css redefines the entrance keyframes so they end on `transform: none`; these are the same moves)
         fadeIn: {
-          '0%': { opacity: '0', transform: 'translateY(8px)' },
-          '100%': { opacity: '1', transform: 'translateY(0)' },
+          '0%': { opacity: '0', transform: 'translateY(4px)' },
+          '100%': { opacity: '1', transform: 'none' },
         },
         fadeInUp: {
           '0%': { opacity: '0', transform: 'translateY(16px)' },
@@ -58,8 +59,8 @@ export default {
           '100%': { opacity: '1', transform: 'translateX(0)' },
         },
         scaleIn: {
-          '0%': { opacity: '0', transform: 'scale(0.95)' },
-          '100%': { opacity: '1', transform: 'scale(1)' },
+          '0%': { opacity: '0', transform: 'scale(0.97)' },
+          '100%': { opacity: '1', transform: 'none' },
         },
         glow: {
           '0%': { boxShadow: '0 0 5px rgba(52, 211, 153, 0.2)' },

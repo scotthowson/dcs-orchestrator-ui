@@ -51,6 +51,9 @@ export function Dot({ tone = 'neutral', pulse = false, className = '' }: { tone?
   return <span aria-hidden="true" className={`inline-block w-2 h-2 rounded-full shrink-0 ${TONE_DOT[tone]} ${pulse ? 'animate-pulse' : ''} ${className}`} />
 }
 
+/** the bubble's shape (18 px, 10 px bold figures): the sidebar's and the section strip's counts wear it too */
+export const COUNT_SHAPE = 'inline-flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full text-[10px] font-bold leading-none tabular-nums shrink-0'
+
 const COUNT: Record<Tone, string> = {
   ok: 'bg-emerald-500/20 text-emerald-400', attention: 'bg-amber-500/20 text-amber-400', problem: 'bg-rose-500/20 text-rose-400',
   info: 'bg-cyan-500/20 text-cyan-400', neutral: 'bg-white/10 text-slate-300', fleet: 'bg-violet-500/20 text-violet-300',
@@ -64,7 +67,7 @@ const COUNT: Record<Tone, string> = {
 export function Count({ n, tone = 'neutral', label, alert = false, className = '' }: { n: number | string; tone?: Tone; label?: string; alert?: boolean; className?: string }) {
   const look = alert ? 'bg-rose-500 text-white ring-2 ring-slate-900' : COUNT[tone]
   return (
-    <span aria-label={label} title={label} className={`inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full text-[10px] font-bold leading-none tabular-nums shrink-0 ${look} ${className}`}>
+    <span aria-label={label} title={label} className={`${COUNT_SHAPE} ${look} ${className}`}>
       {n}
     </span>
   )

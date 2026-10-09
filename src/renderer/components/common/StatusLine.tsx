@@ -37,11 +37,11 @@ export default function StatusLine({ tone, title, children, action, icon, dense 
     )
   }
   return (
-    <Tag className="flex items-start gap-3 py-2.5 first:pt-0 last:pb-0 min-w-0">
+    <Tag className="flex items-start gap-3 py-3 first:pt-0 last:pb-0 min-w-0">
       <Icon size={16} className={`${color} shrink-0 mt-0.5`} aria-hidden="true" />
       <div className="min-w-0 flex-1">
-        <p className="text-sm text-slate-200 leading-snug break-words"><span className="sr-only">{VERDICT[tone]}</span>{title}</p>
-        {children && <div className="text-xs text-slate-500 mt-0.5 leading-relaxed break-words">{children}</div>}
+        <p className="text-sm text-slate-200 leading-5 break-words"><span className="sr-only">{VERDICT[tone]}</span>{title}</p>
+        {children && <div className="text-xs text-slate-400 mt-0.5 leading-relaxed break-words">{children}</div>}
         {action && <div className="mt-2">{action}</div>}
       </div>
     </Tag>

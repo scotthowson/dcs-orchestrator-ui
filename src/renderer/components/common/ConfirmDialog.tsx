@@ -14,6 +14,8 @@ import { createPortal } from 'react-dom'
 import { create } from 'zustand'
 import { AlertTriangle, HelpCircle } from 'lucide-react'
 import { useModalA11y } from '../../hooks/useModalA11y'
+import { TONE_TILE } from '../../lib/tone'
+import { BTN_SHEET_DANGER, BTN_SHEET_PRIMARY, BTN_SHEET_QUIET, TITLE_DIALOG } from '../../lib/ui'
 
 export interface ConfirmOptions {
   title: string
@@ -88,19 +90,19 @@ function ConfirmPanel({ pending, settle }: { pending: PendingConfirm; settle: (o
         className={`glass rounded-2xl p-6 w-full max-w-sm mx-4 border animate-scale-in ${danger ? 'border-rose-500/20' : 'border-white/10'}`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center gap-3 mb-4">
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${danger ? 'bg-rose-500/20' : 'bg-amber-500/20'}`}>
-            {danger ? <AlertTriangle className="w-5 h-5 text-rose-400" /> : <HelpCircle className="w-5 h-5 text-amber-400" />}
+        <div className="flex items-start gap-3 mb-3">
+          <div aria-hidden className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${TONE_TILE[danger ? 'problem' : 'attention']}`}>
+            {danger ? <AlertTriangle size={18} /> : <HelpCircle size={18} />}
           </div>
-          <h3 id="confirm-dialog-title" className="text-white font-semibold">{pending.title}</h3>
+          <h3 id="confirm-dialog-title" className={`${TITLE_DIALOG} pt-2 leading-6 break-words min-w-0`}>{pending.title}</h3>
         </div>
-        <p id="confirm-dialog-message" className="text-sm text-slate-300 mb-4 whitespace-pre-line break-words">{pending.message}</p>
+        <p id="confirm-dialog-message" className="text-sm leading-relaxed text-slate-300 mb-6 whitespace-pre-line break-words">{pending.message}</p>
         <div className="flex gap-3">
           <button
             ref={cancelRef}
             type="button"
             onClick={() => settle(false)}
-            className="flex-1 px-4 py-2 rounded-lg glass text-sm text-slate-300 hover:bg-white/5 transition-colors"
+            className={`flex-1 ${BTN_SHEET_QUIET}`}
           >
             {pending.cancelLabel ?? 'Cancel'}
           </button>
@@ -108,11 +110,7 @@ function ConfirmPanel({ pending, settle }: { pending: PendingConfirm; settle: (o
             ref={confirmRef}
             type="button"
             onClick={() => settle(true)}
-            className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
-              danger
-                ? 'bg-rose-500/20 text-rose-400 border-rose-500/20 hover:bg-rose-500/30'
-                : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/25'
-            }`}
+            className={`flex-1 ${danger ? BTN_SHEET_DANGER : BTN_SHEET_PRIMARY}`}
           >
             {pending.confirmLabel ?? 'Confirm'}
           </button>

@@ -8,8 +8,16 @@
 // Only classes the theme engine restyles — nothing here is a hex.
 // =============================================================================
 
-/** a page-level card or tile (the Proxmox page's CARD) */
-export const CARD = 'rounded-xl bg-white/[0.03] border border-white/5'
+/**
+ * The quiet surface (index.css `.surface`): every panel, tile, list and table of a page — one fill, one hairline,
+ * the theme's radius, no blur and no shadow in the dark look (a hairline shadow in the light one). The raised
+ * surface is `glass`, for what floats over the page (sheets, dialogs, menus, toasts). A tone edge
+ * (`border-rose-500/30`) or a hover edge (`hover:border-white/10`) added beside it wins over its own.
+ */
+export const CARD = 'surface'
+
+/** the parts of a page, one under the other: 16 px apart on a phone, 24 from md up (every page's root) */
+export const PAGE_STACK = 'space-y-4 md:space-y-6'
 
 /** a card that leads somewhere: its edge firms up under the pointer */
 export const CARD_HOVER = `${CARD} hover:border-white/10 transition-colors`

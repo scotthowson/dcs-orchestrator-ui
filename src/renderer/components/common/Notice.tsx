@@ -40,12 +40,12 @@ export default function Notice({ tone = 'attention', icon, title, children, acti
 }) {
   const Icon = icon ?? ICON[tone]
   return (
-    <div role={role} className={`rounded-lg border px-3 py-2.5 flex items-start gap-2.5 ${BOX[tone]} ${className}`}>
+    <div role={role} className={`rounded-lg border p-3 flex items-start gap-3 ${BOX[tone]} ${className}`}>
       <Icon size={16} className={`${tone === 'neutral' ? 'text-slate-500' : TONE_TEXT[tone]} shrink-0 mt-0.5`} aria-hidden="true" />
       <div className="min-w-0 flex-1">
-        {title && <p className="text-sm text-slate-100 leading-snug break-words">{title}</p>}
-        {children && <div className={`text-xs text-slate-300 leading-relaxed break-words ${title ? 'mt-1' : 'mt-px'}`}>{children}</div>}
-        {action && <div className="mt-2 flex items-center gap-2 flex-wrap">{action}</div>}
+        {title && <p className="text-sm font-medium text-slate-100 leading-5 break-words">{title}</p>}
+        {children && <div className={`text-xs text-slate-300 leading-relaxed break-words ${title ? 'mt-1' : 'mt-0.5'}`}>{children}</div>}
+        {action && <div className="mt-3 flex items-center gap-2 flex-wrap">{action}</div>}
       </div>
       {onDismiss && (
         <CloseButton size="sm" label="Dismiss" onClick={onDismiss} className="-my-1 -mr-1" />

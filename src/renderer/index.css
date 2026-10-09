@@ -117,12 +117,13 @@
     color: #475569 !important;
   }
 
+  /* 500 and 600 (the quietest notes) still reach AA on the page itself (#f1f5f9): 4.97:1 (#64748b was 4.34:1) */
   .light .text-slate-500 {
-    color: #64748b !important;
+    color: #5b6b80 !important;
   }
 
   .light .text-slate-600 {
-    color: #64748b !important;
+    color: #5b6b80 !important;
   }
 
   .light .text-slate-700 {
@@ -859,6 +860,22 @@
 }
 
 @layer components {
+  /* ── The two surfaces ───────────────────────────────────────────
+     surface  the quiet one: every panel, tile, list and table of a page (lib/pageKit CARD)
+     glass    the raised one: sheets, dialogs, menus, toasts (a blur and a shadow)
+     Both are drawn from the theme's tokens, so all eight themes and both modes draw them;
+     a tone edge or a hover edge (Tailwind border-* utilities) still wins over the surface's own. */
+  .surface {
+    border-radius: var(--dcs-radius, 0.75rem);
+    border: 1px solid color-mix(in srgb, var(--dcs-border, #1e293b) 70%, transparent);
+    background-color: color-mix(in srgb, var(--dcs-surface, #0f172a) 50%, transparent);
+  }
+  :where(.light) .surface {
+    border-color: color-mix(in srgb, var(--dcs-border, #cbd5e1) 75%, var(--dcs-surface, #ffffff));
+    background-color: var(--dcs-surface, #ffffff);
+    box-shadow: 0 1px 2px color-mix(in srgb, var(--dcs-text, #0f172a) 5%, transparent);
+  }
+
   /* ── Glass effects ─────────────────────────────────────────────── */
   .glass {
     @apply bg-white/5 backdrop-blur-xl border border-white/10;
@@ -873,7 +890,7 @@
   }
 
   .glass-hover {
-    @apply hover:bg-white/[0.08] hover:border-white/[0.15] transition-all duration-300;
+    @apply hover:bg-white/[0.08] hover:border-white/[0.15] transition-all duration-200;
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
   }
 
@@ -886,7 +903,7 @@
     @apply bg-slate-900/60 backdrop-blur-xl border border-white/5;
     border-radius: var(--dcs-radius, 0.75rem);
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.03);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .glass-card:hover {
@@ -990,7 +1007,7 @@
   .stagger-children > *:nth-child(12) { animation-delay: 220ms; }
 
   .animate-in {
-    animation: fadeIn 0.3s ease-out forwards;
+    animation: fadeIn 0.2s ease-out forwards;
   }
 
   .animate-fade-in {
@@ -1002,11 +1019,11 @@
   }
 
   .animate-fade-in-up {
-    animation: fadeInUp 0.4s ease-out forwards;
+    animation: fadeInUp 0.25s ease-out forwards;
   }
 
   .animate-slide-in-right {
-    animation: slideInRight 0.3s ease-out forwards;
+    animation: slideInRight 0.2s ease-out forwards;
   }
 
   /* ── Pulse glow for disconnected state ─────────────────────────── */
@@ -1099,7 +1116,7 @@
 
   /* ── Slide up entrance ───────────────────────────────────────── */
   .animate-slide-up {
-    animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation: slideUp 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
   /* ── Glow pulse effect ───────────────────────────────────────── */
@@ -1203,7 +1220,7 @@
 }
 
 @keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.95); }
+  from { opacity: 0; transform: scale(0.97); }
   to { opacity: 1; transform: none; }
 }
 
@@ -1244,7 +1261,7 @@
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px); }
+  from { opacity: 0; transform: translateY(16px); }
   to { opacity: 1; transform: none; }
 }
 
@@ -1394,7 +1411,6 @@
   main button:not([class*=" h-"]):not([class^="h-"]):not([class*=" w-"]):not([class^="w-"]) { min-height: 2.5rem; }
   main input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), main select, main textarea { font-size: 16px; min-height: 2.75rem; }
   main table { display: block; max-width: 100%; overflow-x: auto; white-space: nowrap; }
-  main .glass, main .glass-subtle { border-radius: 1.125rem; }
   .dashboard-grid > * { max-height: none !important; overflow: visible !important; }
 
   ::-webkit-scrollbar {
@@ -1534,4 +1550,12 @@
   animation-iteration-count: 1 !important;
   transition-duration: 0.001s !important;
   scroll-behavior: auto !important;
+}
+
+/* ── Quiet text reaches AA ──────────────────────────────────────────────── */
+/* text-slate-500 (the dashboard's quiet notes) was 4.0:1 on a dark card; muted text a fifth of the way to the page
+   reads 4.7:1 or more on every dark surface. The light look's 500 is in the .light block; the other themes get
+   theirs from the theme engine (rampOf: t500 stops where it would drop under AA). */
+:where(html:not(.light)) .text-slate-500 {
+  color: color-mix(in srgb, var(--dcs-text-muted, #94a3b8) 80%, var(--dcs-bg, #020617));
 }

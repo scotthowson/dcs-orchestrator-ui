@@ -38,11 +38,11 @@ export const SEARCH_FIELD = `w-full min-h-10 pl-10 pr-4 py-2 text-sm ${EDGE}`
 export const INPUT_FLEET = 'dcs-fleet-field w-full min-h-10 px-3 py-2 rounded-lg bg-slate-800/50 border border-white/10 text-sm text-slate-200 placeholder-slate-600 transition-colors focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/30 disabled:opacity-60 disabled:cursor-not-allowed'
 
 /** the label above a field */
-export const LABEL = 'block text-xs font-medium text-slate-400 mb-1.5'
+export const LABEL = 'block text-xs font-medium text-slate-300 mb-1.5'
 /** the small capitals label above a group of fields, in a form or a panel (CSS shows it in capitals) */
-export const CAPTION = 'block text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1.5'
+export const CAPTION = 'block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5'
 /** the line under a field: what it is for, or what is wrong with it (then in rose) */
-export const HINT = 'text-[11px] text-slate-500 mt-1'
+export const HINT = 'text-xs text-slate-500 mt-1.5 leading-relaxed'
 
 /** one choice among a few (Auto-lock, Session duration, Mode…): toolbar size; the chosen one is emerald */
 export const CHOICE = `${BTN_TOOLBAR} border`

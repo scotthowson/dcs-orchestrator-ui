@@ -142,14 +142,14 @@ export function Panel({ id, icon, title, sub, meta, badge, actions, open, tone, 
   return (
     <section id={id} aria-labelledby={titleId} className={`${CARD} min-w-0 animate-fade-in ${flush ? 'overflow-hidden' : 'p-4'} ${tone ? EDGE[tone] : ''} ${className}`}>
       {flush ? (
-        <div className="px-4 py-2.5 border-b border-white/5">
+        <div className="px-4 py-3 border-b border-white/5">
           {header}
-          {sub && <div className="text-xs text-slate-500 mt-1.5 leading-relaxed">{sub}</div>}
+          {sub && <div className="text-xs text-slate-500 mt-1 leading-relaxed">{sub}</div>}
         </div>
       ) : (
         <>
           {header}
-          {sub && <div className="text-xs text-slate-500 mt-1.5 mb-4 leading-relaxed">{sub}</div>}
+          {sub && <div className="text-xs text-slate-500 mt-1 mb-4 leading-relaxed">{sub}</div>}
         </>
       )}
       {children}

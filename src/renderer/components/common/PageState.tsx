@@ -9,19 +9,34 @@
 //   ErrorState    the request failed before anything arrived: what failed, why, Try again
 //
 // Sizes: a page's (the default), `compact` inside a panel or a table, `card` inside a dashboard card
-// (it fills the card's body). The icon of an empty state is 28, inside a dashboard card 22.
+// (it fills the card's body). The icon sits in a quiet round tile (no illustration): 28 in a 56 px tile,
+// 22 in a 44 px one inside a panel or a dashboard card. The title is the scale's body in medium, the hint
+// its meta line; one next step at most.
 // =============================================================================
 
 import type { ReactNode } from 'react'
 import { Loader2, RefreshCw, AlertTriangle } from 'lucide-react'
 import { BTN_CARD_QUIET, BTN_TOOLBAR_QUIET } from '../../lib/ui'
+import { CARD } from '../../lib/pageKit'
+
+/** the quiet round tile an empty or failed state's icon sits in */
+function StateIcon({ children, small, tone = 'quiet' }: { children: ReactNode; small: boolean; tone?: 'quiet' | 'problem' }) {
+  return (
+    <div
+      aria-hidden
+      className={`flex items-center justify-center rounded-full shrink-0 ${small ? 'h-11 w-11' : 'h-14 w-14'} ${tone === 'problem' ? 'bg-rose-500/10 text-rose-400' : 'bg-white/5 text-slate-500'}`}
+    >
+      {children}
+    </div>
+  )
+}
 
 export function LoadingState({ label = 'Loading…', hint, compact = false }: { label?: string; hint?: string; compact?: boolean }) {
   return (
     <div className={`flex flex-col items-center justify-center ${compact ? 'py-8 gap-2' : 'py-20 gap-3'} animate-fade-in`} role="status" aria-live="polite">
-      <Loader2 size={compact ? 20 : 26} className="animate-spin text-emerald-500/60" aria-hidden />
-      <p className="text-sm text-slate-500">{label}</p>
-      {hint && <p className="text-xs text-slate-500/80 max-w-md text-center">{hint}</p>}
+      <Loader2 size={compact ? 20 : 24} className="animate-spin text-emerald-500/60" aria-hidden />
+      <p className="text-sm text-slate-400">{label}</p>
+      {hint && <p className="text-xs text-slate-500 max-w-md text-center leading-relaxed">{hint}</p>}
     </div>
   )
 }
@@ -35,13 +50,13 @@ export function EmptyState({ icon, title, hint, action, compact = false, card = 
   /** inside a dashboard card: fills the card's body */
   card?: boolean
 }) {
-  const box = card ? 'flex-1 min-h-0 py-3 gap-1.5' : compact ? 'py-10 gap-2' : 'py-20 gap-2'
+  const box = card ? 'flex-1 min-h-0 py-3 gap-1' : compact ? 'py-10 gap-1' : 'py-16 md:py-20 gap-1'
   return (
     <div className={`flex flex-col items-center justify-center text-center animate-fade-in ${box}`}>
-      {icon && <div className="text-slate-500 mb-1" aria-hidden>{icon}</div>}
-      <p className="text-sm text-slate-400">{title}</p>
-      {hint && <p className={`text-xs text-slate-500 ${card ? 'max-w-[34ch]' : 'max-w-md'}`}>{hint}</p>}
-      {action && <div className={card ? 'mt-1.5' : 'mt-3'}>{action}</div>}
+      {icon && <div className={card ? 'mb-1.5' : 'mb-3'}><StateIcon small={card || compact}>{icon}</StateIcon></div>}
+      <p className="text-sm font-medium text-slate-300">{title}</p>
+      {hint && <p className={`text-xs leading-relaxed text-slate-500 ${card ? 'max-w-[34ch]' : 'max-w-sm'}`}>{hint}</p>}
+      {action && <div className={card ? 'mt-2' : 'mt-4'}>{action}</div>}
     </div>
   )
 }
@@ -56,12 +71,12 @@ export function ErrorState({ title = 'Could not load this', error, onRetry, card
   const message = typeof error === 'string' ? error : error?.message
   if (card) {
     return (
-      <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-2 py-3 text-center" role="alert">
-        <AlertTriangle size={18} className="text-rose-400" aria-hidden />
-        <p className="text-sm text-slate-400">{title}</p>
+      <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-1 py-3 text-center" role="alert">
+        <div className="mb-1.5"><StateIcon small tone="problem"><AlertTriangle size={18} /></StateIcon></div>
+        <p className="text-sm font-medium text-slate-300">{title}</p>
         {message && <p className="text-xs text-slate-500 max-w-[34ch] break-words">{message}</p>}
         {onRetry && (
-          <button type="button" onClick={(e) => { e.stopPropagation(); onRetry() }} className={BTN_CARD_QUIET}>
+          <button type="button" onClick={(e) => { e.stopPropagation(); onRetry() }} className={`${BTN_CARD_QUIET} mt-2`}>
             <RefreshCw size={12} aria-hidden /> Try again
           </button>
         )}
@@ -69,12 +84,12 @@ export function ErrorState({ title = 'Could not load this', error, onRetry, card
     )
   }
   return (
-    <div className="bg-slate-900/60 backdrop-blur-md border border-rose-500/15 rounded-xl p-6 text-center animate-fade-in" role="alert">
-      <AlertTriangle size={26} className="text-rose-500/50 mx-auto mb-3" aria-hidden />
-      <p className="text-sm text-slate-400 mb-1">{title}</p>
-      {message && <p className="text-xs text-slate-500 mb-4 break-words">{message}</p>}
+    <div className={`${CARD} border-rose-500/20 px-6 py-10 flex flex-col items-center text-center animate-fade-in`} role="alert">
+      <div className="mb-3"><StateIcon small={false} tone="problem"><AlertTriangle size={24} /></StateIcon></div>
+      <p className="text-sm font-medium text-slate-200">{title}</p>
+      {message && <p className="mt-1 text-xs text-slate-500 max-w-md leading-relaxed break-words">{message}</p>}
       {onRetry && (
-        <div className="flex justify-center">
+        <div className="mt-4 flex justify-center">
           <button type="button" onClick={onRetry} className={BTN_TOOLBAR_QUIET}>
             <RefreshCw size={14} aria-hidden /> Try again
           </button>
@@ -100,16 +115,16 @@ export function Skeleton({ label = 'Loading…', rows = 3, variant = 'rows', cla
       {variant === 'chart' ? (
         <div className="skeleton h-full min-h-16 w-full" aria-hidden />
       ) : variant === 'tiles' ? (
-        <div className="grid grid-cols-2 gap-2" aria-hidden>
+        <div className="grid grid-cols-2 gap-3" aria-hidden>
           {Array.from({ length: Math.max(2, rows) }).map((_, i) => <div key={i} className="skeleton h-12" />)}
         </div>
       ) : variant === 'cards' ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3" aria-hidden>
-          {Array.from({ length: Math.max(1, rows) }).map((_, i) => <div key={i} className="skeleton h-32 rounded-xl" />)}
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4" aria-hidden>
+          {Array.from({ length: Math.max(1, rows) }).map((_, i) => <div key={i} className="skeleton h-36 rounded-xl" />)}
         </div>
       ) : (
         <div className="space-y-2" aria-hidden>
-          {Array.from({ length: rows }).map((_, i) => <div key={i} className="skeleton h-7" style={{ width: `${100 - (i % 3) * 12}%` }} />)}
+          {Array.from({ length: rows }).map((_, i) => <div key={i} className="skeleton h-8" style={{ width: `${100 - (i % 3) * 8}%` }} />)}
         </div>
       )}
     </div>

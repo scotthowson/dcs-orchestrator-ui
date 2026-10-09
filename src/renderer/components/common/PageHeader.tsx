@@ -19,14 +19,15 @@
 //             wrap under the name, on a desktop they wrap among themselves.
 //   children  under the line.
 //
-// Sizes: the name is text-2xl from md up and text-xl on a phone (the phone's top bar
-// carries the name too); the tile is 40 px, 44 from md up.
+// Sizes: the name is lib/ui TITLE_PAGE (24/32 from md up, 20/28 on a phone — the phone's top bar
+// carries the name too); the tile is 40 px, 44 from md up, 16 px from the name.
 // =============================================================================
 
 import type { ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { pageMeta } from '../../constants/pageTitles'
 import type { PageId } from '../../../shared/types'
+import { TITLE_PAGE } from '../../lib/ui'
 
 export interface PageHeaderProps {
   page: PageId
@@ -46,9 +47,9 @@ export default function PageHeader({ page, title, subtitle, icon, badge, actions
   const hasLine = line !== null && line !== false && line !== ''
   return (
     <div className={`flex flex-wrap items-start gap-x-4 gap-y-3 ${className}`}>
-      <div className="flex min-w-0 flex-1 basis-[16rem] items-start gap-3">
+      <div className="flex min-w-0 flex-1 basis-[16rem] items-start gap-3 md:gap-4">
         <span
-          className="mt-0.5 flex h-10 w-10 md:h-11 md:w-11 shrink-0 items-center justify-center rounded-xl border accent-bg-subtle accent-text"
+          className="flex h-10 w-10 md:h-11 md:w-11 shrink-0 items-center justify-center rounded-xl border accent-bg-subtle accent-text"
           style={{ borderColor: 'rgb(var(--color-accent) / 0.15)' }}
           aria-hidden
         >
@@ -56,11 +57,11 @@ export default function PageHeader({ page, title, subtitle, icon, badge, actions
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-slate-100">{title ?? meta.label}</h1>
+            <h1 className={TITLE_PAGE}>{title ?? meta.label}</h1>
             {badge}
           </div>
-          {hasLine && <p className="mt-1 text-sm text-slate-400 tabular-nums">{line}</p>}
-          {children && <div className="mt-2">{children}</div>}
+          {hasLine && <p className="mt-0.5 text-sm leading-6 text-slate-400 tabular-nums">{line}</p>}
+          {children && <div className="mt-3">{children}</div>}
         </div>
       </div>
       {actions && <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">{actions}</div>}

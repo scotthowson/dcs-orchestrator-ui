@@ -187,8 +187,9 @@ interface Ramp {
   /**
    * The text ramp (text-slate-100 … 700) keeps the dark design's order of emphasis in both looks: 100
    * headings, 300 body, 400 (= muted) secondary text, 500/600 quieter notes, 700 separators and the
-   * faintest icons. Each step moves from muted toward the background; in a light look 500 and 600 stop
-   * where they would drop under AA on the background or the surface.
+   * faintest icons. Each step moves from muted toward the background; 500 stops where it would drop under
+   * AA on the background or the surface (in both looks: it carries notes people read), and in a light look
+   * 600 does too.
    */
   t100: string; t200: string; t300: string; t400: string; t500: string; t600: string; t700: string
   /** neutral solids (bg/border slate-500/600/700) between the raised surface and muted text */
@@ -214,7 +215,7 @@ function rampOf(p: ThemePalette, mode: ThemeMode): Ramp {
     t200: mixHex(text, muted, light ? 0.1 : 0.16),
     t300: mixHex(text, muted, light ? 0.3 : 0.4),
     t400: muted,
-    t500: light ? fadeWithin(muted, bg, 0.25, [bg, surface], 4.5) : mixHex(muted, bg, 0.3),
+    t500: fadeWithin(muted, bg, light ? 0.25 : 0.3, [bg, surface], 4.5),
     t600: light ? fadeWithin(muted, bg, 0.4, [bg, surface], 4.5) : mixHex(muted, bg, 0.5),
     t700: mixHex(muted, bg, light ? 0.62 : 0.65),
     n500: mixHex(raised, muted, 0.6),

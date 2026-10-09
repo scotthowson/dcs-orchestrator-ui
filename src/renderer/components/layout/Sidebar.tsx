@@ -14,6 +14,7 @@ import { useNavBadges, sectionBadge, sectionStatusIcon, type NavBadge, type NavS
 import { sectionTarget } from '../../constants/navSections'
 import { ServerSwitcher } from '../common/ServerSwitcher'
 import { useBrand } from '../../hooks/useBrand'
+import { COUNT_SHAPE } from '../common/Pill'
 
 export function Sidebar() {
   const setCurrentPage = useSettingsStore((s) => s.setCurrentPage)
@@ -35,7 +36,7 @@ export function Sidebar() {
         relative hidden md:flex flex-col h-full
         bg-slate-900/60 backdrop-blur-2xl
         border-r border-white/5
-        transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
+        transition-[width] duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]
         ${collapsed ? 'w-[52px] md:w-[68px]' : 'w-[220px]'}
       `}
     >
@@ -147,15 +148,15 @@ function NavButton({
       title={collapsed ? label : undefined}
       aria-current={isActive ? 'page' : undefined}
       className={`
-        group relative flex items-center gap-3 w-full
-        rounded-lg px-3 py-2
+        group relative flex items-center gap-3 w-full h-9
+        rounded-lg px-3
         text-[13px] font-medium
-        transition-all duration-200 ease-out
+        transition-colors duration-150 ease-out
         no-drag
         ${
           isActive
             ? 'accent-bg-subtle accent-text'
-            : 'text-slate-500 hover:bg-white/5 hover:text-slate-300'
+            : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
         }
       `}
     >
@@ -174,7 +175,7 @@ function NavButton({
       <Icon
         size={18}
         strokeWidth={isActive ? 2.2 : 1.7}
-        className={`shrink-0 transition-all duration-200 ${
+        className={`shrink-0 transition-colors duration-150 ${
           isActive
             ? 'accent-text accent-glow'
             : 'text-slate-500 group-hover:text-slate-400'
@@ -193,22 +194,12 @@ function NavButton({
             />
           )}
           {badge && (
-            <span title={badge.title} className={`
-              z-10 inline-flex items-center justify-center min-w-[20px] h-5
-              rounded-full px-1.5 text-[10px] font-bold tabular-nums
-              ${badge.color}
-              transition-all duration-300
-            `}>
+            <span title={badge.title} className={`z-10 ${COUNT_SHAPE} ${badge.color}`}>
               {badge.value}
             </span>
           )}
           {badge?.second && (
-            <span title={badge.second.title} className={`
-              z-10 inline-flex items-center justify-center min-w-[20px] h-5
-              rounded-full px-1.5 text-[10px] font-bold tabular-nums
-              ${badge.second.color}
-              transition-all duration-300
-            `}>
+            <span title={badge.second.title} className={`z-10 ${COUNT_SHAPE} ${badge.second.color}`}>
               {badge.second.value}
             </span>
           )}

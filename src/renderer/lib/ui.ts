@@ -23,14 +23,29 @@
 //   <button className={`${BTN_ICON} ${TONE_DANGER}`} aria-label="Stop"><Square size={14} /></button>
 //
 // An icon-only button needs a name (aria-label) and a hint (components/common/Hint).
+//
+// Every shape answers the pointer the same way: its tone's hover fill, a press that sinks it by 2 % (not while
+// disabled), the keyboard's ring from index.css (focus-visible only: a click never lights it), all at 150 ms.
+//
+// The type scale, once (sizes / line heights):
+//   page title   TITLE_PAGE     24/32 semibold (20/28 on a phone) — PageHeader's <h1>
+//   dialog       TITLE_DIALOG   16/24 semibold — a sheet's or a dialog's title
+//   panel        TITLE_PANEL    14/20 semibold — a panel's, a card's or a section's title
+//   body         TEXT_BODY      14/20 — what a panel says
+//   meta         TEXT_META      12/16 — numbers beside a title, the line under a row, a hint
+//   label        SECTION_LABEL  12/16 semibold capitals — above a group of rows, fields or cards
+// Spacing runs on 4 px: 16 between the parts of a page on a phone and 24 from md up (PAGE_STACK), 16 inside
+// a panel or a tile, 12 between the rows of a list, 8 between buttons.
 // =============================================================================
 
 // ── shapes ──────────────────────────────────────────────────────────────────
-export const BTN_TOOLBAR = 'px-3 py-2 rounded-lg text-xs font-medium inline-flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
-export const BTN_CARD = 'h-8 px-2.5 rounded-lg text-[11px] inline-flex items-center justify-center gap-1.5 shrink-0 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
-export const BTN_SHEET = 'h-11 px-4 rounded-xl text-sm font-medium inline-flex items-center justify-center gap-2 transition-colors disabled:opacity-60 disabled:cursor-not-allowed'
-export const BTN_ICON = 'h-9 w-9 sm:h-8 sm:w-8 rounded-lg inline-flex items-center justify-center shrink-0 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
-export const BTN_ICON_SM = 'h-8 w-8 sm:h-7 sm:w-7 rounded-lg inline-flex items-center justify-center shrink-0 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+/** how every button shape answers: colours and the press at 150 ms, no press while disabled */
+const MOTION = 'transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-150 ease-out enabled:active:scale-[0.98]'
+export const BTN_TOOLBAR = `px-3 py-2 rounded-lg text-xs font-medium inline-flex items-center justify-center gap-1.5 ${MOTION} disabled:opacity-50 disabled:cursor-not-allowed`
+export const BTN_CARD = `h-8 px-2.5 rounded-lg text-[11px] font-medium inline-flex items-center justify-center gap-1.5 shrink-0 ${MOTION} disabled:opacity-50 disabled:cursor-not-allowed`
+export const BTN_SHEET = `h-11 px-4 rounded-lg text-sm font-medium inline-flex items-center justify-center gap-2 ${MOTION} disabled:opacity-60 disabled:cursor-not-allowed`
+export const BTN_ICON = `h-9 w-9 sm:h-8 sm:w-8 rounded-lg inline-flex items-center justify-center shrink-0 ${MOTION} disabled:opacity-50 disabled:cursor-not-allowed`
+export const BTN_ICON_SM = `h-8 w-8 sm:h-7 sm:w-7 rounded-lg inline-flex items-center justify-center shrink-0 ${MOTION} disabled:opacity-50 disabled:cursor-not-allowed`
 
 // ── tones ───────────────────────────────────────────────────────────────────
 /** neutral: the button that is always there */
@@ -72,7 +87,13 @@ export const FOCUS_RING = 'focus-visible:outline-none focus-visible:ring-2 focus
 /** the icon sizes (see the header) */
 export const ICON = { pill: 10, card: 12, toolbar: 14, sheet: 16, row: 16, hero: 20 } as const
 
-// ── headings ────────────────────────────────────────────────────────────────
+// ── headings and text (the type scale in the header) ────────────────────────
+/** a page's <h1> (PageHeader draws it) */
+export const TITLE_PAGE = 'text-xl md:text-2xl font-semibold tracking-tight text-slate-100'
+/** what a panel or a card says */
+export const TEXT_BODY = 'text-sm text-slate-300'
+/** the quiet line: numbers beside a title, the line under a row, a hint (AA on every surface, see index.css) */
+export const TEXT_META = 'text-xs text-slate-500'
 // A page's own <h1> is PageHeader's. Under it, three kinds of heading and no others:
 /** the title of a panel, a card or a section of a page (an <h2>, or an <h3> inside a panel) */
 export const TITLE_PANEL = 'text-sm font-semibold text-slate-200'

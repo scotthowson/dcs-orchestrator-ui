@@ -11,6 +11,7 @@ import { useSettingsStore } from '../../stores/settingsStore'
 import { useNavSections } from '../../hooks/useNavSections'
 import { useNavBadges } from '../../hooks/useNavBadges'
 import { pageMeta } from '../../constants/pageTitles'
+import { COUNT_SHAPE } from '../common/Pill'
 
 export function SectionTabs() {
   const setCurrentPage = useSettingsStore((s) => s.setCurrentPage)
@@ -55,7 +56,7 @@ export function SectionTabs() {
       className="relative mb-4 md:mb-5 -mx-1 overflow-x-auto scrollbar-none"
       style={more.left || more.right ? { maskImage: fade(more), WebkitMaskImage: fade(more) } : undefined}
     >
-      <div className="inline-flex min-w-full items-center gap-1 rounded-xl border border-white/[0.06] bg-slate-900/50 backdrop-blur-xl p-1">
+      <div className="surface inline-flex min-w-full items-center gap-1 p-1">
         {pages.map((id) => {
           const meta = pageMeta[id]
           const Icon = meta.icon
@@ -68,14 +69,14 @@ export function SectionTabs() {
               type="button"
               aria-current={active ? 'page' : undefined}
               onClick={() => (active ? setCurrentPage(id, { resetView: true }) : setCurrentPage(id))}
-              className={`group relative flex shrink-0 items-center gap-2 rounded-lg px-3 py-1.5 text-[13px] font-medium whitespace-nowrap transition-colors duration-150 no-drag focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 ${
+              className={`group relative flex h-8 shrink-0 items-center gap-2 rounded-lg px-3 text-[13px] font-medium whitespace-nowrap transition-colors duration-150 no-drag focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 ${
                 active ? 'accent-bg-subtle accent-text' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
               }`}
             >
-              <Icon size={15} strokeWidth={active ? 2.2 : 1.8} className={active ? 'accent-text' : 'text-slate-500 group-hover:text-slate-400'} aria-hidden />
+              <Icon size={16} strokeWidth={active ? 2.2 : 1.8} className={active ? 'accent-text' : 'text-slate-500 group-hover:text-slate-400'} aria-hidden />
               {meta.label}
               {badge && (
-                <span title={badge.title} className={`inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1.5 text-[10px] font-bold tabular-nums ${badge.color}`}>
+                <span title={badge.title} className={`${COUNT_SHAPE} ${badge.color}`}>
                   {badge.value}
                 </span>
               )}
