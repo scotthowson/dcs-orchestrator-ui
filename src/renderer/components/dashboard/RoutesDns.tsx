@@ -3,12 +3,12 @@
 // =============================================================================
 
 import { Globe, ExternalLink, AlertTriangle, ShieldCheck, ShieldOff, Layers } from 'lucide-react'
-import { Badge } from '@mantine/core'
 import { usePolling } from '../../hooks/usePolling'
 import { pollKeys } from '../../api/pollKeys'
 import { fetchRoutes, fetchDnsStatus } from '../../api/endpoints'
-import { Card, CardBody, CardEmpty, CardError, CardLoading } from './cardShared'
-
+import { Card, CardBody } from './cardShared'
+import { Skeleton, EmptyState, ErrorState } from '../common/PageState'
+import { Pill } from '../common/Pill'
 export default function RoutesDns() {
   const routes = usePolling(fetchRoutes, 60000, { key: pollKeys.routes })
   const dns = usePolling(fetchDnsStatus, 120000)
@@ -25,15 +25,15 @@ export default function RoutesDns() {
       open="dns"
       clickable={false}
       badge={dns.data ? (
-        <Badge component="span" color={dnsOk ? 'emerald' : 'slate'} leftSection={dnsOk ? <ShieldCheck size={11} /> : <ShieldOff size={11} />}>{dnsLabel}</Badge>
+        <Pill tone={dnsOk ? 'ok' : 'neutral'} icon={dnsOk ? <ShieldCheck size={11} /> : <ShieldOff size={11} />}>{dnsLabel}</Pill>
       ) : undefined}
     >
       {routes.error && !routes.data ? (
-        <CardError title="Could not load the routes" error={routes.error} onRetry={routes.refresh} />
+        <ErrorState card title="Could not load the routes" error={routes.error} onRetry={routes.refresh} />
       ) : !routes.data ? (
-        <CardLoading label="Loading the routes…" rows={4} />
+        <Skeleton label="Loading the routes…" rows={4} />
       ) : list.length === 0 ? (
-        <CardEmpty icon={<Globe size={22} />} title="No routes yet" hint={domain ? `Deploy a template with HTTPS routing to publish it under ${domain}.` : 'Deploy Traefik and set a domain to publish services.'} />
+        <EmptyState card icon={<Globe size={22} />} title="No routes yet" hint={domain ? `Deploy a template with HTTPS routing to publish it under ${domain}.` : 'Deploy Traefik and set a domain to publish services.'} />
       ) : (
         <CardBody className="space-y-1">
           {list.map((r) => {

@@ -27,7 +27,6 @@ import {
   ShieldAlert,
   RotateCcw,
 } from 'lucide-react'
-import { Badge } from '@mantine/core'
 import { usePolling } from '../hooks/usePolling'
 import { pollKeys } from '../api/pollKeys'
 import {
@@ -54,6 +53,8 @@ import { Panel } from '../components/dashboard/cardShared'
 import { BTN_CARD_QUIET, BTN_TOOLBAR, BTN_TOOLBAR_QUIET, TONE_OK } from '../lib/ui'
 import { readTerminalSession, saveTerminalSession, forgetTerminalSession } from '../lib/terminalSession'
 
+import { INPUT_ICON } from '../lib/fieldStyles'
+import { Pill } from '../components/common/Pill'
 /** which server a panel talks to: null is the hub (or a server without a fleet) */
 interface ScopedProps { member: string | null; whereLabel: string }
 
@@ -104,9 +105,6 @@ function KvRow({ label, value }: { label: string; value: React.ReactNode }) {
     </div>
   )
 }
-
-/** the field every input of this page wears: the glass fill, its own emerald ring on focus */
-const FIELD = 'w-full pl-9 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/30 transition-all'
 
 // ---------------------------------------------------------------------------
 // Maintenance panel
@@ -478,7 +476,7 @@ function OsUpdatesPanel({ member, whereLabel }: ScopedProps) {
                 onChange={(e) => { setAuthUsername(e.target.value); setAuthError('') }}
                 placeholder="Linux username"
                 autoComplete="username"
-                className={`${FIELD} pr-3`}
+                className={`${INPUT_ICON}`}
               />
             </div>
             <div className="relative">
@@ -491,7 +489,7 @@ function OsUpdatesPanel({ member, whereLabel }: ScopedProps) {
                 onKeyDown={(e) => e.key === 'Enter' && handleAuth()}
                 placeholder="Password"
                 autoComplete="current-password"
-                className={`${FIELD} pr-10`}
+                className={`${INPUT_ICON} !pr-10`}
               />
               <Hint label={showPassword ? 'Hide the password' : 'Show the password'}>
                 <button
@@ -736,7 +734,7 @@ export default function System() {
                     <td className="px-4 py-3 text-right font-mono text-slate-300 text-xs">{row.total}</td>
                     <td className="px-4 py-3 text-right font-mono text-slate-300 text-xs">{row.active}</td>
                     <td className="px-4 py-3 text-right font-mono text-slate-300 text-xs">{row.size}</td>
-                    <td className="px-4 py-3 text-right"><Badge component="span" color="cyan">{row.reclaimable}</Badge></td>
+                    <td className="px-4 py-3 text-right"><Pill tone="info">{row.reclaimable}</Pill></td>
                   </tr>
                 ))}
               </tbody>

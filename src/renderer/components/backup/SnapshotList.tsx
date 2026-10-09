@@ -5,7 +5,6 @@
 // =============================================================================
 
 import { useCallback, useState } from 'react'
-import { Badge } from '@mantine/core'
 import { Camera, Clock, Download, HardDrive, Info, Loader2, RotateCw, Server, Trash2 } from 'lucide-react'
 import Hint from '../common/Hint'
 import { EmptyState } from '../common/PageState'
@@ -19,6 +18,7 @@ import { deleteSnapshot, restoreSnapshot } from '../../api/endpoints'
 import { formatSnapshotDate, relativeTime, rowKey } from './format'
 import type { SnapshotEntry, SnapshotRestoreResponse } from '../../../shared/types'
 
+import { Pill } from '../common/Pill'
 /** what the server says after a snapshot restore, beyond the shared type: which stacks came back, which were refused */
 type RestoreAnswer = SnapshotRestoreResponse & { before?: string; restored_stacks?: string[]; skipped_stacks?: string[]; push_failed?: string[] }
 
@@ -137,7 +137,7 @@ export default function SnapshotList({
     return (
       <EmptyState
         compact
-        icon={<Camera size={32} />}
+        icon={<Camera size={28} />}
         title={`No snapshots yet${scopeMember ? ` on the VM ${memberName}` : ''}`}
         hint="Take a config snapshot above before you change something: it takes seconds."
       />
@@ -158,8 +158,8 @@ export default function SnapshotList({
                   <Camera size={14} className="text-cyan-400/80 shrink-0" aria-hidden />
                   <span className="font-mono text-xs text-slate-200 truncate min-w-0 max-w-full" title={snapshot.filename}>{snapshot.filename}</span>
                   {snapshot.member !== undefined && <VmCapsule member={snapshot.member} name={snapshot.member_name} vmid={snapshot.vmid} size="xs" />}
-                  {snapshot.hostname && <Badge component="span" color="slate" leftSection={<Server size={10} aria-hidden />} title="The machine it was taken on">{snapshot.hostname}</Badge>}
-                  {version && <Badge component="span" color="slate" title="The DCS version it was taken on">{version}</Badge>}
+                  {snapshot.hostname && <Pill tone="neutral" icon={<Server size={10} aria-hidden />} title="The machine it was taken on">{snapshot.hostname}</Pill>}
+                  {version && <Pill tone="neutral" title="The DCS version it was taken on">{version}</Pill>}
                 </div>
                 {snapshot.label
                   ? <p className="text-sm text-slate-300 mt-1 break-words">{snapshot.label}</p>

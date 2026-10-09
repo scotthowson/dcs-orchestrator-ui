@@ -25,13 +25,8 @@ import { discoverServerVerdict, blockedText } from '../lib/discover'
 import Hint from '../components/common/Hint'
 import PasswordStrengthMeter from '../components/auth/PasswordStrength'
 import ShowPasswordButton from '../components/auth/ShowPasswordButton'
-import { BTN_ICON_SM, BTN_TOOLBAR_QUIET, BTN_SHEET_PRIMARY } from '../lib/ui'
-import { FOCUS_RING } from '../lib/fieldStyles'
-
-/** the fields of the sign-in card: 48 px, an icon on the left */
-const LOGIN_INPUT = 'w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-lg text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all duration-300'
-/** …with a button on the right (show the password) */
-const LOGIN_INPUT_PW = LOGIN_INPUT.replace('pr-4', 'pr-12')
+import { BTN_ICON_SM, BTN_TOOLBAR_QUIET, BTN_SHEET_PRIMARY, FOCUS_RING } from '../lib/ui'
+import { INPUT_ICON } from '../lib/fieldStyles'
 /** a small text button beside a line of words (Change, Have an invite code?) */
 const LINK_BTN = `rounded-md transition-colors ${FOCUS_RING}`
 
@@ -578,7 +573,7 @@ export default function Login() {
                       placeholder={window.electronAPI ? "192.168.1.100:9876 or https://ui.example.com" : "/api"}
                       autoFocus
                       autoComplete="url"
-                      className={`${LOGIN_INPUT} !pr-10`}
+                      className={`${INPUT_ICON} !pr-10`}
                     />
                     <div className="absolute right-3 top-1/2 -translate-y-1/2">
                       {connStatus === 'testing' && <Loader2 size={14} className="text-slate-500 animate-spin" />}
@@ -684,7 +679,7 @@ export default function Login() {
                       placeholder="Enter username"
                       autoFocus
                       autoComplete="username"
-                      className={LOGIN_INPUT}
+                      className={INPUT_ICON}
                     />
                   </div>
                 </div>
@@ -701,7 +696,7 @@ export default function Login() {
                       onChange={(e) => { setPassword(e.target.value); clearError() }}
                       placeholder="Enter password"
                       autoComplete="new-password"
-                      className={LOGIN_INPUT_PW}
+                      className={`${INPUT_ICON} !pr-12`}
                     />
                     <ShowPasswordButton shown={showPassword} onToggle={() => setShowPassword(!showPassword)} />
                   </div>
@@ -902,7 +897,7 @@ export default function Login() {
                       placeholder="Enter username"
                       autoFocus
                       autoComplete="username"
-                      className={LOGIN_INPUT}
+                      className={INPUT_ICON}
                     />
                   </div>
                 </div>
@@ -919,7 +914,7 @@ export default function Login() {
                       onChange={(e) => { setPassword(e.target.value); clearError() }}
                       placeholder="Enter password"
                       autoComplete="current-password"
-                      className={LOGIN_INPUT_PW}
+                      className={`${INPUT_ICON} !pr-12`}
                     />
                     <ShowPasswordButton shown={showPassword} onToggle={() => setShowPassword(!showPassword)} />
                   </div>
@@ -1085,7 +1080,7 @@ export default function Login() {
                       placeholder="Enter invite code"
                       autoFocus
                       autoComplete="off"
-                      className={LOGIN_INPUT}
+                      className={INPUT_ICON}
                     />
                   </div>
                 </div>
@@ -1102,7 +1097,7 @@ export default function Login() {
                       onChange={(e) => { setUsername(e.target.value); setRegisterError(null) }}
                       placeholder="Choose a username"
                       autoComplete="username"
-                      className={LOGIN_INPUT}
+                      className={INPUT_ICON}
                     />
                   </div>
                 </div>
@@ -1119,7 +1114,7 @@ export default function Login() {
                       onChange={(e) => { setPassword(e.target.value); setRegisterError(null) }}
                       placeholder="Choose a password"
                       autoComplete="new-password"
-                      className={LOGIN_INPUT_PW}
+                      className={`${INPUT_ICON} !pr-12`}
                     />
                     <ShowPasswordButton shown={showPassword} onToggle={() => setShowPassword(!showPassword)} />
                   </div>

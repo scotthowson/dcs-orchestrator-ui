@@ -6,9 +6,7 @@
 
 import { Eye, EyeOff } from 'lucide-react'
 import Hint from '../common/Hint'
-import { BTN_ICON_SM } from '../../lib/ui'
-import { FOCUS_RING } from '../../lib/fieldStyles'
-
+import { BTN_ICON_SM, FOCUS_RING } from '../../lib/ui'
 export default function ShowPasswordButton({ shown, onToggle }: { shown: boolean; onToggle: () => void }) {
   const label = shown ? 'Hide password' : 'Show password'
   return (

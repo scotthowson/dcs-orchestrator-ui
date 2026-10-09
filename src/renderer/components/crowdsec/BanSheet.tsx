@@ -9,8 +9,10 @@ import { Ban, Loader2, AlertTriangle, ShieldCheck } from 'lucide-react'
 import { useToast } from '../common/Toast'
 import { useConfirm } from '../common/ConfirmDialog'
 import { crowdsecBan, crowdsecSettings } from '../../api/endpoints'
-import { BTN_DANGER, BTN_QUIET, CsSheet, DurationPicker, HINT, INPUT, LABEL, PERMANENT, errData, errMsg, humanDuration, looksLikeTarget, parseDuration, canonicalDuration, useCs } from './kit'
-
+import { DurationPicker, PERMANENT, errData, errMsg, humanDuration, looksLikeTarget, parseDuration, canonicalDuration, useCs } from './kit'
+import { BTN_TOOLBAR_DANGER, BTN_TOOLBAR_QUIET } from '../../lib/ui'
+import { HINT, INPUT, LABEL } from '../../lib/fieldStyles'
+import Sheet from '../common/Sheet'
 const REASONS: Record<string, string> = {
   own: 'That is the address you are connected from.',
   server: 'That covers this server itself.',
@@ -81,13 +83,13 @@ export default function BanSheet({ initialValue = '', initialReason = '', onClos
   }
 
   return (
-    <CsSheet
-      title="Ban an address" subtitle="An IP address or a network. Traefik refuses it at the door." icon={<Ban size={18} />} tone="bad" onClose={onClose}
+    <Sheet
+      title="Ban an address" subtitle="An IP address or a network. Traefik refuses it at the door." icon={<Ban size={18} />} tone="problem" onClose={onClose}
       footer={
         <div className="flex gap-2 justify-end flex-wrap">
-          <button type="button" onClick={onClose} className={BTN_QUIET}>Cancel</button>
-          <button type="button" onClick={submit} disabled={!valid || !durOk || busy || own} className={`${BTN_DANGER} min-w-[10rem]`}>
-            {busy ? <Loader2 size={13} className="animate-spin" /> : <Ban size={13} />} {valid && durOk ? `Ban ${target.length > 22 ? `${target.slice(0, 20)}…` : target} ${label}` : 'Ban'}
+          <button type="button" onClick={onClose} className={BTN_TOOLBAR_QUIET}>Cancel</button>
+          <button type="button" onClick={submit} disabled={!valid || !durOk || busy || own} className={`${BTN_TOOLBAR_DANGER} min-w-[10rem]`}>
+            {busy ? <Loader2 size={14} className="animate-spin" /> : <Ban size={14} />} {valid && durOk ? `Ban ${target.length > 22 ? `${target.slice(0, 20)}…` : target} ${label}` : 'Ban'}
           </button>
         </div>
       }
@@ -118,6 +120,6 @@ export default function BanSheet({ initialValue = '', initialReason = '', onClos
         )}
         <button type="submit" className="hidden" aria-hidden="true" tabIndex={-1} />
       </form>
-    </CsSheet>
+    </Sheet>
   )
 }

@@ -9,9 +9,7 @@ import { usePolling } from '../../hooks/usePolling'
 import { Layers, Loader2, WifiOff, RotateCw, Globe, Server, Pencil, ShieldOff } from 'lucide-react'
 import { useServerStore } from '../../stores/serverStore'
 import type { ServerProfile } from '../../../shared/types'
-import { BTN_SHEET_PRIMARY, BTN_TOOLBAR_QUIET } from '../../lib/ui'
-import { FOCUS_RING } from '../../lib/fieldStyles'
-
+import { BTN_SHEET_PRIMARY, BTN_TOOLBAR_QUIET, FOCUS_RING } from '../../lib/ui'
 /** The account line of a server: "signed in as scott · admin", "needs sign-in", "can't be reached", "blocked by this
  *  browser" (it answers, but does not let this web dashboard's address in) */
 export function accountLine(p: ServerProfile, opts: { active: boolean; signedInHere: boolean; unreachable?: string; blocked?: string }): { text: string; tone: 'ok' | 'quiet' | 'bad' } {
@@ -147,7 +145,7 @@ export function ServerUnreachableScreen() {
         <div className="flex flex-wrap gap-2">
           <button type="button" onClick={retry} disabled={retrying} className={`${BTN_SHEET_PRIMARY} flex-1`}>
             {retrying ? <Loader2 size={16} className="animate-spin" /> : <RotateCw size={16} />}
-            {retrying ? 'Trying…' : 'Retry'}
+            {retrying ? 'Trying…' : 'Try again'}
           </button>
           <button
             type="button"

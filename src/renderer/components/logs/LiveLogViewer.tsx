@@ -3,21 +3,18 @@
 // =============================================================================
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import {
-  Pause, Search, Download, Trash2, X,
-  ArrowDown, Filter, RefreshCw,
-  AlertTriangle, AlertCircle, Info, Bug,
-} from 'lucide-react'
+import { Pause, Download, Trash2, ArrowDown, Filter, RefreshCw, AlertTriangle, AlertCircle, Info, Bug } from 'lucide-react'
 import { fetchContainerLogsLiveOn, fetchAppLogsLiveOn } from '../../api/fleetScoped'
 import { usePolling } from '../../hooks/usePolling'
 import { useConnectionStore } from '../../stores/connectionStore'
 import { LoadingState, EmptyState } from '../common/PageState'
 import Hint from '../common/Hint'
-import { BTN_CARD, BTN_CARD_QUIET, BTN_ICON_SM, TONE_QUIET } from '../../lib/ui'
-import { CARD, FOCUS_RING } from '../../lib/pageKit'
+import { BTN_CARD, BTN_CARD_QUIET, BTN_ICON_SM, TONE_QUIET, FOCUS_RING } from '../../lib/ui'
+import { CARD } from '../../lib/pageKit'
 import type { LogStreamEntry, LiveLogsResponse } from '../../../shared/types'
 import type { RowMember } from '../../../shared/fleetScoped'
 
+import SearchInput from '../common/SearchInput'
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -323,7 +320,7 @@ export default function LiveLogViewer({
                   : 'bg-rose-500/10 text-rose-300/80 border border-rose-500/15 hover:bg-rose-500/15'
               }`}
             >
-              <AlertCircle size={11} aria-hidden />
+              <AlertCircle size={12} aria-hidden />
               {levelCounts.error}
             </button>
           )}
@@ -339,7 +336,7 @@ export default function LiveLogViewer({
                   : 'bg-amber-500/10 text-amber-300/80 border border-amber-500/15 hover:bg-amber-500/15'
               }`}
             >
-              <AlertTriangle size={11} aria-hidden />
+              <AlertTriangle size={12} aria-hidden />
               {levelCounts.warn}
             </button>
           )}
@@ -353,27 +350,7 @@ export default function LiveLogViewer({
         <div className="flex items-center gap-1.5 w-full sm:w-auto">
           {/* Search */}
           <div className="relative flex-1 sm:flex-none">
-            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" aria-hidden />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              aria-label="Filter the lines"
-              placeholder="Filter…"
-              className="w-full sm:w-40 sm:focus:w-56 h-8 pl-8 pr-8 rounded-lg bg-white/5 border border-white/10 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/30 focus:border-emerald-500/30 transition-all"
-            />
-            {search && (
-              <Hint label="Clear the filter">
-                <button
-                  type="button"
-                  aria-label="Clear the filter"
-                  onClick={() => setSearch('')}
-                  className={`absolute right-0.5 top-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-md text-slate-500 hover:text-slate-300 ${FOCUS_RING}`}
-                >
-                  <X size={12} />
-                </button>
-              </Hint>
-            )}
+            <SearchInput size="sm" value={search} onChange={setSearch} label="Filter the lines" placeholder="Filter…" className="sm:w-40 sm:focus-within:w-56" />
           </div>
 
           {/* Filter dropdown */}
@@ -389,7 +366,7 @@ export default function LiveLogViewer({
                   : TONE_QUIET
               }`}
             >
-              <Filter size={13} />
+              <Filter size={12} />
             </button>
           </Hint>
 
@@ -401,7 +378,7 @@ export default function LiveLogViewer({
               onClick={handleExport}
               className={`${BTN_ICON_SM} ${TONE_QUIET} ${FOCUS_RING}`}
             >
-              <Download size={13} />
+              <Download size={12} />
             </button>
           </Hint>
 
@@ -413,7 +390,7 @@ export default function LiveLogViewer({
               onClick={handleClear}
               className={`${BTN_ICON_SM} ${TONE_QUIET} hover:text-rose-300 ${FOCUS_RING}`}
             >
-              <Trash2 size={13} />
+              <Trash2 size={12} />
             </button>
           </Hint>
         </div>
@@ -453,7 +430,7 @@ export default function LiveLogViewer({
         {!loading && filteredLines.length === 0 && (
           <EmptyState
             compact
-            icon={<RefreshCw size={22} />}
+            icon={<RefreshCw size={28} />}
             title={search || levelFilter !== 'all' ? 'No lines match your filter' : 'Waiting for log output…'}
           />
         )}
@@ -498,7 +475,7 @@ export default function LiveLogViewer({
             onClick={scrollToBottom}
             className={`${BTN_CARD_QUIET} !h-9 bg-slate-800/90 shadow-lg animate-fade-in ${FOCUS_RING}`}
           >
-            <ArrowDown size={14} aria-hidden />
+            <ArrowDown size={12} aria-hidden />
             Scroll to bottom
           </button>
         </div>

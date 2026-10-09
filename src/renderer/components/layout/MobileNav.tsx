@@ -17,6 +17,7 @@ import { useNavSections } from '../../hooks/useNavSections'
 import type { PageId } from '../../../shared/types'
 import ModalOverlay from '../common/ModalOverlay'
 
+import { Count } from '../common/Pill'
 /** the four pages the bottom bar reaches for: each with the name and icon every other place gives it */
 const PRIMARY: { id: PageId; label: string; icon: React.ElementType }[] = (['dashboard', 'stacks', 'containers', 'health'] as const)
   .map((id) => ({ id, label: pageMeta[id].label, icon: pageMeta[id].icon }))
@@ -65,7 +66,7 @@ export function MobileNav() {
                 <span className={`relative flex items-center justify-center w-12 h-7 rounded-full transition-colors ${active ? 'accent-bg-subtle' : ''}`}>
                   <Icon size={22} strokeWidth={active ? 2.4 : 2} />
                   {p.id === 'health' && unhealthy > 0 && (
-                    <span className="absolute -top-0.5 right-1 min-w-[16px] h-4 px-1 rounded-full bg-rose-500 text-white text-[10px] font-bold leading-4 text-center ring-2 ring-slate-900">{unhealthy}</span>
+                    <Count alert n={unhealthy} label={`${unhealthy} unhealthy`} className="absolute -top-0.5 right-1" />
                   )}
                 </span>
                 <span className="text-[11px] font-medium leading-none">{p.label}</span>
@@ -117,7 +118,7 @@ export function MobileNav() {
                 if (!items.length) return null
                 return (
                   <section key={section.id}>
-                    <h3 className="px-1 mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                    <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider px-1 mb-2 flex items-center gap-1.5">
                       <section.icon size={12} aria-hidden />{section.label}
                     </h3>
                     <div className="grid grid-cols-2 gap-2">

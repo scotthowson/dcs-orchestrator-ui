@@ -5,16 +5,7 @@
 import { useState, useEffect, useCallback, useRef, useId } from 'react'
 import { createPortal } from 'react-dom'
 import { SegmentedControl } from '@mantine/core'
-import {
-  X,
-  Plus,
-  Loader2,
-  AlertTriangle,
-  Sparkles,
-  FileCode2,
-  FileText,
-  HardDrive,
-} from 'lucide-react'
+import { Plus, Loader2, AlertTriangle, Sparkles, FileCode2, FileText, HardDrive } from 'lucide-react'
 import { createStack, saveStackCompose, saveStackEnv, fetchDisks } from '../../api/endpoints'
 import type { DiskInfo } from '../../../shared/types'
 import { fmtBytes } from '../storage/StorageEverywhere'
@@ -22,8 +13,9 @@ import { useConfirm } from '../common/ConfirmDialog'
 import { useToast } from '../common/Toast'
 import Hint from '../common/Hint'
 import { useModalA11y } from '../../hooks/useModalA11y'
-import { BTN_ICON, BTN_SHEET_QUIET, BTN_SHEET_PRIMARY, TONE_QUIET } from '../../lib/ui'
-
+import { BTN_SHEET_QUIET, BTN_SHEET_PRIMARY } from '../../lib/ui'
+import CloseButton from '../common/CloseButton'
+import Kbd from '../common/Kbd'
 interface Props {
   onClose: () => void
   onCreated: () => void
@@ -239,9 +231,7 @@ export default function CreateStackOverlay({ onClose, onCreated }: Props) {
             </div>
           </div>
           <Hint label="Close">
-            <button onClick={onClose} className={`${BTN_ICON} ${TONE_QUIET}`} aria-label="Close">
-              <X size={16} />
-            </button>
+            <CloseButton onClick={onClose} />
           </Hint>
         </div>
 
@@ -435,7 +425,7 @@ export default function CreateStackOverlay({ onClose, onCreated }: Props) {
         {/* Footer */}
         <div className="flex items-center justify-between gap-3 px-4 sm:px-6 py-4 border-t border-white/5 shrink-0 bg-slate-900/50">
           <p className="hidden sm:block text-[11px] text-slate-500">
-            Press <kbd className="px-1.5 py-0.5 rounded bg-white/[0.06] border border-white/10 text-slate-400 font-mono text-[10px]">Esc</kbd> to cancel
+            Press <Kbd>Esc</Kbd> to cancel
           </p>
           <div className="flex items-center gap-2.5 w-full sm:w-auto">
             <button onClick={onClose} className={`${BTN_SHEET_QUIET} flex-1 sm:flex-none`}>
@@ -447,9 +437,9 @@ export default function CreateStackOverlay({ onClose, onCreated }: Props) {
               className={`${BTN_SHEET_PRIMARY} flex-1 sm:flex-none`}
             >
               {creating ? (
-                <Loader2 size={15} className="animate-spin" />
+                <Loader2 size={16} className="animate-spin" />
               ) : (
-                <Plus size={15} />
+                <Plus size={16} />
               )}
               Create stack
             </button>

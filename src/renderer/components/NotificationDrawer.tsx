@@ -15,6 +15,7 @@ import type { Notification } from '../stores/notificationStore'
 import type { PageId } from '../../shared/types'
 import { useModalA11y } from '../hooks/useModalA11y'
 
+import { Count } from './common/Pill'
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -295,14 +296,7 @@ export function NotificationDrawer() {
             <div className="flex items-center gap-2.5">
               <h2 className="text-sm font-semibold text-slate-200">Notifications</h2>
               {unreadCount > 0 && (
-                <span className="
-                  inline-flex items-center justify-center
-                  min-w-[18px] h-[18px] px-1 rounded-full
-                  bg-cyan-500/15 text-cyan-400
-                  text-[10px] font-bold
-                ">
-                  {unreadCount}
-                </span>
+                <Count n={unreadCount} tone="info" label={`${unreadCount} unread`} />
               )}
             </div>
 
@@ -375,7 +369,7 @@ export function NotificationDrawer() {
           {showPrefs && (
             <div className="px-4 py-3 border-b border-white/5 bg-white/[0.01] shrink-0 animate-fade-in">
               <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold mb-2">
-                Alert Preferences
+                Alert preferences
               </p>
               <div className="space-y-0.5">
                 <Toggle

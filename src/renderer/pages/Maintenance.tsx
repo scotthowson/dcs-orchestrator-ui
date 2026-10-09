@@ -7,12 +7,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { Badge } from '@mantine/core'
-import {
-  Wrench, RefreshCw, Loader2, Trash2, RotateCcw, AlertTriangle,
-  CheckCircle2, Box, Image, HardDrive, Network, FileText, Scissors,
-  BookOpen, ChevronRight, ChevronDown, X, Search, Boxes,
-  Moon,
-} from 'lucide-react'
+import { Wrench, RefreshCw, Loader2, Trash2, RotateCcw, AlertTriangle, CheckCircle2, Box, Image, HardDrive, Network, FileText, Scissors, BookOpen, ChevronRight, ChevronDown, Search, Boxes, Moon } from 'lucide-react'
 import { usePolling } from '../hooks/usePolling'
 import {
   fetchFleetMaintenanceReport,
@@ -34,11 +29,13 @@ import { DisconnectedBanner } from '../components/common/DisconnectedBanner'
 import PageHeader from '../components/common/PageHeader'
 import Hint from '../components/common/Hint'
 import { pageLabel } from '../constants/pageTitles'
-import { BTN_TOOLBAR, BTN_ICON_SM, BTN_SHEET, BTN_SHEET_QUIET, BTN_SHEET_DANGER, TONE_OK, TONE_QUIET, TONE_DANGER, TONE_GHOST } from '../lib/ui'
+import { BTN_TOOLBAR, BTN_SHEET, BTN_SHEET_QUIET, BTN_SHEET_DANGER, TONE_OK, TONE_QUIET, TONE_DANGER } from '../lib/ui'
 import type { FleetTarget, MemberOutcome, FleetMaintenanceReport, FleetOrphanReport, FleetDiskAnalysis } from '../../shared/fleetScopedOps'
 import { EmptyState } from '../components/common/PageState'
 import ModalOverlay from '../components/common/ModalOverlay'
 
+import { Pill } from '../components/common/Pill'
+import CloseButton from '../components/common/CloseButton'
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -353,7 +350,7 @@ export default function Maintenance() {
                 Cancel
               </button>
               <button type="button" onClick={handleDeepPrune} className={`${BTN_SHEET_DANGER} whitespace-nowrap`}>
-                <Trash2 size={14} />
+                <Trash2 size={16} />
                 {everywhere ? 'Delete everywhere' : 'Delete everything'}
               </button>
             </div>
@@ -406,9 +403,7 @@ export default function Maintenance() {
               <h2 className="text-sm font-semibold text-slate-200">{pageLabel('maintenance')} guide</h2>
             </div>
             <Hint label="Close the guide">
-              <button type="button" aria-label="Close the guide" onClick={() => setShowGuide(false)} className={`${BTN_ICON_SM} ${TONE_GHOST}`}>
-                <X size={14} />
-              </button>
+              <CloseButton label="Close the guide" size="sm" onClick={() => setShowGuide(false)} />
             </Hint>
           </div>
           <div className="p-5 space-y-3">
@@ -455,25 +450,25 @@ export default function Maintenance() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {/* Safe prune: nothing to lose (emerald) */}
           <button type="button" onClick={handleSafePrune} disabled={anyActionBusy} className={`${BTN_SHEET} ${TONE_OK}`}>
-            {pruning ? <Loader2 size={14} className="animate-spin" /> : <Scissors size={14} />}
+            {pruning ? <Loader2 size={16} className="animate-spin" /> : <Scissors size={16} />}
             Safe prune
           </button>
 
           {/* Image prune */}
           <button type="button" onClick={handleImagePrune} disabled={anyActionBusy} className={`${BTN_SHEET} ${TONE_QUIET}`}>
-            {imagePruning ? <Loader2 size={14} className="animate-spin" /> : <Image size={14} />}
+            {imagePruning ? <Loader2 size={16} className="animate-spin" /> : <Image size={16} />}
             Image prune
           </button>
 
           {/* Deep prune: destructive (rose) */}
           <button type="button" onClick={() => setShowDeepPruneModal(true)} disabled={anyActionBusy} className={`${BTN_SHEET} ${TONE_DANGER}`}>
-            {deepPruning ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+            {deepPruning ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
             Deep prune
           </button>
 
           {/* Rotate logs */}
           <button type="button" onClick={handleLogRotate} disabled={anyActionBusy} className={`${BTN_SHEET} ${TONE_QUIET}`}>
-            {rotating ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />}
+            {rotating ? <Loader2 size={16} className="animate-spin" /> : <RotateCcw size={16} />}
             Rotate logs
           </button>
         </div>
@@ -501,10 +496,10 @@ export default function Maintenance() {
                 </div>
                 <p className="text-xl md:text-2xl font-bold text-slate-100 tabular-nums">{report.containers.total}</p>
                 <div className="flex items-center gap-2 mt-1.5">
-                  <Badge component="span" color="emerald" leftSection={dot('bg-emerald-400')} title="Running">{report.containers.running}</Badge>
+                  <Pill tone="ok" icon={dot('bg-emerald-400')} title="Running">{report.containers.running}</Pill>
                   {/* asleep on demand is not stopped: Sablier stopped them on purpose, and a prune leaves them alone */}
                   {(report.containers.sleeping ?? 0) > 0 && <Badge component="span" color="indigo" leftSection={<Moon size={9} aria-hidden />} title="Asleep on demand (Sablier wakes them on the first request; a prune leaves them alone)">{report.containers.sleeping}</Badge>}
-                  <Badge component="span" color={report.containers.stopped - (report.containers.sleeping ?? 0) > 0 ? 'rose' : 'slate'} leftSection={dot(report.containers.stopped - (report.containers.sleeping ?? 0) > 0 ? 'bg-rose-400' : 'bg-slate-500')} title="Stopped">{Math.max(0, report.containers.stopped - (report.containers.sleeping ?? 0))}</Badge>
+                  <Pill tone={report.containers.stopped - (report.containers.sleeping ?? 0) > 0 ? 'problem' : 'neutral'} icon={dot(report.containers.stopped - (report.containers.sleeping ?? 0) > 0 ? 'bg-rose-400' : 'bg-slate-500')} title="Stopped">{Math.max(0, report.containers.stopped - (report.containers.sleeping ?? 0))}</Pill>
                 </div>
               </div>
 
@@ -517,9 +512,9 @@ export default function Maintenance() {
                 <p className="text-xl md:text-2xl font-bold text-slate-100 tabular-nums">{report.images.total}</p>
                 <div className="flex items-center gap-2 mt-1.5">
                   {report.images.dangling > 0 ? (
-                    <Badge component="span" color="amber" leftSection={dot('bg-amber-400')}>{report.images.dangling} dangling</Badge>
+                    <Pill tone="attention" icon={dot('bg-amber-400')}>{report.images.dangling} dangling</Pill>
                   ) : (
-                    <Badge component="span" color="emerald" leftSection={dot('bg-emerald-400')}>clean</Badge>
+                    <Pill tone="ok" icon={dot('bg-emerald-400')}>clean</Pill>
                   )}
                 </div>
               </div>
@@ -533,9 +528,9 @@ export default function Maintenance() {
                 <p className="text-xl md:text-2xl font-bold text-slate-100 tabular-nums">{report.volumes.total}</p>
                 <div className="flex items-center gap-2 mt-1.5">
                   {report.volumes.dangling > 0 ? (
-                    <Badge component="span" color="amber" leftSection={dot('bg-amber-400')}>{report.volumes.dangling} dangling</Badge>
+                    <Pill tone="attention" icon={dot('bg-amber-400')}>{report.volumes.dangling} dangling</Pill>
                   ) : (
-                    <Badge component="span" color="emerald" leftSection={dot('bg-emerald-400')}>clean</Badge>
+                    <Pill tone="ok" icon={dot('bg-emerald-400')}>clean</Pill>
                   )}
                 </div>
               </div>
@@ -548,7 +543,7 @@ export default function Maintenance() {
                 </div>
                 <p className="text-xl md:text-2xl font-bold text-slate-100 tabular-nums">{report.networks.total}</p>
                 <div className="flex items-center gap-2 mt-1.5">
-                  <Badge component="span" color="cyan">{report.networks.custom} custom</Badge>
+                  <Pill tone="info">{report.networks.custom} custom</Pill>
                 </div>
               </div>
 
@@ -581,7 +576,7 @@ export default function Maintenance() {
         <div className="flex items-center justify-between mb-3">
           <h2 id="maint-orphans-title" className="text-sm font-semibold text-slate-200">Orphan detection</h2>
           {!orphansLoading && orphans && allClean && (
-            <Badge component="span" color="emerald" leftSection={<CheckCircle2 size={10} />}>All clean</Badge>
+            <Pill tone="ok" icon={<CheckCircle2 size={10} />}>All clean</Pill>
           )}
         </div>
 
@@ -613,7 +608,7 @@ export default function Maintenance() {
                           <td className={`px-4 py-2 font-mono text-slate-200 text-xs whitespace-nowrap ${everywhere ? 'min-w-[17rem]' : ''}`}><span className="inline-flex items-center gap-2">{c.name}{everywhere && <VmCapsule member={c.member} name={c.member_name} vmid={c.vmid} size="xs" onClick={() => setScope(c.member ?? 'hub')} />}</span></td>
                           <td className="px-4 py-2 font-mono text-slate-400 text-xs">{c.image}</td>
                           <td className="px-4 py-2">
-                            <Badge component="span" color="rose">{c.status}</Badge>
+                            <Pill tone="problem">{c.status}</Pill>
                           </td>
                         </tr>
                       ))}
@@ -673,7 +668,7 @@ export default function Maintenance() {
                         <tr key={rowKey(vol.member, vol.name)} className="hover:bg-white/[0.03] transition-colors duration-150">
                           <td className={`px-4 py-2 font-mono text-slate-200 text-xs whitespace-nowrap ${everywhere ? 'min-w-[17rem]' : ''}`}><span className="inline-flex items-center gap-2">{vol.name}{everywhere && <VmCapsule member={vol.member} name={vol.member_name} vmid={vol.vmid} size="xs" onClick={() => setScope(vol.member ?? 'hub')} />}</span></td>
                           <td className="px-4 py-2">
-                            <Badge component="span" color="slate">{vol.driver}</Badge>
+                            <Pill tone="neutral">{vol.driver}</Pill>
                           </td>
                         </tr>
                       ))}
@@ -764,7 +759,7 @@ export default function Maintenance() {
                           <td className="px-4 py-2 text-right font-mono text-slate-300 text-xs tabular-nums">{row.active}</td>
                           <td className="px-4 py-2 text-right font-mono text-slate-300 text-xs">{row.size}</td>
                           <td className="px-4 py-2 text-right">
-                            <Badge component="span" color="cyan">{row.reclaimable}</Badge>
+                            <Pill tone="info">{row.reclaimable}</Pill>
                           </td>
                         </tr>
                       ))}

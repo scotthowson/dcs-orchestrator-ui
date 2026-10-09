@@ -7,14 +7,21 @@
 // =============================================================================
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Package, Sparkles, Search, Plus, Trash2, RefreshCw, CircleArrowUp, Loader2, X, AlertTriangle, ChevronDown, Info } from 'lucide-react'
+import { Package, Sparkles, Plus, Trash2, RefreshCw, CircleArrowUp, Loader2, X, AlertTriangle, ChevronDown, Info } from 'lucide-react'
 import { useToast } from '../common/Toast'
 import { useConfirm } from '../common/ConfirmDialog'
 import { ApiTimeoutError } from '../../api/client'
 import { crowdsecHub, crowdsecHubAvailable, crowdsecHubInstall, crowdsecHubRemove, crowdsecHubUpdate, crowdsecHubUpgrade } from '../../api/endpoints'
 import { usePolling } from '../../hooks/usePolling'
 import type { CrowdSecHubAvailableResponse, CrowdSecHubItem, CrowdSecHubResponse } from '../../../shared/types'
-import { BTN_PRIMARY, BTN_QUIET, CARD, Chip, INPUT, SectionHead, Segmented, Skel, errMsg, fmtNum, useCs, useDebounced, useNow } from './kit'
+import { errMsg, fmtNum, useCs, useDebounced, useNow } from './kit'
+import { BTN_TOOLBAR_OK, BTN_TOOLBAR_QUIET } from '../../lib/ui'
+import { CARD } from '../../lib/pageKit'
+import { Pill } from '../common/Pill'
+import SectionHeader from '../common/SectionHeader'
+import { SkeletonBlock } from '../common/PageState'
+import Segmented from '../common/Segmented'
+import SearchInput from '../common/SearchInput'
 
 type Kind = 'collections' | 'scenarios' | 'parsers'
 const KINDS: { value: Kind; label: string; one: string; blurb: string; tries: string[] }[] = [
@@ -78,10 +85,10 @@ function HubName({ name, className = '' }: { name: string; className?: string })
 function StatusChips({ item }: { item: CrowdSecHubItem }) {
   return (
     <>
-      {item.update && <Chip tone="info" title="A newer version is in the hub. “Upgrade all” installs it.">update available</Chip>}
-      {item.local && <Chip tone="mute" title="A file you added yourself, not something from the hub. The hub never updates or removes it.">custom</Chip>}
-      {item.tainted && <Chip tone="warn" title="You edited this file after installing it. Upgrades leave edited files alone. Remove it and install it again to get the original back.">edited</Chip>}
-      {!item.enabled && <Chip tone="mute" title="Downloaded but switched off: CrowdSec does not use it.">off</Chip>}
+      {item.update && <Pill tone="info" title="A newer version is in the hub. “Upgrade all” installs it.">update available</Pill>}
+      {item.local && <Pill tone="neutral" title="A file you added yourself, not something from the hub. The hub never updates or removes it.">custom</Pill>}
+      {item.tainted && <Pill tone="attention" title="You edited this file after installing it. Upgrades leave edited files alone. Remove it and install it again to get the original back.">edited</Pill>}
+      {!item.enabled && <Pill tone="neutral" title="Downloaded but switched off: CrowdSec does not use it.">off</Pill>}
     </>
   )
 }
@@ -260,17 +267,17 @@ export default function HubTab() {
             </p>
             <p className="text-xs text-slate-300 mt-2 tabular-nums">
               {c ? <>{fmtNum(c.collections)} collection{c.collections === 1 ? '' : 's'} · {fmtNum(c.scenarios)} scenario{c.scenarios === 1 ? '' : 's'} · {fmtNum(c.parsers)} parser{c.parsers === 1 ? '' : 's'} installed</> : 'Reading what is installed…'}
-              {c && c.updates > 0 && <Chip tone="info" className="ml-2 align-middle">{c.updates} update{c.updates === 1 ? '' : 's'} available</Chip>}
+              {c && c.updates > 0 && <Pill tone="info" className="ml-2 align-middle">{c.updates} update{c.updates === 1 ? '' : 's'} available</Pill>}
             </p>
           </div>
           {isAdmin && (
             <div className="flex items-center gap-2 flex-wrap">
-              <button type="button" className={BTN_QUIET} disabled={locked || !hub} onClick={checkUpdates} title="Download the newest list of what the hub offers. Nothing is installed or changed yet.">
-                {busy?.op === 'update' ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />} Check for updates
+              <button type="button" className={BTN_TOOLBAR_QUIET} disabled={locked || !hub} onClick={checkUpdates} title="Download the newest list of what the hub offers. Nothing is installed or changed yet.">
+                {busy?.op === 'update' ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />} Check for updates
               </button>
               {updatesTotal > 0 && (
-                <button type="button" className={BTN_PRIMARY} disabled={locked} onClick={upgradeAll} title="Install the newer version of everything that has one, then reload CrowdSec">
-                  {busy?.op === 'upgrade' ? <Loader2 size={13} className="animate-spin" /> : <CircleArrowUp size={13} />} Upgrade all ({updatesTotal})
+                <button type="button" className={BTN_TOOLBAR_OK} disabled={locked} onClick={upgradeAll} title="Install the newer version of everything that has one, then reload CrowdSec">
+                  {busy?.op === 'upgrade' ? <Loader2 size={14} className="animate-spin" /> : <CircleArrowUp size={14} />} Upgrade all ({updatesTotal})
                 </button>
               )}
             </div>
@@ -286,7 +293,7 @@ export default function HubTab() {
           <div className="min-w-0 flex-1">
             <p className="text-sm text-rose-300 break-words">{err}</p>
             <p className="text-xs text-slate-500 mt-1">The list of installed items could not be read. CrowdSec may be restarting.</p>
-            <button type="button" onClick={() => void reload()} className={`${BTN_QUIET} mt-3`}><RefreshCw size={13} /> Try again</button>
+            <button type="button" onClick={() => void reload()} className={`${BTN_TOOLBAR_QUIET} mt-3`}><RefreshCw size={14} /> Try again</button>
           </div>
         </div>
       )}
@@ -298,15 +305,15 @@ export default function HubTab() {
       )}
       {!hub && !err && (
         <div className="space-y-3" aria-busy="true" aria-label="Loading the hub">
-          <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-2.5">{[0, 1, 2, 3].map((i) => <Skel key={i} className="h-24" />)}</div>
-          <Skel className="h-9 w-72" />
-          {[0, 1, 2, 3, 4].map((i) => <Skel key={i} className="h-14" />)}
+          <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-2.5">{[0, 1, 2, 3].map((i) => <SkeletonBlock key={i} className="h-24" />)}</div>
+          <SkeletonBlock className="h-9 w-72" />
+          {[0, 1, 2, 3, 4].map((i) => <SkeletonBlock key={i} className="h-14" />)}
         </div>
       )}
 
       {hub && suggestions.length > 0 && (
         <section aria-label="Recommended for you">
-          <SectionHead
+          <SectionHeader
             icon={Sparkles}
             title="Recommended for you"
             count={`${recInstalled} of ${suggestions.length} installed`}
@@ -324,12 +331,12 @@ export default function HubTab() {
                       <p className="text-sm font-medium text-slate-100 leading-snug">{sg.title}</p>
                     </div>
                     {sg.installed
-                      ? <span className="flex items-center gap-1 flex-wrap justify-end"><Chip tone="good">installed</Chip>{updateOf(sg.name) && <Chip tone="info">update</Chip>}</span>
+                      ? <span className="flex items-center gap-1 flex-wrap justify-end"><Pill tone="ok">installed</Pill>{updateOf(sg.name) && <Pill tone="info">update</Pill>}</span>
                       : isAdmin
-                        ? <button type="button" className={`${BTN_PRIMARY} !h-8`} disabled={locked} onClick={() => void install('collections', sg.name)} aria-label={`Install ${sg.title} (${sg.name})`}>
-                          {busy?.op === 'install' && busy.name === sg.name ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />} Install
+                        ? <button type="button" className={`${BTN_TOOLBAR_OK} !h-8`} disabled={locked} onClick={() => void install('collections', sg.name)} aria-label={`Install ${sg.title} (${sg.name})`}>
+                          {busy?.op === 'install' && busy.name === sg.name ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} Install
                         </button>
-                        : <Chip tone="mute">not installed</Chip>}
+                        : <Pill tone="neutral">not installed</Pill>}
                   </div>
                   <p className="text-xs text-slate-300 leading-relaxed line-clamp-3">{sg.description}</p>
                   <p className="text-[10px] font-mono text-slate-500 truncate mt-auto" title={sg.name}>{sg.name}</p>
@@ -356,16 +363,12 @@ export default function HubTab() {
 
           {/* installed */}
           <section aria-label={`Installed ${k.label.toLowerCase()}`}>
-            <SectionHead
+            <SectionHeader
               title={`Installed ${k.label.toLowerCase()}`}
               count={filter && shown.length !== installed.length ? `${shown.length} of ${installed.length}` : installed.length}
               className="mb-2"
               right={installed.length > 8 ? (
-                <div className="relative w-full sm:w-64">
-                  <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-                  <label htmlFor="hub-filter" className="sr-only">Filter the installed {k.label.toLowerCase()}</label>
-                  <input id="hub-filter" type="search" value={filter} onChange={(e) => setFilter(e.target.value)} placeholder={`Filter these ${installed.length}`} className={`${INPUT} !h-8 !pl-8 !text-xs`} autoComplete="off" />
-                </div>
+                <SearchInput size="sm" className="w-full sm:w-64" id="hub-filter" value={filter} onChange={setFilter} label={`Filter the installed ${k.label.toLowerCase()}`} placeholder={`Filter these ${installed.length}`} autoComplete="off" />
               ) : undefined}
             />
             {installed.length === 0 ? (
@@ -377,7 +380,7 @@ export default function HubTab() {
             ) : shown.length === 0 ? (
               <div className={`${CARD} px-6 py-8 text-center`}>
                 <p className="text-sm text-slate-300">None of the {installed.length} installed {k.label.toLowerCase()} matches “{filter}”.</p>
-                <button type="button" onClick={() => setFilter('')} className={`${BTN_QUIET} mt-3`}><X size={13} /> Clear the filter</button>
+                <button type="button" onClick={() => setFilter('')} className={`${BTN_TOOLBAR_QUIET} mt-3`}><X size={14} /> Clear the filter</button>
               </div>
             ) : (
               <ul className={`${CARD} divide-y divide-white/5`}>
@@ -392,8 +395,8 @@ export default function HubTab() {
                       {it.description && <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">{it.description}</p>}
                     </div>
                     {isAdmin && !it.local && (
-                      <button type="button" className={`${BTN_QUIET} !h-8 !px-2.5 hover:!bg-rose-500/15 hover:!text-rose-300 hover:!border-rose-500/25`} disabled={locked} onClick={() => void remove(kind, it)} aria-label={`Remove ${it.name}`} title={`Remove ${it.name}`}>
-                        {busy?.op === 'remove' && busy.name === it.name ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}<span className="hidden sm:inline">Remove</span>
+                      <button type="button" className={`${BTN_TOOLBAR_QUIET} !h-8 !px-2.5 hover:!bg-rose-500/15 hover:!text-rose-300 hover:!border-rose-500/25`} disabled={locked} onClick={() => void remove(kind, it)} aria-label={`Remove ${it.name}`} title={`Remove ${it.name}`}>
+                        {busy?.op === 'remove' && busy.name === it.name ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}<span className="hidden sm:inline">Remove</span>
                       </button>
                     )}
                   </li>
@@ -404,14 +407,10 @@ export default function HubTab() {
 
           {/* find more */}
           <section aria-label={`Find more ${k.label.toLowerCase()}`}>
-            <SectionHead title={`Find more ${k.label.toLowerCase()}`} className="mb-2" />
+            <SectionHeader title={`Find more ${k.label.toLowerCase()}`} className="mb-2" />
             <div className={`${CARD} p-4 space-y-3`}>
               <div>
-                <div className="relative">
-                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-                  <label htmlFor="hub-search" className="sr-only">Search the hub for {k.label.toLowerCase()}</label>
-                  <input id="hub-search" type="search" value={search} maxLength={80} onChange={(e) => setSearch(e.target.value)} placeholder={`Search the hub, for example ${k.tries[0]}`} className={`${INPUT} !pl-9`} autoComplete="off" spellCheck={false} />
-                </div>
+                <SearchInput id="hub-search" value={search} maxLength={80} onChange={setSearch} label={`Search the hub for ${k.label.toLowerCase()}`} placeholder={`Search the hub, for example ${k.tries[0]}`} autoComplete="off" spellCheck={false} />
                 <p className="text-[11px] text-slate-500 mt-1.5 flex items-center gap-1.5 flex-wrap">
                   <span>Type at least two letters. It searches names and descriptions. Try</span>
                   {k.tries.map((t) => <button key={t} type="button" onClick={() => setSearch(t)} className="px-2 h-7 sm:h-5 sm:px-1.5 rounded-md bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10">{t}</button>)}
@@ -424,7 +423,7 @@ export default function HubTab() {
                   <div className="min-w-0"><p className="break-words">{availErr}</p><button type="button" onClick={() => setTick((n) => n + 1)} className="mt-1.5 text-[11px] text-cyan-400 hover:text-cyan-300 inline-flex items-center gap-1"><RefreshCw size={11} /> Try again</button></div>
                 </div>
               )}
-              {dsearch.length >= 2 && !availErr && !availNow && <div className="space-y-2" aria-busy="true">{[0, 1, 2].map((i) => <Skel key={i} className="h-12" />)}</div>}
+              {dsearch.length >= 2 && !availErr && !availNow && <div className="space-y-2" aria-busy="true">{[0, 1, 2].map((i) => <SkeletonBlock key={i} className="h-12" />)}</div>}
               {availNow && availNow.items.length === 0 && (
                 <p className="text-sm text-slate-300 py-3 text-center">Nothing in the hub matches “{dsearch}”. Try a shorter word.</p>
               )}
@@ -436,14 +435,14 @@ export default function HubTab() {
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
                             <HubName name={it.name} className="text-sm" />
-                            {it.installed && <Chip tone="good">installed</Chip>}
-                            {it.installed && it.update && <Chip tone="info" title="A newer version is in the hub. “Upgrade all” installs it.">update available</Chip>}
+                            {it.installed && <Pill tone="ok">installed</Pill>}
+                            {it.installed && it.update && <Pill tone="info" title="A newer version is in the hub. “Upgrade all” installs it.">update available</Pill>}
                           </div>
                           {it.description && <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">{it.description}</p>}
                         </div>
                         {isAdmin && !it.installed && (
-                          <button type="button" className={`${BTN_PRIMARY} !h-8 !px-2.5`} disabled={locked} onClick={() => void install(kind, it.name)} aria-label={`Install ${it.name}`}>
-                            {busy?.op === 'install' && busy.name === it.name ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />} Install
+                          <button type="button" className={`${BTN_TOOLBAR_OK} !h-8 !px-2.5`} disabled={locked} onClick={() => void install(kind, it.name)} aria-label={`Install ${it.name}`}>
+                            {busy?.op === 'install' && busy.name === it.name ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} Install
                           </button>
                         )}
                       </li>

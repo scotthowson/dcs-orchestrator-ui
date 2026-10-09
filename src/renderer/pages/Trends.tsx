@@ -5,23 +5,7 @@
 
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { SegmentedControl } from '@mantine/core'
-import {
-  Clock,
-  Cpu,
-  HardDrive,
-  MemoryStick,
-  RefreshCw,
-  Loader2,
-  Database,
-  WifiOff,
-  Camera,
-  BarChart3,
-  Timer,
-  Settings2,
-  X,
-  Save,
-  ImageDown,
-} from 'lucide-react'
+import { Clock, Cpu, HardDrive, MemoryStick, RefreshCw, Loader2, Database, WifiOff, Camera, BarChart3, Timer, Settings2, Save, ImageDown } from 'lucide-react'
 import { toPng } from 'html-to-image'
 import { createPortal } from 'react-dom'
 import { usePolling } from '../hooks/usePolling'
@@ -44,9 +28,11 @@ import { EmptyState, ErrorState } from '../components/common/PageState'
 import ModalOverlay from '../components/common/ModalOverlay'
 import PageHeader from '../components/common/PageHeader'
 import Hint from '../components/common/Hint'
-import { Panel, StatTile, METRIC_HEX, pctTone, quiet } from '../components/dashboard/cardShared'
-import { BTN_ICON_SM, BTN_SHEET_PRIMARY, BTN_SHEET_QUIET, BTN_TOOLBAR, BTN_TOOLBAR_QUIET, TONE_GHOST, TONE_OK, TONE_QUIET } from '../lib/ui'
-
+import { Panel, METRIC_HEX } from '../components/dashboard/cardShared'
+import { BTN_SHEET_PRIMARY, BTN_SHEET_QUIET, BTN_TOOLBAR, BTN_TOOLBAR_QUIET, TONE_OK, TONE_QUIET } from '../lib/ui'
+import { pctTone, quiet } from '../lib/tone'
+import StatTile from '../components/common/StatTile'
+import CloseButton from '../components/common/CloseButton'
 // ---------------------------------------------------------------------------
 // Types & Constants
 // ---------------------------------------------------------------------------
@@ -614,7 +600,7 @@ export default function Trends() {
                 <Settings2 size={16} className="text-slate-300" aria-hidden />
                 <h3 className="text-sm font-semibold text-slate-200">Alert thresholds</h3>
               </div>
-              <Hint label="Close"><button type="button" aria-label="Close" onClick={() => setShowAlertConfig(false)} className={`${BTN_ICON_SM} ${TONE_GHOST}`}><X size={16} /></button></Hint>
+              <Hint label="Close"><CloseButton onClick={() => setShowAlertConfig(false)} /></Hint>
             </div>
 
             <div className="flex-1 overflow-y-auto p-5 space-y-5">
@@ -663,7 +649,7 @@ export default function Trends() {
             <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-white/5 shrink-0">
               <button type="button" onClick={() => setShowAlertConfig(false)} className={BTN_SHEET_QUIET}>Cancel</button>
               <button type="button" onClick={handleSaveAlertConfig} disabled={savingConfig} className={BTN_SHEET_PRIMARY}>
-                {savingConfig ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                {savingConfig ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                 Save thresholds
               </button>
             </div>

@@ -13,9 +13,16 @@ import { useToast } from '../common/Toast'
 import { usePolling } from '../../hooks/usePolling'
 import { crowdsecPlugin, crowdsecSavePlugin } from '../../api/endpoints'
 import type { CrowdSecPluginSettings } from '../../../shared/types'
-import { BTN_PRIMARY, BTN_QUIET, Chip, HINT, INPUT, Segmented, Skel, Switch, TEXTAREA, errData, errMsg, fmtAgo, looksLikeTarget, useCs } from './kit'
-import { Notice, Panel, Setting } from './SettingsTabParts'
-
+import { errData, errMsg, fmtAgo, looksLikeTarget, useCs } from './kit'
+import { Setting } from './SettingsTabParts'
+import { BTN_TOOLBAR_OK, BTN_TOOLBAR_QUIET } from '../../lib/ui'
+import { HINT, INPUT } from '../../lib/fieldStyles'
+import { Pill } from '../common/Pill'
+import { SkeletonBlock } from '../common/PageState'
+import Segmented from '../common/Segmented'
+import { Toggle } from '../common/Toggle'
+import Notice from '../common/Notice'
+import { Panel } from '../dashboard/cardShared'
 type Draft = { mode: 'live' | 'stream'; update_interval: string; default_decision_seconds: string; http_timeout: string; remediation_status_code: string; log_level: CrowdSecPluginSettings['log_level']; trust_home: boolean; client: string; forwarded: string }
 
 const STATUS_PRESETS = [403, 401, 429]
@@ -108,14 +115,14 @@ export default function PluginSettings() {
   if (!enf) return null
   const head = { id: 'cs-plugin', icon: Plug, title: 'Traefik bouncer plugin', sub: 'The part inside Traefik that refuses banned visitors. Its options are written into Traefik’s middleware file; Traefik reloads the file by itself within seconds.' }
 
-  if (!data && !poll.error) return <Panel {...head}><div className="space-y-3" aria-busy="true"><Skel className="h-12" /><Skel className="h-12" /><Skel className="h-12" /></div></Panel>
-  if (!data && poll.error) return <Panel {...head}><Notice tone="bad" icon={TriangleAlert} title="Could not read the plugin’s settings" role="alert" action={<button type="button" className={BTN_QUIET} onClick={poll.refresh}>Try again</button>}>{poll.error.message}</Notice></Panel>
+  if (!data && !poll.error) return <Panel {...head}><div className="space-y-3" aria-busy="true"><SkeletonBlock className="h-12" /><SkeletonBlock className="h-12" /><SkeletonBlock className="h-12" /></div></Panel>
+  if (!data && poll.error) return <Panel {...head}><Notice tone="problem" icon={TriangleAlert} title="Could not read the plugin’s settings" role="alert" action={<button type="button" className={BTN_TOOLBAR_QUIET} onClick={poll.refresh}>Try again</button>}>{poll.error.message}</Notice></Panel>
   if (!data) return null
   if (!data.available) {
     return (
       <Panel {...head}>
-        <Notice tone="mute" icon={Info} title={data.reason || 'The bouncer plugin is not set up on this server.'}
-          action={isAdmin ? <button type="button" className={BTN_QUIET} onClick={() => goTab('bouncers')}>Open Bouncers</button> : undefined}>
+        <Notice tone="neutral" icon={Info} title={data.reason || 'The bouncer plugin is not set up on this server.'}
+          action={isAdmin ? <button type="button" className={BTN_TOOLBAR_QUIET} onClick={() => goTab('bouncers')}>Open Bouncers</button> : undefined}>
           Once the Traefik bouncer is registered, its mode, timings and trusted networks can be set here.
         </Notice>
       </Panel>
@@ -136,9 +143,9 @@ export default function PluginSettings() {
   )
 
   return (
-    <Panel {...head} right={<>
-      {data.managed ? <Chip tone="good" title="These settings are managed here: registering the bouncer again keeps them"><ShieldCheck size={10} /> managed here</Chip> : <Chip tone="mute" title="The file is as DCS first wrote it. Saving takes it over: the settings are then kept when the bouncer is registered again">as first written</Chip>}
-      {data.plugin.version && <Chip tone="mute">{data.plugin.name.replace('-traefik-plugin', '')} {data.plugin.version}</Chip>}
+    <Panel {...head} actions={<>
+      {data.managed ? <Pill tone="ok" title="These settings are managed here: registering the bouncer again keeps them"><ShieldCheck size={10} /> managed here</Pill> : <Pill tone="neutral" title="The file is as DCS first wrote it. Saving takes it over: the settings are then kept when the bouncer is registered again">as first written</Pill>}
+      {data.plugin.version && <Pill tone="neutral">{data.plugin.name.replace('-traefik-plugin', '')} {data.plugin.version}</Pill>}
     </>}>
       <div className="divide-y divide-white/5">
         <Setting title="Mode" changed={changed('mode')} hint={`Default: ${dflt?.mode ?? 'live'}`}
@@ -169,27 +176,27 @@ export default function PluginSettings() {
           hint={<>Always in: your LAN <span className="font-mono">{data.lan}</span>{draft.trust_home && data.home ? <> and your home address <span className="font-mono">{data.home}</span></> : null}.</>}>
           <div className="flex items-center justify-between gap-3 mb-2">
             <label htmlFor="pl-home" className="text-xs text-slate-300">Never check my home address{data.home ? '' : ' (not known yet)'}</label>
-            <Switch id="pl-home" checked={draft.trust_home} onChange={(v) => set('trust_home', v)} label="Never check my home address" disabled={ro || busy || !data.home} />
+            <Toggle id="pl-home" checked={draft.trust_home} onChange={(v) => set('trust_home', v)} label="Never check my home address" disabled={ro || busy || !data.home} />
           </div>
           <label htmlFor="pl-client" className="sr-only">Addresses and networks that are never checked, one per line</label>
-          <textarea id="pl-client" className={`${TEXTAREA} font-mono text-xs ${problems.client ? '!border-rose-500/40' : ''}`} rows={3} value={draft.client} disabled={ro || busy} placeholder={'10.8.0.0/24\n203.0.113.7'} spellCheck={false} aria-invalid={!!problems.client} onChange={(e) => set('client', e.target.value)} />
+          <textarea id="pl-client" className={`${INPUT} font-mono text-xs ${problems.client ? '!border-rose-500/40' : ''}`} rows={3} value={draft.client} disabled={ro || busy} placeholder={'10.8.0.0/24\n203.0.113.7'} spellCheck={false} aria-invalid={!!problems.client} onChange={(e) => set('client', e.target.value)} />
           <p className={`${HINT} ${problems.client ? '!text-rose-300' : ''}`}>{problems.client ?? 'Your own extra networks: a VPN, another LAN. One address or network per line.'}</p>
         </Setting>
         <Setting title="Proxies whose forwarded address is believed" changed={changed('forwarded')} help={data.help?.forwarded_headers_trusted_ips ?? ''} hint={<>Default: Cloudflare’s ranges. Your LAN <span className="font-mono">{data.lan}</span> is always in.</>}>
           <label htmlFor="pl-fwd" className="sr-only">Proxy addresses and networks, one per line</label>
-          <textarea id="pl-fwd" className={`${TEXTAREA} font-mono text-xs ${problems.forwarded ? '!border-rose-500/40' : ''}`} rows={5} value={draft.forwarded} disabled={ro || busy} spellCheck={false} aria-invalid={!!problems.forwarded} onChange={(e) => set('forwarded', e.target.value)} />
+          <textarea id="pl-fwd" className={`${INPUT} font-mono text-xs ${problems.forwarded ? '!border-rose-500/40' : ''}`} rows={5} value={draft.forwarded} disabled={ro || busy} spellCheck={false} aria-invalid={!!problems.forwarded} onChange={(e) => set('forwarded', e.target.value)} />
           <p className={`${HINT} ${problems.forwarded ? '!text-rose-300' : ''}`}>{problems.forwarded ?? `${listOf(draft.forwarded).length} entries. Only these may say who the real visitor is. Empty it if no proxy sits in front of Traefik.`}</p>
         </Setting>
       </div>
 
-      {error && <Notice tone="bad" icon={TriangleAlert} title={error} role="alert" className="mt-4" />}
-      {note && !error && !dirty && <Notice tone="good" icon={ShieldCheck} title={note} role="status" className="mt-4" />}
+      {error && <Notice tone="problem" icon={TriangleAlert} title={error} role="alert" className="mt-4" />}
+      {note && !error && !dirty && <Notice tone="ok" icon={ShieldCheck} title={note} role="status" className="mt-4" />}
 
       {isAdmin && (
         <div className="mt-4 pt-4 border-t border-white/5 flex items-center gap-2 flex-wrap">
-          <button type="button" className={BTN_PRIMARY} disabled={!dirty || invalid || busy} onClick={save}>{busy ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />} Save</button>
-          <button type="button" className={BTN_QUIET} disabled={!dirty || busy} onClick={discard}><Undo2 size={13} /> Discard changes</button>
-          <button type="button" className={`${BTN_QUIET} sm:ml-auto`} disabled={busy} onClick={useDefaults} title="Fill the form with the defaults; nothing is saved until you press Save"><RotateCcw size={13} /> Defaults</button>
+          <button type="button" className={BTN_TOOLBAR_OK} disabled={!dirty || invalid || busy} onClick={save}>{busy ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Save</button>
+          <button type="button" className={BTN_TOOLBAR_QUIET} disabled={!dirty || busy} onClick={discard}><Undo2 size={14} /> Discard changes</button>
+          <button type="button" className={`${BTN_TOOLBAR_QUIET} sm:ml-auto`} disabled={busy} onClick={useDefaults} title="Fill the form with the defaults; nothing is saved until you press Save"><RotateCcw size={14} /> Defaults</button>
           <p className="text-[11px] text-slate-500 basis-full leading-relaxed">DCS checks every value, keeps the previous file{data.backups && data.backups.length ? ` (${data.backups.length} kept, the newest ${fmtAgo(data.backups[0].created_at)})` : ''} and only then replaces it; the key and every other option in the file stay as they are.</p>
         </div>
       )}

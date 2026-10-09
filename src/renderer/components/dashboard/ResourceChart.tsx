@@ -12,9 +12,11 @@ import {
 import { Activity } from 'lucide-react'
 import { useSystemStore } from '../../stores/systemStore'
 import { useConnectionStore } from '../../stores/connectionStore'
-import { Card, CardBody, CardEmpty, CardError, CardLoading, CardOffline, CardSwitch, loadTone, METRIC_HEX, pctTone, TONE_HEX, TONE_TEXT } from './cardShared'
+import { Card, CardBody, CardOffline, CardSwitch, METRIC_HEX } from './cardShared'
 import type { GpuInfo } from '../../../shared/types'
 
+import { loadTone, pctTone, TONE_HEX, TONE_TEXT } from '../../lib/tone'
+import { Skeleton, EmptyState, ErrorState } from '../common/PageState'
 // The unused part of a ring (the theme engine restyles these two slate hexes)
 const TRACK = '#1e293b'
 
@@ -56,7 +58,9 @@ function GaugeFrame({ title, caption, tip, children }: { title: string; caption?
     <div className="flex flex-col items-center min-w-0" title={tip}>
       <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400 leading-none">{title}</p>
       <div className="donut-box relative flex items-center justify-center h-[5.5rem] w-[5.5rem] sm:h-24 sm:w-24 md:h-28 md:w-28">{children}</div>
-      <p className="mt-1 h-3.5 max-w-[7rem] truncate text-center text-[10px] leading-[0.875rem] text-slate-500" title={caption}>{caption || ' '}</p>
+      {caption
+        ? <p className="mt-1 h-3.5 max-w-[7rem] truncate text-center text-[10px] leading-[0.875rem] text-slate-500" title={caption}>{caption}</p>
+        : <div className="mt-1 h-3.5" aria-hidden />}
     </div>
   )
 }
@@ -209,7 +213,7 @@ function TrendingCharts({ history }: { history: ResourceHistoryPoint[] }) {
   }
 
   if (history.length < 2) {
-    return <CardEmpty icon={<Activity size={22} />} title="Collecting data…" hint="The charts appear after a few refreshes." />
+    return <EmptyState card icon={<Activity size={22} />} title="Collecting data…" hint="The charts appear after a few refreshes." />
   }
 
   const chart = (label: string, dataKey: 'cpu' | 'mem', color: string, gradient: string, series: string) => (
@@ -285,8 +289,8 @@ export default function ResourceChart({ history = [] }: { history?: ResourceHist
   const [activeTab, setActiveTab] = useState<TabId>('gauges')
 
   // The poll failed before anything loaded: say why instead of a skeleton that never resolves
-  if (!status && error) return <Card card="resource-chart"><CardError title="Could not load the resources" error={error} onRetry={() => window.dispatchEvent(new Event('app-refresh'))} /></Card>
-  if (!status && connectionStatus === 'connected') return <Card card="resource-chart"><CardLoading label="Loading the resources…" variant="chart" /></Card>
+  if (!status && error) return <Card card="resource-chart"><ErrorState card title="Could not load the resources" error={error} onRetry={() => window.dispatchEvent(new Event('app-refresh'))} /></Card>
+  if (!status && connectionStatus === 'connected') return <Card card="resource-chart"><Skeleton label="Loading the resources…" variant="chart" /></Card>
   if (!status && isDisconnected) return <Card card="resource-chart" dim><CardOffline /></Card>
 
   // Memory

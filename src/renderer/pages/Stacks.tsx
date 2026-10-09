@@ -35,8 +35,8 @@ import { pollKeys } from '../api/pollKeys'
 import NewVmSheet from '../components/fleet/NewVmSheet'
 import ModalOverlay from '../components/common/ModalOverlay'
 import Hint from '../components/common/Hint'
-import { BTN_TOOLBAR, BTN_CARD_QUIET, BTN_ICON_SM, BTN_SHEET_PRIMARY, TONE_QUIET, TONE_OK, TONE_DANGER, TONE_GHOST } from '../lib/ui'
-
+import { BTN_TOOLBAR, BTN_CARD_QUIET, BTN_SHEET_PRIMARY, TONE_QUIET, TONE_OK, TONE_DANGER } from '../lib/ui'
+import CloseButton from '../components/common/CloseButton'
 // -----------------------------------------------------------------------------
 // Stacks Page
 // -----------------------------------------------------------------------------
@@ -484,7 +484,7 @@ export default function Stacks() {
                   <ListChecks className="w-5 h-5 text-cyan-400" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-slate-100">Batch operation</h3>
+                  <h3 className="text-sm font-semibold text-slate-200">Batch operation</h3>
                   <p className="text-xs text-slate-500">
                     {isComplete
                       ? `Completed ${batchResults.length} of ${batchTotal}`
@@ -494,15 +494,10 @@ export default function Stacks() {
               </div>
               {isComplete && (
                 <Hint label="Close">
-                  <button aria-label="Close"
-                    onClick={() => {
+                  <CloseButton size="sm" onClick={() => {
                       setShowBatchProgress(false)
                       setBatchResults(null)
-                    }}
-                    className={`${BTN_ICON_SM} ${TONE_GHOST}`}
-                  >
-                    <X size={14} />
-                  </button>
+                    }} />
                 </Hint>
               )}
             </div>
@@ -577,7 +572,7 @@ export default function Stacks() {
                   }}
                   className={BTN_SHEET_PRIMARY}
                 >
-                  <CheckCircle2 size={14} />
+                  <CheckCircle2 size={16} />
                   Done
                 </button>
               </div>

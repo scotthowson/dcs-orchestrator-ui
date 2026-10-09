@@ -9,8 +9,8 @@ import { useSettingsStore } from '../../stores/settingsStore'
 import { pageLabel } from '../../constants/pageTitles'
 import { BTN_CARD, TONE_OK } from '../../lib/ui'
 import type { PageId } from '../../../shared/types'
-import { Card, CardBody, CardEmpty, ACCENTS } from './cardShared'
-
+import { Card, CardBody, ACCENTS } from './cardShared'
+import { EmptyState } from '../common/PageState'
 interface BookmarkItem {
   id: string
   type: 'page' | 'stack' | 'container' | 'custom'
@@ -56,7 +56,7 @@ export default function BookmarksCard() {
   return (
     <Card card="bookmarks" meta={items.length || undefined} open="bookmarks" clickable={false}>
       {items.length === 0 ? (
-        <CardEmpty
+        <EmptyState card
           icon={<Bookmark size={22} />}
           title="No bookmarks yet"
           hint={`Save pages, stacks, containers and links on the ${pageLabel('bookmarks')} page.`}

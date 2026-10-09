@@ -11,15 +11,24 @@
 
 import { useState } from 'react'
 import { CheckNowButton, EnrolBox, PAUSED_TEXT, enrolRequested, REFUSED_TEXT, RegisterAgainButton, capiState, lastContact } from './CommunityActions'
-import { AlertTriangle, Check, CircleAlert, CircleCheck, Clock, Copy, Info, KeyRound, Loader2, Plug, Plus, RefreshCw, Server, ShieldCheck, Trash2, Users } from 'lucide-react'
+import { AlertTriangle, Check, Clock, Copy, KeyRound, Loader2, Plug, Plus, RefreshCw, Server, ShieldCheck, Trash2, Users } from 'lucide-react'
 import { usePolling, type UsePollingResult } from '../../hooks/usePolling'
 import { pollKeys } from '../../api/pollKeys'
 import { useToast } from '../common/Toast'
 import { useConfirm } from '../common/ConfirmDialog'
 import { crowdsecAddBouncer, crowdsecBouncers, crowdsecCommunity, crowdsecDeleteBouncer, crowdsecMachines, crowdsecRegisterTraefikBouncer } from '../../api/endpoints'
 import type { CrowdSecBouncerRow, CrowdSecBouncersResponse, CrowdSecCommunityResponse, CrowdSecMachine, CrowdSecMachinesResponse } from '../../../shared/types'
-import { BTN_PRIMARY, BTN_QUIET, CARD, Chip, CsSheet, HINT, ICON_BTN, INPUT, LABEL, SectionHead, Skel, errMsg, fmtAgo, fmtNum, fmtTime, useCs, useNow, type Tone } from './kit'
-
+import { errMsg, fmtAgo, fmtNum, fmtTime, useCs, useNow, Ago } from './kit'
+import { BTN_ICON_QUIET, BTN_TOOLBAR_OK, BTN_TOOLBAR_QUIET } from '../../lib/ui'
+import { HINT, INPUT, LABEL } from '../../lib/fieldStyles'
+import { CARD } from '../../lib/pageKit'
+import { type Tone } from '../../lib/tone'
+import { Pill } from '../common/Pill'
+import SectionHeader from '../common/SectionHeader'
+import { SkeletonBlock } from '../common/PageState'
+import Sheet from '../common/Sheet'
+import StatusLine from '../common/StatusLine'
+import Notice from '../common/Notice'
 /** the API's rule for a bouncer name: 2 to 63 characters, letters, digits, dots, dashes and underscores, starting with a letter or a digit */
 const NAME_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{1,62}$/
 function nameProblem(n: string): string {
@@ -37,19 +46,6 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
 // The small pieces
 // ---------------------------------------------------------------------------
 
-function Ago({ at }: { at: string | null | undefined }) {
-  const now = useNow()
-  return <span title={at ? fmtTime(at) : undefined}>{fmtAgo(at, now)}</span>
-}
-
-function Notice({ tone = 'warn', children }: { tone?: 'warn' | 'bad'; children: React.ReactNode }) {
-  return (
-    <p className={`text-xs flex items-start gap-2 rounded-lg px-3 py-2 ${tone === 'bad' ? 'text-rose-300 bg-rose-500/10 border border-rose-500/20' : 'text-amber-300 bg-amber-500/10 border border-amber-500/20'}`} role="status">
-      <AlertTriangle size={14} className="shrink-0 mt-0.5" /> <span className="min-w-0 flex-1 break-words">{children}</span>
-    </p>
-  )
-}
-
 function LoadError({ what, error, onRetry }: { what: string; error: Error; onRetry: () => void }) {
   return (
     <div className={`${CARD} p-4 flex items-start gap-3`} role="alert">
@@ -58,38 +54,7 @@ function LoadError({ what, error, onRetry }: { what: string; error: Error; onRet
         <p className="text-sm text-rose-300">Could not read {what}</p>
         <p className="text-xs text-slate-500 mt-0.5 break-words">{error.message}</p>
       </div>
-      <button type="button" onClick={onRetry} className={BTN_QUIET}>Try again</button>
-    </div>
-  )
-}
-
-const TONE_TEXT: Record<Tone, string> = { good: 'text-emerald-400', warn: 'text-amber-400', bad: 'text-rose-400', info: 'text-cyan-400', mute: 'text-slate-500' }
-
-/** one line of a checklist: a symbol in the tone of the answer, what is checked, what was found */
-function CheckRow({ tone, label, children }: { tone: Tone; label: string; children: React.ReactNode }) {
-  const Icon = tone === 'good' ? CircleCheck : tone === 'mute' || tone === 'info' ? Info : CircleAlert
-  return (
-    <li className="flex items-start gap-3 py-2.5 first:pt-0 last:pb-0">
-      <Icon size={16} className={`${TONE_TEXT[tone]} shrink-0 mt-0.5`} aria-hidden="true" />
-      <div className="min-w-0 flex-1 sm:flex sm:items-baseline sm:gap-4">
-        <p className="text-sm text-slate-200 sm:w-44 sm:shrink-0">{label}</p>
-        <p className="text-xs text-slate-300 min-w-0 break-words mt-0.5 sm:mt-0 leading-relaxed">{children}</p>
-      </div>
-    </li>
-  )
-}
-
-/** a status row of the community card: a symbol, a headline, a line of explanation, an optional action */
-function StatusRow({ tone, title, children, action, icon }: { tone: Tone; title: string; children?: React.ReactNode; action?: React.ReactNode; icon?: React.ElementType }) {
-  const Icon = icon ?? (tone === 'good' ? CircleCheck : tone === 'mute' || tone === 'info' ? Info : CircleAlert)
-  return (
-    <div className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
-      <Icon size={16} className={`${TONE_TEXT[tone]} shrink-0 mt-0.5`} aria-hidden="true" />
-      <div className="min-w-0 flex-1">
-        <p className="text-sm text-slate-200 leading-snug">{title}</p>
-        {children && <div className="text-xs text-slate-300 mt-0.5 leading-relaxed">{children}</div>}
-        {action && <div className="mt-2">{action}</div>}
-      </div>
+      <button type="button" onClick={onRetry} className={BTN_TOOLBAR_QUIET}>Try again</button>
     </div>
   )
 }
@@ -100,10 +65,10 @@ function StatusRow({ tone, title, children, action, icon }: { tone: Tone; title:
 
 type BStatus = 'active' | 'idle' | 'never' | 'revoked'
 const B_STATUS: Record<BStatus, { label: string; tone: Tone; tip: string }> = {
-  active: { label: 'Active', tone: 'good', tip: 'It asked CrowdSec for the ban list in the last 15 minutes.' },
-  idle: { label: 'Idle', tone: 'warn', tip: 'It pulled the ban list before, but not in the last 15 minutes. It may be stopped.' },
-  never: { label: 'Never pulled', tone: 'mute', tip: 'It has never asked for the ban list. It may not be set up yet.' },
-  revoked: { label: 'Revoked', tone: 'bad', tip: 'Its key was revoked, so it can no longer read the ban list.' },
+  active: { label: 'Active', tone: 'ok', tip: 'It asked CrowdSec for the ban list in the last 15 minutes.' },
+  idle: { label: 'Idle', tone: 'attention', tip: 'It pulled the ban list before, but not in the last 15 minutes. It may be stopped.' },
+  never: { label: 'Never pulled', tone: 'neutral', tip: 'It has never asked for the ban list. It may not be set up yet.' },
+  revoked: { label: 'Revoked', tone: 'problem', tip: 'Its key was revoked, so it can no longer read the ban list.' },
 }
 function statusOf(b: CrowdSecBouncerRow, now: number): BStatus {
   if (b.status && b.status in B_STATUS) return b.status
@@ -118,16 +83,16 @@ function StatusChip({ b }: { b: CrowdSecBouncerRow }) {
   const s = B_STATUS[st]
   // the bouncer DCS made for Traefik that never pulled is a problem once Traefik had time to load it; any other one may simply not be set up yet
   const waiting = st === 'never' && !!b.dcs && now - Date.parse(b.created_at) < 180_000
-  const tone: Tone = st === 'never' && b.dcs ? (waiting ? 'info' : 'warn') : s.tone
-  return <Chip tone={tone} title={waiting ? 'Registered a moment ago: Traefik asks for the ban list a few seconds after it loads the new middleware.' : s.tip}>{s.label}</Chip>
+  const tone: Tone = st === 'never' && b.dcs ? (waiting ? 'info' : 'attention') : s.tone
+  return <Pill tone={tone} title={waiting ? 'Registered a moment ago: Traefik asks for the ban list a few seconds after it loads the new middleware.' : s.tip}>{s.label}</Pill>
 }
 
 function BouncerName({ b }: { b: CrowdSecBouncerRow }) {
   return (
     <div className="flex items-center gap-2 flex-wrap min-w-0">
       <span className="font-mono text-[13px] text-slate-100 break-all">{b.name}</span>
-      {b.dcs && <Chip tone="info" title="The bouncer DCS registered for Traefik. Traefik uses its key to ask CrowdSec for the ban list.">Traefik bouncer made by DCS</Chip>}
-      {b.auto_created && <Chip tone="mute" title="CrowdSec created this bouncer by itself the first time it connected, it was not registered by hand.">auto-registered</Chip>}
+      {b.dcs && <Pill tone="info" title="The bouncer DCS registered for Traefik. Traefik uses its key to ask CrowdSec for the ban list.">Traefik bouncer made by DCS</Pill>}
+      {b.auto_created && <Pill tone="neutral" title="CrowdSec created this bouncer by itself the first time it connected, it was not registered by hand.">auto-registered</Pill>}
     </div>
   )
 }
@@ -159,7 +124,7 @@ function KeyBox({ value }: { value: string }) {
     <div>
       <div id="bouncer-key" className="rounded-lg bg-slate-800/60 border border-emerald-500/25 px-3 py-3 font-mono text-[13px] text-slate-100 break-all select-all leading-relaxed">{value}</div>
       <div className="mt-2.5 flex items-center gap-3 flex-wrap">
-        <button type="button" autoFocus onClick={copy} className={BTN_PRIMARY}>{state === 'copied' ? <Check size={13} /> : <Copy size={13} />} {state === 'copied' ? 'Copied' : 'Copy the key'}</button>
+        <button type="button" autoFocus onClick={copy} className={BTN_TOOLBAR_OK}>{state === 'copied' ? <Check size={14} /> : <Copy size={14} />} {state === 'copied' ? 'Copied' : 'Copy the key'}</button>
         {state === 'manual' && <span className="text-xs text-amber-300" role="status">Your browser would not copy it. The key is selected: press Ctrl+C.</span>}
       </div>
     </div>
@@ -196,9 +161,9 @@ function AddBouncerSheet({ existing, onClose, onDone }: { existing: string[]; on
 
   if (made) {
     return (
-      <CsSheet
-        title="Copy the API key now" subtitle={`Bouncer ${made.name} is registered.`} icon={<KeyRound size={18} />} tone="warn" onClose={close}
-        footer={<div className="flex justify-end"><button type="button" onClick={close} className={BTN_PRIMARY}><Check size={13} /> I have saved the key</button></div>}
+      <Sheet
+        title="Copy the API key now" subtitle={`Bouncer ${made.name} is registered.`} icon={<KeyRound size={18} />} tone="attention" onClose={close}
+        footer={<div className="flex justify-end"><button type="button" onClick={close} className={BTN_TOOLBAR_OK}><Check size={14} /> I have saved the key</button></div>}
       >
         <div className="space-y-4">
           <KeyBox value={made.key} />
@@ -210,17 +175,17 @@ function AddBouncerSheet({ existing, onClose, onDone }: { existing: string[]; on
             <p className="text-xs text-slate-300 leading-relaxed">Give the key to the bouncer as its <span className="font-mono text-slate-300">api_key</span> setting, and point its CrowdSec API URL at <span className="font-mono text-slate-300">http://crowdsec:8080</span> when it runs in the same Docker network as CrowdSec. From anywhere else, use this server’s address and the port you publish for CrowdSec’s API.</p>
           </div>
         </div>
-      </CsSheet>
+      </Sheet>
     )
   }
 
   return (
-    <CsSheet
+    <Sheet
       title="Add a bouncer" subtitle="A program that asks CrowdSec for the ban list and blocks those addresses." icon={<Plug size={18} />} onClose={close}
       footer={
         <div className="flex gap-2 justify-end flex-wrap">
-          <button type="button" onClick={close} disabled={busy} className={BTN_QUIET}>Cancel</button>
-          <button type="button" onClick={submit} disabled={!valid || busy} className={`${BTN_PRIMARY} min-w-[9rem]`}>{busy ? <Loader2 size={13} className="animate-spin" /> : <KeyRound size={13} />} Register and get a key</button>
+          <button type="button" onClick={close} disabled={busy} className={BTN_TOOLBAR_QUIET}>Cancel</button>
+          <button type="button" onClick={submit} disabled={!valid || busy} className={`${BTN_TOOLBAR_OK} min-w-[9rem]`}>{busy ? <Loader2 size={14} className="animate-spin" /> : <KeyRound size={14} />} Register and get a key</button>
         </div>
       }
     >
@@ -245,7 +210,7 @@ function AddBouncerSheet({ existing, onClose, onDone }: { existing: string[]; on
         )}
         <button type="submit" className="hidden" aria-hidden="true" tabIndex={-1} />
       </form>
-    </CsSheet>
+    </Sheet>
   )
 }
 
@@ -267,34 +232,34 @@ function Enforcement({ b, isAdmin, busy, onRegister }: { b: CrowdSecBouncersResp
   const fresh = !!dcs && now - Date.parse(dcs.created_at) < 180_000
   const mwName = enf.middleware_file ? enf.middleware_file.split('/').pop() : 'crowdsec-bouncer.yml'
 
-  let tone: Tone = 'good'
+  let tone: Tone = 'ok'
   let title = 'Traefik is enforcing the bans'
   let text = 'Every request goes through the CrowdSec middleware first: a banned address or network is refused before it reaches a service.'
   if (!tr.present) {
-    tone = 'mute'; title = 'Traefik is not on this server'
+    tone = 'neutral'; title = 'Traefik is not on this server'
     text = 'CrowdSec still detects attackers and keeps its ban list, but nothing in front of your services blocks them. Deploy Traefik to enforce the bans here, or add a bouncer for another proxy or a firewall below.'
   } else if (!ready) {
-    tone = 'warn'; title = 'Bans are not enforced yet'
+    tone = 'attention'; title = 'Bans are not enforced yet'
     text = 'CrowdSec decides who is banned; Traefik only obeys once the DCS bouncer is registered, its middleware file exists and it is part of Traefik’s chain.'
   } else if (!tr.running) {
-    tone = 'warn'; title = 'Traefik is not running'
+    tone = 'attention'; title = 'Traefik is not running'
     text = `Nothing is enforced while Traefik is stopped${tr.state ? ` (it is ${tr.state})` : ''}. Start it from the Containers page; the bouncer is set up and will work again as soon as it runs.`
   } else if (pullAge === null && fresh) {
     tone = 'info'; title = 'Waiting for Traefik’s first pull'
     text = 'The bouncer is registered and in the chain. Traefik asks CrowdSec as soon as a request goes through the new middleware.'
   } else if (pullAge === null) {
-    tone = 'warn'; title = 'Traefik has not pulled the ban list yet'
+    tone = 'attention'; title = 'Traefik has not pulled the ban list yet'
     text = 'The bouncer is registered and in the chain, but Traefik has never asked for bans. Check that Traefik is running and loaded the plugin; registering again gives it a fresh key.'
   } else if (pullAge >= 1800) {
-    tone = 'warn'; title = 'Traefik has not asked CrowdSec for a long time'
+    tone = 'attention'; title = 'Traefik has not asked CrowdSec for a long time'
     text = 'The plugin reports in at least every ten minutes while Traefik runs it. Check that Traefik is running and loaded the plugin; registering again gives it a fresh key.'
   } else if (blind) {
     text = 'Traefik asks CrowdSec for the ban list, so the bans are enforced. DCS cannot look inside Traefik’s files on this server, so it cannot check the middleware file or the chain.'
   }
 
-  const ring = tone === 'good' ? 'bg-emerald-500/15 text-emerald-400' : tone === 'warn' ? 'bg-amber-500/15 text-amber-400' : tone === 'info' ? 'bg-cyan-500/15 text-cyan-400' : 'bg-white/[0.04] text-slate-500 border border-white/10'
+  const ring = tone === 'ok' ? 'bg-emerald-500/15 text-emerald-400' : tone === 'attention' ? 'bg-amber-500/15 text-amber-400' : tone === 'info' ? 'bg-cyan-500/15 text-cyan-400' : 'bg-white/[0.04] text-slate-500 border border-white/10'
   const canFix = isAdmin && b.traefik_registerable
-  const Btn = ready ? BTN_QUIET : BTN_PRIMARY
+  const Btn = ready ? BTN_TOOLBAR_QUIET : BTN_TOOLBAR_OK
   const registerLabel = busy ? 'Registering…' : ready ? 'Register again' : 'Register the Traefik bouncer'
   const registerIcon = busy ? <Loader2 size={13} className="animate-spin" /> : ready ? <RefreshCw size={13} /> : <Plug size={13} />
   const explain = (
@@ -307,7 +272,7 @@ function Enforcement({ b, isAdmin, busy, onRegister }: { b: CrowdSecBouncersResp
 
   return (
     <section className={`${CARD} p-4`} aria-label="Traefik enforcement">
-      <SectionHead icon={ShieldCheck} title="Traefik enforcement" className="mb-3" />
+      <SectionHeader icon={ShieldCheck} title="Traefik enforcement" className="mb-3" />
       <div className="flex items-start gap-3">
         <div className={`p-2.5 rounded-xl shrink-0 ${ring}`} aria-hidden="true"><ShieldCheck size={18} /></div>
         <div className="min-w-0 flex-1">
@@ -329,36 +294,36 @@ function Enforcement({ b, isAdmin, busy, onRegister }: { b: CrowdSecBouncersResp
 
       {tr.present && (
         <ul className="mt-4 pt-4 border-t border-white/5 divide-y divide-white/5" aria-label="What is checked">
-          <CheckRow tone={tr.running ? 'good' : 'warn'} label="Traefik">
+          <StatusLine as="li" tone={tr.running ? 'ok' : 'attention'} title="Traefik">
             {tr.running ? <>Running{tr.container ? <span className="text-slate-500"> · container {tr.container}</span> : null}</> : `Not running${tr.container ? `: the container ${tr.container}` : ''} is ${tr.state || 'stopped'}`}
-          </CheckRow>
-          <CheckRow tone={!dcs ? 'warn' : dcs.revoked ? 'bad' : 'good'} label="Bouncer registered">
+          </StatusLine>
+          <StatusLine as="li" tone={!dcs ? 'attention' : dcs.revoked ? 'problem' : 'ok'} title="Bouncer registered">
             {!dcs ? <>No bouncer called <span className="font-mono text-slate-300">{b.name}</span> in CrowdSec</> : dcs.revoked ? <>The key of <span className="font-mono text-slate-300">{dcs.name}</span> was revoked</> : <><span className="font-mono text-slate-300">{dcs.name}</span>{dcs.type || dcs.version ? <span className="text-slate-500"> · {[dcs.type, dcs.version].filter(Boolean).join(' ')}</span> : null}</>}
-          </CheckRow>
-          <CheckRow tone={enf.middleware_present ? 'good' : blind ? 'mute' : 'warn'} label="Middleware file">
+          </StatusLine>
+          <StatusLine as="li" tone={enf.middleware_present ? 'ok' : blind ? 'neutral' : 'attention'} title="Middleware file">
             {enf.middleware_present ? <><span className="font-mono text-slate-300" title={enf.middleware_file}>{mwName}</span> is in Traefik’s routes folder</> : blind ? 'Not known: DCS did not find Traefik’s routes folder' : <><span className="font-mono text-slate-300">crowdsec-bouncer.yml</span> is missing from Traefik’s routes folder</>}
-          </CheckRow>
-          <CheckRow tone={enf.in_chain ? 'good' : blind ? 'mute' : 'warn'} label="In Traefik’s chain">
+          </StatusLine>
+          <StatusLine as="li" tone={enf.in_chain ? 'ok' : blind ? 'neutral' : 'attention'} title="In Traefik’s chain">
             {enf.in_chain ? <><span className="font-mono text-slate-300">crowdsec-bouncer</span> is part of <span className="font-mono text-slate-300">traefik-chain</span>, so every service that uses the chain is checked</> : blind ? 'Not known without the routes folder' : <><span className="font-mono text-slate-300">crowdsec-bouncer</span> is not part of <span className="font-mono text-slate-300">traefik-chain</span>: the services do not ask CrowdSec</>}
-          </CheckRow>
+          </StatusLine>
           {enf.plugin && (
-            <CheckRow tone={enf.plugin.declared ? (enf.plugin.loaded === false ? 'warn' : 'good') : blind ? 'mute' : 'bad'} label="Plugin declared">
+            <StatusLine as="li" tone={enf.plugin.declared ? (enf.plugin.loaded === false ? 'attention' : 'ok') : blind ? 'neutral' : 'problem'} title="Plugin declared">
               {enf.plugin.declared ? <><span className="font-mono text-slate-300">{enf.plugin.name}</span> {enf.plugin.version} is declared in Traefik&rsquo;s static configuration{enf.plugin.loaded === false ? ': Traefik has not been restarted since, so it is not loaded yet' : ''}</> : blind ? 'Not known without the routes folder' : 'Traefik&rsquo;s static configuration does not declare the plugin: Traefik refuses the middleware. Registering again declares it.'}
-            </CheckRow>
+            </StatusLine>
           )}
           {enf.plugin && dcs && enf.middleware_present && (
-            <CheckRow tone={Date.parse(dcs.created_at) / 1000 > (enf.middleware_mtime ?? 0) + 120 ? 'bad' : enf.plugin.key_present ? 'good' : 'warn'} label="Key in the file">
+            <StatusLine as="li" tone={Date.parse(dcs.created_at) / 1000 > (enf.middleware_mtime ?? 0) + 120 ? 'problem' : enf.plugin.key_present ? 'ok' : 'attention'} title="Key in the file">
               {Date.parse(dcs.created_at) / 1000 > (enf.middleware_mtime ?? 0) + 120 ? 'The bouncer was registered again after the file was written, so the key in the file no longer works. Register again writes a fresh one.' : enf.plugin.key_present ? 'The file holds the key of the bouncer CrowdSec knows' : 'The file has no key'}
-            </CheckRow>
+            </StatusLine>
           )}
           {enf.plugin?.mode && (
-            <CheckRow tone="mute" label="Mode">
+            <StatusLine as="li" tone="neutral" title="Mode">
               <span className="font-mono text-slate-300">{enf.plugin.mode}</span>{enf.plugin.mode === 'live' ? ': Traefik asks CrowdSec about a visitor when it first sees one' : ': Traefik downloads the ban list every few seconds'}. {isAdmin ? <button type="button" className="text-cyan-400 hover:text-cyan-300" onClick={() => goTab('settings')}>Change it in Settings</button> : null}
-            </CheckRow>
+            </StatusLine>
           )}
-          <CheckRow tone={!dcs ? 'mute' : pullAge === null ? (fresh ? 'info' : 'warn') : pullAge >= 1800 ? 'warn' : 'good'} label="Last pull">
+          <StatusLine as="li" tone={!dcs ? 'neutral' : pullAge === null ? (fresh ? 'info' : 'attention') : pullAge >= 1800 ? 'attention' : 'ok'} title="Last pull">
             {!dcs ? 'Nothing to pull without a bouncer' : pullAge === null ? (fresh ? 'Not yet: Traefik asks with the first request that goes through the new middleware' : 'Never: Traefik has not asked CrowdSec') : <><Ago at={dcs.last_pull} />{pullAge >= 1800 ? ': it normally pulls every few seconds' : ''}</>}
-          </CheckRow>
+          </StatusLine>
         </ul>
       )}
 
@@ -388,21 +353,21 @@ function BouncerSection({ poll, isAdmin, busy, onAdd, onDelete }: { poll: UsePol
     if (!NAME_RE.test(row.name)) return <span className="text-[11px] text-slate-500" title="This name cannot be removed from the page: use cscli bouncers delete">use cscli</span>
     const k = `del:${row.name}`
     return phone
-      ? <button type="button" className={`${ICON_BTN} !w-auto px-2.5 gap-1.5 text-[11px]`} aria-label={`Delete the bouncer ${row.name}`} disabled={busy === k} onClick={() => onDelete(row)}>{busy === k ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />} Delete</button>
-      : <button type="button" className={`${ICON_BTN} hover:!bg-rose-500/15 hover:!text-rose-300`} aria-label={`Delete the bouncer ${row.name}`} title="Delete this bouncer" disabled={busy === k} onClick={() => onDelete(row)}>{busy === k ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}</button>
+      ? <button type="button" className={`${BTN_ICON_QUIET} !w-auto px-2.5 gap-1.5 text-[11px]`} aria-label={`Delete the bouncer ${row.name}`} disabled={busy === k} onClick={() => onDelete(row)}>{busy === k ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />} Delete</button>
+      : <button type="button" className={`${BTN_ICON_QUIET} hover:!bg-rose-500/15 hover:!text-rose-300`} aria-label={`Delete the bouncer ${row.name}`} title="Delete this bouncer" disabled={busy === k} onClick={() => onDelete(row)}>{busy === k ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}</button>
   }
 
   return (
     <section className="space-y-3" aria-label="Bouncers">
-      <SectionHead icon={Plug} title="Bouncers" count={b ? b.count : undefined} right={isAdmin && b ? <button type="button" onClick={onAdd} className={BTN_PRIMARY}><Plus size={14} /> Add a bouncer</button> : undefined} />
+      <SectionHeader icon={Plug} title="Bouncers" count={b ? b.count : undefined} right={isAdmin && b ? <button type="button" onClick={onAdd} className={BTN_TOOLBAR_OK}><Plus size={14} /> Add a bouncer</button> : undefined} />
       <p className="text-xs text-slate-500 -mt-1 leading-relaxed max-w-3xl">A bouncer is a program that asks CrowdSec for the ban list and blocks those addresses: Traefik’s plugin, a firewall, another proxy. Without one, a ban is only a note in CrowdSec’s database.</p>
-      {!b && <div className="space-y-2" aria-busy="true">{[0, 1].map((i) => <Skel key={i} className="h-14" />)}</div>}
+      {!b && <div className="space-y-2" aria-busy="true">{[0, 1].map((i) => <SkeletonBlock key={i} className="h-14" />)}</div>}
       {b && rows.length === 0 && (
         <div className={`${CARD} px-6 py-12 text-center`}>
           <Plug size={30} className="mx-auto text-slate-500" />
           <p className="mt-3 text-sm text-slate-300">No bouncer is registered.</p>
           <p className="mt-1 text-xs text-slate-500 max-w-md mx-auto">CrowdSec can detect attackers, but nothing asks it for the ban list, so nothing blocks them. {b.traefik.present ? 'Register the Traefik bouncer above to have Traefik enforce the bans' : 'Add a bouncer for your proxy or firewall'}{isAdmin ? '.' : ': an administrator can do it.'}</p>
-          {isAdmin && <div className="mt-4"><button type="button" onClick={onAdd} className={BTN_PRIMARY}><Plus size={14} /> Add a bouncer</button></div>}
+          {isAdmin && <div className="mt-4"><button type="button" onClick={onAdd} className={BTN_TOOLBAR_OK}><Plus size={14} /> Add a bouncer</button></div>}
         </div>
       )}
       {b && rows.length > 0 && (
@@ -463,8 +428,8 @@ function BouncerSection({ poll, isAdmin, busy, onAdd, onDelete }: { poll: UsePol
 
 function Validated({ m }: { m: CrowdSecMachine }) {
   return m.validated
-    ? <Chip tone="good" title="The machine was accepted by this CrowdSec">Validated</Chip>
-    : <Chip tone="warn" title={`This machine asked to join but was not approved yet. Approve it with: cscli machines validate ${m.id}`}>Waiting for approval</Chip>
+    ? <Pill tone="ok" title="The machine was accepted by this CrowdSec">Validated</Pill>
+    : <Pill tone="attention" title={`This machine asked to join but was not approved yet. Approve it with: cscli machines validate ${m.id}`}>Waiting for approval</Pill>
 }
 
 function Seen({ m, now }: { m: CrowdSecMachine; now: number }) {
@@ -485,7 +450,7 @@ function Sources({ m }: { m: CrowdSecMachine }) {
   if (ds.length === 0) return <span className="text-xs text-slate-500" title="This machine reported no data sources">none reported</span>
   return (
     <span className="inline-flex items-center gap-1 flex-wrap">
-      {ds.map(([k, n]) => <Chip key={k} tone="mute" title={`${plural(n, 'data source', 'data sources')} of type ${k}`}>{k} {n}</Chip>)}
+      {ds.map(([k, n]) => <Pill key={k} tone="neutral" title={`${plural(n, 'data source', 'data sources')} of type ${k}`}>{k} {n}</Pill>)}
     </span>
   )
 }
@@ -495,11 +460,11 @@ function MachineSection({ poll }: { poll: UsePollingResult<CrowdSecMachinesRespo
   const machines = poll.data?.machines ?? []
   return (
     <section className="space-y-3" aria-label="Machines">
-      <SectionHead icon={Server} title="Machines" count={poll.data ? poll.data.count : undefined} />
+      <SectionHeader icon={Server} title="Machines" count={poll.data ? poll.data.count : undefined} />
       <p className="text-xs text-slate-500 -mt-1 leading-relaxed max-w-3xl">A machine is a CrowdSec engine that reads logs and reports attacks to this CrowdSec. The one inside the CrowdSec container is called localhost; more can join from other servers.</p>
-      {!poll.data && !poll.error && <Skel className="h-16" />}
+      {!poll.data && !poll.error && <SkeletonBlock className="h-16" />}
       {!poll.data && poll.error && <LoadError what="the machines" error={poll.error} onRetry={poll.refresh} />}
-      {poll.data && poll.error && <Notice>The last refresh failed ({poll.error.message}). Showing what was loaded before.</Notice>}
+      {poll.data && poll.error && <Notice role="status">The last refresh failed ({poll.error.message}). Showing what was loaded before.</Notice>}
       {poll.data && machines.length === 0 && (
         <div className={`${CARD} px-6 py-10 text-center`}>
           <Server size={28} className="mx-auto text-slate-500" />
@@ -591,49 +556,49 @@ function CommunitySection({ poll }: { poll: UsePollingResult<CrowdSecCommunityRe
 
   return (
     <section className={`${CARD} p-4`} aria-label="Community and console">
-      <SectionHead icon={Users} title="Community and console" className="mb-3" />
-      {!cm && <div className="space-y-2"><Skel className="h-12" /><Skel className="h-12" /><Skel className="h-12" /></div>}
+      <SectionHeader icon={Users} title="Community and console" className="mb-3" />
+      {!cm && <div className="space-y-2"><SkeletonBlock className="h-12" /><SkeletonBlock className="h-12" /><SkeletonBlock className="h-12" /></div>}
       {cm && (
         <>
-          {poll.error && <div className="mb-3"><Notice>The last refresh failed ({poll.error.message}). Showing what was loaded before.</Notice></div>}
+          {poll.error && <div className="mb-3"><Notice role="status">The last refresh failed ({poll.error.message}). Showing what was loaded before.</Notice></div>}
           <div className="divide-y divide-white/5">
             {refused ? (
-              <StatusRow tone="bad" title="CrowdSec can’t reach the community service"
+              <StatusLine tone="problem" title="CrowdSec can’t reach the community service"
                 action={isAdmin ? <div className="flex flex-wrap items-start gap-2"><div><RegisterAgainButton onDone={poll.refresh} /></div>{checkNow}</div> : undefined}>
                 <span className="break-words">{cm.hint || REFUSED_TEXT}</span>
                 {!isAdmin && <p className="text-slate-500 mt-1">An admin can register it again here.</p>}
-              </StatusRow>
+              </StatusLine>
             ) : capi === 'disabled' ? (
-              <StatusRow tone="mute" title="The community connection is switched off">CrowdSec is set to run without the community service, so it neither receives the community blocklist nor shares what it sees.</StatusRow>
+              <StatusLine tone="neutral" title="The community connection is switched off">CrowdSec is set to run without the community service, so it neither receives the community blocklist nor shares what it sees.</StatusLine>
             ) : capi === 'paused' ? (
-              <StatusRow tone="warn" icon={Clock} title="Community service pausing this engine">
+              <StatusLine tone="attention" icon={Clock} title="Community service pausing this engine">
                 <span className="break-words">{cm.hint || PAUSED_TEXT}</span>
                 <p className="text-slate-400 mt-1">{lastContact(cm, now)}</p>
-              </StatusRow>
+              </StatusLine>
             ) : !cm.capi.registered ? (
-              <StatusRow tone="mute" title="Not connected to the community" action={isAdmin ? <RegisterAgainButton onDone={poll.refresh} label="Register" /> : undefined}>CrowdSec is not registered with the central API, so it neither receives the community blocklist nor shares what it sees.</StatusRow>
+              <StatusLine tone="neutral" title="Not connected to the community" action={isAdmin ? <RegisterAgainButton onDone={poll.refresh} label="Register" /> : undefined}>CrowdSec is not registered with the central API, so it neither receives the community blocklist nor shares what it sees.</StatusLine>
             ) : capi === 'unknown' ? (
-              <StatusRow tone="mute" title="Not checked yet" action={checkNow}>
+              <StatusLine tone="neutral" title="Not checked yet" action={checkNow}>
                 DCS Orchestrator asks the community service only when you check, so it adds no logins of its own.{cm.capi.pulling && cm.community_decisions > 0 ? ` CrowdSec holds ${fmtNum(cm.community_decisions)} community addresses.` : ''}
-              </StatusRow>
+              </StatusLine>
             ) : cm.capi.error ? (
-              <StatusRow tone="warn" title="The community service does not answer" action={checkNow}><span className="break-words">{capiError}</span></StatusRow>
+              <StatusLine tone="attention" title="The community service does not answer" action={checkNow}><span className="break-words">{capiError}</span></StatusLine>
             ) : cm.capi.pulling ? (
-              <StatusRow tone="good" title={cm.community_decisions > 0 ? `Pulling the community blocklist: ${fmtNum(cm.community_decisions)} known bad addresses` : 'Pulling the community blocklist: nothing received yet'} action={checkNow}>
+              <StatusLine tone="ok" title={cm.community_decisions > 0 ? `Pulling the community blocklist: ${fmtNum(cm.community_decisions)} known bad addresses` : 'Pulling the community blocklist: nothing received yet'} action={checkNow}>
                 CrowdSec downloads the addresses other people already caught attacking, and the Traefik bouncer blocks them too. They are not listed on the Bans page.
-              </StatusRow>
+              </StatusLine>
             ) : (
-              <StatusRow tone="warn" title="Not pulling the community blocklist" action={checkNow}>CrowdSec is registered with the central API, but the download of the blocklist is switched off, so only your own bans are enforced.</StatusRow>
+              <StatusLine tone="attention" title="Not pulling the community blocklist" action={checkNow}>CrowdSec is registered with the central API, but the download of the blocklist is switched off, so only your own bans are enforced.</StatusLine>
             )}
             {capi === 'disabled' ? null : refused || (cm.capi.registered && cm.capi.error && capi !== 'paused') ? (
-              <StatusRow tone="mute" title="Sharing not known">CrowdSec could not reach the central service, so it cannot tell whether your detections are shared.</StatusRow>
+              <StatusLine tone="neutral" title="Sharing not known">CrowdSec could not reach the central service, so it cannot tell whether your detections are shared.</StatusLine>
             ) : (
-              <StatusRow tone={cm.capi.sharing ? 'good' : 'mute'} title={cm.capi.sharing ? 'Sharing your detections' : 'Not sharing your detections'}>
+              <StatusLine tone={cm.capi.sharing ? 'ok' : 'neutral'} title={cm.capi.sharing ? 'Sharing your detections' : 'Not sharing your detections'}>
                 {cm.capi.sharing ? 'When CrowdSec catches an attacker it reports the address and the scenario (nothing else), so others can block it too.' : 'Nothing leaves this server: your detections are not reported to the community.'}
-              </StatusRow>
+              </StatusLine>
             )}
             {consoleUnknown ? (
-              <StatusRow tone="mute" title="Enrolment not checked yet"
+              <StatusLine tone="neutral" title="Enrolment not checked yet"
                 action={isAdmin ? (
                   <div className="flex flex-wrap items-center gap-2">
                     <CheckNowButton onDone={poll.refresh} availableAt={cm.capi.check_available_at} />
@@ -642,9 +607,9 @@ function CommunitySection({ poll }: { poll: UsePollingResult<CrowdSecCommunityRe
                 ) : undefined}>
                 <p>Whether this engine is in the CrowdSec Console is known after a check, an enrolment or a line in CrowdSec’s log.</p>
                 {isAdmin && enrolAnyway && <EnrolBox onDone={poll.refresh} onEnrolled={() => setKeepEnrol(true)} needsRegister={refused} />}
-              </StatusRow>
+              </StatusLine>
             ) : (
-            <StatusRow tone={cm.console.enrolled ? 'good' : 'mute'} title={cm.console.enrolled ? `Enrolled in the CrowdSec Console${cm.console.plan ? ` (${cm.console.plan})` : ''}` : 'Not enrolled in the CrowdSec Console'}>
+            <StatusLine tone={cm.console.enrolled ? 'ok' : 'neutral'} title={cm.console.enrolled ? `Enrolled in the CrowdSec Console${cm.console.plan ? ` (${cm.console.plan})` : ''}` : 'Not enrolled in the CrowdSec Console'}>
               {(cm.console.enrolled || !isAdmin) && <p>{noteText}</p>}
               {!cm.console.enrolled && !isAdmin && <p className="text-slate-500 mt-1">An admin can enrol it here with a key from app.crowdsec.net.</p>}
               {isAdmin && (!cm.console.enrolled || keepEnrol) && <EnrolBox onDone={poll.refresh} onEnrolled={() => setKeepEnrol(true)} needsRegister={refused} />}
@@ -653,11 +618,11 @@ function CommunitySection({ poll }: { poll: UsePollingResult<CrowdSecCommunityRe
                   <span className="text-slate-500">Sent to the console:</span>
                   {Object.entries(CONSOLE_SHARING).map(([k, label]) => {
                     const on = !!cm.console.sharing[k]
-                    return <Chip key={k} tone={on ? 'good' : 'mute'} title={on ? `The console receives ${label}` : `The console does not receive ${label}`}>{label}: {on ? 'yes' : 'no'}</Chip>
+                    return <Pill key={k} tone={on ? 'ok' : 'neutral'} title={on ? `The console receives ${label}` : `The console does not receive ${label}`}>{label}: {on ? 'yes' : 'no'}</Pill>
                   })}
                 </div>
               )}
-            </StatusRow>
+            </StatusLine>
             )}
           </div>
           <p className="text-[11px] text-slate-500 mt-3 pt-3 border-t border-white/5 leading-relaxed">Registering and enrolling are done here. Sharing and the console options are settings of CrowdSec itself, changed with cscli on the server.</p>
@@ -724,9 +689,9 @@ export default function BouncersTab() {
 
   return (
     <div className="space-y-5" data-cs-tab="bouncers">
-      {!b && !bp.error && <Skel className="h-72" />}
+      {!b && !bp.error && <SkeletonBlock className="h-72" />}
       {!b && bp.error && <LoadError what="the bouncers" error={bp.error} onRetry={bp.refresh} />}
-      {b && bp.error && <Notice>The last refresh failed ({bp.error.message}). Showing what was loaded before.</Notice>}
+      {b && bp.error && <Notice role="status">The last refresh failed ({bp.error.message}). Showing what was loaded before.</Notice>}
       {b && <Enforcement b={b} isAdmin={isAdmin} busy={busy === 'register'} onRegister={register} />}
       <BouncerSection poll={bp} isAdmin={isAdmin} busy={busy} onAdd={() => setAdding(true)} onDelete={remove} />
       <MachineSection poll={mp} />

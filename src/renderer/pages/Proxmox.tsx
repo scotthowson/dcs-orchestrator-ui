@@ -12,13 +12,8 @@
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { Badge, SegmentedControl, Tooltip } from '@mantine/core'
-import {
-  RotateCcw, Server, Cpu, MemoryStick, HardDrive, Clock, Play, Power, Square, RotateCw, Zap, Pause, PlayCircle,
-  RefreshCw, Search, AlertTriangle, Settings2, ShieldCheck, Boxes, Box, Tag, ListChecks, X, Loader2,
-  Satellite, Link2, KeyRound, Radar, Rocket, MoreHorizontal, PlugZap, Pencil, Trash2, Layers, ExternalLink, Home,
-  Info, LayoutGrid, LayoutList, Hammer, LayoutDashboard, ChevronDown, ChevronUp, FolderSync, FolderInput, TerminalSquare, Globe, Moon,
-} from 'lucide-react'
+import { SegmentedControl, Tooltip } from '@mantine/core'
+import { RotateCcw, Server, Cpu, MemoryStick, HardDrive, Clock, Play, Power, Square, RotateCw, Zap, Pause, PlayCircle, RefreshCw, AlertTriangle, Settings2, ShieldCheck, Boxes, Box, Tag, ListChecks, X, Loader2, Satellite, Link2, KeyRound, Radar, Rocket, MoreHorizontal, PlugZap, Pencil, Trash2, Layers, ExternalLink, Home, Info, LayoutGrid, LayoutList, Hammer, LayoutDashboard, ChevronDown, ChevronUp, FolderSync, FolderInput, TerminalSquare, Globe, Moon } from 'lucide-react'
 import { usePolling } from '../hooks/usePolling'
 import { pollKeys } from '../api/pollKeys'
 import { useAuthStore } from '../stores/authStore'
@@ -38,7 +33,7 @@ import FleetLinkPanel from '../components/fleet/FleetLinkPanel'
 import JoinHubPanel from '../components/fleet/JoinHubPanel'
 import JoinCodeCard from '../components/fleet/JoinCodeCard'
 import MemberSheet, { type MemberSheetPrefill } from '../components/fleet/MemberSheet'
-import { Sheet, MATCH_LABEL, hostOf, TONE_ATTN, inputCls, labelCls } from '../components/fleet/fleetShared'
+import { MATCH_LABEL, hostOf } from '../components/fleet/fleetShared'
 import { proxmoxVmResize } from '../api/endpoints'
 import { FleetJobCard, JobsSummary, orderJobs } from '../components/fleet/FleetJobsPanel'
 import NewVmSheet, { CapabilityNote, settingsFromDefaults, loadVmSettings, osLabel } from '../components/fleet/NewVmSheet'
@@ -47,16 +42,18 @@ import HostFoldersSheet from '../components/fleet/HostFoldersSheet'
 import SshAccessSheet from '../components/fleet/SshAccessSheet'
 import PageHeader from '../components/common/PageHeader'
 import { pageLabel } from '../constants/pageTitles'
-import {
-  BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD, BTN_CARD_QUIET, BTN_ICON, BTN_ICON_SM, BTN_ICON_QUIET, BTN_ICON_SM_QUIET,
-  BTN_SHEET, BTN_SHEET_QUIET, BTN_SHEET_PRIMARY, BTN_SHEET_DANGER,
-  TONE_QUIET, TONE_OK, TONE_DANGER, TONE_GHOST, TONE_GHOST_OK, TONE_GHOST_DANGER,
-} from '../lib/ui'
+import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD, BTN_CARD_QUIET, BTN_ICON, BTN_ICON_SM, BTN_ICON_QUIET, BTN_ICON_SM_QUIET, BTN_SHEET, BTN_SHEET_QUIET, BTN_SHEET_PRIMARY, BTN_SHEET_DANGER, TONE_QUIET, TONE_OK, TONE_DANGER, TONE_GHOST, TONE_GHOST_OK, TONE_GHOST_DANGER, TONE_ATTN } from '../lib/ui'
 import { useModalA11y } from '../hooks/useModalA11y'
 import Hint from '../components/common/Hint'
 import { StateDot, StackDot, AsleepCount } from '../components/common/StateChip'
 import { containerState, countStates, countsFrom, statesLine, fineCount, problemCount, stackIsFine, stackState, STATE_META, STACK_META, type StateCounts } from '../lib/containerState'
 
+import Sheet from '../components/common/Sheet'
+import { INPUT_FLEET, LABEL } from '../lib/fieldStyles'
+import { Pill } from '../components/common/Pill'
+import { type Tone } from '../lib/tone'
+import SearchInput from '../components/common/SearchInput'
+import CloseButton from '../components/common/CloseButton'
 const STATUS_POLL = 20_000
 const LIST_POLL = 15_000
 const TASK_POLL = 30_000
@@ -119,7 +116,7 @@ function StatusDot({ status, className = '' }: { status: string; className?: str
 }
 /** a VM wears the fleet's violet, like every capsule of a VM; a container (LXC) is told apart in cyan */
 function TypeChip({ type }: { type: ProxmoxVm['type'] }) {
-  return <Badge component="span" color={type === 'qemu' ? 'violet' : 'cyan'}>{type === 'qemu' ? 'VM' : 'LXC'}</Badge>
+  return <Pill tone={type === 'qemu' ? 'fleet' : 'info'}>{type === 'qemu' ? 'VM' : 'LXC'}</Pill>
 }
 /** Proxmox tags as pills (the ones DCS wants in emerald); past `max`, a +N that names the rest */
 function TagChips({ tags, max, wanted = [] }: { tags: string[]; max?: number; wanted?: string[] }) {
@@ -127,8 +124,8 @@ function TagChips({ tags, max, wanted = [] }: { tags: string[]; max?: number; wa
   const rest = tags.slice(shown.length)
   return (
     <>
-      {shown.map((t) => <Badge key={t} component="span" color={wanted.includes(t) ? 'emerald' : 'slate'}>{t}</Badge>)}
-      {rest.length > 0 && <Tooltip label={`Also tagged ${rest.join(', ')}`}><Badge component="span" color="slate">+{rest.length}</Badge></Tooltip>}
+      {shown.map((t) => <Pill key={t} tone={wanted.includes(t) ? 'ok' : 'neutral'}>{t}</Pill>)}
+      {rest.length > 0 && <Tooltip label={`Also tagged ${rest.join(', ')}`}><Pill tone="neutral">+{rest.length}</Pill></Tooltip>}
     </>
   )
 }
@@ -216,7 +213,7 @@ function ConfirmSheet({ vm, action, onClose, onDone }: { vm: ProxmoxVm; action: 
             <p id={`${ids}-d`} className="text-sm text-slate-400 mt-1">{vm.type === 'qemu' ? 'VM' : 'Container'} {vm.vmid} on {vm.node}{meta.note ? ` — ${meta.note}` : ''}</p>
             {error && <p role="alert" className="text-sm text-rose-400 mt-2">{error}</p>}
           </div>
-          <button onClick={onClose} className="p-2 rounded-lg text-slate-500 hover:text-slate-200 hover:bg-white/5" aria-label="Close"><X size={16} /></button>
+          <CloseButton onClick={onClose} />
         </div>
         <div className="mt-5 flex gap-2">
           <button ref={cancelRef} onClick={onClose} className={`${BTN_SHEET_QUIET} flex-1`}>Cancel</button>
@@ -308,8 +305,8 @@ function HubCard({ fleet, stacks, isHub, memberCount, onStacks, onStack, pveSelf
       <CardHead icon={Home} title="This server" right={<VmCapsule />} />
       <div className="flex items-center gap-2 min-w-0">
         <span className="text-sm font-semibold text-slate-100 truncate">{fleet?.server_name || fleet?.hostname || 'DCS'}</span>
-        {isHub && <Badge component="span" color="violet">hub</Badge>}
-        {role === 'member' && <Badge component="span" color="violet">member</Badge>}
+        {isHub && <Pill tone="fleet">hub</Pill>}
+        {role === 'member' && <Pill tone="fleet">member</Pill>}
       </div>
       <p className="text-[11px] text-slate-500 mt-0.5 truncate">
         DCS {fleet?.version || '…'}{fleet?.hostname ? ` · ${fleet.hostname}` : ''}
@@ -523,9 +520,9 @@ function VmContainers({ member, live, stack, isAdmin, onStackAction, busyKey, on
                 </div>
                 {isAdmin && (cbusy.startsWith(`${c.name}:`) ? <Loader2 size={12} className="animate-spin text-cyan-400" /> : (
                   <div className="flex items-center gap-0.5">
-                    {!running && <Hint label={sleepy ? 'Wake it now (Sablier puts it back to sleep when idle)' : 'Start'}><button aria-label={`${sleepy ? 'Wake' : 'Start'} ${c.name}`} type="button" onClick={() => act(c.name, 'start')} className={`${BTN_ICON_SM} ${TONE_GHOST_OK}`}><Play size={11} /></button></Hint>}
-                    {running && <Hint label="Restart"><button aria-label={`Restart ${c.name}`} type="button" onClick={() => act(c.name, 'restart')} className={`${BTN_ICON_SM} ${TONE_GHOST}`}><RotateCcw size={11} /></button></Hint>}
-                    {running && <Hint label="Stop"><button aria-label={`Stop ${c.name}`} type="button" onClick={() => act(c.name, 'stop')} className={`${BTN_ICON_SM} ${TONE_GHOST_DANGER}`}><Square size={11} /></button></Hint>}
+                    {!running && <Hint label={sleepy ? 'Wake it now (Sablier puts it back to sleep when idle)' : 'Start'}><button aria-label={`${sleepy ? 'Wake' : 'Start'} ${c.name}`} type="button" onClick={() => act(c.name, 'start')} className={`${BTN_ICON_SM} ${TONE_GHOST_OK}`}><Play size={12} /></button></Hint>}
+                    {running && <Hint label="Restart"><button aria-label={`Restart ${c.name}`} type="button" onClick={() => act(c.name, 'restart')} className={`${BTN_ICON_SM} ${TONE_GHOST}`}><RotateCcw size={12} /></button></Hint>}
+                    {running && <Hint label="Stop"><button aria-label={`Stop ${c.name}`} type="button" onClick={() => act(c.name, 'stop')} className={`${BTN_ICON_SM} ${TONE_GHOST_DANGER}`}><Square size={12} /></button></Hint>}
                   </div>
                 ))}
               </div>
@@ -624,12 +621,12 @@ interface VmRowProps {
 
 /** the DCS chip a member row wears, in the fleet's violet: version, and the member's name when it differs from the guest's (offline: the guest is off, so the recorded version in grey; a member that does not answer, in rose) */
 function DcsChip({ vm, member, live, offline = false }: { vm: ProxmoxVm; member: FleetMemberBase; live?: FleetMemberLive; offline?: boolean }) {
-  const color = offline ? 'slate' : live && !live.reachable ? 'rose' : 'violet'
+  const tone: Tone = offline ? 'neutral' : live && !live.reachable ? 'problem' : 'fleet'
   return (
     <Tooltip label={`${member.name} at ${member.url}${member.matched_by ? ` — ${MATCH_LABEL[member.matched_by]}` : ''}`}>
-      <Badge component="span" color={color} leftSection={<Satellite size={10} />}>
+      <Pill tone={tone} icon={<Satellite size={10} />}>
         DCS {member.version || '?'}{member.name !== vm.name ? ` · ${member.name}` : ''}{offline ? ' · offline' : ''}
-      </Badge>
+      </Pill>
     </Tooltip>
   )
 }
@@ -904,7 +901,7 @@ function VmSheet({ vm, member, live, isAdmin, busyKey, pveUrl, refreshTick = 0, 
   const agentOn = /^(1|enabled=1)/.test(d?.agent ?? '')
   const enableBalloon = async () => {
     // the floor the API sets: the memory minus a quarter, at most 512 MB — three quarters or more stay with the guest
-    if (!(await confirm({ title: 'Enable ballooning', message: `Give ${vm.name} a memory balloon with three quarters or more of its memory as the floor? Proxmox then reports the guest's real memory use and can reclaim idle memory. It takes effect at the next reboot.`, confirmLabel: 'Enable ballooning' }))) return
+    if (!(await confirm({ title: 'Enable ballooning?', message: `Give ${vm.name} a memory balloon with three quarters or more of its memory as the floor? Proxmox then reports the guest's real memory use and can reclaim idle memory. It takes effect at the next reboot.`, confirmLabel: 'Enable ballooning' }))) return
     setBusy(true)
     try { const r = await proxmoxVmBalloon(vm.node, vm.vmid); addToast({ type: 'success', message: r.message || `Balloon set to ${r.balloon} MB of ${r.memory} MB` }); detail.refresh(); onChanged() }
     catch (e) { addToast({ type: 'error', message: e instanceof Error ? e.message : 'Ballooning could not be enabled' }) }
@@ -934,7 +931,7 @@ function VmSheet({ vm, member, live, isAdmin, busyKey, pveUrl, refreshTick = 0, 
     if (d.config.description) facts.push(['Description', <span className="whitespace-pre-line break-words">{d.config.description}</span>])
   }
   return (
-    <Sheet title={vm.name} subtitle={<>
+    <Sheet tone="fleet" title={vm.name} subtitle={<>
       {`${vm.type === 'qemu' ? 'VM' : 'Container'} ${vm.vmid} on ${vm.node} · ${shown.status}${running ? ` · up ${fmtUptime(d?.uptime ?? vm.uptime)}` : ''}`}
       {vm.tags.length > 0 && <span className="flex flex-wrap items-center gap-1 mt-1.5"><TagChips tags={vm.tags} /></span>}
     </>} icon={<Server size={18} />} onClose={onClose} wide footer={(isAdmin || pveUrl) ? (
@@ -1052,7 +1049,7 @@ function ResizePanel({ vm, running, cores, memoryMb, diskBytes, onDone }: { vm: 
   const submit = async () => {
     if (!anything || !valid) return
     const parts = [add > 0 ? `${add} GB more disk (a disk never shrinks again)` : '', coresChanged ? `${newCores} cores` : '', memChanged ? `${Math.round(newMem / 102.4) / 10} GB of memory` : ''].filter(Boolean)
-    if (!(await confirm({ title: `Resize ${vm.name}`, message: `${parts.join(', ')}.${(coresChanged || memChanged) && running ? (restart ? ' The VM reboots to apply the cores and memory.' : ' The cores and memory apply at the next reboot.') : ''}`, confirmLabel: 'Resize' }))) return
+    if (!(await confirm({ title: `Resize ${vm.name}?`, message: `${parts.join(', ')}.${(coresChanged || memChanged) && running ? (restart ? ' The VM reboots to apply the cores and memory.' : ' The cores and memory apply at the next reboot.') : ''}`, confirmLabel: 'Resize' }))) return
     setBusy(true)
     try {
       const r = await proxmoxVmResize(vm.node, vm.type === 'lxc' ? 'lxc' : 'qemu', vm.vmid, { ...(add > 0 ? { disk_add_gb: add } : {}), ...(coresChanged ? { cores: newCores } : {}), ...(memChanged ? { memory_mb: newMem } : {}), restart })
@@ -1068,9 +1065,9 @@ function ResizePanel({ vm, running, cores, memoryMb, diskBytes, onDone }: { vm: 
       {open && (
         <div className="mt-3 space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div><label htmlFor={`rs-disk-${vm.vmid}`} className={labelCls}>Add disk (GB)</label><input id={`rs-disk-${vm.vmid}`} type="number" min={0} max={4096} value={addGb} onChange={(e) => setAddGb(e.target.value)} className={`${inputCls} tabular-nums`} disabled={busy} /></div>
-            <div><label htmlFor={`rs-cores-${vm.vmid}`} className={labelCls}>Cores</label><input id={`rs-cores-${vm.vmid}`} type="number" min={1} max={128} value={c} onChange={(e) => setC(e.target.value)} className={`${inputCls} tabular-nums`} disabled={busy} /></div>
-            <div><label htmlFor={`rs-mem-${vm.vmid}`} className={labelCls}>Memory (GB)</label><input id={`rs-mem-${vm.vmid}`} type="number" min={0.5} step={0.5} value={memGb} onChange={(e) => setMemGb(e.target.value)} className={`${inputCls} tabular-nums`} disabled={busy} /></div>
+            <div><label htmlFor={`rs-disk-${vm.vmid}`} className={LABEL}>Add disk (GB)</label><input id={`rs-disk-${vm.vmid}`} type="number" min={0} max={4096} value={addGb} onChange={(e) => setAddGb(e.target.value)} className={`${INPUT_FLEET} tabular-nums`} disabled={busy} /></div>
+            <div><label htmlFor={`rs-cores-${vm.vmid}`} className={LABEL}>Cores</label><input id={`rs-cores-${vm.vmid}`} type="number" min={1} max={128} value={c} onChange={(e) => setC(e.target.value)} className={`${INPUT_FLEET} tabular-nums`} disabled={busy} /></div>
+            <div><label htmlFor={`rs-mem-${vm.vmid}`} className={LABEL}>Memory (GB)</label><input id={`rs-mem-${vm.vmid}`} type="number" min={0.5} step={0.5} value={memGb} onChange={(e) => setMemGb(e.target.value)} className={`${INPUT_FLEET} tabular-nums`} disabled={busy} /></div>
           </div>
           <p className="text-[11px] text-slate-500">A disk only grows. The filesystem of a VM the hub manages grows at once; other guests grow theirs at the next boot. Cores and memory take effect after a reboot.</p>
           {running && (coresChanged || memChanged) && (
@@ -1104,7 +1101,7 @@ function MemberMenuSheet({ member, vms, onClose, onEdit, onChanged }: { member: 
   }
   // the hub lost the VM's password (the secret was deleted, the account changed) or is locked out of it: the VM joins again
   const relink = async () => {
-    if (!(await confirm({ title: `Relink ${member.name}`, message: `The hub opens ${member.name} over its ssh key, lifts its own lock-out there and has the VM join the hub again with a new password. Stacks, placement and settings stay as they are.`, confirmLabel: 'Relink' }))) return
+    if (!(await confirm({ title: `Relink ${member.name}?`, message: `The hub opens ${member.name} over its ssh key, lifts its own lock-out there and has the VM join the hub again with a new password. Stacks, placement and settings stay as they are.`, confirmLabel: 'Relink' }))) return
     setBusy('relink'); setNote('')
     try {
       const r = await relinkFleetMember(member.id)
@@ -1123,7 +1120,7 @@ function MemberMenuSheet({ member, vms, onClose, onEdit, onChanged }: { member: 
     } catch (e) { setNote(e instanceof Error ? e.message : 'The sync failed') } finally { setBusy('') }
   }
   const remove = async () => {
-    if (!(await confirm({ title: 'Forget this member', message: `Forget ${member.name}? Its stacks keep running; only the hub stops managing it.`, confirmLabel: 'Forget', danger: true }))) return
+    if (!(await confirm({ title: 'Forget this member?', message: `Forget ${member.name}? Its stacks keep running; only the hub stops managing it.`, confirmLabel: 'Forget', danger: true }))) return
     setBusy('remove')
     try { await removeFleetMember(member.id); addToast({ type: 'success', message: `${member.name} removed from the fleet` }); onChanged(); onClose() }
     catch (e) { setNote(e instanceof Error ? e.message : 'Could not remove'); setBusy('') }
@@ -1137,26 +1134,26 @@ function MemberMenuSheet({ member, vms, onClose, onEdit, onChanged }: { member: 
   const guest = vms.find((v) => v.vmid === member.vmid)
   const canDestroy = !!member.vmid && member.type !== 'lxc'
   return (
-    <Sheet title={member.name} subtitle={`${member.url} · account ${member.username}${guest ? ` · ${guest.type === 'qemu' ? 'VM' : 'LXC'} ${guest.vmid} ${guest.name}` : member.vmid ? ` · guest ${member.vmid}` : ' · no guest yet'}`} icon={<Satellite size={18} />} onClose={onClose}>
+    <Sheet tone="fleet" title={member.name} subtitle={`${member.url} · account ${member.username}${guest ? ` · ${guest.type === 'qemu' ? 'VM' : 'LXC'} ${guest.vmid} ${guest.name}` : member.vmid ? ` · guest ${member.vmid}` : ' · no guest yet'}`} icon={<Satellite size={18} />} onClose={onClose}>
       <div className="space-y-2">
         <p className="text-[11px] text-slate-500">Added {new Date(member.added_at * 1000).toLocaleString()} by {member.added_by} ({member.source === 'join' ? 'joined with a code' : 'added by address'}) · last answered {member.last_seen ? ago(member.last_seen) : 'never'}{member.last_error ? ` · ${member.last_error}` : ''}</p>
         {note && <p className="text-xs text-slate-300 bg-white/[0.03] border border-white/5 rounded-lg px-3 py-2">{note}</p>}
-        <button type="button" onClick={test} disabled={!!busy} className={`${BTN_SHEET} ${TONE_QUIET} w-full`}>{busy === 'test' ? <Loader2 size={15} className="animate-spin" /> : <PlugZap size={15} />} Test the link and re-match the guest</button>
-        <button type="button" onClick={sync} disabled={!!busy} className={`${BTN_SHEET} ${TONE_QUIET} w-full`}>{busy === 'sync' ? <Loader2 size={15} className="animate-spin" /> : <FolderSync size={15} />} Sync stack files from the VM</button>
-        <button type="button" onClick={() => void relink()} disabled={!!busy} className={`${BTN_SHEET} ${TONE_QUIET} w-full`}>{busy === 'relink' ? <Loader2 size={15} className="animate-spin" /> : <Link2 size={15} />} Relink to the hub (password lost, or "rate limiting login")</button>
-        <button type="button" onClick={onEdit} disabled={!!busy} className={`${BTN_SHEET} ${TONE_QUIET} w-full`}><Pencil size={15} /> Edit name, address, account or guest</button>
-        <button type="button" onClick={remove} disabled={!!busy} className={`${BTN_SHEET} ${TONE_DANGER} w-full`}>{busy === 'remove' ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />} Remove from the fleet</button>
-        {canDestroy && <button ref={destroyRef} type="button" onClick={() => setDestroying(true)} disabled={!!busy || destroying} aria-expanded={destroying} className={`${BTN_SHEET} ${TONE_DANGER} w-full`}><Trash2 size={15} /> Stop and destroy the VM on Proxmox</button>}
+        <button type="button" onClick={test} disabled={!!busy} className={`${BTN_SHEET} ${TONE_QUIET} w-full`}>{busy === 'test' ? <Loader2 size={16} className="animate-spin" /> : <PlugZap size={16} />} Test the link and re-match the guest</button>
+        <button type="button" onClick={sync} disabled={!!busy} className={`${BTN_SHEET} ${TONE_QUIET} w-full`}>{busy === 'sync' ? <Loader2 size={16} className="animate-spin" /> : <FolderSync size={16} />} Sync stack files from the VM</button>
+        <button type="button" onClick={() => void relink()} disabled={!!busy} className={`${BTN_SHEET} ${TONE_QUIET} w-full`}>{busy === 'relink' ? <Loader2 size={16} className="animate-spin" /> : <Link2 size={16} />} Relink to the hub (password lost, or "rate limiting login")</button>
+        <button type="button" onClick={onEdit} disabled={!!busy} className={`${BTN_SHEET} ${TONE_QUIET} w-full`}><Pencil size={16} /> Edit name, address, account or guest</button>
+        <button type="button" onClick={remove} disabled={!!busy} className={`${BTN_SHEET} ${TONE_DANGER} w-full`}>{busy === 'remove' ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />} Remove from the fleet</button>
+        {canDestroy && <button ref={destroyRef} type="button" onClick={() => setDestroying(true)} disabled={!!busy || destroying} aria-expanded={destroying} className={`${BTN_SHEET} ${TONE_DANGER} w-full`}><Trash2 size={16} /> Stop and destroy the VM on Proxmox</button>}
         {canDestroy && destroying && (
           <div role="group" aria-label="Confirm destroying the VM" className="rounded-xl border border-rose-500/25 bg-rose-500/[0.06] p-3 space-y-3 animate-fade-in">
             <p className="text-xs text-rose-200">Stop and destroy VM {member.vmid} ({member.name}) on Proxmox, with its disks? Everything in it is lost.</p>
             <div>
-              <label htmlFor="destroy-vm-name" className={labelCls}>Type the stack name <span className="font-mono text-slate-200">{member.name}</span> to confirm</label>
-              <input id="destroy-vm-name" value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={member.name} autoComplete="off" spellCheck={false} autoFocus disabled={busy === 'remove'} className={`${inputCls} font-mono`} />
+              <label htmlFor="destroy-vm-name" className={LABEL}>Type the stack name <span className="font-mono text-slate-200">{member.name}</span> to confirm</label>
+              <input id="destroy-vm-name" value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={member.name} autoComplete="off" spellCheck={false} autoFocus disabled={busy === 'remove'} className={`${INPUT_FLEET} font-mono`} />
             </div>
             <div className="flex gap-2">
               <button type="button" onClick={cancelDestroy} disabled={busy === 'remove'} className={`${BTN_SHEET_QUIET} flex-1`}>Cancel</button>
-              <button type="button" onClick={() => void destroy()} disabled={typed !== member.name || busy === 'remove'} className={`${BTN_SHEET_DANGER} flex-1`}>{busy === 'remove' ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />} Destroy the VM</button>
+              <button type="button" onClick={() => void destroy()} disabled={typed !== member.name || busy === 'remove'} className={`${BTN_SHEET_DANGER} flex-1`}>{busy === 'remove' ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />} Destroy the VM</button>
             </div>
           </div>
         )}
@@ -1211,7 +1208,7 @@ export default function Proxmox() {
   const templates = usePolling(fetchFleetTemplates, 60_000, { enabled: isAdmin && configured && reachable && isHub })
   const [removingTemplate, setRemovingTemplate] = useState<number | null>(null)
   const removeTemplate = async (t: FleetTemplate) => {
-    if (!(await confirm({ title: 'Remove the template', message: `Remove the DCS template ${t.image_id} (VM ${t.vmid})? The next build from that image installs everything again (a minute and a half) until a new one is baked.`, confirmLabel: 'Remove', danger: true }))) return
+    if (!(await confirm({ title: 'Remove the template?', message: `Remove the DCS template ${t.image_id} (VM ${t.vmid})? The next build from that image installs everything again (a minute and a half) until a new one is baked.`, confirmLabel: 'Remove', danger: true }))) return
     setRemovingTemplate(t.vmid)
     try { await deleteFleetTemplate(t.vmid); addToast({ type: 'success', message: `Template ${t.image_id} removed` }); templates.refresh(); vms.refresh() }
     catch (e) { addToast({ type: 'error', message: e instanceof Error ? e.message : 'The template could not be removed' }) }
@@ -1324,8 +1321,8 @@ export default function Proxmox() {
 
   // the fleet's violet, as on every capsule: this server is the hub, or a member of one
   const roleChip = role === 'member'
-    ? <Badge component="span" color="violet" leftSection={<Satellite size={10} />}>member of {fleet.data?.hub?.name || fleet.data?.hub?.url}</Badge>
-    : isHub ? <Badge component="span" color="violet" leftSection={<Satellite size={10} />}>hub · {memberCount} member{memberCount === 1 ? '' : 's'}</Badge>
+    ? <Pill tone="fleet" icon={<Satellite size={10} />}>member of {fleet.data?.hub?.name || fleet.data?.hub?.url}</Pill>
+    : isHub ? <Pill tone="fleet" icon={<Satellite size={10} />}>hub · {memberCount} member{memberCount === 1 ? '' : 's'}</Pill>
     : null
 
   // the overview row: the cards that apply here, side by side; the builds take a full row of their own while any exist
@@ -1437,8 +1434,7 @@ export default function Proxmox() {
               </SectionLabel>
               <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
                 <div className="relative w-full sm:w-auto">
-                  <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                  <input value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search the guests" placeholder="Search name, id, node, tag, stack" className="h-9 pl-8 pr-3 rounded-lg bg-white/5 border border-white/10 text-sm text-slate-200 placeholder-slate-600 w-full sm:w-72 focus:outline-none focus:border-emerald-500/30 focus:ring-1 focus:ring-emerald-500/30" />
+                  <SearchInput size="sm" value={query} onChange={setQuery} label="Search the guests" placeholder="Search name, id, node, tag, stack" className="sm:w-72" />
                 </div>
                 {/* a phone swipes the filters sideways; the counts show from sm up */}
                 <div className="min-w-0 max-w-full overflow-x-auto scrollbar-none">
@@ -1471,7 +1467,7 @@ export default function Proxmox() {
               <div className={CARD}>
                 <EmptyState
                   compact
-                  icon={<Box size={22} />}
+                  icon={<Box size={28} />}
                   title={all.length === 0 ? 'No guests on this Proxmox yet' : 'No guest matches'}
                   hint={all.length === 0
                     ? (canBuild ? 'New VM stack builds one; the VMs and containers made in Proxmox show here too.' : 'The VMs and containers made in Proxmox show here.')
@@ -1544,12 +1540,12 @@ export default function Proxmox() {
       })()}
       {pending && <ConfirmSheet vm={pending.vm} action={pending.action} onClose={() => setPending(null)} onDone={() => { setTimeout(() => { vms.refresh(); tasks.refresh(); status.refresh(); setRefreshTick((t) => t + 1) }, 1500) }} />}
       {sheet === 'link' && (
-        <Sheet title="Link the VMs" subtitle="Scan the guests for DCS installs and link them; VMs without one get the join code" icon={<Radar size={18} />} onClose={() => setSheet(null)} wide>
+        <Sheet tone="fleet" title="Link the VMs" subtitle="Scan the guests for DCS installs and link them; VMs without one get the join code" icon={<Radar size={18} />} onClose={() => setSheet(null)} wide>
           <FleetLinkPanel vms={vms.data?.vms} onChanged={refreshFleet} />
         </Sheet>
       )}
       {sheet === 'code' && (
-        <Sheet title="Join code" subtitle="What a Docker VM runs to become a member of this hub" icon={<KeyRound size={18} />} onClose={() => setSheet(null)} wide>
+        <Sheet tone="fleet" title="Join code" subtitle="What a Docker VM runs to become a member of this hub" icon={<KeyRound size={18} />} onClose={() => setSheet(null)} wide>
           <JoinCodeCard />
         </Sheet>
       )}

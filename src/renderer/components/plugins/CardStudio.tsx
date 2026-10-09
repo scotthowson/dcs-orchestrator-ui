@@ -9,7 +9,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import * as Icons from 'lucide-react'
-import { X, LayoutTemplate, Code, Database, Loader2, Play, Save, Trash2, FolderOpen, RefreshCw, Sparkles } from 'lucide-react'
+import { LayoutTemplate, Code, Database, Loader2, Play, Save, Trash2, FolderOpen, RefreshCw, Sparkles } from 'lucide-react'
 import { SegmentedControl } from '@mantine/core'
 import { apiClient } from '../../api/client'
 import { fetchApiCatalogue, fetchPluginCards, fetchCardSource, saveCard, deleteCard } from '../../api/endpoints'
@@ -18,8 +18,8 @@ import { useConfirm } from '../common/ConfirmDialog'
 import { HtmlCardFrame } from '../dashboard/PluginFrame'
 import ModalOverlay from '../common/ModalOverlay'
 import Hint from '../common/Hint'
-import { BTN_CARD, BTN_CARD_QUIET, BTN_ICON_SM, BTN_SHEET_PRIMARY, BTN_SHEET_QUIET, TONE_DANGER, TONE_GHOST } from '../../lib/ui'
-
+import { BTN_CARD, BTN_CARD_QUIET, BTN_SHEET_PRIMARY, BTN_SHEET_QUIET, TONE_DANGER } from '../../lib/ui'
+import CloseButton from '../common/CloseButton'
 type Widget = 'number' | 'gauge' | 'list' | 'badge' | 'text'
 interface DataSpec {
   path: string
@@ -174,7 +174,7 @@ export default function CardStudio({ onClose, onSaved }: { onClose: () => void; 
     finally { setSaving(false) }
   }
   const handleDelete = async () => {
-    if (!loadedFrom || !(await confirm({ title: 'Delete this card', message: `Delete the card ${loadedFrom.plugin}/${loadedFrom.card}?`, confirmLabel: 'Delete card', danger: true }))) return
+    if (!loadedFrom || !(await confirm({ title: 'Delete this card?', message: `Delete the card ${loadedFrom.plugin}/${loadedFrom.card}?`, confirmLabel: 'Delete card', danger: true }))) return
     try {
       await deleteCard(loadedFrom.plugin, loadedFrom.card)
       setExisting((l) => l.filter((x) => !(x.plugin === loadedFrom.plugin && x.card === loadedFrom.card)))
@@ -193,7 +193,7 @@ export default function CardStudio({ onClose, onSaved }: { onClose: () => void; 
           <div className="flex items-center gap-3 min-w-0">
             <span className="flex items-center justify-center w-9 h-9 rounded-xl bg-white/5 border border-white/10 shrink-0" aria-hidden><LayoutTemplate size={16} className="text-slate-300" /></span>
             <div className="min-w-0">
-              <h3 className="text-sm font-semibold text-slate-100">Card Studio</h3>
+              <h3 className="text-sm font-semibold text-slate-200">Card Studio</h3>
               <p className="text-[11px] text-slate-500">Build a dashboard card from an endpoint, or write one. It saves as a plugin card.</p>
             </div>
           </div>
@@ -204,7 +204,7 @@ export default function CardStudio({ onClose, onSaved }: { onClose: () => void; 
                 {existing.map((c) => <option key={c.id} value={c.id}>{c.title} · {c.plugin}</option>)}
               </select>
             )}
-            <Hint label="Close"><button type="button" aria-label="Close" onClick={onClose} className={`${BTN_ICON_SM} ${TONE_GHOST}`}><X size={16} /></button></Hint>
+            <Hint label="Close"><CloseButton onClick={onClose} /></Hint>
           </div>
         </div>
 
@@ -282,7 +282,7 @@ export default function CardStudio({ onClose, onSaved }: { onClose: () => void; 
           <div className="min-h-0 flex flex-col px-6 py-4">
             <div className="flex items-center justify-between mb-2">
               <span className={label + ' mb-0'}>Live preview</span>
-              <button type="button" onClick={() => setPreviewKey((k) => k + 1)} className={BTN_CARD_QUIET}><Play size={11} /> Run again</button>
+              <button type="button" onClick={() => setPreviewKey((k) => k + 1)} className={BTN_CARD_QUIET}><Play size={12} /> Run again</button>
             </div>
             <div className="flex-1 min-h-0 rounded-xl border border-white/5 bg-slate-900/60 overflow-hidden" style={{ minHeight: '16rem' }}>
               <HtmlCardFrame key={previewKey} html={generated} title="Preview" />
@@ -297,7 +297,7 @@ export default function CardStudio({ onClose, onSaved }: { onClose: () => void; 
           <div className="ml-auto flex items-center gap-2">
             <button type="button" onClick={onClose} className={BTN_SHEET_QUIET}>Close</button>
             <button type="button" onClick={() => void handleSave()} disabled={saving || !title.trim() || !plugin.trim()} className={BTN_SHEET_PRIMARY}>
-              {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} {loadedFrom ? 'Save changes' : 'Save card'}
+              {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} {loadedFrom ? 'Save changes' : 'Save card'}
             </button>
           </div>
         </div>

@@ -7,19 +7,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
-import {
-  Network,
-  RefreshCw,
-  ZoomIn,
-  ZoomOut,
-  Maximize2,
-  Box,
-  X,
-  Layers,
-  Server,
-  WifiOff,
-  ExternalLink, Download, Copy, Expand, Shrink, Link2,
-} from 'lucide-react'
+import { Network, RefreshCw, ZoomIn, ZoomOut, Maximize2, Box, Layers, Server, WifiOff, ExternalLink, Download, Copy, Expand, Shrink, Link2 } from 'lucide-react'
 import { usePolling } from '../hooks/usePolling'
 import { useFleetScope, type ScopeMember } from '../hooks/useFleetScope'
 import { useConnectionStore } from '../stores/connectionStore'
@@ -37,10 +25,11 @@ import { LoadingState, ErrorState, EmptyState } from '../components/common/PageS
 import ModalOverlay from '../components/common/ModalOverlay'
 import PageHeader from '../components/common/PageHeader'
 import Hint from '../components/common/Hint'
-import { BTN_TOOLBAR_QUIET, BTN_ICON, BTN_ICON_SM, TONE_GHOST } from '../lib/ui'
-import { CARD, FOCUS_RING } from '../lib/pageKit'
+import { BTN_TOOLBAR_QUIET, BTN_ICON_SM, TONE_GHOST, FOCUS_RING } from '../lib/ui'
+import { CARD } from '../lib/pageKit'
 import { STATE_META } from '../lib/containerState'
 
+import CloseButton from '../components/common/CloseButton'
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
@@ -382,12 +371,7 @@ function DetailPanel({
               <p className="text-[11px] text-slate-500">Container details</p>
             </div>
           </div>
-          <button type="button" aria-label="Close"
-            onClick={onClose}
-            className={`${BTN_ICON} text-slate-400 hover:text-slate-200 hover:bg-white/5 ${FOCUS_RING}`}
-          >
-            <X size={16} />
-          </button>
+          <CloseButton onClick={onClose} />
         </div>
 
         {/* Body */}
@@ -865,7 +849,7 @@ export default function Topology() {
       </PageHeader>
 
       {!isConnected ? (
-        <EmptyState icon={<WifiOff size={26} />} title="Connect to a server to see the topology map" />
+        <EmptyState icon={<WifiOff size={28} />} title="Connect to a server to see the topology map" />
       ) : (
       <>
       {/* Stats */}
@@ -926,7 +910,7 @@ export default function Topology() {
           <ErrorState title="Could not load the topology" error={error} onRetry={refresh} />
         ) : isEmpty ? (
           <EmptyState
-            icon={<Network size={36} />}
+            icon={<Network size={28} />}
             title="No containers running"
             hint="Start some stacks and the map of their networks appears here."
           />

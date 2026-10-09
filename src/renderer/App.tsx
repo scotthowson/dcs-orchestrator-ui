@@ -54,7 +54,6 @@ import Proxmox from './pages/Proxmox'
 import CrowdSec from './pages/CrowdSec'
 import Export from './pages/Export'
 import SetupWizard from './pages/SetupWizard'
-import KeyboardShortcutsPanel from './components/common/KeyboardShortcutsPanel'
 import { BackToTop } from './components/common/BackToTop'
 import ChatBubble from './components/chat/ChatBubble'
 import { MobileNav } from './components/layout/MobileNav'
@@ -133,7 +132,6 @@ export default function App() {
   const [transitionPage, setTransitionPage] = useState(currentPage)
   const [transitioning, setTransitioning] = useState(false)
   const [settingsReady, setSettingsReady] = useState(false)
-  const [showShortcuts, setShowShortcuts] = useState(false)
   const [isLocked, setIsLocked] = useState(false)
   const [lockPassword, setLockPassword] = useState('')
   const [lockError, setLockError] = useState('')
@@ -564,20 +562,6 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [setCurrentPage, isAuthenticated, currentPage, toggleSidebar, updateSetting])
 
-  // ? key to toggle keyboard shortcuts panel (only when no input focused)
-  useEffect(() => {
-    if (!isAuthenticated || currentPage === 'setup') return
-    function handleQuestion(e: KeyboardEvent) {
-      if (e.key !== '?' || e.ctrlKey || e.metaKey || e.altKey) return
-      const tag = (e.target as HTMLElement).tagName
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (e.target as HTMLElement).isContentEditable) return
-      e.preventDefault()
-      setShowShortcuts((prev) => !prev)
-    }
-    window.addEventListener('keydown', handleQuestion)
-    return () => window.removeEventListener('keydown', handleQuestion)
-  }, [isAuthenticated, currentPage])
-
   // Show setup wizard if server needs first-run setup
   if (currentPage === 'setup' && settingsReady) {
     return <SetupWizard onComplete={() => setCurrentPage('dashboard')} />
@@ -692,7 +676,6 @@ export default function App() {
         {/* Command Palette + Keyboard Shortcuts */}
         <CommandPalette />
         <KeyboardShortcuts />
-        <KeyboardShortcutsPanel open={showShortcuts} onClose={() => setShowShortcuts(false)} />
         {/* The one confirm dialog every page asks with (useConfirm) */}
         <ConfirmDialogHost />
 

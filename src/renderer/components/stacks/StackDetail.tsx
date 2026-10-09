@@ -49,6 +49,7 @@ import {
   TONE_QUIET, TONE_OK, TONE_DANGER, TONE_GHOST, TONE_GHOST_OK, TONE_GHOST_DANGER,
 } from '../../lib/ui'
 
+import Kbd from '../common/Kbd'
 interface Props {
   stackName: string
   onBack: () => void
@@ -371,7 +372,7 @@ export default function StackDetail({ stackName, onBack, onAction, isActionLoadi
           <button onClick={onBack} aria-label="Back" className={`${BTN_TOOLBAR_QUIET} shrink-0`}>
             <ArrowLeft size={14} />
             <span className="hidden sm:inline">Back</span>
-            <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono text-slate-500 bg-white/5 border border-white/5 ml-1">Esc</kbd>
+            <Kbd className="hidden sm:inline-flex ml-1">Esc</Kbd>
           </button>
         </Hint>
         <div className="flex-1 min-w-0">
@@ -664,7 +665,7 @@ export default function StackDetail({ stackName, onBack, onAction, isActionLoadi
                 Cancel
               </button>
               <button onClick={handleClone} disabled={cloneLoading || !cloneName.trim()} className={`${BTN_SHEET_PRIMARY} flex-1`}>
-                {cloneLoading ? <Loader2 size={14} className="animate-spin" /> : <Copy size={14} />}
+                {cloneLoading ? <Loader2 size={16} className="animate-spin" /> : <Copy size={16} />}
                 Clone
               </button>
             </div>

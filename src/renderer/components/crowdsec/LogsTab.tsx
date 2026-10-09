@@ -6,13 +6,19 @@
 // =============================================================================
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { Search, RefreshCw, Copy, Download, ArrowDown, WrapText, AlertTriangle, ScrollText, X, Info, Loader2 } from 'lucide-react'
+import { RefreshCw, Copy, Download, ArrowDown, WrapText, AlertTriangle, ScrollText, X, Info, Loader2 } from 'lucide-react'
 import { useToast } from '../common/Toast'
 import { crowdsecLogs } from '../../api/endpoints'
 import { usePolling } from '../../hooks/usePolling'
 import { copyText } from '../../lib/clipboard'
 import type { CrowdSecLogLine, CrowdSecLogsResponse } from '../../../shared/types'
-import { BTN_QUIET, CARD, INPUT, Segmented, Skel, Switch, downloadText, errMsg, fmtNum, useCs, useDebounced } from './kit'
+import { downloadText, errMsg, fmtNum, useCs, useDebounced } from './kit'
+import { BTN_TOOLBAR_QUIET } from '../../lib/ui'
+import { CARD } from '../../lib/pageKit'
+import { SkeletonBlock } from '../common/PageState'
+import Segmented from '../common/Segmented'
+import { ToggleRow } from '../common/Toggle'
+import SearchInput from '../common/SearchInput'
 
 type Level = 'all' | 'warn' | 'error'
 const LEVEL_LABEL: Record<Level, string> = { all: 'All levels', warn: 'Warnings and errors', error: 'Errors only' }
@@ -68,18 +74,6 @@ const dayOf = (t: string): string => {
 }
 /** one line as plain text, for Copy and Download */
 const lineText = (l: CrowdSecLogLine): string => `${l.time || ''} ${(LEVEL_NAME[l.level] || l.level.toUpperCase()).padEnd(5)} ${l.module ? `[${l.module}] ` : ''}${l.message}`.trim()
-
-function Toggle({ id, label, help, on, onChange }: { id: string; label: string; help: string; on: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <div className="flex items-start gap-3 min-w-0">
-      <Switch id={id} checked={on} onChange={onChange} label={label} />
-      <div className="min-w-0">
-        <label htmlFor={id} className="text-xs text-slate-200 cursor-pointer">{label}</label>
-        <p className="text-[11px] text-slate-500 leading-snug mt-0.5">{help}</p>
-      </div>
-    </div>
-  )
-}
 
 export default function LogsTab() {
   const { member } = useCs()
@@ -194,11 +188,11 @@ export default function LogsTab() {
           ]}
         />
         <div className="flex items-center gap-2 ml-auto sm:order-last">
-          <button type="button" onClick={() => void load()} className={BTN_QUIET} aria-label="Refresh the log" title="Read the log again now">
-            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /><span className="hidden sm:inline">Refresh</span>
+          <button type="button" onClick={() => void load()} className={BTN_TOOLBAR_QUIET} aria-label="Refresh the log" title="Read the log again now">
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /><span className="hidden sm:inline">Refresh</span>
           </button>
-          <button type="button" onClick={copyVisible} disabled={!lines.length} className={BTN_QUIET} aria-label="Copy the lines shown" title="Copy the lines shown, as text"><Copy size={13} /><span className="hidden sm:inline">Copy</span></button>
-          <button type="button" onClick={download} disabled={!lines.length} className={BTN_QUIET} aria-label="Download the lines shown as a .log file" title="Save the lines shown as a .log file"><Download size={13} /><span className="hidden sm:inline">Download .log</span></button>
+          <button type="button" onClick={copyVisible} disabled={!lines.length} className={BTN_TOOLBAR_QUIET} aria-label="Copy the lines shown" title="Copy the lines shown, as text"><Copy size={14} /><span className="hidden sm:inline">Copy</span></button>
+          <button type="button" onClick={download} disabled={!lines.length} className={BTN_TOOLBAR_QUIET} aria-label="Download the lines shown as a .log file" title="Save the lines shown as a .log file"><Download size={14} /><span className="hidden sm:inline">Download .log</span></button>
         </div>
         <Segmented<string>
           value={String(count)}
@@ -207,17 +201,15 @@ export default function LogsTab() {
           options={LINE_CHOICES.map((n) => ({ value: String(n), label: `${n} lines`, title: `The newest ${n} lines` }))}
         />
         <div className="relative w-full sm:w-auto sm:flex-1 sm:min-w-[12rem] sm:max-w-xs">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-          <label htmlFor="logs-search" className="sr-only">Filter the log by text</label>
-          <input id="logs-search" type="search" value={q} maxLength={100} onChange={(e) => setQ(e.target.value)} placeholder="Filter by text" className={`${INPUT} !h-9 !pl-9 !text-xs`} autoComplete="off" spellCheck={false} />
+          <SearchInput size="sm" value={q} onChange={setQ} id="logs-search" maxLength={100} placeholder="Filter by text" autoComplete="off" spellCheck={false} label="Filter the log by text" />
         </div>
       </div>
 
       {/* how to show it */}
       <div className={`${CARD} px-3.5 py-3 grid gap-x-6 gap-y-3 sm:grid-cols-3`}>
-        <Toggle id="logs-lapi" label="Include API request lines" on={lapi} onChange={setLapi} help="CrowdSec notes every request to its own API, and the bouncer asks every few seconds: mostly noise, so they are hidden. Default: off." />
-        <Toggle id="logs-auto" label="Refresh by itself" on={auto} onChange={setAuto} help="Reads the newest lines every 5 seconds while this page is in front. Default: on." />
-        <Toggle id="logs-wrap" label="Wrap long lines" on={wrap} onChange={setWrap} help="Off keeps one line per row; scroll sideways for the rest. Default: off." />
+        <ToggleRow id="logs-lapi" label="Include API request lines" checked={lapi} onChange={setLapi} help="CrowdSec notes every request to its own API, and the bouncer asks every few seconds: mostly noise, so they are hidden." def="off" />
+        <ToggleRow id="logs-auto" label="Refresh by itself" checked={auto} onChange={setAuto} help="Reads the newest lines every 5 seconds while this page is in front." def="on" />
+        <ToggleRow id="logs-wrap" label="Wrap long lines" checked={wrap} onChange={setWrap} help="Off keeps one line per row; scroll sideways for the rest." def="off" />
       </div>
 
       {stopped && res && (
@@ -232,14 +224,14 @@ export default function LogsTab() {
         </p>
       )}
 
-      {!res && !err && <div className={`${CARD} p-3 space-y-2`} aria-busy="true" aria-label="Loading the log">{[0, 1, 2, 3, 4, 5, 6, 7].map((i) => <Skel key={i} className="h-4" />)}</div>}
+      {!res && !err && <div className={`${CARD} p-3 space-y-2`} aria-busy="true" aria-label="Loading the log">{[0, 1, 2, 3, 4, 5, 6, 7].map((i) => <SkeletonBlock key={i} className="h-4" />)}</div>}
       {!res && err && (
         <div className={`${CARD} p-4 flex items-start gap-3`} role="alert">
           <AlertTriangle size={16} className="text-rose-400 shrink-0 mt-0.5" />
           <div className="min-w-0 flex-1">
             <p className="text-sm text-rose-300 break-words">{err}</p>
             <p className="text-xs text-slate-500 mt-1">The log could not be read. Docker may be busy or CrowdSec may be restarting.</p>
-            <button type="button" onClick={() => void load()} className={`${BTN_QUIET} mt-3`}><RefreshCw size={13} /> Try again</button>
+            <button type="button" onClick={() => void load()} className={`${BTN_TOOLBAR_QUIET} mt-3`}><RefreshCw size={14} /> Try again</button>
           </div>
         </div>
       )}
@@ -258,9 +250,9 @@ export default function LogsTab() {
                   : 'The only lines CrowdSec has written lately are its API requests, which are hidden. Switch on “Include API request lines” to see them.'}
           </p>
           <div className="mt-4 flex items-center justify-center gap-2 flex-wrap">
-            {(level !== 'all' || q) && <button type="button" onClick={() => { setLevel('all'); setQ('') }} className={BTN_QUIET}><X size={13} /> Clear the filters</button>}
-            {!lapi && <button type="button" onClick={() => setLapi(true)} className={BTN_QUIET}>Include API request lines</button>}
-            {count < 500 && <button type="button" onClick={() => setCount(500)} className={BTN_QUIET}>Read 500 lines</button>}
+            {(level !== 'all' || q) && <button type="button" onClick={() => { setLevel('all'); setQ('') }} className={BTN_TOOLBAR_QUIET}><X size={14} /> Clear the filters</button>}
+            {!lapi && <button type="button" onClick={() => setLapi(true)} className={BTN_TOOLBAR_QUIET}>Include API request lines</button>}
+            {count < 500 && <button type="button" onClick={() => setCount(500)} className={BTN_TOOLBAR_QUIET}>Read 500 lines</button>}
           </div>
         </div>
       )}

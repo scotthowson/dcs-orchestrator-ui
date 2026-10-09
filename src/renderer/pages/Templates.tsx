@@ -51,7 +51,7 @@ import {
   Satellite, Home, Check, Cpu,
 } from 'lucide-react'
 import { createPortal } from 'react-dom'
-import { Badge, SegmentedControl, Select, Switch } from '@mantine/core'
+import { SegmentedControl, Select, Switch } from '@mantine/core'
 import { useComposeLinter, useEnvLinter } from '../hooks/useComposeLinter'
 import { usePolling } from '../hooks/usePolling'
 import { useConnectionStore } from '../stores/connectionStore'
@@ -161,7 +161,7 @@ function getCategoryIcon(category: string): React.ElementType {
 /** a template's category: its icon and its name in one neutral pill */
 function CategoryChip({ category, size = 'sm' }: { category: string; size?: 'sm' | 'xs' }) {
   const Icon = getCategoryIcon(category)
-  return <Badge component="span" color="slate" size={size} leftSection={<Icon size={size === 'xs' ? 9 : 10} />}>{category}</Badge>
+  return <Pill size={size} icon={<Icon size={10} />}>{category}</Pill>
 }
 
 function matchesCategory(template: TemplateInfo, filter: CategoryId): boolean {
@@ -284,6 +284,9 @@ import { SABLIER_DEFAULTS, SABLIER_SESSIONS, SABLIER_THEMES, SABLIER_THEME_NOTES
 import type { SablierOptions } from '../lib/sablier'
 import ModalOverlay from '../components/common/ModalOverlay'
 
+import { Pill } from '../components/common/Pill'
+import SearchInput from '../components/common/SearchInput'
+import CloseButton from '../components/common/CloseButton'
 function generateRouteYaml(
   serviceName: string,
   containerName: string,
@@ -1022,7 +1025,7 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
   const handleUndoDeploy = useCallback(async () => {
     if (!deployResult || !onUndeploy) return
     // the undeploy removes the data too (remove_data): say so before asking
-    if (!(await confirm({ title: 'Undo deploy', message: `Undo deploy? This removes the deployed services from "${deployResult.target_stack}" together with their data — the App-Data folders they own are deleted.`, confirmLabel: 'Undo deploy', danger: true }))) return
+    if (!(await confirm({ title: 'Undo the deploy?', message: `Undo deploy? This removes the deployed services from "${deployResult.target_stack}" together with their data — the App-Data folders they own are deleted.`, confirmLabel: 'Undo deploy', danger: true }))) return
     setUndeploying(true)
     const ok = await onUndeploy(template.name, deployResult.target_stack, deployResult.services_added || [])
     setUndeploying(false)
@@ -1093,12 +1096,12 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
           <div key={name} className="flex flex-wrap items-center gap-2">
             <span className="font-mono text-[11px] text-slate-200">{name}</span>
             {exists ? (
-              <Badge component="span" color="emerald" size="xs">stored</Badge>
+              <Pill tone="ok" size="xs">stored</Pill>
             ) : willCreate ? (
-              <Badge component="span" color="cyan" size="xs">stored when you deploy</Badge>
+              <Pill tone="info" size="xs">stored when you deploy</Pill>
             ) : (
               <>
-                <Badge component="span" color="amber" size="xs">missing</Badge>
+                <Pill tone="attention" size="xs">missing</Pill>
                 <input
                   type="password"
                   value={secretDrafts[name] ?? ''}
@@ -1197,9 +1200,7 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
               <p className="text-[11px] text-slate-500 truncate">{headerSub}</p>
             </div>
           </div>
-          <button type="button" aria-label="Close" onClick={onClose} className={`${BTN_ICON_SM} text-slate-500 hover:text-slate-200 hover:bg-white/10 shrink-0 ml-2`}>
-            <X size={16} />
-          </button>
+          <CloseButton onClick={onClose} className="shrink-0 ml-2" />
         </div>
 
         {/* Preparing: the deploy request itself (merge, routes, DNS) */}
@@ -1241,7 +1242,7 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
               <div className="flex items-center gap-2">
                 <button type="button" onClick={onClose} className={`${BTN_SHEET_QUIET} flex-1 sm:flex-none`}>Continue in background</button>
                 <button type="button" onClick={handleViewStack} className={`${BTN_SHEET_QUIET} flex-1 sm:flex-none`}>
-                  View stack <ArrowRight size={14} />
+                  View stack <ArrowRight size={16} />
                 </button>
               </div>
             </div>
@@ -1292,25 +1293,25 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
               <button type="button" onClick={onClose} className={`${BTN_SHEET_QUIET} flex-1 sm:flex-none`}>Done</button>
               {isAdmin && onUndeploy && (
                 <button type="button" onClick={handleUndoDeploy} disabled={undeploying} className={`${BTN_SHEET} ${TONE_DANGER} flex-1 sm:flex-none`}>
-                  {undeploying ? <Loader2 size={15} className="animate-spin" /> : <Undo2 size={15} />}
+                  {undeploying ? <Loader2 size={16} className="animate-spin" /> : <Undo2 size={16} />}
                   Undo deploy
                 </button>
               )}
               {isAdmin && outcome !== 'running' && (
                 <button type="button" onClick={handleStartNow} disabled={outcome === 'not-started' && missingSecrets.length > 0} title={outcome === 'not-started' && missingSecrets.length > 0 ? 'Store the missing secrets first' : 'Run the stack start again'} className={`${BTN_SHEET} ${TONE_OK} flex-1 sm:flex-none`}>
-                  <Play size={15} />
+                  <Play size={16} />
                   {outcome === 'failed' ? 'Retry start' : 'Start now'}
                 </button>
               )}
               {outcome === 'running' && (
                 <button type="button" onClick={openContainers} className={`${BTN_SHEET_QUIET} flex-1 sm:flex-none`}>
-                  <Package size={15} />
+                  <Package size={16} />
                   View container{(deployResult.services_added?.length ?? 0) > 1 ? 's' : ''}
                 </button>
               )}
               <button type="button" onClick={handleViewStack} className={`${BTN_SHEET_PRIMARY} flex-1 sm:flex-none`}>
                 View stack
-                <ArrowRight size={15} />
+                <ArrowRight size={16} />
               </button>
             </div>
           </>
@@ -1395,7 +1396,7 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
 
                 return allVars.length > 0 ? (
                   <div>
-                    <h4 className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2">
                       Variables
                     </h4>
                     <div className="space-y-2.5">
@@ -1510,7 +1511,7 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
                 return (
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <h4 className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Container names</h4>
+                      <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Container names</h4>
                       <span className="text-[10px] text-slate-500">{active.length} service{active.length === 1 ? '' : 's'}</span>
                     </div>
                     <div className="space-y-2">
@@ -1943,14 +1944,14 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
                       </span>
                       <span className="flex items-center gap-1.5">
                         {warnCount > 0 && (
-                          <Badge component="span" color="amber" size="xs">
+                          <Pill tone="attention" size="xs">
                             {warnCount} {warnCount === 1 ? 'warning' : 'warnings'}
-                          </Badge>
+                          </Pill>
                         )}
                         {infoCount > 0 && (
-                          <Badge component="span" color="slate" size="xs">
+                          <Pill tone="neutral" size="xs">
                             {infoCount} {infoCount === 1 ? 'suggestion' : 'suggestions'}
-                          </Badge>
+                          </Pill>
                         )}
                       </span>
                       <ChevronDown
@@ -1989,12 +1990,12 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
                   </div>
                   <div className="flex flex-wrap gap-1.5 mt-2 pl-[22px]">
                     {deployHookPlugins.map((p) => (
-                      <Badge key={p.name} component="span" color="cyan">
+                      <Pill key={p.name} tone="info">
                         {p.name}
                         <span className="opacity-70 ml-1">
                           {(p.hooks ?? []).filter((h) => h === 'pre-deploy' || h === 'post-deploy').join(', ')}
                         </span>
-                      </Badge>
+                      </Pill>
                     ))}
                   </div>
                 </div>
@@ -2233,7 +2234,7 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
                   disabled={!targetStack || dryRunLoading}
                   className={`${BTN_SHEET} ${TONE_QUIET} flex-1 sm:flex-none`}
                 >
-                  {dryRunLoading ? <Loader2 size={15} className="animate-spin" /> : <Eye size={15} />}
+                  {dryRunLoading ? <Loader2 size={16} className="animate-spin" /> : <Eye size={16} />}
                   Preview
                 </button>
               )}
@@ -2246,11 +2247,11 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
                   className={`${BTN_SHEET_PRIMARY} flex-1 sm:flex-none`}
                 >
                   {deploying ? (
-                    <Loader2 size={15} className="animate-spin" />
+                    <Loader2 size={16} className="animate-spin" />
                   ) : confirming ? (
-                    <AlertTriangle size={15} />
+                    <AlertTriangle size={16} />
                   ) : (
-                    <Rocket size={15} />
+                    <Rocket size={16} />
                   )}
                   {confirming ? 'Confirm and deploy' : 'Deploy stack'}
                 </button>
@@ -2381,7 +2382,7 @@ function CreateEditModal({ mode, initial, stacks, onClose, onSave, saving }: Cre
 
   // Esc closes (the overlay's key: it asks first when there are unsaved changes), Ctrl/Cmd+S saves
   const requestClose = useCallback(async () => {
-    if (hasChanges && mode === 'edit' && !(await confirm({ title: 'Discard changes', message: 'Discard unsaved changes to this template?', confirmLabel: 'Discard', danger: true }))) return
+    if (hasChanges && mode === 'edit' && !(await confirm({ title: 'Discard the changes?', message: 'Discard unsaved changes to this template?', confirmLabel: 'Discard', danger: true }))) return
     onClose()
   }, [hasChanges, mode, onClose, confirm])
   useEffect(() => {
@@ -2415,9 +2416,7 @@ function CreateEditModal({ mode, initial, stacks, onClose, onSave, saving }: Cre
               <p className="text-[10px] text-slate-500">Define a reusable stack template</p>
             </div>
           </div>
-          <button type="button" aria-label="Close" onClick={onClose} className={`${BTN_ICON_SM} text-slate-500 hover:text-slate-200 hover:bg-white/10`}>
-            <X size={16} />
-          </button>
+          <CloseButton onClick={onClose} />
         </div>
 
         {/* Content */}
@@ -2619,7 +2618,7 @@ function CreateEditModal({ mode, initial, stacks, onClose, onSave, saving }: Cre
               className={`${BTN_SHEET} ${TONE_QUIET} flex-1 sm:flex-none whitespace-nowrap`}
               title="Run docker compose config on the server"
             >
-              {validating ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle size={15} />} Validate
+              {validating ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />} Validate
             </button>
             <button type="button" onClick={requestClose} className={`${BTN_SHEET_QUIET} flex-1 sm:flex-none whitespace-nowrap`}>
               {mode === 'edit' ? 'Close' : 'Cancel'}
@@ -2631,7 +2630,7 @@ function CreateEditModal({ mode, initial, stacks, onClose, onSave, saving }: Cre
                 disabled={!canSave || !hasChanges}
                 className={`${BTN_SHEET_PRIMARY} flex-1 sm:flex-none whitespace-nowrap`}
               >
-                {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+                {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                 Save
               </button>
             )}
@@ -2642,7 +2641,7 @@ function CreateEditModal({ mode, initial, stacks, onClose, onSave, saving }: Cre
                 disabled={!canSave}
                 className={`${BTN_SHEET_PRIMARY} flex-1 sm:flex-none whitespace-nowrap`}
               >
-                {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+                {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                 Create template
               </button>
             )}
@@ -2759,9 +2758,7 @@ function UrlImportModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
               </p>
             </div>
           </div>
-          <button type="button" aria-label="Close" onClick={onClose} className={`${BTN_ICON_SM} text-slate-500 hover:text-slate-200 hover:bg-white/10`}>
-            <X size={16} />
-          </button>
+          <CloseButton onClick={onClose} />
         </div>
 
         {/* Body — scrollable */}
@@ -2845,7 +2842,7 @@ function UrlImportModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
                 >
                   Variables
                   {detectedVars.length > 0 && (
-                    <Badge component="span" color="emerald" size="xs">{detectedVars.length}</Badge>
+                    <Pill tone="ok" size="xs">{detectedVars.length}</Pill>
                   )}
                 </button>
               </div>
@@ -2947,7 +2944,7 @@ function UrlImportModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
               disabled={!compose || importing || !name}
               className={BTN_SHEET_PRIMARY}
             >
-              {importing ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
+              {importing ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
               Import template
             </button>
           </div>
@@ -3038,15 +3035,7 @@ function GalleryView({ onImport, isAdmin = true }: { onImport: (url: string, nam
           ))}
         </div>
         <div className="relative flex-1 min-w-0 md:max-w-xs">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            aria-label="Search the gallery"
-            placeholder="Search gallery..."
-            className="w-full pl-9 pr-3 py-2 rounded-lg bg-white/5 border border-white/5 text-xs text-slate-300 placeholder-slate-600 focus:outline-none focus:border-emerald-500/50 transition-colors"
-          />
+          <SearchInput size="sm" value={search} onChange={setSearch} label="Search the gallery" placeholder="Search gallery..." />
         </div>
       </div>
 
@@ -3173,9 +3162,9 @@ function TemplateCard({ template, onDeploy, onEdit, onDelete, onExport, deploySt
         <div className="flex items-center gap-2 min-w-0 flex-wrap">
           <CategoryChip category={template.category} />
           {deployStatus && deployStatus.state !== 'none' && (
-            <Badge component="span" color={running ? 'emerald' : 'slate'} leftSection={<Circle size={6} className={running ? 'fill-emerald-400 text-emerald-400 animate-pulse' : 'fill-slate-500 text-slate-500'} />}>
+            <Pill tone={running ? 'ok' : 'neutral'} icon={<Circle size={6} className={running ? 'fill-emerald-400 text-emerald-400 animate-pulse' : 'fill-slate-500 text-slate-500'} />}>
               {running ? 'Running' : 'Deployed'}
-            </Badge>
+            </Pill>
           )}
         </div>
         {/* (on a phone, where nothing hovers, they are always there) */}
@@ -3592,7 +3581,7 @@ export default function Templates() {
   // the History table's Undeploy (the deploy sheet asks on its own): the data goes with the services, so ask first
   const askUndeploy = useCallback(async (templateName: string, targetStack: string, services: string[]) => {
     const what = services.length > 0 ? services.join(', ') : templateName
-    if (!(await confirm({ title: 'Undeploy', message: `Remove ${what} from "${targetStack}"? The containers go, and so does the app's data — the App-Data folders these services own are deleted.`, confirmLabel: 'Undeploy', danger: true }))) return
+    if (!(await confirm({ title: 'Undeploy it?', message: `Remove ${what} from "${targetStack}"? The containers go, and so does the app's data — the App-Data folders these services own are deleted.`, confirmLabel: 'Undeploy', danger: true }))) return
     await handleUndeploy(templateName, targetStack, services)
   }, [confirm, handleUndeploy])
 
@@ -3728,7 +3717,7 @@ export default function Templates() {
 
   // Delete template
   const handleDeleteTemplate = useCallback(async (template: TemplateInfo) => {
-    if (!(await confirm({ title: 'Delete template', message: `Delete template "${template.name}"? This cannot be undone.`, confirmLabel: 'Delete', danger: true }))) return
+    if (!(await confirm({ title: 'Delete this template?', message: `Delete template "${template.name}"? This cannot be undone.`, confirmLabel: 'Delete', danger: true }))) return
     try {
       const res = await deleteTemplate(template.name)
       if (res.success) {
@@ -3828,12 +3817,10 @@ export default function Templates() {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <History size={14} className="text-slate-400" />
-              <h2 className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Deploy history</h2>
+              <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Deploy history</h2>
               <span className="text-[10px] text-slate-500">{deduplicatedHistory.length} events</span>
             </div>
-            <Hint label="Close the history"><button type="button" aria-label="Close the history" onClick={() => setShowHistory(false)} className={`${BTN_ICON_SM} text-slate-500 hover:text-slate-200 hover:bg-white/10`}>
-              <X size={14} />
-            </button></Hint>
+            <Hint label="Close the history"><CloseButton label="Close the history" size="sm" onClick={() => setShowHistory(false)} /></Hint>
           </div>
           {historyLoading ? (
             <LoadingState compact label="Reading the history…" />
@@ -3859,7 +3846,7 @@ export default function Templates() {
                         {new Date(entry.timestamp).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                       </td>
                       <td className="py-2 px-2">
-                        <Badge component="span" color={entry.action === 'deploy' ? 'emerald' : 'slate'}>{entry.action}</Badge>
+                        <Pill tone={entry.action === 'deploy' ? 'ok' : 'neutral'}>{entry.action}</Pill>
                       </td>
                       <td className="py-2 px-2 font-mono text-slate-300">{entry.template}</td>
                       <td className="py-2 px-2 font-mono text-slate-400">{entry.target_stack}</td>
@@ -3900,15 +3887,7 @@ export default function Templates() {
           <div className="space-y-3">
             {/* Search bar */}
             <div className="relative">
-              <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                aria-label="Search the templates"
-                placeholder={`Search ${templates.length} templates...`}
-                className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-white/[0.04] border border-white/5 text-sm text-slate-300 placeholder-slate-600 focus:outline-none focus:border-emerald-500/30 focus:bg-white/[0.06] focus:shadow-lg focus:shadow-emerald-500/5 transition-all duration-200"
-              />
+              <SearchInput value={search} onChange={setSearch} label="Search the templates" placeholder={`Search ${templates.length} templates...`} />
               {search ? (
                 <Hint label="Clear the search"><button type="button" aria-label="Clear the search" onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 grid h-8 w-8 place-items-center rounded-lg text-slate-500 hover:text-slate-200 hover:bg-white/10 transition-colors">
                   <X size={14} />
@@ -3989,8 +3968,8 @@ export default function Templates() {
                       <div className="w-7 h-7 rounded-md flex items-center justify-center bg-white/[0.03] text-slate-400" aria-hidden>
                         <CatIcon size={14} />
                       </div>
-                      <h2 className="text-xs font-bold text-slate-300 uppercase tracking-wider">{def.label}</h2>
-                      <Badge component="span" color="slate" size="xs">{groupTemplates.length}</Badge>
+                      <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{def.label}</h2>
+                      <Pill tone="neutral" size="xs">{groupTemplates.length}</Pill>
                     </div>
                     {/* Category grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

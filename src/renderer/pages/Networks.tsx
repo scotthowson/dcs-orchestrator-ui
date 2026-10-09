@@ -6,12 +6,7 @@
 
 import { useState, useEffect, useMemo, type ReactNode, useCallback, useRef, useId } from 'react'
 import { createPortal } from 'react-dom'
-import { Badge } from '@mantine/core'
-import {
-  Network, RefreshCw, Plus, Trash2, X, Check,
-  Globe, Lock, AlertCircle, Loader2, Unplug, Plug, Eye,
-  Search, ChevronDown, ChevronUp, Pencil, Tag, Link2,
-} from 'lucide-react'
+import { Network, RefreshCw, Plus, Trash2, X, Check, Globe, Lock, AlertCircle, Loader2, Unplug, Plug, Eye, ChevronDown, ChevronUp, Pencil, Tag, Link2 } from 'lucide-react'
 import { usePolling } from '../hooks/usePolling'
 import {
   fetchNetworks, fetchNetworkDetail,
@@ -34,12 +29,13 @@ import { LoadingState, ErrorState, EmptyState } from '../components/common/PageS
 import ModalOverlay from '../components/common/ModalOverlay'
 import PageHeader from '../components/common/PageHeader'
 import Hint from '../components/common/Hint'
-import {
-  BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD, BTN_CARD_QUIET, BTN_ICON, BTN_ICON_SM,
-  BTN_SHEET_QUIET, BTN_SHEET_PRIMARY, TONE_QUIET, TONE_OK, TONE_DANGER, TONE_GHOST, TONE_GHOST_DANGER,
-} from '../lib/ui'
-import { CARD, SEARCH_FIELD, FIELD, FOCUS_RING, REVEAL } from '../lib/pageKit'
-
+import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD, BTN_CARD_QUIET, BTN_ICON, BTN_ICON_SM, BTN_SHEET_QUIET, BTN_SHEET_PRIMARY, TONE_QUIET, TONE_OK, TONE_DANGER, TONE_GHOST, TONE_GHOST_DANGER, FOCUS_RING } from '../lib/ui'
+import { CARD, REVEAL } from '../lib/pageKit'
+import { INPUT } from '../lib/fieldStyles'
+import StatTile from '../components/common/StatTile'
+import { Pill } from '../components/common/Pill'
+import SearchInput from '../components/common/SearchInput'
+import CloseButton from '../components/common/CloseButton'
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -55,9 +51,6 @@ const CIDR_RE = /^(?:\d{1,3}\.){3}\d{1,3}\/\d{1,2}$|^[0-9a-fA-F:]+\/\d{1,3}$/
 const IP_RE = /^(?:\d{1,3}\.){3}\d{1,3}$|^[0-9a-fA-F:]+$/
 const LABEL_KEY_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/
 const isComposeLabel = (key: string) => key.startsWith('com.docker.compose.')
-/** the round X that closes a dialog */
-const CLOSE_BTN = `${BTN_ICON} text-slate-400 hover:text-slate-200 hover:bg-white/5 ${FOCUS_RING}`
-
 function OptionToggle({ on, onToggle, icon, label, hint }: {
   on: boolean
   onToggle: () => void
@@ -170,7 +163,7 @@ function NetworkFormModal({ initial, onClose, onSaved }: {
             <h3 className="text-base font-semibold text-slate-100">{editing ? 'Edit network' : 'Create Docker network'}</h3>
             <p className="text-sm text-slate-400 mt-0.5">{editing ? `${initial?.name} is rebuilt with the settings below` : 'Configure a new isolated network'}</p>
           </div>
-          <button type="button" aria-label="Close" onClick={onClose} className={`${CLOSE_BTN} -mr-1 -mt-1`}><X size={16} /></button>
+          <CloseButton onClick={onClose} className="-mr-1 -mt-1" />
         </div>
 
         {editing && (
@@ -200,7 +193,7 @@ function NetworkFormModal({ initial, onClose, onSaved }: {
               autoFocus={!editing}
               disabled={editing}
               spellCheck={false}
-              className={`${FIELD} font-mono disabled:opacity-60 disabled:cursor-not-allowed`}
+              className={`${INPUT} font-mono disabled:opacity-60 disabled:cursor-not-allowed`}
             />
           </div>
 
@@ -227,11 +220,11 @@ function NetworkFormModal({ initial, onClose, onSaved }: {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label htmlFor={`${uid}-subnet`} className="block text-xs font-medium text-slate-400 mb-1.5">Subnet <span className="text-slate-500">(optional)</span></label>
-              <input id={`${uid}-subnet`} type="text" value={subnet} onChange={(e) => setSubnet(e.target.value)} placeholder="172.20.0.0/16" spellCheck={false} className={`${FIELD} font-mono`} />
+              <input id={`${uid}-subnet`} type="text" value={subnet} onChange={(e) => setSubnet(e.target.value)} placeholder="172.20.0.0/16" spellCheck={false} className={`${INPUT} font-mono`} />
             </div>
             <div>
               <label htmlFor={`${uid}-gateway`} className="block text-xs font-medium text-slate-400 mb-1.5">Gateway <span className="text-slate-500">(optional)</span></label>
-              <input id={`${uid}-gateway`} type="text" value={gateway} onChange={(e) => setGateway(e.target.value)} placeholder="172.20.0.1" spellCheck={false} className={`${FIELD} font-mono`} />
+              <input id={`${uid}-gateway`} type="text" value={gateway} onChange={(e) => setGateway(e.target.value)} placeholder="172.20.0.1" spellCheck={false} className={`${INPUT} font-mono`} />
             </div>
           </div>
 
@@ -246,7 +239,7 @@ function NetworkFormModal({ initial, onClose, onSaved }: {
             <div className="space-y-4 animate-fade-in rounded-lg border border-white/5 bg-white/[0.02] p-4">
               <div>
                 <label htmlFor={`${uid}-range`} className="block text-xs font-medium text-slate-400 mb-1.5">IP range <span className="text-slate-500">(optional)</span></label>
-                <input id={`${uid}-range`} type="text" value={ipRange} onChange={(e) => setIpRange(e.target.value)} placeholder="172.20.5.0/24" spellCheck={false} className={`${FIELD} font-mono`} />
+                <input id={`${uid}-range`} type="text" value={ipRange} onChange={(e) => setIpRange(e.target.value)} placeholder="172.20.5.0/24" spellCheck={false} className={`${INPUT} font-mono`} />
                 <p className="text-[11px] text-slate-500 mt-1">Containers get addresses from this part of the subnet only</p>
               </div>
               <OptionToggle on={attachable} onToggle={() => setAttachable(!attachable)} icon={<Link2 size={12} className="text-slate-500" />} label="Attachable" hint="Standalone containers may join with docker network connect (overlay networks need this)" />
@@ -262,9 +255,9 @@ function NetworkFormModal({ initial, onClose, onSaved }: {
                   <div className="space-y-1.5">
                     {labels.map((l, i) => (
                       <div key={i} className="flex items-center gap-1.5">
-                        <input aria-label={`Label ${i + 1} key`} type="text" value={l.key} onChange={(e) => setLabels((prev) => prev.map((x, j) => (j === i ? { ...x, key: e.target.value } : x)))} placeholder="key" spellCheck={false} className={`${FIELD} font-mono !py-1.5 !text-xs`} />
+                        <input aria-label={`Label ${i + 1} key`} type="text" value={l.key} onChange={(e) => setLabels((prev) => prev.map((x, j) => (j === i ? { ...x, key: e.target.value } : x)))} placeholder="key" spellCheck={false} className={`${INPUT} font-mono !py-1.5 !text-xs`} />
                         <span className="text-slate-500">=</span>
-                        <input aria-label={`Label ${i + 1} value`} type="text" value={l.value} onChange={(e) => setLabels((prev) => prev.map((x, j) => (j === i ? { ...x, value: e.target.value } : x)))} placeholder="value" spellCheck={false} className={`${FIELD} font-mono !py-1.5 !text-xs`} />
+                        <input aria-label={`Label ${i + 1} value`} type="text" value={l.value} onChange={(e) => setLabels((prev) => prev.map((x, j) => (j === i ? { ...x, value: e.target.value } : x)))} placeholder="value" spellCheck={false} className={`${INPUT} font-mono !py-1.5 !text-xs`} />
                         <Hint label="Remove label">
                           <button type="button" aria-label={`Remove label ${i + 1}`} onClick={() => setLabels((prev) => prev.filter((_, j) => j !== i))} className={`${BTN_ICON_SM} ${TONE_GHOST_DANGER} ${FOCUS_RING}`}><X size={12} /></button>
                         </Hint>
@@ -301,7 +294,7 @@ function NetworkFormModal({ initial, onClose, onSaved }: {
             title={editing && !changed ? 'Nothing changed yet' : undefined}
             className={`${BTN_SHEET_PRIMARY} sm:flex-1 disabled:cursor-not-allowed ${FOCUS_RING}`}
           >
-            {saving ? <Loader2 size={14} className="animate-spin" /> : editing ? <RefreshCw size={14} /> : <Plus size={14} />}
+            {saving ? <Loader2 size={16} className="animate-spin" /> : editing ? <RefreshCw size={16} /> : <Plus size={16} />}
             {saving ? (editing ? 'Rebuilding…' : 'Creating…') : editing ? 'Rebuild network' : 'Create network'}
           </button>
         </div>
@@ -434,9 +427,7 @@ function NetworkDetailPanel({ network, onClose, onRefresh, onEdit, isAdmin }: {
                 Edit
               </button>
             )}
-            <button type="button" aria-label="Close" onClick={onClose} className={CLOSE_BTN}>
-              <X size={18} />
-            </button>
+            <CloseButton onClick={onClose} />
           </div>
         </div>
 
@@ -456,7 +447,7 @@ function NetworkDetailPanel({ network, onClose, onRefresh, onEdit, isAdmin }: {
               <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">Network properties</h3>
 
               <div className="grid grid-cols-2 gap-4">
-                {prop('Driver', <Badge color="cyan">{detail.driver}</Badge>)}
+                {prop('Driver', <Pill tone="info">{detail.driver}</Pill>)}
                 {prop('Scope', <p className="text-sm font-medium text-slate-200">{detail.scope}</p>)}
                 {prop('Subnet', <p className="text-sm text-slate-200 font-mono break-all">{detail.subnet || 'Auto-assigned'}</p>)}
                 {prop('Gateway', <p className="text-sm text-slate-200 font-mono break-all">{detail.gateway || 'Auto-assigned'}</p>)}
@@ -524,7 +515,7 @@ function NetworkDetailPanel({ network, onClose, onRefresh, onEdit, isAdmin }: {
                           <p className="text-sm text-slate-200 font-mono truncate">{c.name}</p>
                           <span className="inline-flex items-center gap-1">
                             <span className="text-[11px] text-slate-500 font-mono">{c.ipv4 || 'No IP assigned'}</span>
-                            {c.ipv4 && <CopyButton text={c.ipv4} size={10} />}
+                            {c.ipv4 && <CopyButton text={c.ipv4} label="Copy the address" />}
                           </span>
                         </div>
                       </div>
@@ -558,7 +549,7 @@ function NetworkDetailPanel({ network, onClose, onRefresh, onEdit, isAdmin }: {
                       value={connectTarget}
                       onChange={(e) => setConnectTarget(e.target.value)}
                       disabled={connectable.length === 0}
-                      className={`${FIELD} flex-1 min-w-0 !px-3 !py-2 !text-xs disabled:opacity-60`}
+                      className={`${INPUT} flex-1 min-w-0 !px-3 !py-2 !text-xs disabled:opacity-60`}
                     >
                       <option value="">{connectable.length ? 'Choose a container…' : 'Every container is already connected'}</option>
                       {connectable.map((n) => <option key={n} value={n}>{n}</option>)}
@@ -628,7 +619,7 @@ function NetworkCard({ net, onInspect, onDelete, isAdmin }: {
               ) : (
                 <Network size={14} className={`shrink-0 ${isBuiltIn ? 'text-slate-400' : 'text-cyan-400'}`} aria-hidden />
               )}
-              <h3 className="text-sm font-semibold text-slate-100 truncate group-hover:text-white transition-colors font-mono min-w-0">
+              <h3 className="text-sm font-semibold text-slate-200 truncate group-hover:text-white transition-colors font-mono min-w-0">
                 {net.name}
               </h3>
               {net.member !== undefined && <VmCapsule member={net.member} name={net.member_name} vmid={net.vmid} size="xs" />}
@@ -663,9 +654,9 @@ function NetworkCard({ net, onInspect, onDelete, isAdmin }: {
 
         {/* Driver + scope tags */}
         <div className="flex flex-wrap items-center gap-1.5 mb-3">
-          <Badge color="cyan">{net.driver}</Badge>
-          <Badge color="slate">{net.scope}</Badge>
-          {isBuiltIn && <Badge color="slate">built-in</Badge>}
+          <Pill tone="info">{net.driver}</Pill>
+          <Pill tone="neutral">{net.scope}</Pill>
+          {isBuiltIn && <Pill tone="neutral">built-in</Pill>}
         </div>
 
         {/* Connected containers */}
@@ -718,21 +709,6 @@ function NetworkCardSkeleton() {
         <div className="skeleton h-3 w-24 rounded" />
         <div className="flex gap-1"><div className="skeleton h-5 w-16 rounded-md" /><div className="skeleton h-5 w-20 rounded-md" /></div>
       </div>
-    </div>
-  )
-}
-
-/** one of the three counts above the list */
-function StatTile({ icon, label, short, value }: { icon: ReactNode; label: string; /** the label on a phone, where three tiles share a row */ short?: string; value: number }) {
-  return (
-    <div className={`${CARD} hover:border-white/10 transition-colors p-3 sm:p-4`}>
-      <div className="flex items-center gap-2 mb-1.5">
-        {icon}
-        <span className="text-[10px] text-slate-500 uppercase tracking-wider truncate">
-          {short ? <><span className="sm:hidden">{short}</span><span className="hidden sm:inline">{label}</span></> : label}
-        </span>
-      </div>
-      <p className="text-xl md:text-2xl font-bold text-slate-100 tabular-nums">{value}</p>
     </div>
   )
 }
@@ -808,7 +784,7 @@ export default function Networks() {
     }
     const where = scopeMember ? ` on the VM ${memberName}` : ''
     const ok = await confirm({
-      title: 'Delete network',
+      title: 'Delete this network?',
       message: `Delete the network ${name}${where}? This cannot be undone.`,
       confirmLabel: 'Delete network',
       danger: true,
@@ -876,30 +852,15 @@ export default function Networks() {
 
       {/* Stats row — 3 columns */}
       <div className="grid grid-cols-3 gap-2 sm:gap-3">
-        <StatTile icon={<Network size={14} className="text-cyan-400 shrink-0" aria-hidden />} label="Total networks" short="Total" value={networks.length} />
-        <StatTile icon={<Plus size={14} className="text-cyan-400 shrink-0" aria-hidden />} label="Custom networks" short="Custom" value={userNetworks.length} />
-        <StatTile icon={<Plug size={14} className="text-cyan-400 shrink-0" aria-hidden />} label="Connections" short="Links" value={totalContainers} />
+        <StatTile icon={Network} label="Total networks" short="Total" value={networks.length} />
+        <StatTile icon={Plus} label="Custom networks" short="Custom" value={userNetworks.length} />
+        <StatTile icon={Plug} label="Connections" short="Links" value={totalContainers} />
       </div>
 
       {/* Search + sort bar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" aria-hidden />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            aria-label="Search networks"
-            placeholder="Search by network, driver or container…"
-            className={SEARCH_FIELD}
-          />
-          {searchQuery && (
-            <Hint label="Clear the search">
-              <button type="button" aria-label="Clear the search" onClick={() => setSearchQuery('')} className={`${BTN_ICON_SM} ${TONE_GHOST} ${FOCUS_RING} absolute right-1.5 top-1/2 -translate-y-1/2`}>
-                <X size={14} />
-              </button>
-            </Hint>
-          )}
+          <SearchInput value={searchQuery} onChange={setSearchQuery} label="Search networks" placeholder="Search by network, driver or container…" />
         </div>
         <div role="group" aria-label="Sort the networks" className="flex items-center gap-1 shrink-0">
           <span className="text-[10px] uppercase tracking-wider text-slate-500 mr-1" aria-hidden>Sort</span>
@@ -915,7 +876,7 @@ export default function Networks() {
                 className={`${BTN_TOOLBAR} ${FOCUS_RING} border ${active ? 'bg-white/[0.06] border-white/10 text-slate-200' : 'border-transparent text-slate-400 hover:text-slate-200'}`}
               >
                 {label}
-                {active && (sortAsc ? <ChevronUp size={12} aria-hidden /> : <ChevronDown size={12} aria-hidden />)}
+                {active && (sortAsc ? <ChevronUp size={14} aria-hidden /> : <ChevronDown size={14} aria-hidden />)}
               </button>
             )
           })}

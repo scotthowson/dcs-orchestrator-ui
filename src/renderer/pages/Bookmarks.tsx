@@ -4,13 +4,8 @@
 // =============================================================================
 
 import React, { useState, useCallback, useId } from 'react'
-import { Badge, SegmentedControl } from '@mantine/core'
-import {
-  Bookmark, Plus, Trash2, Star, Layers,
-  Box, HardDrive, Network, HeartPulse, Monitor, Settings2,
-  ScrollText, Cog, LayoutDashboard,
-  Tag, Clock, Search, X, FolderHeart,
-} from 'lucide-react'
+import { SegmentedControl } from '@mantine/core'
+import { Bookmark, Plus, Trash2, Star, Layers, Box, HardDrive, Network, HeartPulse, Monitor, Settings2, ScrollText, Cog, LayoutDashboard, Tag, Clock, X, FolderHeart } from 'lucide-react'
 import { useSettingsStore } from '../stores/settingsStore'
 import { pageLabel } from '../constants/pageTitles'
 import PageHeader from '../components/common/PageHeader'
@@ -18,10 +13,13 @@ import Hint from '../components/common/Hint'
 import { DisconnectedBanner } from '../components/common/DisconnectedBanner'
 import { EmptyState } from '../components/common/PageState'
 import { useConfirm } from '../components/common/ConfirmDialog'
-import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_ICON_SM, TONE_OK, TONE_QUIET, TONE_GHOST } from '../lib/ui'
-import { CARD, CARD_HOVER, SEARCH_FIELD, FIELD, FOCUS_RING, REVEAL } from '../lib/pageKit'
+import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_ICON_SM, TONE_OK, TONE_QUIET, FOCUS_RING } from '../lib/ui'
+import { CARD, CARD_HOVER, REVEAL } from '../lib/pageKit'
 import type { PageId } from '../../shared/types'
 
+import { INPUT } from '../lib/fieldStyles'
+import { Pill } from '../components/common/Pill'
+import SearchInput from '../components/common/SearchInput'
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -188,7 +186,7 @@ function AddBookmarkForm({ onAdd, onCancel }: {
             onChange={(e) => setLabel(e.target.value)}
             placeholder="My bookmark"
             autoFocus
-            className={FIELD}
+            className={INPUT}
           />
         </div>
 
@@ -202,7 +200,7 @@ function AddBookmarkForm({ onAdd, onCancel }: {
               id={`${uid}-target`}
               value={target}
               onChange={(e) => setTarget(e.target.value)}
-              className={FIELD}
+              className={INPUT}
             >
               {pageTargets.map((p) => (
                 <option key={p.id} value={p.id}>{p.label}</option>
@@ -215,7 +213,7 @@ function AddBookmarkForm({ onAdd, onCancel }: {
               value={target}
               onChange={(e) => setTarget(e.target.value)}
               placeholder={type === 'stack' ? 'core-infrastructure' : type === 'container' ? 'nginx-proxy' : 'anything…'}
-              className={FIELD}
+              className={INPUT}
             />
           )}
         </div>
@@ -230,7 +228,7 @@ function AddBookmarkForm({ onAdd, onCancel }: {
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           placeholder="Quick notes about this bookmark…"
-          className={FIELD}
+          className={INPUT}
         />
       </div>
 
@@ -290,7 +288,7 @@ function BookmarkCard({ item, onDelete, onTogglePin, onNavigate }: {
               </button>
             </h3>
             {item.pinned && <Star size={11} className="text-amber-400 fill-amber-400 shrink-0" aria-hidden />}
-            <Badge color="slate">{item.type}</Badge>
+            <Pill tone="neutral">{item.type}</Pill>
           </div>
           <p className="text-xs text-slate-500 font-mono truncate mt-0.5">{item.target}</p>
           {item.notes && (
@@ -312,7 +310,7 @@ function BookmarkCard({ item, onDelete, onTogglePin, onNavigate }: {
               aria-label={`${item.pinned ? 'Unpin' : 'Pin'} ${item.label}`}
               className={`${BTN_ICON_SM} ${REVEAL} ${FOCUS_RING} ${item.pinned ? 'text-amber-400 hover:text-amber-300' : 'text-slate-500 hover:text-amber-400'} hover:bg-white/5`}
             >
-              <Star size={13} className={item.pinned ? 'fill-current' : ''} />
+              <Star size={12} className={item.pinned ? 'fill-current' : ''} />
             </button>
           </Hint>
           <Hint label="Delete">
@@ -322,7 +320,7 @@ function BookmarkCard({ item, onDelete, onTogglePin, onNavigate }: {
               aria-label={`Delete ${item.label}`}
               className={`${BTN_ICON_SM} ${REVEAL} ${FOCUS_RING} text-slate-500 hover:text-rose-400 hover:bg-rose-500/10`}
             >
-              <Trash2 size={13} />
+              <Trash2 size={12} />
             </button>
           </Hint>
         </div>
@@ -373,7 +371,7 @@ export default function Bookmarks() {
 
   const handleDelete = useCallback(async (item: BookmarkItem) => {
     const ok = await confirm({
-      title: 'Delete bookmark',
+      title: 'Delete this bookmark?',
       message: `Delete the bookmark "${item.label}"? It is only removed from this browser.`,
       confirmLabel: 'Delete bookmark',
       danger: true,
@@ -472,27 +470,7 @@ export default function Bookmarks() {
       {/* Search & Filter */}
       <div className="flex items-center gap-3 flex-wrap">
         <div className="relative flex-1 min-w-[12rem] max-w-md">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" aria-hidden />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            aria-label="Search bookmarks"
-            placeholder="Search bookmarks…"
-            className={SEARCH_FIELD}
-          />
-          {search && (
-            <Hint label="Clear the search">
-              <button
-                type="button"
-                aria-label="Clear the search"
-                onClick={() => setSearch('')}
-                className={`${BTN_ICON_SM} ${TONE_GHOST} ${FOCUS_RING} absolute right-1.5 top-1/2 -translate-y-1/2`}
-              >
-                <X size={14} />
-              </button>
-            </Hint>
-          )}
+          <SearchInput value={search} onChange={setSearch} label="Search bookmarks" placeholder="Search bookmarks…" />
         </div>
         <div className="min-w-0 max-w-full overflow-x-auto scrollbar-none">
           <SegmentedControl
@@ -515,7 +493,7 @@ export default function Bookmarks() {
       {filtered.length === 0 ? (
         bookmarks.length === 0 ? (
           <EmptyState
-            icon={<FolderHeart size={40} />}
+            icon={<FolderHeart size={28} />}
             title="No bookmarks yet"
             hint="Add your first bookmark to quickly reach your favorite pages, stacks and containers."
             action={
@@ -527,7 +505,7 @@ export default function Bookmarks() {
           />
         ) : (
           <EmptyState
-            icon={<FolderHeart size={40} />}
+            icon={<FolderHeart size={28} />}
             title="No matches"
             hint="Try another search or filter."
             action={

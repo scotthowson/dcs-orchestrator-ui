@@ -9,9 +9,9 @@
 // =============================================================================
 
 import { useId, useMemo, useRef, useState, type ReactNode } from 'react'
-import { ChevronDown, X, type LucideIcon } from 'lucide-react'
-import { CARD, HINT, INPUT, useOutside, parseDuration, type Tone } from './kit'
-
+import { ChevronDown } from 'lucide-react'
+import { useOutside, parseDuration } from './kit'
+import { HINT, INPUT } from '../../lib/fieldStyles'
 // ---------------------------------------------------------------------------
 // Lengths
 // ---------------------------------------------------------------------------
@@ -271,43 +271,6 @@ export function Setting({ title, help, changed = false, hint, children, id }: { 
         {hint && <p className={HINT}>{hint}</p>}
       </div>
     </div>
-  )
-}
-
-const BOX: Record<Tone, { box: string; icon: string }> = {
-  good: { box: 'bg-emerald-500/10 border-emerald-500/20', icon: 'text-emerald-400' },
-  warn: { box: 'bg-amber-500/10 border-amber-500/20', icon: 'text-amber-400' },
-  bad: { box: 'bg-rose-500/10 border-rose-500/20', icon: 'text-rose-400' },
-  info: { box: 'bg-cyan-500/10 border-cyan-500/20', icon: 'text-cyan-400' },
-  mute: { box: 'bg-white/[0.03] border-white/10', icon: 'text-slate-500' },
-}
-/** a boxed message: an icon, a headline, a few words, optionally a button */
-export function Notice({ tone, icon: Icon, title, children, action, role, onDismiss, className = '' }: { tone: Tone; icon: LucideIcon; title: ReactNode; children?: ReactNode; action?: ReactNode; role?: 'alert' | 'status'; onDismiss?: () => void; className?: string }) {
-  const t = BOX[tone]
-  return (
-    <div role={role} className={`rounded-lg border px-3 py-2.5 flex items-start gap-2.5 ${t.box} ${className}`}>
-      <Icon size={16} className={`${t.icon} shrink-0 mt-0.5`} aria-hidden="true" />
-      <div className="min-w-0 flex-1">
-        <p className="text-sm text-slate-100 leading-snug break-words">{title}</p>
-        {children && <div className="text-xs text-slate-300 mt-1 leading-relaxed break-words">{children}</div>}
-        {action && <div className="mt-2 flex items-center gap-2 flex-wrap">{action}</div>}
-      </div>
-      {onDismiss && <button type="button" onClick={onDismiss} className="h-6 w-6 rounded-md text-slate-500 hover:text-slate-200 hover:bg-white/10 inline-flex items-center justify-center shrink-0" aria-label="Dismiss" title="Dismiss"><X size={13} /></button>}
-    </div>
-  )
-}
-
-/** a card of the tab: a headline with its sentence, then the body */
-export function Panel({ id, icon: Icon, title, sub, right, children, className = '' }: { id: string; icon: LucideIcon; title: string; sub?: ReactNode; right?: ReactNode; children: ReactNode; className?: string }) {
-  return (
-    <section aria-labelledby={`${id}-title`} className={`${CARD} p-4 md:p-5 min-w-0 ${className}`} id={id}>
-      <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
-        <h2 id={`${id}-title`} className="text-sm font-semibold text-slate-200 flex items-center gap-2 min-w-[12rem] flex-1 pt-0.5"><Icon size={15} className="text-slate-500 shrink-0" aria-hidden="true" /> {title}</h2>
-        {right && <div className="flex items-center justify-end gap-2 flex-wrap">{right}</div>}
-      </div>
-      {sub && <div className="text-xs text-slate-500 mt-1.5 leading-relaxed">{sub}</div>}
-      <div className="mt-4">{children}</div>
-    </section>
   )
 }
 

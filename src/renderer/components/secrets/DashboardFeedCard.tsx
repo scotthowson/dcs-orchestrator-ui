@@ -6,23 +6,19 @@
 // =============================================================================
 
 import { useCallback, useEffect, useState } from 'react'
-import { Radio, Copy, Check, Loader2, Power, RefreshCw } from 'lucide-react'
+import { Radio, Loader2, Power, RefreshCw } from 'lucide-react'
 import { useToast } from '../common/Toast'
 import { useConfirm } from '../common/ConfirmDialog'
 import { fetchDashboardFeedStatus, createDashboardFeedToken, deleteDashboardFeedToken } from '../../api/endpoints'
 import type { DashboardFeedStatus } from '../../../shared/types'
-import { BTN_CARD, BTN_CARD_QUIET, TONE_OK, TONE_DANGER } from '../../lib/ui'
-
+import { BTN_CARD, TONE_OK, TONE_DANGER } from '../../lib/ui'
+import { CopyButton } from '../common/CopyButton'
 function CopyLine({ label, value }: { label: string; value: string }) {
-  const [done, setDone] = useState(false)
   return (
     <div className="flex items-center gap-2 min-w-0">
       <span className="text-[11px] text-slate-500 w-20 shrink-0">{label}</span>
       <code className="text-[11px] font-mono text-slate-300 truncate min-w-0 flex-1" title={value}>{value}</code>
-      <button type="button" aria-label={`Copy ${label}`} className={BTN_CARD_QUIET}
-        onClick={() => { navigator.clipboard?.writeText(value).then(() => { setDone(true); setTimeout(() => setDone(false), 1500) }).catch(() => {}) }}>
-        {done ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
-      </button>
+      <CopyButton text={value} label={`Copy the ${label.toLowerCase()}`} />
     </div>
   )
 }
@@ -42,14 +38,14 @@ export default function DashboardFeedCard() {
   if (missing || !status) return null
 
   const make = async () => {
-    if (status.enabled && !(await confirm({ title: 'Make a new token', message: 'The token in use stops working at once: every dashboard that has it needs the new one.', confirmLabel: 'Make a new token', danger: true }))) return
+    if (status.enabled && !(await confirm({ title: 'Make a new token?', message: 'The token in use stops working at once: every dashboard that has it needs the new one.', confirmLabel: 'Make a new token', danger: true }))) return
     setBusy('make')
     try { const r = await createDashboardFeedToken(); setToken(r.token); load() }
     catch (e) { addToast({ type: 'error', message: e instanceof Error ? e.message : 'Could not make a token' }) }
     finally { setBusy('') }
   }
   const off = async () => {
-    if (!(await confirm({ title: 'Switch the dashboard feed off', message: 'The token is removed: dashboards that read the feed get nothing until you make a new one.', confirmLabel: 'Switch off', danger: true }))) return
+    if (!(await confirm({ title: 'Switch the dashboard feed off?', message: 'The token is removed: dashboards that read the feed get nothing until you make a new one.', confirmLabel: 'Switch off', danger: true }))) return
     setBusy('off')
     try { await deleteDashboardFeedToken(); setToken(''); load() }
     catch (e) { addToast({ type: 'error', message: e instanceof Error ? e.message : 'Could not switch the feed off' }) }
@@ -61,7 +57,7 @@ export default function DashboardFeedCard() {
       <div className="flex items-start gap-3 flex-wrap">
         <div className="h-9 w-9 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0"><Radio size={16} className="text-emerald-400" /></div>
         <div className="min-w-0 flex-1">
-          <h2 className="text-sm font-semibold text-slate-100 flex items-center gap-2">Dashboard feed
+          <h2 className="text-sm font-semibold text-slate-200 flex items-center gap-2">Dashboard feed
             <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-medium border ${status.enabled ? 'border-emerald-500/25 bg-emerald-500/10 text-emerald-300' : 'border-white/10 bg-white/5 text-slate-400'}`}>{status.enabled ? 'on' : 'off'}</span>
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">A token for a dashboard that cannot sign in (Homarr, Home Assistant, a wall display). It can read the server at a glance and what CrowdSec has been seeing, and nothing else.</p>

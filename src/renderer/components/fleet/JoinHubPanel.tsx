@@ -11,10 +11,11 @@ import { joinFleetHub, leaveFleetHub } from '../../api/endpoints'
 import type { FleetHubLink, FleetJoinHubResponse } from '../../../shared/types'
 import ProgressCard, { type ProgressLine, type ProgressState } from '../common/ProgressCard'
 import { useConfirm } from '../common/ConfirmDialog'
-import { inputCls, labelCls, MATCH_LABEL } from './fleetShared'
+import { MATCH_LABEL } from './fleetShared'
 import { BTN_CARD_QUIET, BTN_TOOLBAR, TONE_OK } from '../../lib/ui'
 import { pageLabel } from '../../constants/pageTitles'
 
+import { INPUT_FLEET, LABEL } from '../../lib/fieldStyles'
 const STEPS = [
   { label: 'Reach', hint: 'the hub' },
   { label: 'Account', hint: 'dcs-hub here' },
@@ -90,7 +91,7 @@ export default function JoinHubPanel({ hub, initial, pending = null, autoRun = f
   }, [autoRun])
 
   const leave = async () => {
-    if (!(await confirm({ title: 'Leave the hub', message: 'Leave the hub? Its account here is removed; remove this server on the hub too.', confirmLabel: 'Leave', danger: true }))) return
+    if (!(await confirm({ title: 'Leave the hub?', message: 'Leave the hub? Its account here is removed; remove this server on the hub too.', confirmLabel: 'Leave', danger: true }))) return
     setLeaving(true)
     try { await leaveFleetHub(); onLeft?.() } catch (e) { setErr(e instanceof Error ? e.message : 'Could not leave') } finally { setLeaving(false) }
   }
@@ -119,18 +120,18 @@ export default function JoinHubPanel({ hub, initial, pending = null, autoRun = f
       {state !== 'done' && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label htmlFor={`${uid}-hub`} className={labelCls}>Hub address</label>
-            <input id={`${uid}-hub`} value={hubUrl} onChange={(e) => setHubUrl(e.target.value)} placeholder="http://192.168.1.10:9876" className={`${inputCls} font-mono`} disabled={busy || !!pending} />
+            <label htmlFor={`${uid}-hub`} className={LABEL}>Hub address</label>
+            <input id={`${uid}-hub`} value={hubUrl} onChange={(e) => setHubUrl(e.target.value)} placeholder="http://192.168.1.10:9876" className={`${INPUT_FLEET} font-mono`} disabled={busy || !!pending} />
           </div>
           <div>
-            <label htmlFor={pending ? undefined : `${uid}-code`} className={labelCls}>Join code</label>
+            <label htmlFor={pending ? undefined : `${uid}-code`} className={LABEL}>Join code</label>
             {pending
-              ? <div className={`${inputCls} flex items-center text-slate-400`}>saved by setup.sh</div>
-              : <input id={`${uid}-code`} value={token} onChange={(e) => setToken(e.target.value.toUpperCase())} placeholder="XXXX-XXXX-XXXX" className={`${inputCls} font-mono tracking-wider`} disabled={busy} />}
+              ? <div className={`${INPUT_FLEET} flex items-center text-slate-400`}>saved by setup.sh</div>
+              : <input id={`${uid}-code`} value={token} onChange={(e) => setToken(e.target.value.toUpperCase())} placeholder="XXXX-XXXX-XXXX" className={`${INPUT_FLEET} font-mono tracking-wider`} disabled={busy} />}
           </div>
           <div className="sm:col-span-2">
-            <label htmlFor={`${uid}-name`} className={labelCls}>Name on the hub (empty = this server's name)</label>
-            <input id={`${uid}-name`} value={name} onChange={(e) => setName(e.target.value)} placeholder="media-services" className={inputCls} disabled={busy} />
+            <label htmlFor={`${uid}-name`} className={LABEL}>Name on the hub (empty = this server's name)</label>
+            <input id={`${uid}-name`} value={name} onChange={(e) => setName(e.target.value)} placeholder="media-services" className={INPUT_FLEET} disabled={busy} />
           </div>
         </div>
       )}

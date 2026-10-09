@@ -7,15 +7,15 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Bomb, Loader2, FolderX, Database, ShieldCheck, X, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { Bomb, Loader2, FolderX, Database, ShieldCheck, AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { fetchContainerResetPreviewOn, resetContainerOn } from '../../api/fleetScoped'
 import type { ContainerResetPreview, ContainerResetResponse } from '../../../shared/types'
 import type { RowMember } from '../../../shared/fleetScoped'
 import { useToast } from '../common/Toast'
 import ModalOverlay from '../common/ModalOverlay'
 import Hint from '../common/Hint'
-import { BTN_ICON_SM, BTN_SHEET_DANGER, BTN_SHEET_QUIET, TONE_GHOST } from '../../lib/ui'
-
+import { BTN_SHEET_DANGER, BTN_SHEET_QUIET } from '../../lib/ui'
+import CloseButton from '../common/CloseButton'
 // a folder is named from its stack on (Stacks/<stack>/App-Data/…): the row cuts a long path at its end, which is
 // the part that tells the folders apart; the whole path is the row's title
 function shortPath(p: string): string {
@@ -91,11 +91,11 @@ export function NukeDialog({ containerName, member = null, memberName = '', open
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400"><Bomb size={18} /></div>
             <div>
-              <h3 className="text-sm font-semibold text-slate-100">Nuke &amp; reinstall {containerName}{member && <span className="ml-1.5 text-[11px] font-medium text-violet-200">· VM {memberName || member}</span>}</h3>
+              <h3 className="text-sm font-semibold text-slate-200">Nuke &amp; reinstall {containerName}{member && <span className="ml-1.5 text-[11px] font-medium text-violet-200">· VM {memberName || member}</span>}</h3>
               <p className="text-[11px] text-slate-500 mt-0.5">A fresh install{member ? ` inside the VM ${memberName || member}` : ''}: the container and its files go, then it is created again from the compose file.</p>
             </div>
           </div>
-          <Hint label="Close"><button onClick={onClose} disabled={busy} className={`${BTN_ICON_SM} ${TONE_GHOST}`} aria-label="Close"><X size={16} /></button></Hint>
+          <Hint label="Close"><CloseButton onClick={onClose} disabled={busy} /></Hint>
         </div>
 
         <div className="px-5 py-4 space-y-4 max-h-[60vh] overflow-y-auto scrollbar-thin">
@@ -192,7 +192,7 @@ export function NukeDialog({ containerName, member = null, memberName = '', open
           <button onClick={onClose} disabled={busy} className={`${BTN_SHEET_QUIET} flex-1 sm:flex-none`}>{result ? 'Close' : 'Cancel'}</button>
           {!result && (
             <button onClick={go} disabled={!canGo} className={`${BTN_SHEET_DANGER} flex-1 sm:flex-none disabled:cursor-not-allowed`}>
-              {busy ? <Loader2 size={14} className="animate-spin" /> : <Bomb size={14} />}
+              {busy ? <Loader2 size={16} className="animate-spin" /> : <Bomb size={16} />}
               {busy ? 'Reinstalling…' : 'Nuke & reinstall'}
             </button>
           )}

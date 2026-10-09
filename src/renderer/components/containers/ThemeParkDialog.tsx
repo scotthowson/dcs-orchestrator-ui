@@ -8,14 +8,14 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Palette, Loader2, X, AlertTriangle, ExternalLink, Trash2 } from 'lucide-react'
+import { Palette, Loader2, AlertTriangle, ExternalLink, Trash2 } from 'lucide-react'
 import { setContainerTheme } from '../../api/fleetScoped'
 import type { RowMember } from '../../../shared/fleetScoped'
 import type { ContainerThemeState, ContainerThemeResponse } from '../../../shared/types'
 import ModalOverlay from '../common/ModalOverlay'
 import Hint from '../common/Hint'
-import { BTN_ICON_SM, BTN_SHEET, BTN_SHEET_QUIET, BTN_SHEET_PRIMARY, TONE_DANGER, TONE_GHOST } from '../../lib/ui'
-
+import { BTN_SHEET, BTN_SHEET_QUIET, BTN_SHEET_PRIMARY, TONE_DANGER } from '../../lib/ui'
+import CloseButton from '../common/CloseButton'
 interface Props {
   containerName: string
   member: RowMember
@@ -79,13 +79,11 @@ export default function ThemeParkDialog({ containerName, member, state, onClose,
             <Palette size={18} className="text-fuchsia-300" />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="text-sm font-semibold text-slate-100">{state.enabled ? `Theme: ${label(state.theme)}${state.managed === false ? ' (from your route)' : ''}` : 'Theme'}</h3>
+            <h3 className="text-sm font-semibold text-slate-200">{state.enabled ? `Theme: ${label(state.theme)}${state.managed === false ? ' (from your route)' : ''}` : 'Theme'}</h3>
             <p className="text-[11px] text-slate-500 truncate"><span className="font-mono">{containerName}</span> · theme.park for {appName}</p>
           </div>
           <Hint label="Close">
-            <button type="button" onClick={onClose} disabled={!!busy} className={`${BTN_ICON_SM} ${TONE_GHOST}`} aria-label="Close">
-              <X size={15} />
-            </button>
+            <CloseButton onClick={onClose} disabled={!!busy} />
           </Hint>
         </div>
 
@@ -175,13 +173,13 @@ export default function ThemeParkDialog({ containerName, member, state, onClose,
           {state.enabled && (
             <Hint label="Remove the theme middleware: the app shows its own look again">
               <button type="button" onClick={() => void apply(false)} disabled={!!busy} className={`${BTN_SHEET} ${TONE_DANGER} flex-1 sm:flex-none`}>
-                {busy === 'remove' ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                {busy === 'remove' ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
                 Remove theme
               </button>
             </Hint>
           )}
           <button type="button" onClick={() => void apply(true)} disabled={!!busy || !!cannot} className={`${BTN_SHEET_PRIMARY} flex-1 sm:flex-none`}>
-            {busy === 'apply' ? <Loader2 size={14} className="animate-spin" /> : <Palette size={14} />}
+            {busy === 'apply' ? <Loader2 size={16} className="animate-spin" /> : <Palette size={16} />}
             {state.enabled ? 'Save' : 'Apply theme'}
           </button>
         </div>

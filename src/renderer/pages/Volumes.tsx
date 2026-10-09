@@ -3,25 +3,9 @@
 // several at once in batch mode. On a hub: the hub's volumes, a VM's, or both.
 // =============================================================================
 
-import { useState, useMemo, useCallback, useEffect, useRef, useId, type ReactNode } from 'react'
+import { useState, useMemo, useCallback, useEffect, useRef, useId } from 'react'
 import { createPortal } from 'react-dom'
-import { Badge } from '@mantine/core'
-import {
-  HardDrive,
-  Search,
-  Trash2,
-  Loader2,
-  AlertTriangle,
-  Database,
-  RefreshCw,
-  X,
-  FolderOpen,
-  Check,
-  CheckCircle2,
-  XCircle,
-  ListChecks,
-  Weight,
-} from 'lucide-react'
+import { HardDrive, Trash2, Loader2, AlertTriangle, Database, RefreshCw, X, FolderOpen, Check, CheckCircle2, XCircle, ListChecks, Weight } from 'lucide-react'
 import { usePolling } from '../hooks/usePolling'
 import { useConnectionStore } from '../stores/connectionStore'
 import { useAuthStore } from '../stores/authStore'
@@ -38,12 +22,13 @@ import ModalOverlay from '../components/common/ModalOverlay'
 import PageHeader from '../components/common/PageHeader'
 import Hint from '../components/common/Hint'
 import SortableTh from '../components/common/SortableTh'
-import {
-  BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_ICON_SM, BTN_SHEET_QUIET, BTN_SHEET_DANGER,
-  TONE_DANGER, TONE_GHOST, TONE_GHOST_DANGER, TONE_QUIET,
-} from '../lib/ui'
-import { CARD, SEARCH_FIELD, FIELD, FOCUS_RING, REVEAL } from '../lib/pageKit'
-
+import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_ICON_SM, BTN_SHEET_QUIET, BTN_SHEET_DANGER, TONE_DANGER, TONE_GHOST_DANGER, TONE_QUIET, FOCUS_RING } from '../lib/ui'
+import { CARD, REVEAL } from '../lib/pageKit'
+import { INPUT } from '../lib/fieldStyles'
+import StatTile from '../components/common/StatTile'
+import { Pill } from '../components/common/Pill'
+import SearchInput from '../components/common/SearchInput'
+import CloseButton from '../components/common/CloseButton'
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
@@ -143,7 +128,7 @@ function BatchDeleteConfirmModal({
             onChange={(e) => setConfirmText(e.target.value)}
             placeholder={expected}
             autoComplete="off"
-            className={`${FIELD} mt-2 !py-2 focus:!border-rose-500/50 focus:!ring-rose-500/25`}
+            className={`${INPUT} mt-2 !py-2 focus:!border-rose-500/50 focus:!ring-rose-500/25`}
             autoFocus
           />
         </div>
@@ -159,7 +144,7 @@ function BatchDeleteConfirmModal({
             disabled={confirmText !== expected}
             className={`${BTN_SHEET_DANGER} sm:flex-1 disabled:cursor-not-allowed ${FOCUS_RING}`}
           >
-            <Trash2 size={14} />
+            <Trash2 size={16} />
             Delete {count} volume{count !== 1 ? 's' : ''}
           </button>
         </div>
@@ -172,19 +157,6 @@ function BatchDeleteConfirmModal({
 // ---------------------------------------------------------------------------
 // Main Component
 // ---------------------------------------------------------------------------
-
-/** one of the four counts above the table */
-function StatTile({ icon, label, children }: { icon: ReactNode; label: string; children: ReactNode }) {
-  return (
-    <div className={`${CARD} hover:border-white/10 transition-colors p-3 sm:p-4 min-w-0`}>
-      <div className="flex items-center gap-2 mb-1.5">
-        {icon}
-        <span className="text-[10px] text-slate-500 uppercase tracking-wider truncate">{label}</span>
-      </div>
-      {children}
-    </div>
-  )
-}
 
 export default function Volumes() {
   const isConnected = useConnectionStore((s) => s.status) === 'connected'
@@ -291,7 +263,7 @@ export default function Volumes() {
     }
     const where = scopeMember ? ` on the VM ${memberName}` : ''
     const ok = await confirm({
-      title: 'Delete volume',
+      title: 'Delete this volume?',
       message: `Permanently delete the volume ${volumeName}${where}? All data stored in it will be lost. This cannot be undone.`,
       confirmLabel: 'Delete volume',
       danger: true,
@@ -475,14 +447,7 @@ export default function Volumes() {
               <ListChecks size={16} className="text-cyan-400" />
               Delete results
             </h3>
-            <button
-              type="button"
-              aria-label="Close the results"
-              onClick={() => setBatchResults(null)}
-              className={`${BTN_ICON_SM} ${TONE_GHOST} ${FOCUS_RING}`}
-            >
-              <X size={14} />
-            </button>
+            <CloseButton label="Close the results" size="sm" onClick={() => setBatchResults(null)} />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
             {batchResults.map((result) => (
@@ -519,74 +484,27 @@ export default function Volumes() {
       {/* Summary Stat Cards                                                */}
       {/* ----------------------------------------------------------------- */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 stagger-children">
-        <StatTile icon={<Database size={14} className="text-cyan-400 shrink-0" aria-hidden />} label="Total volumes">
-          <p className="text-xl md:text-2xl font-bold text-slate-100 tabular-nums">{hasLoaded ? volumes.length : '--'}</p>
-        </StatTile>
-        <StatTile icon={<HardDrive size={14} className="text-cyan-400 shrink-0" aria-hidden />} label="Total storage">
-          <p className="text-xl md:text-2xl font-bold text-slate-100 tabular-nums">{hasLoaded ? formatBytes(totalSize) : '--'}</p>
-        </StatTile>
-        <StatTile icon={<FolderOpen size={14} className="text-cyan-400 shrink-0" aria-hidden />} label="Drivers">
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-xl md:text-2xl font-bold text-slate-100 tabular-nums">
-              {hasLoaded ? Object.keys(driverCounts).length : '--'}
-            </p>
-            {hasLoaded && Object.keys(driverCounts).length > 0 && (
-              <div className="flex gap-1 flex-wrap">
-                {Object.entries(driverCounts).map(([driver, count]) => (
-                  <Badge key={driver} color="cyan">{driver} ({count})</Badge>
-                ))}
-              </div>
-            )}
-          </div>
-        </StatTile>
-        <StatTile icon={<Weight size={14} className="text-cyan-400 shrink-0" aria-hidden />} label="Largest">
-          <p className="text-xl md:text-2xl font-bold text-slate-100 tabular-nums truncate" title={largestVolume?.name}>
-            {hasLoaded
-              ? largestVolume
-                ? formatBytes(largestVolume.size_bytes)
-                : 'N/A'
-              : '--'}
-          </p>
-          {largestVolume && (
-            <p
-              className="text-[11px] text-slate-500 font-mono truncate mt-0.5"
-              title={largestVolume.name}
-            >
-              {largestVolume.name}
-            </p>
-          )}
-        </StatTile>
+        <StatTile icon={Database} label="Total volumes" value={hasLoaded ? volumes.length : '--'} />
+        <StatTile icon={HardDrive} label="Total storage" value={hasLoaded ? formatBytes(totalSize) : '--'} />
+        <StatTile
+          icon={FolderOpen}
+          label="Drivers"
+          value={hasLoaded ? Object.keys(driverCounts).length : '--'}
+          sub={hasLoaded && Object.keys(driverCounts).length > 0 ? Object.entries(driverCounts).map(([driver, count]) => `${driver} (${count})`).join(' · ') : undefined}
+        />
+        <StatTile
+          icon={Weight}
+          label="Largest"
+          value={hasLoaded ? (largestVolume ? formatBytes(largestVolume.size_bytes) : 'N/A') : '--'}
+          sub={largestVolume ? <span className="font-mono" title={largestVolume.name}>{largestVolume.name}</span> : undefined}
+        />
       </div>
 
       {/* ----------------------------------------------------------------- */}
       {/* Search                                                            */}
       {/* ----------------------------------------------------------------- */}
       <div className="relative">
-        <Search
-          size={16}
-          className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none"
-          aria-hidden
-        />
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          aria-label="Search volumes"
-          placeholder="Search by name, driver or mountpoint…"
-          className={SEARCH_FIELD}
-        />
-        {searchQuery && (
-          <Hint label="Clear the search">
-            <button
-              type="button"
-              aria-label="Clear the search"
-              onClick={() => setSearchQuery('')}
-              className={`${BTN_ICON_SM} ${TONE_GHOST} ${FOCUS_RING} absolute right-1.5 top-1/2 -translate-y-1/2`}
-            >
-              <X size={14} />
-            </button>
-          </Hint>
-        )}
+        <SearchInput value={searchQuery} onChange={setSearchQuery} label="Search volumes" placeholder="Search by name, driver or mountpoint…" />
       </div>
 
       {/* ----------------------------------------------------------------- */}
@@ -765,7 +683,7 @@ export default function Volumes() {
 
                       {/* Driver */}
                       <td className="hidden sm:table-cell px-3 py-3">
-                        <Badge color="cyan">{vol.driver}</Badge>
+                        <Pill tone="info">{vol.driver}</Pill>
                       </td>
 
                       {/* Mountpoint */}
@@ -802,7 +720,7 @@ export default function Volumes() {
                                 className={`${BTN_ICON_SM} ${TONE_GHOST_DANGER} ${REVEAL} ${FOCUS_RING} ml-auto`}
                                 aria-label={`Delete the volume ${vol.name}`}
                               >
-                                <Trash2 size={13} />
+                                <Trash2 size={12} />
                               </button>
                             </Hint>
                           )}

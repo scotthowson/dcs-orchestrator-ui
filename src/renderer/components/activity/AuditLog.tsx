@@ -6,17 +6,16 @@
 
 import React, { useState, useMemo } from 'react'
 import {
-  Play, Trash2, RefreshCw, Search, X, ChevronDown, FileText, Shield,
+  Play, Trash2, RefreshCw, ChevronDown, FileText, Shield,
   Rocket, Power, HeartPulse, Archive, ListFilter, WifiOff,
 } from 'lucide-react'
 import { fetchAuditLog } from '../../api/endpoints'
 import { usePolling } from '../../hooks/usePolling'
 import { useToast } from '../common/Toast'
 import { LoadingState, EmptyState } from '../common/PageState'
-import Hint from '../common/Hint'
 import VmCapsule from '../fleet/VmCapsule'
-import { BTN_ICON_SM, TONE_GHOST } from '../../lib/ui'
-import { CARD, CARD_HOVER, FOCUS_RING } from '../../lib/pageKit'
+import { CARD, CARD_HOVER } from '../../lib/pageKit'
+import SearchInput from '../common/SearchInput'
 import type { AuditEntry } from '../../../shared/types'
 
 const AUDIT_LIMIT = 200
@@ -89,27 +88,7 @@ export default function AuditLog({ entries, loading, isConnected, onScope }: {
 
         {/* Search */}
         <div className="relative flex-1 min-w-[12rem] max-w-xs">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" aria-hidden />
-          <input
-            type="text"
-            aria-label="Search the audit log"
-            placeholder="Search the audit log…"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="w-full rounded-lg h-9 pl-9 pr-9 text-xs text-slate-200 placeholder-slate-500 bg-white/5 border border-white/10 focus:outline-none focus:ring-1 focus:ring-emerald-500/30 focus:border-emerald-500/30 transition-colors"
-          />
-          {query && (
-            <Hint label="Clear the filter">
-              <button
-                type="button"
-                aria-label="Clear the filter"
-                onClick={() => setQuery('')}
-                className={`${BTN_ICON_SM} ${TONE_GHOST} ${FOCUS_RING} absolute right-1 top-1/2 -translate-y-1/2`}
-              >
-                <X size={12} />
-              </button>
-            </Hint>
-          )}
+          <SearchInput size="sm" value={query} onChange={setQuery} label="Search the audit log" placeholder="Search the audit log…" />
         </div>
 
         {/* Result count */}
@@ -125,14 +104,14 @@ export default function AuditLog({ entries, loading, isConnected, onScope }: {
       {!loading && entries.length === 0 && (
         <div className={CARD}>
           {isConnected
-            ? <EmptyState compact icon={<FileText size={22} />} title="No audit entries found" hint="Sign-ins, deploys, stack changes and configuration updates are written here." />
-            : <EmptyState compact icon={<WifiOff size={22} />} title="Not connected" hint="The audit log loads once the dashboard is connected to the server." />}
+            ? <EmptyState compact icon={<FileText size={28} />} title="No audit entries found" hint="Sign-ins, deploys, stack changes and configuration updates are written here." />
+            : <EmptyState compact icon={<WifiOff size={28} />} title="Not connected" hint="The audit log loads once the dashboard is connected to the server." />}
         </div>
       )}
 
       {entries.length > 0 && filtered.length === 0 && (
         <div className={CARD}>
-          <EmptyState compact icon={<FileText size={22} />} title="No entries match" hint="Pick another action, or clear the search." />
+          <EmptyState compact icon={<FileText size={28} />} title="No entries match" hint="Pick another action, or clear the search." />
         </div>
       )}
 

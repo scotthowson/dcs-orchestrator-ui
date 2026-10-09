@@ -7,7 +7,6 @@
 // =============================================================================
 
 import { useCallback, useRef, useState } from 'react'
-import { Badge } from '@mantine/core'
 import { Archive, Clock, Download, Loader2, RotateCcw, ShieldCheck } from 'lucide-react'
 import Hint from '../common/Hint'
 import { EmptyState } from '../common/PageState'
@@ -22,6 +21,7 @@ import type { ScopeMember } from '../../hooks/useFleetScope'
 import type { FleetBackupEntry } from '../../../shared/fleetScopedOps'
 import type { BackupDownloadLinkResponse } from '../../../shared/types'
 
+import { Pill } from '../common/Pill'
 /** a one-time link asked for before the click (pointer over the button, or focus on it): used within a minute */
 interface PendingLink { at: number; link: BackupDownloadLinkResponse | null; promise: Promise<BackupDownloadLinkResponse> }
 const LINK_FRESH_MS = 60_000
@@ -163,7 +163,7 @@ export default function BackupArchiveTable({
                 <td colSpan={4}>
                   <EmptyState
                     compact
-                    icon={<Archive size={32} />}
+                    icon={<Archive size={28} />}
                     title={`No backup archives found${scopeMember ? ` on the VM ${memberName}` : ''}`}
                     hint="Back up everything or one stack above to make the first archive"
                   />
@@ -190,8 +190,8 @@ export default function BackupArchiveTable({
                         {backup.filename}
                       </span>
                       {backup.member !== undefined && <VmCapsule member={backup.member} name={backup.member_name} vmid={backup.vmid} size="xs" onClick={() => onPickServer(backup.member ?? 'hub')} />}
-                      {backup.kind === 'stack' && backup.stack && <Badge component="span" color="slate" title="A backup of one stack">{backup.stack}</Badge>}
-                      {backup.complete === false && <Badge component="span" color="amber" title="Something could not be read when it was made: the status above (or its manifest) says what">incomplete</Badge>}
+                      {backup.kind === 'stack' && backup.stack && <Pill tone="neutral" title="A backup of one stack">{backup.stack}</Pill>}
+                      {backup.complete === false && <Pill tone="attention" title="Something could not be read when it was made: the status above (or its manifest) says what">incomplete</Pill>}
                       {backup.verified && (isAdmin ? (
                         <Hint label="Checked when it was made: save its .sha256, to check a download with sha256sum -c">
                           <button type="button" onClick={() => saveChecksum(backup)} aria-label={`Save the .sha256 of ${backup.filename}`} className="inline-flex items-center rounded p-0.5 text-emerald-400/80 hover:text-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40">

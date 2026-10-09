@@ -60,7 +60,7 @@ export default function WebTerminalCard() {
   const fail = (e: unknown, fallback: string) => addToast({ type: 'error', message: e instanceof Error ? e.message : fallback })
   const on = async () => {
     if (!(await confirm({
-      title: 'Switch the web terminal on',
+      title: 'Switch the web terminal on?',
       message: `A terminal on this server opens at terminal.<your domain>, behind Authelia's sign-in. Whoever signs in there has a shell as ${status.user}, so give Authelia a second factor. DCS makes the terminal a key of its own; switching it off removes the key.`,
       confirmLabel: 'Switch on',
     }))) return
@@ -72,7 +72,7 @@ export default function WebTerminalCard() {
     } catch (e) { fail(e, 'Could not switch the web terminal on') } finally { setBusy('') }
   }
   const off = async () => {
-    if (!(await confirm({ title: 'Switch the web terminal off', message: 'The container, its route and its key are removed. ssh on your own network keeps working.', confirmLabel: 'Switch off', danger: true }))) return
+    if (!(await confirm({ title: 'Switch the web terminal off?', message: 'The container, its route and its key are removed. ssh on your own network keeps working.', confirmLabel: 'Switch off', danger: true }))) return
     setBusy('off')
     try { await undeployTemplate('web-terminal', { target_stack: status.stack, services: [status.service || 'terminal'] }); load() }
     catch (e) { fail(e, 'Could not switch the web terminal off') } finally { setBusy('') }

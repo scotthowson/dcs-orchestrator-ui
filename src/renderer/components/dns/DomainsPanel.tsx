@@ -7,7 +7,6 @@
 // =============================================================================
 
 import { useState } from 'react'
-import { Badge } from '@mantine/core'
 import { Globe, Plus, Trash2, Loader2, ShieldCheck, Lock, Server, Star, AlertTriangle } from 'lucide-react'
 import type { DomainsResponse, DomainEntry } from '../../../shared/types'
 import { addDomain, removeDomain, setVmDefaultDomain } from '../../api/endpoints'
@@ -16,15 +15,15 @@ import { useConfirm } from '../common/ConfirmDialog'
 import Hint from '../common/Hint'
 import VmCapsule from '../fleet/VmCapsule'
 import { BTN_CARD, BTN_ICON_SM, TONE_OK, TONE_GHOST_DANGER } from '../../lib/ui'
-import { FIELD } from '../../lib/pageKit'
-
+import { INPUT } from '../../lib/fieldStyles'
+import { Pill } from '../common/Pill'
 const DOMAIN_RE = /^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?)+$/
 
 function StatusChip({ ok, label, offLabel, title }: { ok: boolean | null; label: string; offLabel: string; title: string }) {
   if (ok === null) return null
   return ok
-    ? <span className="inline-flex items-center gap-1 text-[10px] text-emerald-300" title={title}><ShieldCheck size={11} aria-hidden />{label}</span>
-    : <span className="inline-flex items-center gap-1 text-[10px] text-amber-300" title={title}><AlertTriangle size={11} aria-hidden />{offLabel}</span>
+    ? <Pill tone="ok" icon={<ShieldCheck size={10} aria-hidden />} title={title}>{label}</Pill>
+    : <Pill tone="attention" icon={<AlertTriangle size={10} aria-hidden />} title={title}>{offLabel}</Pill>
 }
 
 function DomainRow({ d, isAdmin, busy, onRemove }: { d: DomainEntry; isAdmin: boolean; busy: boolean; onRemove: () => void }) {
@@ -32,7 +31,7 @@ function DomainRow({ d, isAdmin, busy, onRemove }: { d: DomainEntry; isAdmin: bo
     <li className="flex flex-wrap items-center gap-x-3 gap-y-1.5 py-2.5">
       <Globe size={14} className={d.primary ? 'text-emerald-400' : 'text-cyan-400'} aria-hidden />
       <span className="text-sm font-mono text-slate-100">{d.domain}</span>
-      {d.primary && <Badge component="span" color="emerald" leftSection={<Star size={9} aria-hidden />}>this server</Badge>}
+      {d.primary && <Pill tone="ok" icon={<Star size={10} aria-hidden />}>this server</Pill>}
       <StatusChip ok={d.certificate} label="certificate" offLabel="no certificate yet" title="The wildcard certificate *.domain Traefik asks Let's Encrypt for" />
       <StatusChip ok={d.sign_in} label="sign-in" offLabel="no sign-in" title={`Authelia's sign-in at auth.${d.domain}`} />
       <span className="flex flex-wrap items-center gap-1.5 ml-auto">
@@ -98,8 +97,8 @@ export default function DomainsPanel({ data, isAdmin, onChanged }: { data: Domai
       <div className="flex flex-wrap items-center justify-between gap-3 mb-1">
         <div className="flex items-center gap-2 min-w-0">
           <Globe size={15} className="text-cyan-400" aria-hidden />
-          <h3 className="text-sm font-semibold text-slate-100">Domains</h3>
-          <Badge component="span" color="slate">{data.domains.length}</Badge>
+          <h3 className="text-sm font-semibold text-slate-200">Domains</h3>
+          <Pill tone="neutral">{data.domains.length}</Pill>
         </div>
         {data.domains.length > 1 && (
           <label className="flex items-center gap-2 text-[11px] text-slate-400">
@@ -132,11 +131,11 @@ export default function DomainsPanel({ data, isAdmin, onChanged }: { data: Domai
             <input
               type="text" value={value} onChange={(e) => setValue(e.target.value)} placeholder="another domain, e.g. example.org"
               aria-label="A domain to add" autoComplete="off" spellCheck={false}
-              className={`${FIELD} !pl-8 font-mono !py-2`}
+              className={`${INPUT} !pl-8 font-mono !py-2`}
             />
           </div>
           <button type="submit" disabled={!valid || adding} className={`${BTN_CARD} ${TONE_OK} !h-9 justify-center`}>
-            {adding ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />} Add domain
+            {adding ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />} Add domain
           </button>
           {typed && !valid && <span className="text-[11px] text-slate-500 self-center">{data.domains.some((d) => d.domain === typed) ? 'already here' : 'a name like example.org'}</span>}
         </form>

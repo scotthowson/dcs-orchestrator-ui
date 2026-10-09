@@ -7,11 +7,7 @@
 // =============================================================================
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
-import {
-  AlertTriangle, Check, Copy, Download, FileJson, Globe, Link, Loader2, Moon, Palette, Pencil, Plus,
-  Server, Smartphone, Sparkles, Sun, Trash2, Upload, X, Eye, EyeOff, RefreshCw, Wand2,
-} from 'lucide-react'
+import { AlertTriangle, Check, Copy, Download, FileJson, Globe, Link, Loader2, Moon, Palette, Pencil, Plus, Server, Smartphone, Sparkles, Sun, Trash2, Upload, Eye, EyeOff, RefreshCw, Wand2 } from 'lucide-react'
 import { useToast } from '../common/Toast'
 import { useConfirm } from '../common/ConfirmDialog'
 import { useSettingsStore } from '../../stores/settingsStore'
@@ -22,13 +18,9 @@ import { applyTheme, setThemePreviewing } from '../../lib/themeEngine'
 import { useResolvedMode } from '../../lib/colorMode'
 import { CSS_SANITIZE_NOTE, sanitizeCss } from '../../lib/cssSanitize'
 import { ApiError } from '../../api/client'
-import { useModalA11y } from '../../hooks/useModalA11y'
 import Hint from '../common/Hint'
-import {
-  BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD, BTN_CARD_QUIET, BTN_ICON, BTN_ICON_SM,
-  BTN_SHEET_QUIET, BTN_SHEET_PRIMARY, TONE_OK, TONE_GHOST, TONE_GHOST_DANGER,
-} from '../../lib/ui'
-import { INPUT, LABEL, FOCUS_RING } from '../../lib/fieldStyles'
+import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD, BTN_CARD_QUIET, BTN_ICON, BTN_ICON_SM, BTN_SHEET_QUIET, BTN_SHEET_PRIMARY, TONE_OK, TONE_GHOST, TONE_GHOST_DANGER, FOCUS_RING } from '../../lib/ui'
+import { INPUT, LABEL } from '../../lib/fieldStyles'
 import {
   type ContrastCheck,
   type PaletteKey,
@@ -54,6 +46,8 @@ import {
   withBothLooks,
 } from '../../../shared/themes'
 
+import Sheet from '../common/Sheet'
+import { Count, Pill } from '../common/Pill'
 // ---------------------------------------------------------------------------
 // Bits
 // ---------------------------------------------------------------------------
@@ -163,37 +157,9 @@ function LookPair({ theme, mode, onPick }: { theme: Theme; mode: ThemeMode; onPi
 }
 
 function SourceChip({ source }: { source: ThemeSource }) {
-  if (source === 'server') return <span className="inline-flex items-center gap-1 text-[10px] text-cyan-400"><Server size={10} /> Server</span>
-  if (source === 'local') return <span className="inline-flex items-center gap-1 text-[10px] text-slate-400"><Smartphone size={10} /> This device</span>
-  return <span className="inline-flex items-center gap-1 text-[10px] text-slate-500"><Sparkles size={10} /> Built in</span>
-}
-
-/** a sheet: a bottom sheet on the phone, a right-hand drawer on the desktop so the dashboard stays visible behind it */
-function Sheet({ title, icon, onClose, children, footer, wide, keepOnBackdrop }: { title: string; icon: React.ReactNode; onClose: () => void; children: React.ReactNode; footer?: React.ReactNode; wide?: boolean; keepOnBackdrop?: boolean }) {
-  const panelRef = useRef<HTMLDivElement>(null)
-  useModalA11y(panelRef, onClose)
-  return createPortal(
-    <div className="fixed inset-0 z-[9998] flex items-end sm:items-stretch sm:justify-end bg-black/30 animate-fade-in" onClick={keepOnBackdrop ? undefined : onClose}>
-      <div
-        ref={panelRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-        onClick={(e) => e.stopPropagation()}
-        className={`relative w-full ${wide ? 'sm:max-w-2xl' : 'sm:max-w-xl'} max-h-[92vh] sm:max-h-none sm:h-full flex flex-col bg-slate-900/95 backdrop-blur-2xl border border-white/10 sm:border-y-0 sm:border-r-0 rounded-t-3xl sm:rounded-none sm:rounded-l-2xl shadow-2xl shadow-black/50 animate-slide-up`}
-      >
-        <div className="sm:hidden pt-2 flex justify-center"><span className="h-1.5 w-12 rounded-full bg-white/15" /></div>
-        <div className="flex items-center gap-2.5 px-5 py-3.5 border-b border-white/5 shrink-0">
-          {icon}
-          <h3 className="text-sm font-semibold text-slate-100 flex-1 truncate">{title}</h3>
-          <button type="button" onClick={onClose} className={`${BTN_ICON} ${TONE_GHOST}`} aria-label="Close"><X size={16} /></button>
-        </div>
-        <div className="flex-1 overflow-y-auto overscroll-contain scrollbar-thin px-5 py-4">{children}</div>
-        {footer && <div className="px-5 py-3 border-t border-white/5 shrink-0 safe-area-bottom">{footer}</div>}
-      </div>
-    </div>,
-    document.body,
-  )
+  if (source === 'server') return <Pill tone="info" icon={<Server size={10} aria-hidden />}>Server</Pill>
+  if (source === 'local') return <Pill icon={<Smartphone size={10} aria-hidden />}>This device</Pill>
+  return <Pill icon={<Sparkles size={10} aria-hidden />}>Built in</Pill>
 }
 
 // ---------------------------------------------------------------------------
@@ -371,13 +337,13 @@ function ThemeStudio({ initial, editing, isAdmin, serverOk, onClose, onSaved }: 
       <button key={m} type="button" role="tab" aria-selected={look === m} onClick={() => setLook(m)} className={`${SEG_ITEM} ${look === m ? SEG_ON : SEG_OFF}`}>
         {m === 'dark' ? <Moon size={13} /> : <Sun size={13} />}
         {m === 'dark' ? 'Dark look' : 'Light look'}
-        {bad > 0 && <span className="ml-0.5 inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-amber-500/15 text-amber-400 text-[9px] font-semibold tabular-nums" title={`${bad} contrast ${bad === 1 ? 'warning' : 'warnings'}`}>{bad}</span>}
+        {bad > 0 && <Count n={bad} tone="attention" label={`${bad} contrast ${bad === 1 ? 'warning' : 'warnings'}`} className="ml-0.5" />}
       </button>
     )
   }
 
   return (
-    <Sheet title={editing ? `Edit ${initial.title || initial.name}` : 'New theme'} icon={<Palette size={16} className="accent-text" />} onClose={onClose} footer={footer} wide keepOnBackdrop>
+    <Sheet placement="side" tone="neutral" title={editing ? `Edit ${initial.title || initial.name}` : 'New theme'} icon={<Palette size={16} className="accent-text" />} onClose={onClose} footer={footer} wide keepOnBackdrop>
       <div className="space-y-5">
         {/* Identity */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -608,7 +574,7 @@ function InstallSheet({ isAdmin, serverOk, onClose, onInstalled }: InstallProps)
   const installDocument = async (theme: Theme) => {
     if (where === 'server') {
       if (metas.some((m) => m.name === theme.name)) {
-        const ok = await confirm({ title: 'Replace the server theme?', message: `A theme named "${theme.name}" is stored on the server already. Installing replaces it for everyone who follows it.`, confirmLabel: 'Replace' })
+        const ok = await confirm({ danger: true, title: 'Replace the server theme?', message: `A theme named "${theme.name}" is stored on the server already. Installing replaces it for everyone who follows it.`, confirmLabel: 'Replace' })
         if (!ok) return
       }
       const res = await saveServer(theme)
@@ -617,7 +583,7 @@ function InstallSheet({ isAdmin, serverOk, onClose, onInstalled }: InstallProps)
       onInstalled(res.theme, 'server')
     } else {
       if (localThemes.some((t) => t.name === theme.name)) {
-        const ok = await confirm({ title: 'Replace the theme on this device?', message: `You already have a theme named "${theme.name}" on this device.`, confirmLabel: 'Replace' })
+        const ok = await confirm({ danger: true, title: 'Replace the theme on this device?', message: `You already have a theme named "${theme.name}" on this device.`, confirmLabel: 'Replace' })
         if (!ok) return
       }
       saveLocal(theme)
@@ -640,7 +606,7 @@ function InstallSheet({ isAdmin, serverOk, onClose, onInstalled }: InstallProps)
             onInstalled(res.theme, 'server')
           } catch (err) {
             if (err instanceof ApiError && err.status === 409) {
-              const ok = await confirm({ title: 'Replace the server theme?', message: `${err.message}\n\nReplace it for everyone who follows it?`, confirmLabel: 'Replace' })
+              const ok = await confirm({ danger: true, title: 'Replace the server theme?', message: `${err.message}\n\nReplace it for everyone who follows it?`, confirmLabel: 'Replace' })
               if (!ok) return
               const res = await importFromUrl(u, true)
               addToast({ type: 'success', message: `${res.theme.title} replaced on the server` })
@@ -700,7 +666,7 @@ function InstallSheet({ isAdmin, serverOk, onClose, onInstalled }: InstallProps)
   )
 
   return (
-    <Sheet title="Install a theme" icon={<Download size={16} className="text-cyan-400" />} onClose={onClose} footer={footer}>
+    <Sheet placement="side" tone="neutral" title="Install a theme" icon={<Download size={16} className="text-cyan-400" />} onClose={onClose} footer={footer}>
       <div className="space-y-4">
         <div className={`${SEG} w-full`} role="tablist">
           {tabs.map((t) => (
@@ -860,7 +826,7 @@ export default function ThemesPanel() {
         // the server only activates a theme it stores: put the document there first, under the same name
         const stored = metas.find((m) => m.name === doc.name)
         if (stored && !(entry.source === 'built-in' && isBuiltInCopy(themeForMeta(stored)))) {
-          const ok = await confirm({ title: 'Replace the server copy?', message: `The server already stores a theme named "${doc.name}". Setting this one for everyone replaces it.`, confirmLabel: 'Replace and set' })
+          const ok = await confirm({ danger: true, title: 'Replace the server copy?', message: `The server already stores a theme named "${doc.name}". Setting this one for everyone replaces it.`, confirmLabel: 'Replace and set' })
           if (!ok) return
         }
         await saveServer(doc)

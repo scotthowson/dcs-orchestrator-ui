@@ -10,7 +10,6 @@
 // =============================================================================
 
 import { useState, useCallback, useEffect, useRef, type KeyboardEvent } from 'react'
-import { Badge } from '@mantine/core'
 import { RefreshCw, History, Radio, FileText, type LucideIcon } from 'lucide-react'
 import { usePolling } from '../hooks/usePolling'
 import { pollKeys } from '../api/pollKeys'
@@ -28,10 +27,10 @@ import Timeline from '../components/activity/Timeline'
 import LiveStream from '../components/activity/LiveStream'
 import { useLiveConnected } from '../hooks/useLiveStream'
 import AuditLog, { useAuditLog } from '../components/activity/AuditLog'
-import { BTN_TOOLBAR_QUIET } from '../lib/ui'
-import { FOCUS_RING } from '../lib/pageKit'
+import { BTN_TOOLBAR_QUIET, FOCUS_RING } from '../lib/ui'
 import type { EventsResponse } from '../../shared/types'
 
+import { Pill } from '../components/common/Pill'
 type ActivityTab = 'timeline' | 'live' | 'audit'
 
 const TABS: { id: ActivityTab; label: string; icon: LucideIcon; adminOnly?: boolean }[] = [
@@ -119,9 +118,9 @@ export default function Activity() {
         badge={<>
           {scopeMember && <VmCapsule member={scopeMember} name={memberName} vmid={scopeVmid} />}
           {live ? (
-            <Badge
-              color="emerald"
-              leftSection={
+            <Pill
+              tone="ok"
+              icon={
                 <span className="relative flex h-1.5 w-1.5" aria-hidden>
                   <span className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-75" />
                   <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400" />
@@ -129,11 +128,11 @@ export default function Activity() {
               }
             >
               Live
-            </Badge>
+            </Pill>
           ) : tab === 'live' && isConnected ? (
-            <Badge color="rose" leftSection={<span className="w-1.5 h-1.5 rounded-full bg-rose-400" aria-hidden />}>
+            <Pill tone="problem" icon={<span className="w-1.5 h-1.5 rounded-full bg-rose-400" aria-hidden />}>
               Stream down
-            </Badge>
+            </Pill>
           ) : null}
         </>}
         actions={isConnected && refresh ? (

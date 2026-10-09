@@ -1,207 +1,38 @@
 // =============================================================================
-// CrowdSec page kit — the small pieces every tab shares: card and button
-// classes, tone chips, KPI tiles, segmented controls, the live clock, country
-// flags and names, the sheet that hosts forms. Colours are only the Tailwind
-// classes the theme engine re-maps (slate / emerald / amber / rose / cyan and
-// white/N), so every theme, dark or light, restyles them.
+// CrowdSec page kit — what only the CrowdSec tabs need: the live clock, times
+// and durations, country flags and names, the page's context, the duration
+// picker. The look is the dashboard's own: buttons and headings from lib/ui,
+// fields from lib/fieldStyles, the page card from lib/pageKit, colours by tone
+// (lib/tone), and the shared Pill, Sheet, Segmented, StatTile, SectionHeader,
+// CopyButton and Notice of components/common.
 // =============================================================================
 
-import { createContext, useContext, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
-import { createPortal } from 'react-dom'
-import { X, Copy, Check } from 'lucide-react'
+import { createContext, useContext, useEffect, useState, useSyncExternalStore, type ReactNode } from 'react'
+import { ChevronDown } from 'lucide-react'
+import { INPUT, HINT, FIELD_SM } from '../../lib/fieldStyles'
+import type { Tone } from '../../lib/tone'
 import type { CrowdSecStatusResponse } from '../../../shared/types'
 
 // ---------------------------------------------------------------------------
-// The house classes
+// The two small controls every list tab shares
 // ---------------------------------------------------------------------------
 
-export const CARD = 'rounded-xl bg-white/[0.03] border border-white/5'
-export const BTN = 'h-9 px-3 rounded-lg text-xs font-medium inline-flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0 whitespace-nowrap'
-export const BTN_QUIET = `${BTN} bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10`
-export const BTN_PRIMARY = `${BTN} bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/30`
-export const BTN_DANGER = `${BTN} bg-rose-500/15 border border-rose-500/25 text-rose-300 hover:bg-rose-500/25`
-export const BTN_WARN = `${BTN} bg-amber-500/15 border border-amber-500/25 text-amber-300 hover:bg-amber-500/25`
-export const ICON_BTN = 'h-8 w-8 rounded-lg border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 inline-flex items-center justify-center shrink-0 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
-export const INPUT = 'w-full h-10 px-3 rounded-lg bg-slate-800/50 border border-white/10 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500/40 disabled:opacity-60'
-export const TEXTAREA = 'w-full px-3 py-2 rounded-lg bg-slate-800/50 border border-white/10 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500/40 disabled:opacity-60'
-export const LABEL = 'block text-xs font-medium text-slate-500 mb-1'
-export const HINT = 'text-[11px] text-slate-500 mt-1'
-
-export type Tone = 'good' | 'warn' | 'bad' | 'info' | 'mute'
-export const TONE: Record<Tone, string> = {
-  good: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20',
-  warn: 'bg-amber-500/10 text-amber-300 border-amber-500/20',
-  bad: 'bg-rose-500/10 text-rose-300 border-rose-500/20',
-  info: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
-  mute: 'bg-white/[0.04] text-slate-500 border-white/10',
-}
-export const DOT: Record<Tone, string> = { good: 'bg-emerald-400', warn: 'bg-amber-400', bad: 'bg-rose-400', info: 'bg-cyan-400', mute: 'bg-slate-500' }
-
-export function Chip({ tone = 'mute', children, title, className = '' }: { tone?: Tone; children: ReactNode; title?: string; className?: string }) {
-  return <span title={title} className={`inline-flex items-center gap-1 text-[10px] leading-none font-medium px-1.5 py-1 rounded-md border shrink-0 ${TONE[tone]} ${className}`}>{children}</span>
+/** how long ago, counting on by itself; the exact time is in the tooltip */
+export function Ago({ at, className = '' }: { at: string | null | undefined; className?: string }) {
+  const now = useNow()
+  return <span className={`tabular-nums ${className}`} title={at ? fmtTime(at) : undefined}>{fmtAgo(at, now)}</span>
 }
 
-export function Dot({ tone = 'mute', pulse = false }: { tone?: Tone; pulse?: boolean }) {
-  return <span aria-hidden="true" className={`inline-block w-2 h-2 rounded-full shrink-0 ${DOT[tone]} ${pulse ? 'animate-pulse' : ''}`} />
-}
-
-/** a section title: small uppercase label, an optional count and controls on the right */
-export function SectionHead({ icon: Icon, title, count, right, className = '' }: { icon?: React.ElementType; title: ReactNode; count?: ReactNode; right?: ReactNode; className?: string }) {
-  return (
-    <div className={`flex items-center justify-between gap-2 flex-wrap ${className}`}>
-      <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2 min-w-0">
-        {Icon && <Icon size={12} className="shrink-0" />} <span className="truncate">{title}</span>
-        {count !== undefined && count !== null && <span className="text-slate-500 tabular-nums normal-case tracking-normal font-normal">{count}</span>}
-      </h2>
-      {right}
-    </div>
-  )
-}
-
-/** one number with its label: the status strip and the overview use these */
-export function Kpi({ label, short, value, sub, tone = 'mute', icon: Icon, onClick, title, subOnPhone = false }: { label: string; short?: string; value: ReactNode; sub?: ReactNode; tone?: Tone; icon?: React.ElementType; onClick?: () => void; title?: string; subOnPhone?: boolean }) {
-  const inner = (
-    <>
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider truncate">{short ? <><span className="sm:hidden">{short}</span><span className="hidden sm:inline">{label}</span></> : label}</p>
-        {Icon && <Icon size={13} className={`shrink-0 hidden sm:block ${tone === 'good' ? 'text-emerald-400' : tone === 'warn' ? 'text-amber-400' : tone === 'bad' ? 'text-rose-400' : tone === 'info' ? 'text-cyan-400' : 'text-slate-500'}`} />}
-      </div>
-      <p className="text-xl md:text-2xl font-semibold text-slate-100 tabular-nums leading-tight mt-1 truncate">{value}</p>
-      {sub !== undefined && <p className={`text-[11px] text-slate-500 mt-0.5 truncate ${subOnPhone ? '' : 'hidden sm:block'}`}>{sub}</p>}
-    </>
-  )
-  const cls = `${CARD} px-3 sm:px-3.5 py-2.5 sm:py-3 min-w-0 text-left`
-  if (onClick) return <button type="button" title={title} onClick={onClick} className={`${cls} hover:bg-white/[0.06] transition-colors`}>{inner}</button>
-  return <div title={title} className={cls}>{inner}</div>
-}
-
-export function Skel({ className = '' }: { className?: string }) {
-  return <div aria-hidden="true" className={`skeleton rounded-lg ${className}`} />
-}
-
-/** the pill row the app uses for filters: an active option glows emerald */
-export function Segmented<T extends string>({ value, options, onChange, ariaLabel, className = '' }: {
-  value: T
-  options: { value: T; label: ReactNode; count?: number | string; title?: string; disabled?: boolean; icon?: React.ElementType }[]
-  onChange: (v: T) => void
-  ariaLabel: string
-  className?: string
+/** a filter of a list as a native select: toolbar height, emerald while it narrows the list (`plain`: never) */
+export function FilterSelect({ id, label, value, onChange, children, plain = false, className = 'sm:min-w-[8.5rem]' }: {
+  id: string; label: string; value: string; onChange: (v: string) => void; children: ReactNode; plain?: boolean; className?: string
 }) {
-  const box = useRef<HTMLDivElement>(null)
-  // a long row scrolls sideways on a phone: keep the chosen option in view (the palette and the overview open tabs by themselves)
-  const first = useRef(true)
-  useEffect(() => {
-    const c = box.current
-    const on = c?.querySelector<HTMLElement>('[aria-pressed="true"]')
-    if (c && on && c.scrollWidth > c.clientWidth) c.scrollTo({ left: on.offsetLeft - (c.clientWidth - on.offsetWidth) / 2, behavior: first.current ? 'auto' : 'smooth' })
-    first.current = false
-  }, [value])
   return (
-    <div ref={box} role="group" aria-label={ariaLabel} className={`relative flex items-center gap-1 p-1 rounded-xl bg-slate-900/60 backdrop-blur-md border border-white/5 overflow-x-auto scrollbar-none max-w-full ${className}`}>
-      {options.map((o) => {
-        const on = o.value === value
-        const Icon = o.icon
-        return (
-          <button
-            key={o.value}
-            type="button"
-            title={o.title}
-            disabled={o.disabled}
-            aria-pressed={on}
-            onClick={() => onChange(o.value)}
-            className={`h-8 sm:h-7 px-2.5 rounded-lg text-xs font-medium inline-flex items-center gap-1.5 shrink-0 whitespace-nowrap transition-colors border disabled:opacity-40 disabled:cursor-not-allowed ${on ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/20' : 'text-slate-500 hover:text-slate-200 hover:bg-white/5 border-transparent'}`}
-          >
-            {Icon && <Icon size={12} />}
-            {o.label}
-            {o.count !== undefined && <span className={`tabular-nums text-[10px] ${on ? 'text-emerald-300' : 'text-slate-500'}`}>{o.count}</span>}
-          </button>
-        )
-      })}
+    <div className="relative min-w-0 sm:shrink-0">
+      <label htmlFor={id} className="sr-only">{label}</label>
+      <select id={id} value={value} onChange={(e) => onChange(e.target.value)} className={`w-full ${FIELD_SM} pr-8 appearance-none cursor-pointer ${className} ${value && !plain ? '!border-emerald-500/30 !text-emerald-300' : ''}`}>{children}</select>
+      <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" aria-hidden />
     </div>
-  )
-}
-
-/** a toggle switch (accessible: role=switch) */
-export function Switch({ checked, onChange, label, disabled = false, id }: { checked: boolean; onChange: (v: boolean) => void; label: string; disabled?: boolean; id?: string }) {
-  return (
-    <button
-      id={id}
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      aria-label={label}
-      disabled={disabled}
-      onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition-colors disabled:opacity-50 disabled:cursor-not-allowed before:content-[''] before:absolute before:-inset-2 ${checked ? 'bg-emerald-500/40 border-emerald-500/40' : 'bg-white/10 border-white/10'}`}
-    >
-      <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${checked ? 'translate-x-6' : 'translate-x-1'}`} />
-    </button>
-  )
-}
-
-/** a small copy-to-clipboard button */
-export function CopyIcon({ text, label = 'Copy' }: { text: string; label?: string }) {
-  const [done, setDone] = useState(false)
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      title={label}
-      onClick={() => { navigator.clipboard?.writeText(text).then(() => { setDone(true); setTimeout(() => setDone(false), 1500) }).catch(() => {}) }}
-      className="h-6 w-6 rounded-md text-slate-500 hover:text-slate-200 hover:bg-white/10 inline-flex items-center justify-center shrink-0 transition-colors"
-    >
-      {done ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
-    </button>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// The sheet that hosts forms: centred on a desktop, a bottom sheet on a phone
-// ---------------------------------------------------------------------------
-
-// the sheets that are open, the newest last: Escape closes only that one (a ban form opened from an alert closes alone)
-const sheetStack: symbol[] = []
-export function CsSheet({ title, subtitle, icon, tone = 'good', onClose, children, wide = false, footer }: {
-  title: string; subtitle?: string; icon?: ReactNode; tone?: Tone; onClose: () => void; children: ReactNode; wide?: boolean; footer?: ReactNode
-}) {
-  const closeRef = useRef(onClose)
-  closeRef.current = onClose
-  useEffect(() => {
-    const me = Symbol('sheet')
-    sheetStack.push(me)
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape' || sheetStack[sheetStack.length - 1] !== me) return
-      e.stopPropagation(); closeRef.current()
-    }
-    document.addEventListener('keydown', onKey)
-    return () => { document.removeEventListener('keydown', onKey); const i = sheetStack.indexOf(me); if (i >= 0) sheetStack.splice(i, 1) }
-  }, [])
-  const tile = tone === 'bad' ? 'bg-rose-500/15 text-rose-400' : tone === 'warn' ? 'bg-amber-500/15 text-amber-400' : tone === 'info' ? 'bg-cyan-500/15 text-cyan-400' : 'bg-emerald-500/15 text-emerald-400'
-  return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-        className={`w-full ${wide ? 'sm:max-w-2xl' : 'sm:max-w-md'} max-h-[92vh] flex flex-col glass rounded-t-3xl sm:rounded-2xl animate-slide-up`}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="px-5 pt-5 pb-3 shrink-0">
-          <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20 sm:hidden" />
-          <div className="flex items-start gap-3">
-            {icon && <div className={`p-2.5 rounded-xl shrink-0 ${tile}`}>{icon}</div>}
-            <div className="min-w-0 flex-1">
-              <h3 className="text-base font-semibold text-slate-100 break-words">{title}</h3>
-              {subtitle && <p className="text-sm text-slate-500 mt-0.5 break-words">{subtitle}</p>}
-            </div>
-            <button type="button" onClick={onClose} className="p-2 rounded-lg text-slate-500 hover:text-slate-200 hover:bg-white/5" aria-label="Close"><X size={16} /></button>
-          </div>
-        </div>
-        <div className="px-5 pb-5 overflow-y-auto scrollbar-thin min-h-0">{children}</div>
-        {footer && <div className="px-5 py-3 border-t border-white/5 shrink-0">{footer}</div>}
-      </div>
-    </div>,
-    document.body,
   )
 }
 
@@ -376,16 +207,16 @@ export function originLabel(origin: string): string {
   return origin || '—'
 }
 export function originTone(origin: string): Tone {
-  if (origin === 'crowdsec') return 'bad'
+  if (origin === 'crowdsec') return 'problem'
   if (origin === 'cscli' || origin === 'cscli-import') return 'info'
-  return 'mute'
+  return 'neutral'
 }
 export function familyTone(family?: string): Tone {
   switch (family) {
-    case 'bruteforce': return 'bad'
-    case 'exploit': return 'warn'
+    case 'bruteforce': return 'problem'
+    case 'exploit': return 'attention'
     case 'probe': return 'info'
-    default: return 'mute'
+    default: return 'neutral'
   }
 }
 

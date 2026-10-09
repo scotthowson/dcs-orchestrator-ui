@@ -23,6 +23,7 @@ import { useLiveEvent, useLiveConnected } from '../../hooks/useLiveStream'
 import { usePolling } from '../../hooks/usePolling'
 import ChatPanel from './ChatPanel'
 
+import { Count } from '../common/Pill'
 function useChatRoom() {
   const serverId = useServerStore((s) => s.activeServerId)
   const user = useAuthStore((s) => s.currentUser)
@@ -125,9 +126,7 @@ export default function ChatBubble() {
       >
         {open ? <X size={18} aria-hidden /> : <MessageCircle size={18} aria-hidden />}
         {!open && unread > 0 && (
-          <span aria-hidden className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-semibold flex items-center justify-center tabular-nums">
-            {unread > 9 ? '9+' : unread}
-          </span>
+          <Count alert n={unread > 9 ? '9+' : unread} className="absolute -top-1 -right-1" />
         )}
         {!open && othersOnline > 0 && (
           <span aria-hidden title="Someone else is online" className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-400 border-2 border-slate-900" />

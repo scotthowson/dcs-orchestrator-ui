@@ -13,6 +13,7 @@ import { BUILD_ID } from '../../constants/buildInfo'
 import { isWebMode } from '../../lib/env'
 import { usePolling } from '../../hooks/usePolling'
 
+import { BTN_TOOLBAR_PRIMARY } from '../../lib/ui'
 const CHECK_INTERVAL = 60_000
 
 interface BuildStamp { version?: string; build?: string }
@@ -62,7 +63,7 @@ export default function UpdateBanner() {
         <button
           onClick={() => { setReloading(true); window.location.reload() }}
           disabled={reloading}
-          className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500 text-white hover:bg-emerald-400 transition-colors disabled:opacity-60"
+          className={`${BTN_TOOLBAR_PRIMARY} shrink-0`}
         >
           {reloading ? 'Reloading…' : 'Reload'}
         </button>

@@ -6,11 +6,7 @@
 import { useState, useMemo, useCallback, useEffect, useLayoutEffect, useRef, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { SegmentedControl } from '@mantine/core'
-import {
-  Search, Layers, Filter, Plus, Play, Square,
-  ArrowUpDown, X, Loader2, AlertTriangle, Sparkles,
-  Trash2, ListChecks, Server, Home, ChevronDown,
-} from 'lucide-react'
+import { Layers, Filter, Plus, Play, Square, ArrowUpDown, X, Loader2, AlertTriangle, Sparkles, Trash2, ListChecks, Server, Home, ChevronDown } from 'lucide-react'
 import { useStackStore } from '../../stores/stackStore'
 import { useContainerStore } from '../../stores/containerStore'
 import { useSettingsStore } from '../../stores/settingsStore'
@@ -25,8 +21,9 @@ import PageHeader from '../common/PageHeader'
 import Hint from '../common/Hint'
 import { useConfirm } from '../common/ConfirmDialog'
 import { pageLabel } from '../../constants/pageTitles'
-import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_SHEET_QUIET, BTN_SHEET_DANGER, BTN_ICON_SM, TONE_QUIET, TONE_OK, TONE_DANGER, TONE_GHOST } from '../../lib/ui'
-
+import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_SHEET_QUIET, BTN_SHEET_DANGER, TONE_QUIET, TONE_OK, TONE_DANGER } from '../../lib/ui'
+import SearchInput from '../common/SearchInput'
+import CloseButton from '../common/CloseButton'
 interface Props {
   onAction: (stackName: string, action: 'start' | 'stop' | 'restart' | 'update') => void
   onSelect: (stackName: string) => void
@@ -262,7 +259,7 @@ export default function StackList({ onAction, onSelect, onRefresh, loading = fal
     const running = stacks.filter((s) => s.status === 'running')
     if (running.length === 0) return
     if (!(await confirm({
-      title: 'Stop all stacks',
+      title: 'Stop all stacks?',
       message: `Stop ${running.length} running stack${running.length !== 1 ? 's' : ''}? Every container in ${running.length !== 1 ? 'them' : 'it'} stops until you start ${running.length !== 1 ? 'them' : 'it'} again.`,
       confirmLabel: 'Stop all',
       danger: true,
@@ -305,7 +302,7 @@ export default function StackList({ onAction, onSelect, onRefresh, loading = fal
                 <Trash2 className="w-5 h-5 text-rose-400" />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-slate-100">Delete stack</h3>
+                <h3 className="text-sm font-semibold text-slate-200">Delete stack</h3>
                 <p className="text-xs text-slate-400">
                   {(() => {
                     const vmStack = stacks.find((st) => st.name === showDeleteModal && st.placement === 'vm')
@@ -338,7 +335,7 @@ export default function StackList({ onAction, onSelect, onRefresh, loading = fal
                 Cancel
               </button>
               <button onClick={() => handleDelete(showDeleteModal)} disabled={deleting} className={BTN_SHEET_DANGER}>
-                {deleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                {deleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
                 Delete
               </button>
             </div>
@@ -473,30 +470,7 @@ export default function StackList({ onAction, onSelect, onRefresh, loading = fal
       <div className="flex items-center gap-3 flex-wrap">
         {/* Search input */}
         <div className="relative flex-1 min-w-0 md:min-w-[200px] max-w-md basis-full sm:basis-auto sm:flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
-          <input
-            type="text"
-            aria-label="Search stacks"
-            placeholder="Search stacks or containers…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="
-              w-full pl-10 pr-9 py-2.5 bg-white/5 border border-white/10 rounded-lg
-              text-sm text-slate-200 placeholder-slate-500
-              focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20
-              transition-all duration-200
-            "
-          />
-          {search && (
-            <Hint label="Clear the search">
-              <button aria-label="Clear the search"
-                onClick={() => setSearch('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-1 text-slate-500 hover:text-slate-300 transition-colors"
-              >
-                <X size={14} />
-              </button>
-            </Hint>
-          )}
+          <SearchInput value={search} onChange={setSearch} label="Search stacks" placeholder="Search stacks or containers…" />
         </div>
 
         {/* Status filter: one choice (the dashboard's segmented control); a phone swipes the row sideways */}
@@ -623,7 +597,7 @@ export default function StackList({ onAction, onSelect, onRefresh, loading = fal
       ) : (
         <div className="glass-subtle rounded-xl">
           <EmptyState
-            icon={<Layers size={32} />}
+            icon={<Layers size={28} />}
             title={filtering ? 'No stacks match your filters' : 'No stacks found'}
             hint={filtering ? 'Try another name or status.' : 'No stacks yet — deploy a template or create a stack.'}
             action={filtering ? (
@@ -661,14 +635,12 @@ export default function StackList({ onAction, onSelect, onRefresh, loading = fal
                   <Sparkles size={18} className="text-cyan-400" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-slate-100">Compose lint results</h3>
+                  <h3 className="text-sm font-semibold text-slate-200">Compose lint results</h3>
                   <p className="text-[10px] text-slate-500">{lintAllResults.length} stack{lintAllResults.length === 1 ? '' : 's'} checked</p>
                 </div>
               </div>
               <Hint label="Close">
-                <button aria-label="Close" onClick={() => setLintAllResults(null)} className={`${BTN_ICON_SM} ${TONE_GHOST}`}>
-                  <X size={14} />
-                </button>
+                <CloseButton size="sm" onClick={() => setLintAllResults(null)} />
               </Hint>
             </div>
             {/* Summary */}

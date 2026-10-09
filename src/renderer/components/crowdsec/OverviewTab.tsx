@@ -5,7 +5,7 @@
 // =============================================================================
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Activity, Globe2, Crosshair, Radar, Network, ShieldCheck, Users, Cpu, Ban, RotateCw, RefreshCw, ArrowRight, Plug, UserCheck, Loader2, CircleAlert, CircleCheck, Info, Clock, TriangleAlert, ShieldOff, KeyRound } from 'lucide-react'
+import { Activity, Globe2, Crosshair, Radar, Network, ShieldCheck, Users, Cpu, Ban, RotateCw, RefreshCw, ArrowRight, Plug, UserCheck, Loader2, Info, Clock, ShieldOff, KeyRound } from 'lucide-react'
 import { usePolling } from '../../hooks/usePolling'
 import { pollKeys } from '../../api/pollKeys'
 import { useToast } from '../common/Toast'
@@ -13,59 +13,25 @@ import { useConfirm } from '../common/ConfirmDialog'
 import { crowdsecMetrics, crowdsecAlerts, crowdsecCommunity, crowdsecService, crowdsecRegisterTraefikBouncer, fetchRoutes } from '../../api/endpoints'
 import { useSettingsStore } from '../../stores/settingsStore'
 import type { CrowdSecMetricsResponse } from '../../../shared/types'
-import { BTN_DANGER, BTN_PRIMARY, BTN_QUIET, CARD, Chip, Country, Dot, SectionHead, Segmented, Skel, countryName, errMsg, familyTone, fmtAgo, fmtNum, fmtTime, useCs, useNow, type Tone } from './kit'
+import { Country, countryName, errMsg, familyTone, fmtAgo, fmtNum, fmtTime, useCs, useNow } from './kit'
 import { BarRow, TimelineChart } from './charts'
 import BanSheet from './BanSheet'
 import { AlertSheet } from './AlertsTab'
 import WorldMap from './WorldMap'
 import { CheckNowButton, PAUSED_TEXT, REFUSED_TEXT, RegisterAgainButton, capiState, focusEnrolOnOpen, lastContact } from './CommunityActions'
 
+import { BTN_TOOLBAR_DANGER, BTN_TOOLBAR_OK, BTN_TOOLBAR_QUIET } from '../../lib/ui'
+import { CARD } from '../../lib/pageKit'
+import { Pill, Dot } from '../common/Pill'
+import { SkeletonBlock, EmptyState } from '../common/PageState'
+import Segmented from '../common/Segmented'
+import StatusLine from '../common/StatusLine'
+import { Panel } from '../dashboard/cardShared'
 type Win = '24h' | '7d' | '30d'
 const WIN_LABEL: Record<Win, string> = { '24h': 'the last 24 hours', '7d': 'the last 7 days', '30d': 'the last 30 days' }
 const WIN_KEY = 'dcs-crowdsec-window'
 function loadWin(): Win {
   try { const v = localStorage.getItem(WIN_KEY); return v === '7d' || v === '30d' ? v : '24h' } catch { return '24h' }
-}
-
-function Panel({ title, icon, right, children, className = '' }: { title: string; icon: React.ElementType; right?: React.ReactNode; children: React.ReactNode; className?: string }) {
-  return (
-    <section className={`${CARD} p-4 min-w-0 ${className}`} aria-label={title}>
-      <SectionHead icon={icon} title={title} right={right} className="mb-3 min-h-[36px]" />
-      {children}
-    </section>
-  )
-}
-
-function Quiet({ children }: { children: React.ReactNode }) {
-  return <p className="text-xs text-slate-500 py-6 text-center leading-relaxed">{children}</p>
-}
-
-/** a row in the protection / community cards: a dot, a headline, a line of explanation, an optional action */
-function StatusRow({ tone, title, children, action, icon }: { tone: Tone; title: string; children?: React.ReactNode; action?: React.ReactNode; icon?: React.ElementType }) {
-  const Icon = icon ?? (tone === 'good' ? CircleCheck : tone === 'mute' ? Info : CircleAlert)
-  const cls = tone === 'good' ? 'text-emerald-400' : tone === 'warn' ? 'text-amber-400' : tone === 'bad' ? 'text-rose-400' : tone === 'info' ? 'text-cyan-400' : 'text-slate-500'
-  return (
-    <div className="flex items-start gap-3 py-2.5 first:pt-0 last:pb-0">
-      <Icon size={16} className={`${cls} shrink-0 mt-0.5`} aria-hidden="true" />
-      <div className="min-w-0 flex-1">
-        <p className="text-sm text-slate-200 leading-snug">{title}</p>
-        {children && <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">{children}</p>}
-        {action && <div className="mt-2">{action}</div>}
-      </div>
-    </div>
-  )
-}
-
-/** one line of the protection checklist: a tick, what was checked, what it says */
-function CheckLine({ state, label, children }: { state: 'ok' | 'warn' | 'bad' | 'mute'; label: string; children?: React.ReactNode }) {
-  const Icon = state === 'ok' ? CircleCheck : state === 'mute' ? Info : state === 'bad' ? CircleAlert : TriangleAlert
-  const cls = state === 'ok' ? 'text-emerald-400' : state === 'warn' ? 'text-amber-400' : state === 'bad' ? 'text-rose-400' : 'text-slate-500'
-  return (
-    <li className="flex items-start gap-2 py-1">
-      <Icon size={13} className={`${cls} shrink-0 mt-0.5`} aria-hidden="true" />
-      <p className="text-xs text-slate-300 min-w-0 leading-snug"><span className="sr-only">{state === 'ok' ? 'Fine: ' : state === 'mute' ? 'Note: ' : 'Needs attention: '}</span>{label}{children ? <span className="text-slate-500"> · {children}</span> : null}</p>
-    </li>
-  )
 }
 
 export default function OverviewTab() {
@@ -160,7 +126,7 @@ export default function OverviewTab() {
 
       {!m && !metrics.error && (
         <div className="grid lg:grid-cols-3 gap-4" aria-busy="true" aria-label="Loading">
-          <Skel className="h-64 lg:col-span-2" /><Skel className="h-64" /><Skel className="h-56" /><Skel className="h-56" /><Skel className="h-56" />
+          <SkeletonBlock className="h-64 lg:col-span-2" /><SkeletonBlock className="h-64" /><SkeletonBlock className="h-56" /><SkeletonBlock className="h-56" /><SkeletonBlock className="h-56" />
         </div>
       )}
       {!m && metrics.error && <p className={`${CARD} p-4 text-sm text-rose-300`} role="alert">{metrics.error.message}</p>}
@@ -168,26 +134,26 @@ export default function OverviewTab() {
       {m && (
         <div className={`space-y-4 transition-opacity ${stale ? 'opacity-60' : ''}`}>
           <div className="grid lg:grid-cols-3 gap-4">
-            <Panel title="Detections over time" icon={Activity} className="lg:col-span-2" right={t && t.alerts > 0 ? <span className="text-[11px] text-slate-500 tabular-nums">{fmtNum(t.events)} suspicious requests</span> : undefined}>
+            <Panel title="Detections over time" icon={Activity} className="lg:col-span-2" actions={t && t.alerts > 0 ? <span className="text-[11px] text-slate-500 tabular-nums">{fmtNum(t.events)} suspicious requests</span> : undefined}>
               {t && t.alerts === 0
-                ? <Quiet>Quiet. CrowdSec detected nothing in {WIN_LABEL[win]}.<br />That is the normal state of a well-behaved server, not a fault.</Quiet>
+                ? <EmptyState compact title={`Quiet: CrowdSec detected nothing in ${WIN_LABEL[win]}.`} hint="That is the normal state of a well-behaved server, not a fault." />
                 : <TimelineChart points={m.timeline} bucketSeconds={m.bucket_seconds} />}
               {m.map_points.length > 0 && <div className="mt-4 pt-3 border-t border-white/5"><WorldMap points={m.map_points} /></div>}
             </Panel>
 
-            <Panel title="Where attacks come from" icon={Globe2} right={countries.length > 7 ? <button type="button" className="text-[11px] text-cyan-400 hover:text-cyan-300" onClick={() => setAllCountries((v) => !v)}>{allCountries ? 'Show fewer' : `All ${countries.length}`}</button> : undefined}>
+            <Panel title="Where attacks come from" icon={Globe2} actions={countries.length > 7 ? <button type="button" className="text-[11px] text-cyan-400 hover:text-cyan-300" onClick={() => setAllCountries((v) => !v)}>{allCountries ? 'Show fewer' : `All ${countries.length}`}</button> : undefined}>
               {countries.length === 0 && m.unknown_country === 0
-                ? <Quiet>No detections, so no countries yet.</Quiet>
+                ? <EmptyState compact title="No detections, so no countries yet." />
                 : (
                   <div className="space-y-0.5">
                     {shownCountries.map((cn) => (
-                      <BarRow key={cn.code} tone="bad" value={cn.alerts} max={maxCountry}
+                      <BarRow key={cn.code} tone="problem" value={cn.alerts} max={maxCountry}
                         label={<Country code={cn.code} name />}
                         valueLabel={<>{cn.alerts}<span className="text-slate-500 font-normal"> · {cn.sources} src</span></>}
-                        extra={bansBy.get(cn.code) ? <Chip tone="bad" title={`${bansBy.get(cn.code)} address${bansBy.get(cn.code) === 1 ? '' : 'es'} from ${countryName(cn.code)} banned right now`}>{bansBy.get(cn.code)} banned</Chip> : undefined}
+                        extra={bansBy.get(cn.code) ? <Pill tone="problem" title={`${bansBy.get(cn.code)} address${bansBy.get(cn.code) === 1 ? '' : 'es'} from ${countryName(cn.code)} banned right now`}>{bansBy.get(cn.code)} banned</Pill> : undefined}
                         title={`Detections from ${countryName(cn.code)}: open the alerts`} onClick={() => goTab('alerts', cn.code)} />
                     ))}
-                    {m.unknown_country > 0 && <BarRow tone="mute" value={m.unknown_country} max={maxCountry} label={<span className="text-xs text-slate-500">Country not known</span>} title="Private or unlisted addresses have no country" />}
+                    {m.unknown_country > 0 && <BarRow tone="neutral" value={m.unknown_country} max={maxCountry} label={<span className="text-xs text-slate-500">Country not known</span>} title="Private or unlisted addresses have no country" />}
                   </div>
                 )}
               {(countries.length > 0 || m.unknown_country > 0) && <p className="text-[11px] text-slate-500 mt-3 leading-relaxed">The country comes from the address, as CrowdSec reads it. Bans work on addresses and networks: the Traefik bouncer cannot block a whole country.</p>}
@@ -196,7 +162,7 @@ export default function OverviewTab() {
 
           <div className="grid lg:grid-cols-3 gap-4">
             <Panel title="Kinds of attack" icon={Crosshair}>
-              {m.scenarios.length === 0 ? <Quiet>Nothing detected in {WIN_LABEL[win]}.</Quiet> : (
+              {m.scenarios.length === 0 ? <EmptyState compact title={`Nothing detected in ${WIN_LABEL[win]}.`} /> : (
                 <div className="space-y-0.5">
                   {m.scenarios.slice(0, 7).map((sc) => (
                     <BarRow key={sc.scenario} tone={familyTone(sc.family)} value={sc.alerts} max={maxScen}
@@ -209,25 +175,25 @@ export default function OverviewTab() {
             </Panel>
 
             <Panel title={srcView === 'addresses' ? 'Busiest sources' : 'Busiest networks'} icon={srcView === 'addresses' ? Radar : Network}
-              right={<Segmented<'addresses' | 'networks'> value={srcView} onChange={setSrcView} ariaLabel="Sources by" options={[{ value: 'addresses', label: 'Addresses' }, { value: 'networks', label: 'Networks' }]} />}>
+              actions={<Segmented<'addresses' | 'networks'> value={srcView} onChange={setSrcView} ariaLabel="Sources by" options={[{ value: 'addresses', label: 'Addresses' }, { value: 'networks', label: 'Networks' }]} />}>
               {srcView === 'addresses' ? (
-                m.sources.length === 0 ? <Quiet>No attacking addresses in {WIN_LABEL[win]}.</Quiet> : (
+                m.sources.length === 0 ? <EmptyState compact title={`No attacking addresses in ${WIN_LABEL[win]}.`} /> : (
                   <div className="space-y-0.5">
                     {m.sources.slice(0, 6).map((src) => (
-                      <BarRow key={src.value} tone={src.banned ? 'bad' : 'warn'} value={src.alerts} max={maxSrc}
+                      <BarRow key={src.value} tone={src.banned ? 'problem' : 'attention'} value={src.alerts} max={maxSrc}
                         label={<><span className="font-mono text-[13px] text-slate-100 truncate">{src.value}</span><Country code={src.country} /></>}
                         sub={<>{src.as_name ? `AS${src.as_number} · ${src.as_name}` : 'Network not known'} · {fmtAgo(src.last_seen, now)}</>}
                         valueLabel={src.alerts}
                         extra={src.banned
-                          ? <Chip tone="bad">banned</Chip>
+                          ? <Pill tone="problem">banned</Pill>
                           : isAdmin ? <button type="button" className="h-6 px-2 rounded-md text-[11px] font-medium border bg-rose-500/10 border-rose-500/20 text-rose-300 hover:bg-rose-500/20 inline-flex items-center gap-1" onClick={(e) => { e.stopPropagation(); setBanning(src.value) }} aria-label={`Ban ${src.value}`}><Ban size={10} /> Ban</button>
-                          : <Chip tone="mute">not banned</Chip>}
+                          : <Pill tone="neutral">not banned</Pill>}
                         title={`${src.scenarios.join(', ')}`} />
                     ))}
                   </div>
                 )
               ) : (
-                m.networks.length === 0 ? <Quiet>No networks to show yet.</Quiet> : (
+                m.networks.length === 0 ? <EmptyState compact title="No networks to show yet." /> : (
                   <div className="space-y-0.5">
                     {m.networks.slice(0, 6).map((n) => (
                       <BarRow key={n.as_number || n.as_name} tone="info" value={n.alerts} max={maxNet}
@@ -240,9 +206,9 @@ export default function OverviewTab() {
               )}
             </Panel>
 
-            <Panel title="Latest detections" icon={Clock} right={<button type="button" className="text-[11px] text-cyan-400 hover:text-cyan-300 inline-flex items-center gap-1" onClick={() => goTab('alerts')}>All alerts <ArrowRight size={11} /></button>}>
-              {!recent.data ? <div className="space-y-2">{[0, 1, 2, 3].map((i) => <Skel key={i} className="h-9" />)}</div>
-                : latest.length === 0 ? <Quiet>No detections in the last 24 hours.</Quiet> : (
+            <Panel title="Latest detections" icon={Clock} actions={<button type="button" className="text-[11px] text-cyan-400 hover:text-cyan-300 inline-flex items-center gap-1" onClick={() => goTab('alerts')}>All alerts <ArrowRight size={11} /></button>}>
+              {!recent.data ? <div className="space-y-2">{[0, 1, 2, 3].map((i) => <SkeletonBlock key={i} className="h-9" />)}</div>
+                : latest.length === 0 ? <EmptyState compact title="No detections in the last 24 hours." /> : (
                   <ul className="divide-y divide-white/5">
                     {latest.map((a) => (
                       <li key={a.id}>
@@ -268,87 +234,87 @@ export default function OverviewTab() {
         <Panel title="Protection" icon={ShieldCheck}>
           <div className="divide-y divide-white/5">
             {!traefikPresent ? (
-              <StatusRow tone="warn" title="Traefik was not found on this server">CrowdSec still detects attacks, but nothing in front of your services blocks them. Deploy or start Traefik to enforce the bans.</StatusRow>
+              <StatusLine tone="attention" title="Traefik was not found on this server">CrowdSec still detects attacks, but nothing in front of your services blocks them. Deploy or start Traefik to enforce the bans.</StatusLine>
             ) : !bouncer?.registered ? (
-              <StatusRow tone="warn" title="Bans are not enforced yet" action={isAdmin ? <button type="button" className={BTN_PRIMARY} disabled={busy === 'bouncer'} onClick={registerBouncer}>{busy === 'bouncer' ? <Loader2 size={13} className="animate-spin" /> : <Plug size={13} />} Register the Traefik bouncer</button> : undefined}>No bouncer is registered, so a ban is only a note in CrowdSec&rsquo;s database. The bouncer is what makes Traefik refuse the address.</StatusRow>
+              <StatusLine tone="attention" title="Bans are not enforced yet" action={isAdmin ? <button type="button" className={BTN_TOOLBAR_OK} disabled={busy === 'bouncer'} onClick={registerBouncer}>{busy === 'bouncer' ? <Loader2 size={14} className="animate-spin" /> : <Plug size={14} />} Register the Traefik bouncer</button> : undefined}>No bouncer is registered, so a ban is only a note in CrowdSec&rsquo;s database. The bouncer is what makes Traefik refuse the address.</StatusLine>
             ) : enf && !enf.in_chain ? (
-              <StatusRow tone="warn" title="The bouncer is registered but Traefik is not using it" action={isAdmin ? <button type="button" className={BTN_PRIMARY} disabled={busy === 'bouncer'} onClick={registerBouncer}>{busy === 'bouncer' ? <Loader2 size={13} className="animate-spin" /> : <Plug size={13} />} Add it to the Traefik chain</button> : undefined}>The middleware is not part of the chain your services use.</StatusRow>
+              <StatusLine tone="attention" title="The bouncer is registered but Traefik is not using it" action={isAdmin ? <button type="button" className={BTN_TOOLBAR_OK} disabled={busy === 'bouncer'} onClick={registerBouncer}>{busy === 'bouncer' ? <Loader2 size={14} className="animate-spin" /> : <Plug size={14} />} Add it to the Traefik chain</button> : undefined}>The middleware is not part of the chain your services use.</StatusLine>
             ) : pullAge === null ? (
-              <StatusRow tone="warn" title="Traefik has not asked CrowdSec yet">Nothing has come from Traefik since the bouncer was registered. It starts with the first request that goes through the middleware.</StatusRow>
+              <StatusLine tone="attention" title="Traefik has not asked CrowdSec yet">Nothing has come from Traefik since the bouncer was registered. It starts with the first request that goes through the middleware.</StatusLine>
             ) : pullAge > 1800 ? (
-              <StatusRow tone="warn" title={`Traefik last asked CrowdSec ${fmtAgo(bouncer.last_pull, now)}`}>The plugin reports in at least every ten minutes while Traefik runs it. Check that Traefik is running and loaded the plugin.</StatusRow>
+              <StatusLine tone="attention" title={`Traefik last asked CrowdSec ${fmtAgo(bouncer.last_pull, now)}`}>The plugin reports in at least every ten minutes while Traefik runs it. Check that Traefik is running and loaded the plugin.</StatusLine>
             ) : (
-              <StatusRow tone="good" title="Traefik enforces the bans">Traefik last asked CrowdSec {fmtAgo(bouncer.last_pull, now)}. It blocks addresses and networks before a request reaches a service.</StatusRow>
+              <StatusLine tone="ok" title="Traefik enforces the bans">Traefik last asked CrowdSec {fmtAgo(bouncer.last_pull, now)}. It blocks addresses and networks before a request reaches a service.</StatusLine>
             )}
             {traefikPresent && enf && (
               <div className="pt-2.5 first:pt-0">
                 <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">How the bouncer is wired</p>
                 <ul>
-                  <CheckLine state={enf.plugin?.declared ? (enf.plugin.loaded === false ? 'warn' : 'ok') : 'bad'} label={enf.plugin?.declared ? `Plugin ${enf.plugin.name} ${enf.plugin.version} is declared in Traefik` : 'The plugin is not declared in Traefik\u2019s static configuration'}>
+                  <StatusLine as="li" dense tone={enf.plugin?.declared ? (enf.plugin.loaded === false ? 'attention' : 'ok') : 'problem'} title={enf.plugin?.declared ? `Plugin ${enf.plugin.name} ${enf.plugin.version} is declared in Traefik` : 'The plugin is not declared in Traefik\u2019s static configuration'}>
                     {enf.plugin?.declared ? (enf.plugin.loaded === false ? 'Traefik has not been restarted since' : enf.plugin.loaded ? 'loaded' : undefined) : 'Traefik refuses the middleware until it is'}
-                  </CheckLine>
-                  <CheckLine state={enf.middleware_present ? 'ok' : 'bad'} label={enf.middleware_present ? 'The middleware file crowdsec-bouncer.yml exists' : 'The middleware file crowdsec-bouncer.yml is missing'} />
-                  <CheckLine state={enf.in_chain ? 'ok' : 'bad'} label={enf.in_chain ? 'crowdsec-bouncer is in traefik-chain' : 'crowdsec-bouncer is not in traefik-chain'}>{enf.in_chain ? 'every route that uses the chain is checked' : 'no route is checked'}</CheckLine>
-                  <CheckLine state={!bouncer?.registered ? 'bad' : (s?.issues ?? []).some((i) => i.code === 'bouncer_key_stale') ? 'bad' : enf.plugin?.key_present ? 'ok' : 'warn'} label={!bouncer?.registered ? 'CrowdSec knows no bouncer for Traefik' : (s?.issues ?? []).some((i) => i.code === 'bouncer_key_stale') ? 'The key in the middleware file is out of date' : 'The bouncer is registered and the file holds its key'} />
-                  <CheckLine state={pullAge === null ? 'warn' : pullAge > 1800 ? 'warn' : 'ok'} label={pullAge === null ? 'Traefik has not asked CrowdSec yet' : `Traefik last asked CrowdSec ${fmtAgo(bouncer?.last_pull, now)}`} />
+                  </StatusLine>
+                  <StatusLine as="li" dense tone={enf.middleware_present ? 'ok' : 'problem'} title={enf.middleware_present ? 'The middleware file crowdsec-bouncer.yml exists' : 'The middleware file crowdsec-bouncer.yml is missing'} />
+                  <StatusLine as="li" dense tone={enf.in_chain ? 'ok' : 'problem'} title={enf.in_chain ? 'crowdsec-bouncer is in traefik-chain' : 'crowdsec-bouncer is not in traefik-chain'}>{enf.in_chain ? 'every route that uses the chain is checked' : 'no route is checked'}</StatusLine>
+                  <StatusLine as="li" dense tone={!bouncer?.registered ? 'problem' : (s?.issues ?? []).some((i) => i.code === 'bouncer_key_stale') ? 'problem' : enf.plugin?.key_present ? 'ok' : 'attention'} title={!bouncer?.registered ? 'CrowdSec knows no bouncer for Traefik' : (s?.issues ?? []).some((i) => i.code === 'bouncer_key_stale') ? 'The key in the middleware file is out of date' : 'The bouncer is registered and the file holds its key'} />
+                  <StatusLine as="li" dense tone={pullAge === null ? 'attention' : pullAge > 1800 ? 'attention' : 'ok'} title={pullAge === null ? 'Traefik has not asked CrowdSec yet' : `Traefik last asked CrowdSec ${fmtAgo(bouncer?.last_pull, now)}`} />
                   {enf.plugin?.mode && (
-                    <CheckLine state="mute" label={`Mode: ${enf.plugin.mode}`}>
+                    <StatusLine as="li" dense tone="neutral" title={`Mode: ${enf.plugin.mode}`}>
                       {isAdmin ? <button type="button" className="text-cyan-400 hover:text-cyan-300" onClick={() => goTab('settings')}>change it in Settings</button> : (enf.plugin.mode === 'live' ? 'asks CrowdSec per visitor' : 'downloads the ban list')}
-                    </CheckLine>
+                    </StatusLine>
                   )}
                 </ul>
               </div>
             )}
             {!member && routes.data && enf?.in_chain !== undefined && (checked > 0 || bypass.length > 0) && (
               bypass.length > 0
-                ? <StatusRow tone="warn" title={`${bypass.length} of ${checked + bypass.length} route${checked + bypass.length === 1 ? '' : 's'} bypass${bypass.length === 1 ? 'es' : ''} the bouncer`} action={<button type="button" className={BTN_QUIET} onClick={() => setPage('dns')}><ShieldOff size={13} /> Open DNS &amp; Routes</button>}>
+                ? <StatusLine tone="attention" title={`${bypass.length} of ${checked + bypass.length} route${checked + bypass.length === 1 ? '' : 's'} bypass${bypass.length === 1 ? 'es' : ''} the bouncer`} action={<button type="button" className={BTN_TOOLBAR_QUIET} onClick={() => setPage('dns')}><ShieldOff size={14} /> Open DNS &amp; Routes</button>}>
                     {bypass.slice(0, 4).map((r) => r.subdomain).join(', ')}{bypass.length > 4 ? ` and ${bypass.length - 4} more` : ''}: they do not use Traefik&rsquo;s traefik-chain, so a banned address can still reach them.
-                  </StatusRow>
-                : <StatusRow tone="good" title={`All ${checked} route${checked === 1 ? '' : 's'} go through the bouncer`}>Routes of your VMs pass through this Traefik&rsquo;s chain too.</StatusRow>
+                  </StatusLine>
+                : <StatusLine tone="ok" title={`All ${checked} route${checked === 1 ? '' : 's'} go through the bouncer`}>Routes of your VMs pass through this Traefik&rsquo;s chain too.</StatusLine>
             )}
             {/* the address you connect from (on a VM it would be the hub's, so it is left out, as the allowlist does) */}
             {!member && clientIp && (
               s?.client_banned
-                ? <StatusRow tone="bad" title={`You are banned right now (${clientIp})`} action={<button type="button" className={BTN_QUIET} onClick={() => goTab('bans', clientIp)}>Open your ban</button>}>Requests from this address are refused by Traefik.</StatusRow>
+                ? <StatusLine tone="problem" title={`You are banned right now (${clientIp})`} action={<button type="button" className={BTN_TOOLBAR_QUIET} onClick={() => goTab('bans', clientIp)}>Open your ban</button>}>Requests from this address are refused by Traefik.</StatusLine>
                 : covered
-                  ? <StatusRow tone="good" title={`Your address ${clientIp} is never banned`}>It is on the allowlist.</StatusRow>
-                  : <StatusRow tone="mute" title={`You are connecting from ${clientIp}`} action={<button type="button" className={BTN_QUIET} onClick={() => goTab('allowlist')}><UserCheck size={13} /> Open the allowlist</button>}>This address can be banned like any other. Allowlist it if it is yours.</StatusRow>
+                  ? <StatusLine tone="ok" title={`Your address ${clientIp} is never banned`}>It is on the allowlist.</StatusLine>
+                  : <StatusLine tone="neutral" title={`You are connecting from ${clientIp}`} action={<button type="button" className={BTN_TOOLBAR_QUIET} onClick={() => goTab('allowlist')}><UserCheck size={14} /> Open the allowlist</button>}>This address can be banned like any other. Allowlist it if it is yours.</StatusLine>
             )}
           </div>
         </Panel>
 
-        <Panel title="Community" icon={Users} right={<button type="button" className="text-[11px] text-cyan-400 hover:text-cyan-300 inline-flex items-center gap-1" onClick={() => goTab('bouncers')}>Details <ArrowRight size={11} /></button>}>
-          {!cm ? <div className="space-y-2"><Skel className="h-10" /><Skel className="h-10" /><Skel className="h-10" /></div> : (
+        <Panel title="Community" icon={Users} actions={<button type="button" className="text-[11px] text-cyan-400 hover:text-cyan-300 inline-flex items-center gap-1" onClick={() => goTab('bouncers')}>Details <ArrowRight size={11} /></button>}>
+          {!cm ? <div className="space-y-2"><SkeletonBlock className="h-10" /><SkeletonBlock className="h-10" /><SkeletonBlock className="h-10" /></div> : (
             <div className="divide-y divide-white/5">
               {refused ? (
-                <StatusRow tone="bad" title="CrowdSec can’t reach the community service"
+                <StatusLine tone="problem" title="CrowdSec can’t reach the community service"
                   action={isAdmin ? <div className="flex flex-wrap items-start gap-2"><div><RegisterAgainButton onDone={community.refresh} /></div>{capi && <CheckNowButton onDone={community.refresh} availableAt={cm.capi.check_available_at} />}</div> : undefined}>
                   {cm.hint || REFUSED_TEXT}
-                </StatusRow>
+                </StatusLine>
               ) : capi === 'disabled' ? (
-                <StatusRow tone="mute" title="The community connection is switched off">CrowdSec is set to run without the community service, so it neither receives the community blocklist nor shares what it sees.</StatusRow>
+                <StatusLine tone="neutral" title="The community connection is switched off">CrowdSec is set to run without the community service, so it neither receives the community blocklist nor shares what it sees.</StatusLine>
               ) : capi === 'paused' ? (
-                <StatusRow tone="warn" icon={Clock} title="Community service pausing this engine">
+                <StatusLine tone="attention" icon={Clock} title="Community service pausing this engine">
                   {cm.hint || PAUSED_TEXT}<span className="block mt-1 text-slate-400">{lastContact(cm, now)}</span>
-                </StatusRow>
+                </StatusLine>
               ) : capi === 'unknown' && cm.capi.registered ? (
-                <StatusRow tone="mute" title="Not checked yet" action={isAdmin ? <CheckNowButton onDone={community.refresh} availableAt={cm.capi.check_available_at} /> : undefined}>
+                <StatusLine tone="neutral" title="Not checked yet" action={isAdmin ? <CheckNowButton onDone={community.refresh} availableAt={cm.capi.check_available_at} /> : undefined}>
                   DCS Orchestrator asks the community service only when you check, so it adds no logins of its own.{cm.capi.pulling && (cm.community_decisions || c?.community) ? ` CrowdSec holds ${fmtNum(cm.community_decisions || c?.community)} community addresses.` : ''}
-                </StatusRow>
+                </StatusLine>
               ) : (
-                <StatusRow tone={cm.capi.registered && cm.capi.pulling ? 'good' : cm.capi.registered ? 'warn' : 'mute'}
+                <StatusLine tone={cm.capi.registered && cm.capi.pulling ? 'ok' : cm.capi.registered ? 'attention' : 'neutral'}
                   title={cm.capi.registered ? (cm.capi.pulling ? `Community blocklist: ${fmtNum(cm.community_decisions || c?.community)} known bad addresses` : 'Community blocklist is not being pulled') : 'Not connected to the community'}
                   action={!isAdmin ? undefined : !cm.capi.registered ? <RegisterAgainButton onDone={community.refresh} label="Register" /> : capi ? <CheckNowButton onDone={community.refresh} availableAt={cm.capi.check_available_at} /> : undefined}>
                   {cm.capi.error ? cm.capi.error : cm.capi.registered ? 'CrowdSec downloads addresses other people already caught attacking, and the bouncer blocks them too.' : 'Register with CrowdSec’s central API to receive the community blocklist.'}
-                </StatusRow>
+                </StatusLine>
               )}
               {!refused && capi !== 'disabled' && (
-                <StatusRow tone={cm.capi.sharing ? 'good' : 'mute'} title={cm.capi.sharing ? 'Sharing your detections' : 'Not sharing your detections'}>
+                <StatusLine tone={cm.capi.sharing ? 'ok' : 'neutral'} title={cm.capi.sharing ? 'Sharing your detections' : 'Not sharing your detections'}>
                   {cm.capi.sharing ? 'Attackers you catch are reported (address and scenario only) so others can block them.' : 'Nothing leaves this server. You can turn sharing on with cscli.'}
-                </StatusRow>
+                </StatusLine>
               )}
               {cm.console.known === false && !cm.console.enrolled ? (
-                <StatusRow tone="mute" title="Enrolment not checked yet"
+                <StatusLine tone="neutral" title="Enrolment not checked yet"
                   action={isAdmin ? (
                     <div className="flex flex-wrap items-center gap-2">
                       <CheckNowButton onDone={community.refresh} availableAt={cm.capi.check_available_at} />
@@ -356,12 +322,12 @@ export default function OverviewTab() {
                     </div>
                   ) : undefined}>
                   Whether this engine is in the CrowdSec Console is known after a check, an enrolment or a line in CrowdSec’s log.
-                </StatusRow>
+                </StatusLine>
               ) : (
-              <StatusRow tone={cm.console.enrolled ? 'good' : 'mute'} title={cm.console.enrolled ? 'Enrolled in the CrowdSec Console' : 'Not enrolled in the CrowdSec Console'}
-                action={!cm.console.enrolled && isAdmin ? <button type="button" className={BTN_QUIET} onClick={() => { focusEnrolOnOpen(); goTab('bouncers') }}><KeyRound size={13} /> Enrol in the console</button> : undefined}>
+              <StatusLine tone={cm.console.enrolled ? 'ok' : 'neutral'} title={cm.console.enrolled ? 'Enrolled in the CrowdSec Console' : 'Not enrolled in the CrowdSec Console'}
+                action={!cm.console.enrolled && isAdmin ? <button type="button" className={BTN_TOOLBAR_QUIET} onClick={() => { focusEnrolOnOpen(); goTab('bouncers') }}><KeyRound size={14} /> Enrol in the console</button> : undefined}>
                 {cm.console.enrolled ? 'Your alerts also appear in the online console.' : 'Optional: a free web console with more blocklists, enrolled with a key from app.crowdsec.net.'}
-              </StatusRow>
+              </StatusLine>
               )}
             </div>
           )}
@@ -386,8 +352,8 @@ export default function OverviewTab() {
           </dl>
           {isAdmin && (
             <div className="flex items-center gap-2 mt-4 pt-3 border-t border-white/5 flex-wrap">
-              <button type="button" className={BTN_QUIET} disabled={busy !== ''} onClick={() => runService('reload')} title="Ask CrowdSec to re-read its parsers and allowlists without restarting">{busy === 'reload' ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />} Reload</button>
-              <button type="button" className={BTN_DANGER} disabled={busy !== ''} onClick={() => runService('restart')} title="Restart the container">{busy === 'restart' ? <Loader2 size={13} className="animate-spin" /> : <RotateCw size={13} />} Restart</button>
+              <button type="button" className={BTN_TOOLBAR_QUIET} disabled={busy !== ''} onClick={() => runService('reload')} title="Ask CrowdSec to re-read its parsers and allowlists without restarting">{busy === 'reload' ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />} Reload</button>
+              <button type="button" className={BTN_TOOLBAR_DANGER} disabled={busy !== ''} onClick={() => runService('restart')} title="Restart the container">{busy === 'restart' ? <Loader2 size={14} className="animate-spin" /> : <RotateCw size={14} />} Restart</button>
             </div>
           )}
         </Panel>

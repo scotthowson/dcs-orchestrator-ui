@@ -5,7 +5,7 @@
 // =============================================================================
 
 import { useState, useCallback, useMemo, useEffect, useId, useRef } from 'react'
-import { Badge, SegmentedControl, Switch } from '@mantine/core'
+import { SegmentedControl, Switch } from '@mantine/core'
 import {
   Globe,
   Search,
@@ -43,13 +43,9 @@ import { useToast } from '../components/common/Toast'
 import { DisconnectedBanner } from '../components/common/DisconnectedBanner'
 import VmCapsule from '../components/fleet/VmCapsule'
 import PageHeader from '../components/common/PageHeader'
-import { TONE_ATTN } from '../components/fleet/fleetShared'
 import Hint from '../components/common/Hint'
 import { pageLabel } from '../constants/pageTitles'
-import {
-  BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD, BTN_CARD_QUIET, BTN_ICON_SM, BTN_SHEET_QUIET, BTN_SHEET_PRIMARY, BTN_SHEET_DANGER,
-  TONE_OK, TONE_GHOST_OK,
-} from '../lib/ui'
+import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD, BTN_CARD_QUIET, BTN_ICON_SM, BTN_SHEET_QUIET, BTN_SHEET_PRIMARY, BTN_SHEET_DANGER, TONE_OK, TONE_GHOST_OK, TONE_ATTN } from '../lib/ui'
 import { apiClient } from '../api/client'
 import { memberPath } from '../api/endpoints'
 // a route the hub's Traefik serves for a VM (from fleet-members.yml): the file lives on that VM
@@ -63,6 +59,9 @@ import type { RouteEntry, DnsRecord, DnsRecordInput, DnsZone } from '../../share
 import ModalOverlay from '../components/common/ModalOverlay'
 import DomainsPanel from '../components/dns/DomainsPanel'
 
+import { Pill } from '../components/common/Pill'
+import SearchInput from '../components/common/SearchInput'
+import CloseButton from '../components/common/CloseButton'
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -77,7 +76,7 @@ const TTL_OPTIONS: { value: number; label: string }[] = [
 
 /** the record type, drawn the same for every type: which one it is stands in the letters — the colours of this dashboard mean state (violet is the fleet's) */
 function TypeBadge({ type }: { type: string }) {
-  return <Badge component="span" color="slate" className="font-mono">{type}</Badge>
+  return <Pill tone="neutral" className="font-mono">{type}</Pill>
 }
 
 function ttlLabel(ttl: number): string {
@@ -145,7 +144,7 @@ function DeleteRouteModal({ route, onConfirm, onCancel, busy }: {
             <Trash2 size={18} className="text-rose-400" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-slate-100">Delete route</h3>
+            <h3 className="text-sm font-semibold text-slate-200">Delete route</h3>
             <p className="text-[10px] text-slate-500">{vm ? `Removes the route file on the VM ${vm}` : 'Removes the Traefik route file and its Cloudflare record'}</p>
           </div>
         </div>
@@ -243,11 +242,11 @@ function RecordModal({ zone, zoneId, initial, onClose, onSaved }: {
               {editing ? <Pencil size={16} className="text-cyan-400" /> : <Plus size={16} className="text-cyan-400" />}
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-slate-100">{editing ? 'Edit record' : 'Add record'}</h3>
+              <h3 className="text-sm font-semibold text-slate-200">{editing ? 'Edit record' : 'Add record'}</h3>
               <p className="text-[10px] text-slate-500 font-mono">{fqdn}</p>
             </div>
           </div>
-          <button type="button" aria-label="Close" onClick={onClose} className={`${BTN_ICON_SM} text-slate-500 hover:text-slate-200 hover:bg-white/10`}><X size={16} /></button>
+          <CloseButton onClick={onClose} />
         </div>
 
         <div className="px-6 pb-4 space-y-4 overflow-y-auto scrollbar-thin">
@@ -360,7 +359,7 @@ function DeleteRecordModal({ record, zone, onConfirm, onCancel, busy }: {
         <div className="flex items-center gap-3 mb-4">
           <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/10"><Trash2 size={18} className="text-rose-400" /></div>
           <div>
-            <h3 className="text-sm font-semibold text-slate-100">Delete DNS record</h3>
+            <h3 className="text-sm font-semibold text-slate-200">Delete DNS record</h3>
             <p className="text-[10px] text-slate-500">Removed from Cloudflare immediately</p>
           </div>
         </div>
@@ -629,11 +628,11 @@ export default function DNS() {
 
   // ---- Status pill: the token's state, beside the page's name ----
   const tokenPill = (() => {
-    if (!dnsStatus) return { color: 'slate', icon: <Loader2 size={11} className="animate-spin" />, label: 'Cloudflare' } as const
-    if (!dnsStatus.cf_configured) return { color: 'slate', icon: <CloudOff size={11} />, label: 'Cloudflare not configured' } as const
-    if (dnsStatus.token_status === 'active') return { color: 'emerald', icon: <CheckCircle size={11} />, label: `Cloudflare token active · ${dnsStatus.token_source === 'secret' ? 'from the secret store' : dnsStatus.token_source === 'env' ? 'from .env' : 'from a stack .env'}` } as const
-    if (dnsStatus.token_status === 'unreachable') return { color: 'amber', icon: <AlertTriangle size={11} />, label: 'Cloudflare unreachable' } as const
-    return { color: 'rose', icon: <XCircle size={11} />, label: `Cloudflare token ${dnsStatus.token_status}` } as const
+    if (!dnsStatus) return { tone: 'neutral', icon: <Loader2 size={11} className="animate-spin" />, label: 'Cloudflare' } as const
+    if (!dnsStatus.cf_configured) return { tone: 'neutral', icon: <CloudOff size={11} />, label: 'Cloudflare not configured' } as const
+    if (dnsStatus.token_status === 'active') return { tone: 'ok', icon: <CheckCircle size={11} />, label: `Cloudflare token active · ${dnsStatus.token_source === 'secret' ? 'from the secret store' : dnsStatus.token_source === 'env' ? 'from .env' : 'from a stack .env'}` } as const
+    if (dnsStatus.token_status === 'unreachable') return { tone: 'attention', icon: <AlertTriangle size={11} />, label: 'Cloudflare unreachable' } as const
+    return { tone: 'problem', icon: <XCircle size={11} />, label: `Cloudflare token ${dnsStatus.token_status}` } as const
   })()
 
   // ---- Render ----
@@ -648,7 +647,7 @@ export default function DNS() {
       {/* ---- Page Header ---- */}
       <PageHeader
         page="dns"
-        badge={<Badge component="span" color={tokenPill.color} leftSection={tokenPill.icon} title={dnsStatus?.hint || undefined}>{tokenPill.label}</Badge>}
+        badge={<Pill tone={tokenPill.tone} icon={tokenPill.icon} title={dnsStatus?.hint || undefined}>{tokenPill.label}</Pill>}
         subtitle={domain ? (
           <>
             <span className="text-slate-300 font-medium">*.{domain}</span>
@@ -722,13 +721,7 @@ export default function DNS() {
           />
         </div>
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-          <input
-            type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-            aria-label={tab === 'routes' ? 'Search the routes' : 'Search the records'}
-            placeholder={tab === 'routes' ? 'Search routes by subdomain, service or stack…' : 'Search records by name, content or comment…'}
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm bg-white/5 border border-white/10 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/30 focus:border-emerald-500/30 transition-all"
-          />
+          <SearchInput value={searchQuery} onChange={setSearchQuery} label={tab === 'routes' ? 'Search the routes' : 'Search the records'} placeholder={tab === 'routes' ? 'Search routes by subdomain, service or stack…' : 'Search records by name, content or comment…'} />
         </div>
       </div>
 
@@ -775,9 +768,9 @@ function CertificatesPanel({ data, loading, onRefresh }: { data: RouteCertificat
       <div className="flex items-center justify-between gap-3 mb-3">
         <div className="flex items-center gap-2 min-w-0">
           <Lock size={15} className={tone} />
-          <h3 className="text-sm font-semibold text-slate-100">Proxy health</h3>
+          <h3 className="text-sm font-semibold text-slate-200">Proxy health</h3>
           {data && (
-            <Badge component="span" color="slate" className="truncate" title="ACME challenge Traefik is configured for">{challengeLabel}</Badge>
+            <Pill tone="neutral" className="truncate" title="ACME challenge Traefik is configured for">{challengeLabel}</Pill>
           )}
         </div>
         <button type="button" onClick={onRefresh} disabled={loading} className={BTN_CARD_QUIET}>
@@ -799,8 +792,8 @@ function CertificatesPanel({ data, loading, onRefresh }: { data: RouteCertificat
               <span className="text-slate-500">Live probe through Traefik:</span>
               <span className="text-emerald-400">{data.probe.passing} passing</span>
               {data.probe.skipped_target_down > 0 && <span className="text-slate-400">{data.probe.skipped_target_down} target down</span>}
-              {data.probe.backend_down.map((d) => <Badge key={d} component="span" color="amber" className="font-mono" title="Traefik routed it but the app did not answer">{d}</Badge>)}
-              {data.probe.dead.map((d) => <Badge key={d} component="span" color="rose" className="font-mono" title="No router answered for this name">{d}</Badge>)}
+              {data.probe.backend_down.map((d) => <Pill key={d} tone="attention" className="font-mono" title="Traefik routed it but the app did not answer">{d}</Pill>)}
+              {data.probe.dead.map((d) => <Pill key={d} tone="problem" className="font-mono" title="No router answered for this name">{d}</Pill>)}
               {data.domain && <span className="ml-auto text-slate-500">domain <span className="font-mono text-slate-300">{data.domain}</span></span>}
             </div>
           )}
@@ -876,7 +869,7 @@ function RoutesPanel(props: {
         <div className="flex items-center gap-2.5">
           <Globe size={14} className="text-cyan-400" />
           <span className="text-sm font-semibold text-slate-200">{domain || 'No domain configured'}</span>
-          <Badge component="span" color="slate">{routes.length} route{routes.length !== 1 ? 's' : ''}</Badge>
+          <Pill tone="neutral">{routes.length} route{routes.length !== 1 ? 's' : ''}</Pill>
         </div>
         {domain && <span className="text-[10px] text-slate-600 font-mono hidden sm:block">TRAEFIK_DOMAIN</span>}
       </div>
@@ -893,7 +886,7 @@ function RoutesPanel(props: {
           action={isAdmin ? <button type="button" onClick={() => setCurrentPage('templates')} className={BTN_TOOLBAR_QUIET}>Open {pageLabel('templates')}</button> : undefined}
         />
       ) : filteredRoutes.length === 0 ? (
-        <EmptyState icon={<Search size={20} className="text-slate-500" />} title={`No routes match "${searchQuery}"`} />
+        <EmptyState icon={<Search size={28} className="text-slate-500" />} title={`No routes match "${searchQuery}"`} />
       ) : (
         <div className="divide-y divide-white/[0.03]">
           {routesByStack.map(([stack, stackRoutes]) => (
@@ -932,12 +925,12 @@ function RoutesPanel(props: {
                           <span className="text-sm font-mono text-cyan-400 truncate max-w-full" title={route.subdomain}>{sub}</span>
                           <span className="text-[10px] text-slate-600 font-mono shrink-0">.{domain}</span>
                           {(route as FleetRoute).member && <VmCapsule member={(route as FleetRoute).member} name={(route as FleetRoute).member_name} vmid={(route as FleetRoute).vmid} size="xs" />}
-                          {route.conflict && <Badge component="span" color="rose" leftSection={<AlertTriangle size={9} />} title="Two routes claim this subdomain">conflict</Badge>}
-                          {route.crowdsec === 'bypass' && <Badge component="span" color="amber" leftSection={<ShieldOff size={9} />} title="CrowdSec's bouncer never checks this route: it does not use Traefik's traefik-chain, so an address CrowdSec has banned can still reach it.">unprotected</Badge>}
+                          {route.conflict && <Pill tone="problem" icon={<AlertTriangle size={10} />} title="Two routes claim this subdomain">conflict</Pill>}
+                          {route.crowdsec === 'bypass' && <Pill tone="attention" icon={<ShieldOff size={10} />} title="CrowdSec's bouncer never checks this route: it does not use Traefik's traefik-chain, so an address CrowdSec has banned can still reach it.">unprotected</Pill>}
                           {cfConfigured && rec && (
-                            <Badge component="span" color={rec.proxied ? 'emerald' : 'slate'} leftSection={rec.proxied ? <Cloud size={9} /> : <Globe size={9} />} title={`${rec.type} → ${rec.content}${rec.proxied ? ' (proxied)' : ' (DNS only)'}`}>{rec.type}</Badge>
+                            <Pill tone={rec.proxied ? 'ok' : 'neutral'} icon={rec.proxied ? <Cloud size={9} /> : <Globe size={9} />} title={`${rec.type} → ${rec.content}${rec.proxied ? ' (proxied)' : ' (DNS only)'}`}>{rec.type}</Pill>
                           )}
-                          {missing && <Badge component="span" color="amber" leftSection={<AlertTriangle size={9} />} title="No A, AAAA or CNAME record answers for this name">no DNS</Badge>}
+                          {missing && <Pill tone="attention" icon={<AlertTriangle size={10} />} title="No A, AAAA or CNAME record answers for this name">no DNS</Pill>}
                         </div>
                       )}
                     </div>
@@ -1010,7 +1003,7 @@ function RecordsPanel(props: {
           ) : (
             <span className="text-sm font-semibold text-slate-200 truncate">{zoneName}</span>
           )}
-          <Badge component="span" color="slate" className="whitespace-nowrap">{records.length} record{records.length !== 1 ? 's' : ''}</Badge>
+          <Pill tone="neutral" className="whitespace-nowrap">{records.length} record{records.length !== 1 ? 's' : ''}</Pill>
         </div>
         <div role="group" aria-label="Record type" className="flex items-center gap-1 flex-wrap">
           <button type="button" aria-pressed={!typeFilter} onClick={() => setTypeFilter('')} className={`${chip} ${!typeFilter ? chipOn : chipOff}`}>All</button>
@@ -1021,7 +1014,7 @@ function RecordsPanel(props: {
           ))}
         </div>
         <div className="flex items-center gap-2 lg:ml-auto">
-          {orphaned.length > 0 && <Badge component="span" color="amber" title="Records DCS created whose route no longer exists">{orphaned.length} orphaned</Badge>}
+          {orphaned.length > 0 && <Pill tone="attention" title="Records DCS created whose route no longer exists">{orphaned.length} orphaned</Pill>}
           {isAdmin && missing.length > 0 && (
             <Hint label={missing.map((m) => m.fqdn).join(', ')}>
               <button type="button" onClick={onSync} disabled={syncing} className={`${BTN_CARD} ${TONE_ATTN}`}>
@@ -1046,7 +1039,7 @@ function RecordsPanel(props: {
       ) : records.length === 0 ? (
         <EmptyState icon={<Globe size={28} className="text-slate-500" />} title="The zone has no records" hint="Add one, or deploy a template to create routes" action={isAdmin ? <button type="button" onClick={onAdd} className={`${BTN_TOOLBAR} ${TONE_OK}`}><Plus size={14} /> Add record</button> : undefined} />
       ) : filtered.length === 0 ? (
-        <EmptyState icon={<Search size={20} className="text-slate-500" />} title={searchQuery ? `No records match "${searchQuery}"` : `No ${typeFilter} records`} />
+        <EmptyState icon={<Search size={28} className="text-slate-500" />} title={searchQuery ? `No records match "${searchQuery}"` : `No ${typeFilter} records`} />
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm min-w-[720px]">
@@ -1074,10 +1067,10 @@ function RecordsPanel(props: {
                       <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
                         <span className="text-xs font-mono text-cyan-300 break-all">{head}</span>
                         {tail && <span className="text-[10px] text-slate-600 font-mono">{tail}</span>}
-                        {rec.subdomain === '@' && <Badge component="span" color="slate">root</Badge>}
-                        {rec.route && <Badge component="span" color="cyan" leftSection={<Route size={9} />} title={`Traefik route ${rec.route}`}>{rec.route.split('/')[1]}</Badge>}
-                        {rec.managed && !rec.route && rec.points_to_dcs && <Badge component="span" color="amber" title="DCS created this record but no route uses it any more">orphaned</Badge>}
-                        {rec.managed && rec.route && <Badge component="span" color="emerald">DCS</Badge>}
+                        {rec.subdomain === '@' && <Pill tone="neutral">root</Pill>}
+                        {rec.route && <Pill tone="info" icon={<Route size={10} />} title={`Traefik route ${rec.route}`}>{rec.route.split('/')[1]}</Pill>}
+                        {rec.managed && !rec.route && rec.points_to_dcs && <Pill tone="attention" title="DCS created this record but no route uses it any more">orphaned</Pill>}
+                        {rec.managed && rec.route && <Pill tone="ok">DCS</Pill>}
                         {rec.locked && <Lock size={9} className="text-slate-500" aria-label="Locked" />}
                       </div>
                       {rec.comment && !rec.managed && <p className="text-[10px] text-slate-600 truncate max-w-[280px]" title={rec.comment}>{rec.comment}</p>}

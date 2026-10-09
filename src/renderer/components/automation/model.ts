@@ -251,5 +251,3 @@ export function sortRules(rules: UnifiedRule[]): UnifiedRule[] {
   return [...rules].sort((a, b) => (a.enabled === b.enabled ? a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }) : a.enabled ? -1 : 1))
 }
 
-/** the shared look of the dialogs' fields */
-export const FIELD = 'w-full h-11 px-3 rounded-xl bg-white/5 text-sm text-slate-200 placeholder-slate-500 border border-white/10 transition-colors focus:outline-none focus-visible:border-emerald-500/40 focus-visible:ring-2 focus-visible:ring-emerald-500/40'

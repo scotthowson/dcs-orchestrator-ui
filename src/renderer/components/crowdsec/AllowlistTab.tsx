@@ -14,21 +14,29 @@ import { useToast } from '../common/Toast'
 import { useConfirm } from '../common/ConfirmDialog'
 import { crowdsecAllow, crowdsecAllowlist, crowdsecDisallow } from '../../api/endpoints'
 import type { CrowdSecAllowAddResponse, CrowdSecAllowEntry, CrowdSecAllowlistResponse } from '../../../shared/types'
-import {
-  BTN_PRIMARY, BTN_QUIET, CARD, Chip, CsSheet, HINT, ICON_BTN, INPUT, LABEL, Segmented, SectionHead, Skel,
-  canonicalDuration, errMsg, fmtAgo, fmtLeft, fmtTime, looksLikeTarget, parseDuration, useCs, useNow, type Tone,
-} from './kit'
+import { canonicalDuration, errMsg, fmtAgo, fmtLeft, fmtTime, looksLikeTarget, parseDuration, useCs, useNow } from './kit'
 import { addressCount, apiRefusesNet, isPrivateNet, isSingle, isWideNet, netCovers, netSame, parseNet } from './AllowlistTab.net'
 
+import { BTN_ICON_QUIET, BTN_TOOLBAR_OK, BTN_TOOLBAR_QUIET } from '../../lib/ui'
+import { HINT, INPUT, LABEL } from '../../lib/fieldStyles'
+import { CARD } from '../../lib/pageKit'
+import { type Tone } from '../../lib/tone'
+import { Pill } from '../common/Pill'
+import SectionHeader from '../common/SectionHeader'
+import { SkeletonBlock } from '../common/PageState'
+import Segmented from '../common/Segmented'
+import Sheet from '../common/Sheet'
+import { Panel } from '../dashboard/cardShared'
+import SearchInput from '../common/SearchInput'
 type Source = CrowdSecAllowEntry['source']
 
 /** where an entry comes from, in the words the person sees, with an honest tooltip */
 const SOURCE: Record<Source, { label: string; tone: Tone; tip: string }> = {
   managed: { label: 'Home address', tone: 'info', tip: 'Your home address. DCS looks up your public IP regularly and keeps it on the list, so you can never ban yourself. It follows your address when your provider changes it, so it cannot be removed here.' },
   env: { label: 'From .env', tone: 'info', tip: 'Listed in CROWDSEC_TRUSTED_IPS in the .env file. It is not managed from this page: change that setting to change this entry.' },
-  allowlist: { label: 'Added here', tone: 'mute', tip: 'On the allowlist DCS keeps in CrowdSec: added from this page, or with cscli allowlists add. You can remove it here.' },
-  trusted: { label: 'Trusted list', tone: 'mute', tip: 'On the DCS trusted list, a whitelist for CrowdSec’s log reader that DCS keeps in step. It never expires. You can remove it here.' },
-  other: { label: 'Other list', tone: 'mute', tip: 'On an allowlist that DCS did not create. CrowdSec honours it, but DCS does not manage it.' },
+  allowlist: { label: 'Added here', tone: 'neutral', tip: 'On the allowlist DCS keeps in CrowdSec: added from this page, or with cscli allowlists add. You can remove it here.' },
+  trusted: { label: 'Trusted list', tone: 'neutral', tip: 'On the DCS trusted list, a whitelist for CrowdSec’s log reader that DCS keeps in step. It never expires. You can remove it here.' },
+  other: { label: 'Other list', tone: 'neutral', tip: 'On an allowlist that DCS did not create. CrowdSec honours it, but DCS does not manage it.' },
 }
 const SOURCE_ORDER: Source[] = ['managed', 'env', 'allowlist', 'trusted', 'other']
 
@@ -58,15 +66,6 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
 // The small pieces
 // ---------------------------------------------------------------------------
 
-function Panel({ title, icon, children, className = '' }: { title: string; icon: React.ElementType; children: React.ReactNode; className?: string }) {
-  return (
-    <section className={`${CARD} p-4 min-w-0 ${className}`} aria-label={title}>
-      <SectionHead icon={icon} title={title} className="mb-3" />
-      {children}
-    </section>
-  )
-}
-
 /** a live countdown to the moment an entry stops counting; "never" for the ones that stay */
 function Countdown({ at }: { at: string | null }) {
   const now = useNow()
@@ -82,12 +81,12 @@ function Countdown({ at }: { at: string | null }) {
 function SourceChip({ e }: { e: CrowdSecAllowEntry }) {
   const s = SOURCE[e.source] ?? SOURCE.other
   const label = e.source === 'other' && e.list ? `List: ${e.list}` : s.label
-  return <Chip tone={s.tone} title={s.tip}>{label}</Chip>
+  return <Pill tone={s.tone} title={s.tip}>{label}</Pill>
 }
 
 function KindChip({ e }: { e: CrowdSecAllowEntry }) {
   const net = parseNet(e.value)
-  return <Chip tone="mute" title={net ? addressCount(net) : undefined}>{e.kind === 'range' ? 'Network' : 'Address'}</Chip>
+  return <Pill tone="neutral" title={net ? addressCount(net) : undefined}>{e.kind === 'range' ? 'Network' : 'Address'}</Pill>
 }
 
 // ---------------------------------------------------------------------------
@@ -171,12 +170,12 @@ function AllowSheet({ data, seed, onClose, onDone }: { data: CrowdSecAllowlistRe
   const covering = net ? listed.find((p) => p.net && !netSame(p.net, net) && netCovers(p.net, net))?.e : undefined
   const { ok: expOk, seconds } = expiryOf(exp)
 
-  let hint: { text: string; tone: 'help' | 'bad' | 'warn' } = { tone: 'help', text: 'An address such as 203.0.113.7, an IPv6 address, or a network such as 203.0.113.0/24.' }
+  let hint: { text: string; tone: 'help' | 'problem' | 'attention' } = { tone: 'help', text: 'An address such as 203.0.113.7, an IPv6 address, or a network such as 203.0.113.0/24.' }
   if (target) {
-    if (!valid || !net) hint = { tone: 'bad', text: 'That does not look like an IP address or a network.' }
-    else if (dupe) hint = { tone: 'bad', text: `${dupe.value} is already on the list${dupe.comment ? ` (${dupe.comment})` : ''}. To change its note or expiry, remove it and add it again.` }
-    else if (apiRefusesNet(net)) hint = { tone: 'warn', text: `A network of ${addressCount(net)} is far too wide: the server will refuse it.` }
-    else if (isWideNet(net)) hint = { tone: 'warn', text: `A very wide network: ${addressCount(net)}. You will be asked to confirm.` }
+    if (!valid || !net) hint = { tone: 'problem', text: 'That does not look like an IP address or a network.' }
+    else if (dupe) hint = { tone: 'problem', text: `${dupe.value} is already on the list${dupe.comment ? ` (${dupe.comment})` : ''}. To change its note or expiry, remove it and add it again.` }
+    else if (apiRefusesNet(net)) hint = { tone: 'attention', text: `A network of ${addressCount(net)} is far too wide: the server will refuse it.` }
+    else if (isWideNet(net)) hint = { tone: 'attention', text: `A very wide network: ${addressCount(net)}. You will be asked to confirm.` }
     else if (isPrivateNet(net)) hint = { tone: 'help', text: 'A private address. Traefik trusts local addresses and DCS refuses to ban them, so this entry changes little.' }
     else if (covering) hint = { tone: 'help', text: `Already covered by ${covering.value}${covering.comment ? ` (${covering.comment})` : ''}. You can still add it, for example to give it its own expiry.` }
     else hint = { tone: 'help', text: isSingle(net) ? 'This one address will never be banned.' : `All ${addressCount(net)} in this network will never be banned.` }
@@ -204,13 +203,13 @@ function AllowSheet({ data, seed, onClose, onDone }: { data: CrowdSecAllowlistRe
   }
 
   return (
-    <CsSheet
+    <Sheet
       title="Allow an address" subtitle="CrowdSec will never ban it." icon={<ShieldCheck size={18} />} onClose={onClose}
       footer={
         <div className="flex gap-2 justify-end flex-wrap">
-          <button type="button" onClick={onClose} className={BTN_QUIET}>Cancel</button>
-          <button type="button" onClick={submit} disabled={!valid || !expOk || !!dupe || busy} className={`${BTN_PRIMARY} min-w-[10rem]`}>
-            {busy ? <Loader2 size={13} className="animate-spin" /> : <ShieldCheck size={13} />} {valid ? `Allow ${target.length > 22 ? `${target.slice(0, 20)}…` : target}` : 'Allow'}
+          <button type="button" onClick={onClose} className={BTN_TOOLBAR_QUIET}>Cancel</button>
+          <button type="button" onClick={submit} disabled={!valid || !expOk || !!dupe || busy} className={`${BTN_TOOLBAR_OK} min-w-[10rem]`}>
+            {busy ? <Loader2 size={14} className="animate-spin" /> : <ShieldCheck size={14} />} {valid ? `Allow ${target.length > 22 ? `${target.slice(0, 20)}…` : target}` : 'Allow'}
           </button>
         </div>
       }
@@ -223,7 +222,7 @@ function AllowSheet({ data, seed, onClose, onDone }: { data: CrowdSecAllowlistRe
             value={value} onChange={(e) => { setValue(e.target.value); setError('') }}
             placeholder="203.0.113.7 or 203.0.113.0/24" spellCheck={false} autoComplete="off" aria-invalid={!!target && (!valid || !!dupe)} aria-describedby="allow-address-hint"
           />
-          <p id="allow-address-hint" className={`${HINT} ${hint.tone === 'bad' ? '!text-rose-300' : hint.tone === 'warn' ? '!text-amber-300' : ''}`}>{hint.text}</p>
+          <p id="allow-address-hint" className={`${HINT} ${hint.tone === 'problem' ? '!text-rose-300' : hint.tone === 'attention' ? '!text-amber-300' : ''}`}>{hint.text}</p>
           <p className={HINT}>The server refuses a network wider than a /8 (IPv4) and ::/0 (IPv6). Anything wider than a /16 (IPv4) or a /48 (IPv6) asks you to confirm first.</p>
         </div>
         <div>
@@ -249,7 +248,7 @@ function AllowSheet({ data, seed, onClose, onDone }: { data: CrowdSecAllowlistRe
         )}
         <button type="submit" className="hidden" aria-hidden="true" tabIndex={-1} />
       </form>
-    </CsSheet>
+    </Sheet>
   )
 }
 
@@ -349,8 +348,8 @@ export default function AllowlistTab() {
   const removeBtn = (e: CrowdSecAllowEntry, phone: boolean) => {
     const k = `rm:${keyOf(e)}`
     return phone
-      ? <button type="button" className={`${ICON_BTN} !w-auto px-2.5 gap-1.5 text-[11px]`} aria-label={`Remove ${e.value} from the allowlist`} disabled={busy === k} onClick={() => removeOne(e)}>{busy === k ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />} Remove</button>
-      : <button type="button" className={`${ICON_BTN} hover:!bg-rose-500/15 hover:!text-rose-300`} aria-label={`Remove ${e.value} from the allowlist`} title="Remove from the allowlist" disabled={busy === k} onClick={() => removeOne(e)}>{busy === k ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}</button>
+      ? <button type="button" className={`${BTN_ICON_QUIET} !w-auto px-2.5 gap-1.5 text-[11px]`} aria-label={`Remove ${e.value} from the allowlist`} disabled={busy === k} onClick={() => removeOne(e)}>{busy === k ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />} Remove</button>
+      : <button type="button" className={`${BTN_ICON_QUIET} hover:!bg-rose-500/15 hover:!text-rose-300`} aria-label={`Remove ${e.value} from the allowlist`} title="Remove from the allowlist" disabled={busy === k} onClick={() => removeOne(e)}>{busy === k ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}</button>
   }
   const lockIcon = (e: CrowdSecAllowEntry) => <span className="h-8 w-8 inline-flex items-center justify-center text-slate-500" title={lockReason(e)} role="img" aria-label={`Cannot be removed here. ${lockReason(e)}`}><Lock size={13} /></span>
 
@@ -365,7 +364,7 @@ export default function AllowlistTab() {
             <button type="button" onClick={() => goTab('bans')} className="text-xs text-cyan-400 hover:text-cyan-300 inline-flex items-center gap-1 py-1">Lift a ban instead <ArrowRight size={11} /></button>
           </div>
         </div>
-        {canAdd && <button type="button" onClick={() => setSheet({})} className={`${BTN_PRIMARY} w-full sm:w-auto`}><Plus size={14} /> Allow an address</button>}
+        {canAdd && <button type="button" onClick={() => setSheet({})} className={`${BTN_TOOLBAR_OK} w-full sm:w-auto`}><Plus size={14} /> Allow an address</button>}
       </div>
 
       {poll.error && data && (
@@ -378,8 +377,8 @@ export default function AllowlistTab() {
 
       {!data && !poll.error && (
         <div className="space-y-4" aria-busy="true" aria-label="Loading the allowlist">
-          <div className="grid lg:grid-cols-2 gap-4"><Skel className="h-40" /><Skel className="h-40" /></div>
-          <div className="space-y-2">{[0, 1, 2, 3].map((i) => <Skel key={i} className="h-12" />)}</div>
+          <div className="grid lg:grid-cols-2 gap-4"><SkeletonBlock className="h-40" /><SkeletonBlock className="h-40" /></div>
+          <div className="space-y-2">{[0, 1, 2, 3].map((i) => <SkeletonBlock key={i} className="h-12" />)}</div>
         </div>
       )}
       {!data && poll.error && (
@@ -389,7 +388,7 @@ export default function AllowlistTab() {
             <p className="text-sm text-rose-300">Could not read the allowlist</p>
             <p className="text-xs text-slate-500 mt-0.5 break-words">{poll.error.message}</p>
           </div>
-          <button type="button" onClick={refresh} className={BTN_QUIET}>Try again</button>
+          <button type="button" onClick={refresh} className={BTN_TOOLBAR_QUIET}>Try again</button>
         </div>
       )}
 
@@ -399,9 +398,9 @@ export default function AllowlistTab() {
             {/* how it is done on this server */}
             <Panel title="How it is done on this server" icon={ShieldCheck}>
               <div className="flex items-center gap-2 flex-wrap">
-                <Chip tone="info">{native ? 'CrowdSec allowlist' : 'DCS whitelist'}</Chip>
+                <Pill tone="info">{native ? 'CrowdSec allowlist' : 'DCS whitelist'}</Pill>
                 {native && data.list_name && <span className="font-mono text-[11px] text-slate-300" title="The name of the list DCS keeps in CrowdSec">{data.list_name}</span>}
-                <Chip tone={data.supports_expiry ? 'good' : 'mute'} title={data.supports_expiry ? 'An entry can be given an end date and then disappears by itself' : 'CrowdSec is older than 1.6.8: entries stay until they are removed'}>{data.supports_expiry ? 'Entries can expire' : 'Entries never expire'}</Chip>
+                <Pill tone={data.supports_expiry ? 'ok' : 'neutral'} title={data.supports_expiry ? 'An entry can be given an end date and then disappears by itself' : 'CrowdSec is older than 1.6.8: entries stay until they are removed'}>{data.supports_expiry ? 'Entries can expire' : 'Entries never expire'}</Pill>
               </div>
               <p className="text-sm text-slate-300 mt-2.5 leading-snug">{data.note}</p>
               <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
@@ -421,12 +420,12 @@ export default function AllowlistTab() {
                     <div className="flex items-center gap-2.5 flex-wrap">
                       <span className="font-mono text-base text-slate-100 break-all">{clientIp}</span>
                       {connBanned
-                        ? <Chip tone="bad">Banned right now</Chip>
+                        ? <Pill tone="problem">Banned right now</Pill>
                         : strongest
-                          ? <Chip tone="good">Never banned</Chip>
+                          ? <Pill tone="ok">Never banned</Pill>
                           : connLocal
-                            ? <Chip tone="mute" title="A private address on your local network">Local network</Chip>
-                            : <Chip tone="warn">Can be banned</Chip>}
+                            ? <Pill tone="neutral" title="A private address on your local network">Local network</Pill>
+                            : <Pill tone="attention">Can be banned</Pill>}
                     </div>
                     <p className="text-sm text-slate-300 mt-2 leading-snug">
                       {connBanned
@@ -440,13 +439,13 @@ export default function AllowlistTab() {
                     <div className="flex items-center gap-2 mt-3 flex-wrap">
                       {isAdmin && !strongest && !connLocal && (
                         <>
-                          <button type="button" className={BTN_PRIMARY} disabled={busy === 'me'} onClick={allowMe} title={data.supports_expiry ? 'Allow this address for 30 days' : 'Allow this address for good'}>
-                            {busy === 'me' ? <Loader2 size={13} className="animate-spin" /> : <UserCheck size={13} />} Add my address
+                          <button type="button" className={BTN_TOOLBAR_OK} disabled={busy === 'me'} onClick={allowMe} title={data.supports_expiry ? 'Allow this address for 30 days' : 'Allow this address for good'}>
+                            {busy === 'me' ? <Loader2 size={14} className="animate-spin" /> : <UserCheck size={14} />} Add my address
                           </button>
                           <button type="button" className="text-xs text-cyan-400 hover:text-cyan-300 h-9 px-1" onClick={() => setSheet({ value: clientIp, comment: 'My connection', expires: data.supports_expiry ? '30d' : undefined })}>Choose how long…</button>
                         </>
                       )}
-                      {connBanned && <button type="button" className={BTN_QUIET} onClick={() => goTab('bans', clientIp)}>Open the ban</button>}
+                      {connBanned && <button type="button" className={BTN_TOOLBAR_QUIET} onClick={() => goTab('bans', clientIp)}>Open the ban</button>}
                     </div>
                     {isAdmin && !strongest && !connLocal && <p className={HINT}>{data.supports_expiry ? 'Adds it for 30 days: a public address can change hands. Choose “No expiry” to keep it.' : 'Adds it for good: entries cannot expire on this server.'}</p>}
                     {!isAdmin && !strongest && !connLocal && <p className={HINT}>Ask an admin to allow it if it is yours.</p>}
@@ -458,13 +457,11 @@ export default function AllowlistTab() {
 
           {/* the entries */}
           <section className="space-y-3" aria-label="The allowlist">
-            <SectionHead icon={ListChecks} title="On the allowlist" count={entries.length} />
+            <SectionHeader icon={ListChecks} title="On the allowlist" count={entries.length} />
             {many && (
               <div className="flex items-center gap-2 flex-wrap">
                 <div className="relative w-full sm:w-auto sm:flex-1 sm:min-w-[12rem] sm:max-w-xs">
-                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-                  <label htmlFor="allow-search" className="sr-only">Search the allowlist</label>
-                  <input id="allow-search" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search address, network or note" className={`${INPUT} !h-9 !pl-9 !text-xs`} autoComplete="off" />
+                  <SearchInput size="sm" value={q} onChange={setQ} id="allow-search" placeholder="Search address, network or note" autoComplete="off" label="Search the allowlist" />
                 </div>
                 <Segmented<'' | Source>
                   value={source} onChange={setSource} ariaLabel="Where an entry comes from"
@@ -479,7 +476,7 @@ export default function AllowlistTab() {
                 <ShieldCheck size={30} className="mx-auto text-slate-500" />
                 <p className="mt-3 text-sm text-slate-300">Nothing is on the allowlist yet.</p>
                 <p className="mt-1 text-xs text-slate-500 max-w-md mx-auto">Add the addresses CrowdSec must never ban: your office, a monitoring service, a friend’s server. Your home address is added by itself once DCS has looked it up.</p>
-                {canAdd && <div className="mt-4"><button type="button" onClick={() => setSheet({})} className={BTN_PRIMARY}><Plus size={14} /> Allow an address</button></div>}
+                {canAdd && <div className="mt-4"><button type="button" onClick={() => setSheet({})} className={BTN_TOOLBAR_OK}><Plus size={14} /> Allow an address</button></div>}
               </div>
             )}
 
@@ -489,8 +486,8 @@ export default function AllowlistTab() {
                 <p className="mt-3 text-sm text-slate-300">{qNet && !source ? `${qq} is not covered by the allowlist.` : 'No entry matches.'}</p>
                 <p className="mt-1 text-xs text-slate-500">{qNet && !source ? 'CrowdSec can ban it like any other address.' : 'Loosen the search, or clear the filters.'}</p>
                 <div className="mt-4 flex items-center justify-center gap-2 flex-wrap">
-                  <button type="button" onClick={clearFilters} className={BTN_QUIET}><X size={13} /> Clear filters</button>
-                  {canAdd && qNet && !source && <button type="button" onClick={() => setSheet({ value: q.trim() })} className={BTN_PRIMARY}><Plus size={14} /> Allow {q.trim().length > 22 ? `${q.trim().slice(0, 20)}…` : q.trim()}</button>}
+                  <button type="button" onClick={clearFilters} className={BTN_TOOLBAR_QUIET}><X size={14} /> Clear the filters</button>
+                  {canAdd && qNet && !source && <button type="button" onClick={() => setSheet({ value: q.trim() })} className={BTN_TOOLBAR_OK}><Plus size={14} /> Allow {q.trim().length > 22 ? `${q.trim().slice(0, 20)}…` : q.trim()}</button>}
                 </div>
               </div>
             )}
@@ -517,7 +514,7 @@ export default function AllowlistTab() {
                             <div className="flex items-center gap-2 min-w-0 flex-wrap">
                               <span className="font-mono text-[13px] text-slate-100 break-all">{e.value}</span>
                               <KindChip e={e} />
-                              {coversYou.has(keyOf(e)) && <Chip tone="good" title="Your connection is covered by this entry">covers you</Chip>}
+                              {coversYou.has(keyOf(e)) && <Pill tone="ok" title="Your connection is covered by this entry">covers you</Pill>}
                             </div>
                             {e.comment && <p className="text-[11px] text-slate-500 truncate mt-0.5" title={e.comment}>{e.comment}</p>}
                           </td>
@@ -548,7 +545,7 @@ export default function AllowlistTab() {
                       <div className="flex items-center justify-between gap-2 mt-3 pt-2.5 border-t border-white/5">
                         <div className="flex items-center gap-2 min-w-0 flex-wrap">
                           <SourceChip e={e} />
-                          {coversYou.has(keyOf(e)) && <Chip tone="good">covers you</Chip>}
+                          {coversYou.has(keyOf(e)) && <Pill tone="ok">covers you</Pill>}
                           {e.created_at && <span className="text-[10px] text-slate-500">{addedText(e, true)}</span>}
                         </div>
                         {isAdmin && e.removable && removeBtn(e, true)}
@@ -565,12 +562,12 @@ export default function AllowlistTab() {
           {/* the allowlists CrowdSec holds */}
           {native && data.lists.length > 0 && (
             <section className={`${CARD} p-4`} aria-label="Allowlists in CrowdSec">
-              <SectionHead icon={ListChecks} title="Allowlists in CrowdSec" count={data.lists.length} />
+              <SectionHeader icon={ListChecks} title="Allowlists in CrowdSec" count={data.lists.length} />
               <ul className="divide-y divide-white/5 mt-2">
                 {data.lists.map((l) => (
                   <li key={l.name} className="py-2.5 first:pt-1 last:pb-0 flex items-center gap-x-3 gap-y-1 flex-wrap text-xs">
                     <span className="font-mono text-slate-200">{l.name}</span>
-                    {l.name === data.list_name ? <Chip tone="info" title="The list DCS keeps: entries added on this page go here">managed here</Chip> : <Chip tone="mute" title="Created outside DCS: CrowdSec honours it, DCS only shows its entries">not managed by DCS</Chip>}
+                    {l.name === data.list_name ? <Pill tone="info" title="The list DCS keeps: entries added on this page go here">managed here</Pill> : <Pill tone="neutral" title="Created outside DCS: CrowdSec honours it, DCS only shows its entries">not managed by DCS</Pill>}
                     <span className="text-slate-500 min-w-0 flex-1 basis-40 break-words">{l.description || 'No description'}</span>
                     <span className="tabular-nums text-slate-300">{plural(l.items, 'entry', 'entries')}</span>
                     {l.updated_at && <span className="text-slate-500">updated {fmtAgo(l.updated_at)}</span>}

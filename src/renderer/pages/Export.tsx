@@ -32,7 +32,6 @@ import { DisconnectedBanner } from '../components/common/DisconnectedBanner'
 import { useToast } from '../components/common/Toast'
 import PageHeader from '../components/common/PageHeader'
 import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD, TONE_OK, TONE_QUIET, TONE_GHOST, TONE_GHOST_DANGER } from '../lib/ui'
-
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -280,7 +279,7 @@ function ExportCard({ card, selected, onToggle, onExport, isLoading, isConnected
             <Icon className="w-5 h-5 text-slate-300" />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="text-sm font-semibold text-slate-100 leading-tight">{card.title}</h3>
+            <h3 className="text-sm font-semibold text-slate-200 leading-tight">{card.title}</h3>
             <p className="text-xs text-slate-400 mt-1 leading-relaxed">{card.description}</p>
           </div>
         </div>
@@ -427,7 +426,7 @@ export default function Export() {
           <button type="button" onClick={() => setShowHistory((p) => !p)} aria-expanded={showHistory} className={BTN_TOOLBAR_QUIET}>
             <Clock size={14} />
             History ({history.length})
-            {showHistory ? <ChevronUp size={12} aria-hidden /> : <ChevronDown size={12} aria-hidden />}
+            {showHistory ? <ChevronUp size={14} aria-hidden /> : <ChevronDown size={14} aria-hidden />}
           </button>
         ) : undefined}
       />
@@ -555,7 +554,7 @@ export default function Export() {
             </div>
             <button type="button" onClick={clearHistory} className={`${BTN_CARD} ${TONE_GHOST_DANGER}`}>
               <Trash2 size={12} />
-              Clear history
+              Clear the history
             </button>
           </div>
           <ul className="divide-y divide-white/[0.03]">

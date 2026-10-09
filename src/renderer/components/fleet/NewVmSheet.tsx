@@ -11,11 +11,13 @@ import { Select, Switch, type ComboboxItem, type ComboboxParsedItem, type Option
 import { Check, Layers, Loader2, Rocket, Server } from 'lucide-react'
 import { fetchFleetProvisionDefaults, provisionFleet, bakeFleetTemplate, fetchFleetMoveCheck, fetchDomains } from '../../api/endpoints'
 import type { FleetMoveCheck, FleetProvisionDefaults, FleetVmPlan, ProxmoxCapabilities , FleetProvisionRequest, DomainsResponse } from '../../../shared/types'
-import { Sheet, inputCls, labelCls, HubFirewallNote } from './fleetShared'
+import { HubFirewallNote } from './fleetShared'
 import { VmSizeControl } from './VmSizeControl'
 import { isMobile } from '../../hooks/useMobile'
 import { BTN_SHEET_PRIMARY, BTN_SHEET_QUIET } from '../../lib/ui'
 
+import Sheet from '../common/Sheet'
+import { INPUT_FLEET, LABEL } from '../../lib/fieldStyles'
 export interface VmSettings { node: string; storage: string; image_storage: string; bridge: string; cidr: number; gateway: string; dns: string; ip_start: string; /** what the VMs are built from: cat:<id> (catalogue), url, pve:<file> (imported already), iso:<volid> (installer, by hand) */ os: string; image_url: string; /** bake a DCS template first when the chosen image has none, then clone it for every VM */ bake: boolean }
 
 export interface OsChoice {
@@ -153,12 +155,12 @@ export function VmSettingsFields({ value, onChange, defaults, disabled = false }
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
       <div className="col-span-2 sm:col-span-4">
-        <label htmlFor={`${id}-os`} className={labelCls}>Operating system</label>
+        <label htmlFor={`${id}-os`} className={LABEL}>Operating system</label>
         <div className="flex gap-2 flex-wrap">
           <div className="flex-1 min-w-[16rem]">
             <FleetSelect id={`${id}-os`} value={value.os} onChange={(v) => set('os', v)} choices={osChoices(defaults)} disabled={disabled} empty="No image matches" />
           </div>
-          {value.os === 'url' && <input value={value.image_url} onChange={(e) => set('image_url', e.target.value)} className={`${inputCls} flex-[2] min-w-[16rem]`} disabled={disabled} placeholder="https://…/image.qcow2 (cloud-init, apt or dnf)" aria-label="Image URL" />}
+          {value.os === 'url' && <input value={value.image_url} onChange={(e) => set('image_url', e.target.value)} className={`${INPUT_FLEET} flex-[2] min-w-[16rem]`} disabled={disabled} placeholder="https://…/image.qcow2 (cloud-init, apt or dnf)" aria-label="Image URL" />}
         </div>
         {!value.os.startsWith('iso:') && !value.os.startsWith('tpl:') && !value.os.startsWith('cat:dcs-') && (
           <div className="mt-2.5 text-slate-300">
@@ -182,42 +184,42 @@ export function VmSettingsFields({ value, onChange, defaults, disabled = false }
         })()}
       </div>
       <div>
-        <label htmlFor={`${id}-node`} className={labelCls}>Node</label>
-        <input id={`${id}-node`} value={value.node} onChange={(e) => set('node', e.target.value)} className={inputCls} disabled={disabled} placeholder="pve" />
+        <label htmlFor={`${id}-node`} className={LABEL}>Node</label>
+        <input id={`${id}-node`} value={value.node} onChange={(e) => set('node', e.target.value)} className={INPUT_FLEET} disabled={disabled} placeholder="pve" />
       </div>
       <div>
-        <label htmlFor={`${id}-storage`} className={labelCls}>Disk storage</label>
+        <label htmlFor={`${id}-storage`} className={LABEL}>Disk storage</label>
         {storages.length ? (
           <FleetSelect id={`${id}-storage`} value={value.storage} onChange={(v) => set('storage', v)} disabled={disabled} empty="No storage holds VM disks"
             choices={storages.filter((s) => s.images).map((s) => ({ value: s.storage, name: s.storage, hint: `${s.type} · ${Math.round(s.avail / 1073741824)} GB free` }))} />
-        ) : <input id={`${id}-storage`} value={value.storage} onChange={(e) => set('storage', e.target.value)} className={inputCls} disabled={disabled} placeholder="local-lvm" />}
+        ) : <input id={`${id}-storage`} value={value.storage} onChange={(e) => set('storage', e.target.value)} className={INPUT_FLEET} disabled={disabled} placeholder="local-lvm" />}
       </div>
       <div>
-        <label htmlFor={`${id}-images`} className={labelCls}>Image storage</label>
+        <label htmlFor={`${id}-images`} className={LABEL}>Image storage</label>
         {storages.length ? (
           <FleetSelect id={`${id}-images`} value={value.image_storage} onChange={(v) => set('image_storage', v)} disabled={disabled} empty="No directory storage"
             choices={storages.filter((s) => s.dir).map((s) => ({ value: s.storage, name: s.storage, hint: s.import_ready ? undefined : 'import switched on by the hub' }))} />
-        ) : <input id={`${id}-images`} value={value.image_storage} onChange={(e) => set('image_storage', e.target.value)} className={inputCls} disabled={disabled} placeholder="local" />}
+        ) : <input id={`${id}-images`} value={value.image_storage} onChange={(e) => set('image_storage', e.target.value)} className={INPUT_FLEET} disabled={disabled} placeholder="local" />}
       </div>
       <div>
-        <label htmlFor={`${id}-bridge`} className={labelCls}>Bridge</label>
-        <input id={`${id}-bridge`} value={value.bridge} onChange={(e) => set('bridge', e.target.value)} className={`${inputCls} font-mono`} disabled={disabled} placeholder="vmbr0" />
+        <label htmlFor={`${id}-bridge`} className={LABEL}>Bridge</label>
+        <input id={`${id}-bridge`} value={value.bridge} onChange={(e) => set('bridge', e.target.value)} className={`${INPUT_FLEET} font-mono`} disabled={disabled} placeholder="vmbr0" />
       </div>
       <div>
-        <label htmlFor={`${id}-first`} className={labelCls}>First address</label>
-        <input id={`${id}-first`} value={value.ip_start} onChange={(e) => set('ip_start', e.target.value)} className={`${inputCls} font-mono`} disabled={disabled} placeholder="192.168.1.200" />
+        <label htmlFor={`${id}-first`} className={LABEL}>First address</label>
+        <input id={`${id}-first`} value={value.ip_start} onChange={(e) => set('ip_start', e.target.value)} className={`${INPUT_FLEET} font-mono`} disabled={disabled} placeholder="192.168.1.200" />
       </div>
       <div>
-        <label htmlFor={`${id}-prefix`} className={labelCls}>Prefix</label>
-        <input id={`${id}-prefix`} type="number" min={8} max={30} value={value.cidr} onChange={(e) => set('cidr', Number(e.target.value) || 24)} className={`${inputCls} font-mono`} disabled={disabled} />
+        <label htmlFor={`${id}-prefix`} className={LABEL}>Prefix</label>
+        <input id={`${id}-prefix`} type="number" min={8} max={30} value={value.cidr} onChange={(e) => set('cidr', Number(e.target.value) || 24)} className={`${INPUT_FLEET} font-mono`} disabled={disabled} />
       </div>
       <div>
-        <label htmlFor={`${id}-gateway`} className={labelCls}>Gateway</label>
-        <input id={`${id}-gateway`} value={value.gateway} onChange={(e) => set('gateway', e.target.value)} className={`${inputCls} font-mono`} disabled={disabled} placeholder="192.168.1.1" />
+        <label htmlFor={`${id}-gateway`} className={LABEL}>Gateway</label>
+        <input id={`${id}-gateway`} value={value.gateway} onChange={(e) => set('gateway', e.target.value)} className={`${INPUT_FLEET} font-mono`} disabled={disabled} placeholder="192.168.1.1" />
       </div>
       <div>
-        <label htmlFor={`${id}-dns`} className={labelCls}>DNS</label>
-        <input id={`${id}-dns`} value={value.dns} onChange={(e) => set('dns', e.target.value)} className={`${inputCls} font-mono`} disabled={disabled} placeholder="192.168.1.1" />
+        <label htmlFor={`${id}-dns`} className={LABEL}>DNS</label>
+        <input id={`${id}-dns`} value={value.dns} onChange={(e) => set('dns', e.target.value)} className={`${INPUT_FLEET} font-mono`} disabled={disabled} placeholder="192.168.1.1" />
       </div>
     </div>
   )
@@ -326,7 +328,7 @@ export default function NewVmSheet({ defaults, caps, onClose, onQueued, onBaked,
     } catch (e) { setErr(e instanceof Error ? e.message : 'The request failed') } finally { setBusy(false) }
   }
   return (
-    <Sheet
+    <Sheet tone="fleet"
       title={moving ? `Move ${moveStack} into its own VM` : 'A stack in its own VM'}
       subtitle={moving
         ? 'The VM is built while the stack keeps running here; then the stack is stopped, its data is copied and it starts in the VM'
@@ -352,8 +354,8 @@ export default function NewVmSheet({ defaults, caps, onClose, onQueued, onBaked,
       <div className="space-y-4">
         <HubFirewallNote fw={defaults?.hub_firewall} />
         <div>
-          <label htmlFor={`${uid}-stack`} className={labelCls}>Stack = VM name</label>
-          <input id={`${uid}-stack`} value={stack} onChange={(e) => setStack(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))} placeholder="media-services" className={`${inputCls} font-mono sm:max-w-xs`} disabled={busy || moving} />
+          <label htmlFor={`${uid}-stack`} className={LABEL}>Stack = VM name</label>
+          <input id={`${uid}-stack`} value={stack} onChange={(e) => setStack(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))} placeholder="media-services" className={`${INPUT_FLEET} font-mono sm:max-w-xs`} disabled={busy || moving} />
         </div>
         {moving && (
           <div className="rounded-lg border border-violet-500/20 bg-violet-500/[0.05] p-3 space-y-2">
@@ -398,15 +400,15 @@ export default function NewVmSheet({ defaults, caps, onClose, onQueued, onBaked,
         )}
         {domains && domains.domains.length > 1 && (
           <div>
-            <label htmlFor={`${uid}-domain`} className={labelCls}>Domain</label>
-            <select id={`${uid}-domain`} value={domain} onChange={(e) => setDomain(e.target.value)} disabled={busy} className={`${inputCls} font-mono`}>
+            <label htmlFor={`${uid}-domain`} className={LABEL}>Domain</label>
+            <select id={`${uid}-domain`} value={domain} onChange={(e) => setDomain(e.target.value)} disabled={busy} className={`${INPUT_FLEET} font-mono`}>
               {domains.domains.map((d) => <option key={d.domain} value={d.domain}>{d.domain}{d.primary ? ' (the hub)' : ''}</option>)}
             </select>
             <p className="text-[11px] text-slate-500 mt-1">Its apps answer under *.{domain || domains.primary}{moving ? ' (its routes move there with it)' : ''}. Change it later on the VM.</p>
           </div>
         )}
         <div>
-          <p className={labelCls}>Size</p>
+          <p className={LABEL}>Size</p>
           <VmSizeControl value={{ cores, memGb, diskGb }} disabled={busy}
             limits={{ maxCores: defaults?.capacity?.cores, maxMemGb: defaults?.capacity?.memory_gb, minDiskGb: 10 }}
             onChange={(v) => { setCores(v.cores); setMemGb(v.memGb); setDiskGb(v.diskGb) }} />
@@ -416,8 +418,8 @@ export default function NewVmSheet({ defaults, caps, onClose, onQueued, onBaked,
           <VmSettingsFields value={settings} onChange={setSettings} defaults={defaults} disabled={busy} />
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
             <div>
-              <label htmlFor={`${uid}-ip`} className={labelCls}>Address for this VM</label>
-              <input id={`${uid}-ip`} value={ip} onChange={(e) => setIp(e.target.value)} placeholder={`next free from ${settings.ip_start || '…'}`} className={`${inputCls} font-mono`} disabled={busy} />
+              <label htmlFor={`${uid}-ip`} className={LABEL}>Address for this VM</label>
+              <input id={`${uid}-ip`} value={ip} onChange={(e) => setIp(e.target.value)} placeholder={`next free from ${settings.ip_start || '…'}`} className={`${INPUT_FLEET} font-mono`} disabled={busy} />
             </div>
           </div>
         </div>

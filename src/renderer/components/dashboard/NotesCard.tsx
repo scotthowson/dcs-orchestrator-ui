@@ -6,8 +6,8 @@ import React, { useEffect, useState } from 'react'
 import { StickyNote, Pencil, Check, X } from 'lucide-react'
 import Hint from '../common/Hint'
 import { BTN_CARD, BTN_ICON_SM, TONE_GHOST, TONE_GHOST_OK, TONE_OK } from '../../lib/ui'
-import { Card, CardBody, CardEmpty, type CardCommonProps } from './cardShared'
-
+import { Card, CardBody, type CardCommonProps } from './cardShared'
+import { EmptyState } from '../common/PageState'
 interface NotesConfig { text: string }
 
 const URL_RE = /(https?:\/\/[^\s<]+)/g
@@ -79,7 +79,7 @@ export default function NotesCard({ cardConfig, onSaveConfig, dashboardEditMode 
           <Hint label="Save (Ctrl+Enter)"><button type="button" aria-label="Save the note" onClick={save} disabled={saving} className={`${BTN_ICON_SM} ${TONE_GHOST_OK}`}><Check size={14} /></button></Hint>
         </>
       ) : (
-        <Hint label="Edit the note"><button type="button" aria-label="Edit the note" onClick={() => setEditing(true)} className={`${BTN_ICON_SM} ${TONE_GHOST}`}><Pencil size={13} /></button></Hint>
+        <Hint label="Edit the note"><button type="button" aria-label="Edit the note" onClick={() => setEditing(true)} className={`${BTN_ICON_SM} ${TONE_GHOST}`}><Pencil size={12} /></button></Hint>
       )) : undefined}
     >
       {editing ? (
@@ -100,7 +100,7 @@ export default function NotesCard({ cardConfig, onSaveConfig, dashboardEditMode 
           </div>
         </CardBody>
       ) : (
-        <CardEmpty
+        <EmptyState card
           icon={<StickyNote size={22} />}
           title="Nothing here yet"
           hint="Reminders, IPs, the things you keep looking up."

@@ -9,10 +9,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import * as Icons from 'lucide-react'
-import {
-  Rocket, Zap, Settings2, X, Plus, ArrowUp, ArrowDown, Trash2, Loader2, RotateCcw,
-} from 'lucide-react'
-import { Badge } from '@mantine/core'
+import { Rocket, Zap, Settings2, Plus, ArrowUp, ArrowDown, Trash2, Loader2, RotateCcw } from 'lucide-react'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { useConnectionStore } from '../../stores/connectionStore'
 import { useAuthStore } from '../../stores/authStore'
@@ -31,11 +28,14 @@ import type { PageId } from '../../../shared/types'
 import { ADMIN_ONLY_PAGES } from '../../../shared/types'
 import { pageLabel, pageTitles } from '../../constants/pageTitles'
 import { activityOutcome, opGerund, startedInBackground, waitForStackActivity, type StackOp } from '../../lib/stackActivity'
-import { Card, CardBody, CardEmpty, ACCENTS, ACCENT_NAMES, type CardCommonProps } from './cardShared'
+import { Card, CardBody, ACCENTS, ACCENT_NAMES, type CardCommonProps } from './cardShared'
 import ModalOverlay from '../common/ModalOverlay'
 import Hint from '../common/Hint'
 import { BTN_CARD, BTN_CARD_QUIET, BTN_ICON_SM, BTN_SHEET_PRIMARY, BTN_SHEET_QUIET, BTN_TOOLBAR_QUIET, TONE_GHOST, TONE_GHOST_DANGER, TONE_OK } from '../../lib/ui'
 
+import { EmptyState } from '../common/PageState'
+import { Pill } from '../common/Pill'
+import CloseButton from '../common/CloseButton'
 export type ActionKind = 'page' | 'url' | 'stack' | 'container' | 'maintenance' | 'schedule' | 'automation'
 export interface ActionDef {
   id: string
@@ -169,15 +169,15 @@ export default function QuickActions({ cardConfig, onSaveConfig, dashboardEditMo
   return (
     <Card
       card="quick-actions"
-      badge={isCustom ? <Badge component="span" color="slate">custom</Badge> : undefined}
+      badge={isCustom ? <Pill tone="neutral">custom</Pill> : undefined}
       actions={canEdit ? (
         <Hint label="Customize the actions">
-          <button type="button" aria-label="Customize the actions" onClick={() => setEditing(true)} className={`${BTN_ICON_SM} ${TONE_GHOST}`}><Settings2 size={13} /></button>
+          <button type="button" aria-label="Customize the actions" onClick={() => setEditing(true)} className={`${BTN_ICON_SM} ${TONE_GHOST}`}><Settings2 size={12} /></button>
         </Hint>
       ) : undefined}
     >
       {visible.length === 0 ? (
-        <CardEmpty
+        <EmptyState card
           icon={<Rocket size={22} />}
           title="No actions"
           hint="Add the shortcuts you use most."
@@ -266,11 +266,11 @@ function ActionsEditor({ initial, isAdmin, onClose, onSave, onReset }: {
           <div className="flex items-center gap-2.5">
             <span className="flex items-center justify-center w-9 h-9 rounded-xl bg-white/5 border border-white/10"><Rocket size={16} className="text-slate-300" aria-hidden /></span>
             <div>
-              <h3 className="text-sm font-semibold text-slate-100">Quick actions</h3>
+              <h3 className="text-sm font-semibold text-slate-200">Quick actions</h3>
               <p className="text-[11px] text-slate-500">Your shortcuts, in your order. Saved to your dashboard.</p>
             </div>
           </div>
-          <Hint label="Close"><button type="button" aria-label="Close" onClick={onClose} className={`${BTN_ICON_SM} ${TONE_GHOST}`}><X size={16} /></button></Hint>
+          <Hint label="Close"><CloseButton onClick={onClose} /></Hint>
         </div>
         <div className="flex-1 min-h-0 overflow-y-auto scrollbar-none px-6 py-4 space-y-2">
           {list.length === 0 && <p className="text-xs text-slate-500 text-center py-6">No actions yet — add one below.</p>}
@@ -358,7 +358,7 @@ function ActionsEditor({ initial, isAdmin, onClose, onSave, onReset }: {
           <div className="ml-auto flex items-center gap-2">
             <button type="button" onClick={onClose} className={BTN_SHEET_QUIET}>Cancel</button>
             <button type="button" onClick={async () => { setSaving(true); try { await onSave(list) } finally { setSaving(false) } }} disabled={!valid || saving} className={BTN_SHEET_PRIMARY}>
-              {saving && <Loader2 size={14} className="animate-spin" />} Save
+              {saving && <Loader2 size={16} className="animate-spin" />} Save
             </button>
           </div>
         </div>

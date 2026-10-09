@@ -270,7 +270,7 @@ export function ServerSwitcher() {
             })}
           </div>
 
-          {/* Add Server section */}
+          {/* Add a server section */}
           <div className="border-t border-white/5">
             {showAddForm ? (
               <div className="p-2.5 space-y-2 animate-fade-in">
@@ -321,7 +321,7 @@ export function ServerSwitcher() {
                   className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-emerald-400 hover:bg-white/5 transition-colors"
                 >
                   <Plus className="w-4 h-4" />
-                  Add Server
+                  Add a server
                 </button>
               </div>
             )}

@@ -17,6 +17,7 @@ import { BTN_ICON_SM, TONE_GHOST, TONE_GHOST_OK, TONE_GHOST_DANGER } from '../..
 import { StateChip, StateDot } from '../common/StateChip'
 import { containerState, isAsleep, STATE_META } from '../../lib/containerState'
 
+import { REVEAL } from '../../lib/pageKit'
 // one pill shape for a container's state, whatever it says (sleeping included): same height, never on two lines
 const STATE_PILL = 'inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full text-xs font-medium leading-none ring-1 whitespace-nowrap'
 const ON_DEMAND_TAG = 'text-[10px] font-normal text-indigo-300/80'
@@ -268,7 +269,7 @@ const ContainerRow: React.FC<ContainerRowProps> = ({
                 className={`${BTN_ICON_SM} ${TONE_GHOST_OK}`}
                 aria-label={`${isAsleep(container) ? 'Wake' : 'Start'} ${container.name}`}
               >
-                {quickActionLoading === `${busyKey}start` ? <RefreshCw size={13} className="animate-spin text-emerald-400" /> : <Play size={13} />}
+                {quickActionLoading === `${busyKey}start` ? <RefreshCw size={12} className="animate-spin text-emerald-400" /> : <Play size={12} />}
               </button>
             </Hint>
           )}
@@ -279,7 +280,7 @@ const ContainerRow: React.FC<ContainerRowProps> = ({
                 className={`${BTN_ICON_SM} ${TONE_GHOST}`}
                 aria-label={`Restart ${container.name}`}
               >
-                {quickActionLoading === `${busyKey}restart` ? <RefreshCw size={13} className="animate-spin" /> : <RotateCw size={13} />}
+                {quickActionLoading === `${busyKey}restart` ? <RefreshCw size={12} className="animate-spin" /> : <RotateCw size={12} />}
               </button>
             </Hint>
           )}
@@ -290,7 +291,7 @@ const ContainerRow: React.FC<ContainerRowProps> = ({
                 className={`${BTN_ICON_SM} ${TONE_GHOST_DANGER}`}
                 aria-label={`Stop ${container.name}`}
               >
-                {quickActionLoading === `${busyKey}stop` ? <RefreshCw size={13} className="animate-spin text-rose-400" /> : <SquareStop size={13} />}
+                {quickActionLoading === `${busyKey}stop` ? <RefreshCw size={12} className="animate-spin text-rose-400" /> : <SquareStop size={12} />}
               </button>
             </Hint>
           )}
@@ -469,7 +470,7 @@ function ContainerNameWithPopover({ container, formatUptime, onOpen }: { contain
         >
           {container.name}
         </button>
-        <CopyButton text={container.name} className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100" size={10} />
+        <CopyButton text={container.name} label="Copy the container name" className={REVEAL} />
       </div>
       {show && createPortal(
         <div

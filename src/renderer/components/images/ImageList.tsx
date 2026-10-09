@@ -237,7 +237,7 @@ const ImageList: React.FC<ImageListProps> = ({ rows, query = '', onClearSearch, 
                 <tr>
                   <td colSpan={COLUMNS.length + (batchMode ? 1 : 0)}>
                     <EmptyState
-                      icon={<HardDrive size={32} />}
+                      icon={<HardDrive size={28} />}
                       title={activeTab !== 'all' ? `No ${activeTab} images found.` : query ? 'No images match your search.' : 'No images found.'}
                       hint={activeTab !== 'all' ? 'Pick another filter to see the rest.' : query ? 'Try another name, tag or ID.' : 'Run a registry check to discover images, or pull one from Docker Hub.'}
                       action={activeTab !== 'all'

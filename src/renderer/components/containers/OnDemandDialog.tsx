@@ -7,15 +7,15 @@
 
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Moon, Loader2, X, AlertTriangle, Sun } from 'lucide-react'
+import { Moon, Loader2, AlertTriangle, Sun } from 'lucide-react'
 import { fetchContainerSablier, setContainerSablierOn } from '../../api/fleetScoped'
 import type { RowMember } from '../../../shared/fleetScoped'
 import type { SablierSettingsResponse, SablierToggleResponse } from '../../../shared/types'
 import { SABLIER_DEFAULTS, SABLIER_SESSIONS, SABLIER_THEMES, SABLIER_THEME_NOTES, describeSession } from '../../lib/sablier'
 import ModalOverlay from '../common/ModalOverlay'
 import Hint from '../common/Hint'
-import { BTN_ICON_SM, BTN_SHEET, BTN_SHEET_QUIET, BTN_SHEET_PRIMARY, TONE_GHOST, TONE_QUIET } from '../../lib/ui'
-
+import { BTN_SHEET, BTN_SHEET_QUIET, BTN_SHEET_PRIMARY, TONE_QUIET } from '../../lib/ui'
+import CloseButton from '../common/CloseButton'
 interface Props {
   containerName: string
   member: RowMember
@@ -88,13 +88,11 @@ export default function OnDemandDialog({ containerName, member, onDemand, onClos
             <Moon size={18} className="text-indigo-300" />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="text-sm font-semibold text-slate-100">{enabled ? 'On demand' : 'Start on demand'}</h3>
+            <h3 className="text-sm font-semibold text-slate-200">{enabled ? 'On demand' : 'Start on demand'}</h3>
             <p className="text-[11px] text-slate-500 truncate font-mono">{containerName}</p>
           </div>
           <Hint label="Close">
-            <button type="button" onClick={onClose} disabled={!!busy} className={`${BTN_ICON_SM} ${TONE_GHOST}`} aria-label="Close">
-              <X size={15} />
-            </button>
+            <CloseButton onClick={onClose} disabled={!!busy} />
           </Hint>
         </div>
 
@@ -163,7 +161,7 @@ export default function OnDemandDialog({ containerName, member, onDemand, onClos
                 disabled={!!busy || loading}
                 className={`${BTN_SHEET} ${TONE_QUIET} flex-1 sm:flex-none`}
               >
-                {busy === 'off' ? <Loader2 size={14} className="animate-spin" /> : <Sun size={14} />}
+                {busy === 'off' ? <Loader2 size={16} className="animate-spin" /> : <Sun size={16} />}
                 Serve normally
               </button>
             </Hint>
@@ -174,7 +172,7 @@ export default function OnDemandDialog({ containerName, member, onDemand, onClos
             disabled={!!busy || loading || !!cannot}
             className={`${BTN_SHEET_PRIMARY} flex-1 sm:flex-none`}
           >
-            {busy === 'save' ? <Loader2 size={14} className="animate-spin" /> : <Moon size={14} />}
+            {busy === 'save' ? <Loader2 size={16} className="animate-spin" /> : <Moon size={16} />}
             {enabled ? 'Save changes' : 'Start on demand'}
           </button>
         </div>

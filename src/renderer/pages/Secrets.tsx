@@ -1,9 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
-import {
-  KeyRound, Plus, Trash2, Search, Shield, Eye, EyeOff, AlertTriangle, X, Loader2, RefreshCw,
-  BookOpen, Lock, FileKey, Terminal, ChevronDown, ChevronRight, Wand2, Copy, Check, Link2, Layers,
-} from 'lucide-react'
+import { KeyRound, Plus, Trash2, Shield, Eye, EyeOff, AlertTriangle, Loader2, RefreshCw, BookOpen, Lock, FileKey, Terminal, ChevronDown, ChevronRight, Wand2, Copy, Check, Link2, Layers } from 'lucide-react'
 import { useSecretsStore } from '../stores/secretsStore'
 import { useFleetScope } from '../hooks/useFleetScope'
 import FleetScopeChips from '../components/fleet/FleetScopeChips'
@@ -27,6 +24,8 @@ import ModalOverlay from '../components/common/ModalOverlay'
 import DashboardFeedCard from '../components/secrets/DashboardFeedCard'
 import ApiKeysCard from '../components/secrets/ApiKeysCard'
 
+import SearchInput from '../components/common/SearchInput'
+import CloseButton from '../components/common/CloseButton'
 // Same rule as the server (.lib/secrets.sh): a compose-safe variable name.
 const NAME_RE = /^[A-Za-z_][A-Za-z0-9_]{0,63}$/
 const GENERATED_LENGTH = 32
@@ -244,9 +243,7 @@ export default function Secrets() {
               <h2 className="text-sm font-semibold text-slate-200">{pageLabel('secrets')} guide</h2>
             </div>
             <Hint label="Close the guide">
-              <button type="button" aria-label="Close the guide" onClick={() => setShowGuide(false)} className={`${BTN_ICON_SM} ${TONE_GHOST}`}>
-                <X size={14} />
-              </button>
+              <CloseButton label="Close the guide" size="sm" onClick={() => setShowGuide(false)} />
             </Hint>
           </div>
           <div className="p-5 space-y-3">
@@ -282,19 +279,7 @@ export default function Secrets() {
 
       {/* Search */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" aria-hidden />
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          aria-label="Search the secrets"
-          placeholder="Search secrets…"
-          className="w-full h-11 pl-10 pr-11 rounded-xl bg-white/5 border border-white/10 text-sm text-slate-200 placeholder-slate-500 transition-colors focus:outline-none focus-visible:border-emerald-500/40 focus-visible:ring-2 focus-visible:ring-emerald-500/40"
-        />
-        {search && (
-          <button type="button" aria-label="Clear the search" onClick={() => setSearch('')} className={`absolute right-1.5 top-1/2 -translate-y-1/2 ${BTN_ICON_SM} ${TONE_GHOST}`}>
-            <X size={14} />
-          </button>
-        )}
+        <SearchInput value={search} onChange={setSearch} label="Search the secrets" placeholder="Search secrets…" />
       </div>
 
       {error && <ErrorState title="Something went wrong with the secrets" error={error} onRetry={() => fetchSecrets(scope)} />}
@@ -307,7 +292,7 @@ export default function Secrets() {
       ) : filtered.length === 0 ? (
         <div className="glass rounded-xl border border-white/5">
           <EmptyState
-            icon={<KeyRound size={32} />}
+            icon={<KeyRound size={28} />}
             title={search ? 'No secrets match your search' : 'No secrets stored yet'}
             hint={isAdmin ? 'Add a secret, then reference it as ${SECRETS_NAME} in a compose file or .env' : 'An admin can add secrets here'}
             action={isAdmin && !search ? (
@@ -399,7 +384,7 @@ export default function Secrets() {
           <div className="glass rounded-2xl p-6 w-full max-w-md mx-4 max-h-[92vh] overflow-y-auto border border-white/10 animate-scale-in" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-slate-100">Add secret</h2>
-              <button type="button" aria-label="Close" onClick={closeAdd} className={`${BTN_ICON_SM} ${TONE_GHOST}`}><X className="w-5 h-5" /></button>
+              <CloseButton onClick={closeAdd} />
             </div>
             <form onSubmit={(e) => { e.preventDefault(); handleAdd() }} className="space-y-4">
               <div>
@@ -454,7 +439,7 @@ export default function Secrets() {
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={closeAdd} className={`${BTN_SHEET_QUIET} flex-1`}>Cancel</button>
                 <button type="submit" disabled={saving || !trimmedKey || !newValue} className={`${confirmReplace ? BTN_SHEET_DANGER : BTN_SHEET_PRIMARY} flex-1`}>
-                  {saving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} {confirmReplace ? 'Replace' : 'Save'}
+                  {saving ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />} {confirmReplace ? 'Replace' : 'Save'}
                 </button>
               </div>
             </form>

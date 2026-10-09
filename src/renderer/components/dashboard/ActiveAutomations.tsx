@@ -4,12 +4,12 @@
 // =============================================================================
 
 import { Bot } from 'lucide-react'
-import { Badge } from '@mantine/core'
 import { useConnectionStore } from '../../stores/connectionStore'
 import { pageLabel } from '../../constants/pageTitles'
 import type { AutomationListResponse, ScheduleListResponse } from '../../../shared/types'
-import { Card, CardBody, CardEmpty, CardError, CardLoading, CardOffline } from './cardShared'
-
+import { Card, CardBody, CardOffline } from './cardShared'
+import { Skeleton, EmptyState, ErrorState } from '../common/PageState'
+import { Pill } from '../common/Pill'
 interface Props {
   data: AutomationListResponse | null
   /** the timed rules (GET /schedules); null while unknown */
@@ -22,8 +22,8 @@ export default function ActiveAutomations({ data, schedules, error, onRetry }: P
   const isConnected = useConnectionStore((s) => s.status === 'connected')
 
   if (!isConnected && !data) return <Card card="automations" dim><CardOffline /></Card>
-  if (!data && error) return <Card card="automations"><CardError title="Could not load the automations" error={error} onRetry={onRetry} /></Card>
-  if (!data) return <Card card="automations"><CardLoading label="Loading the automations…" rows={3} /></Card>
+  if (!data && error) return <Card card="automations"><ErrorState card title="Could not load the automations" error={error} onRetry={onRetry} /></Card>
+  if (!data) return <Card card="automations"><Skeleton label="Loading the automations…" rows={3} /></Card>
 
   // one list, as the Automation page shows it: active first, then by name
   const rules = [
@@ -36,7 +36,7 @@ export default function ActiveAutomations({ data, schedules, error, onRetry }: P
   return (
     <Card card="automations" meta={`${enabled}/${rules.length} active`} open="automations">
       {recent.length === 0 ? (
-        <CardEmpty icon={<Bot size={22} />} title="No automation rules yet" hint={`Create a rule on the ${pageLabel('automations')} page and it shows up here.`} />
+        <EmptyState card icon={<Bot size={22} />} title="No automation rules yet" hint={`Create a rule on the ${pageLabel('automations')} page and it shows up here.`} />
       ) : (
         <CardBody className="space-y-1.5">
           {recent.map((a) => (
@@ -45,7 +45,7 @@ export default function ActiveAutomations({ data, schedules, error, onRetry }: P
                 <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${a.enabled ? 'bg-emerald-400' : 'bg-slate-600'}`} role="img" aria-label={a.enabled ? 'On' : 'Off'} />
                 <span className="text-[11px] text-slate-300 truncate">{a.name}</span>
               </div>
-              <Badge component="span" color={a.timed ? 'cyan' : 'amber'}>{a.timed ? 'Timed' : 'Condition'}</Badge>
+              <Pill tone={a.timed ? 'info' : 'attention'}>{a.timed ? 'Timed' : 'Condition'}</Pill>
             </div>
           ))}
         </CardBody>

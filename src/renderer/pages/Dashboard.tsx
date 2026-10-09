@@ -4,7 +4,6 @@
 
 import React, { useRef, useEffect } from 'react'
 import { WifiOff, Wifi, Loader2, Server, RefreshCw, Settings2, BellRing } from 'lucide-react'
-import { Badge } from '@mantine/core'
 import { usePolling } from '../hooks/usePolling'
 import { pollKeys } from '../api/pollKeys'
 import {
@@ -30,9 +29,10 @@ import { useNotificationStore } from '../stores/notificationStore'
 import { useStackStore } from '../stores/stackStore'
 import { useToast } from '../components/common/Toast'
 import { pageLabel } from '../constants/pageTitles'
-import { BTN_SHEET_PRIMARY, BTN_TOOLBAR_QUIET } from '../lib/ui'
+import { BTN_SHEET_PRIMARY, BTN_TOOLBAR_QUIET, BTN_TOOLBAR_PRIMARY } from '../lib/ui'
 import type { DiskInfo, HealthReport } from '../../shared/types'
 
+import { Pill } from '../components/common/Pill'
 // ---------------------------------------------------------------------------
 // Disconnected hero — gorgeous animated illustration
 // ---------------------------------------------------------------------------
@@ -98,14 +98,14 @@ function DisconnectedHero() {
           }
         </p>
         <div className="flex items-center justify-center gap-3 mb-6">
-          <Badge component="span" size="lg" color={isConnecting ? 'cyan' : isError ? 'rose' : 'slate'}>
+          <Pill size="md" tone={isConnecting ? 'info' : isError ? 'problem' : 'neutral'}>
             {isConnecting ? 'Connecting' : isError ? `Attempt ${reconnectAttempts}` : 'Disconnected'}
-          </Badge>
+          </Pill>
         </div>
         {(isError || connectionStatus === 'disconnected') && (
           <button type="button" onClick={() => connect()} className={`${BTN_SHEET_PRIMARY} mx-auto`}>
             <RefreshCw size={16} />
-            Retry connection
+            Try again
           </button>
         )}
       </div>
@@ -341,7 +341,7 @@ export default function Dashboard() {
       {!showDisconnected && <DisconnectedBanner />}
       <PageHeader
         page="dashboard"
-        badge={isConnected ? <Badge component="span" color="emerald" leftSection={<Wifi size={11} />}>Live</Badge> : undefined}
+        badge={isConnected ? <Pill tone="ok" icon={<Wifi size={10} />}>Live</Pill> : undefined}
         subtitle={systemStatus
           ? <><span className="text-slate-300">{systemStatus.hostname}</span>{' \u2014 uptime '}{formatUptime(systemStatus.uptime_seconds)}</>
           : undefined}
@@ -419,7 +419,7 @@ function NeedsYouOffer({ layout }: { layout: ReturnType<typeof useDashboardLayou
       </div>
       <div className="flex items-center gap-2">
         <button type="button" className={BTN_TOOLBAR_QUIET} onClick={() => void layout.saveCardConfig('needs-you', { offer: 'declined' })}>Not now</button>
-        <button type="button" className="px-3 py-2 rounded-lg text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-500 transition-colors" onClick={() => void layout.placeOnTop('needs-you', { offer: 'added' })}>
+        <button type="button" className={BTN_TOOLBAR_PRIMARY} onClick={() => void layout.placeOnTop('needs-you', { offer: 'added' })}>
           Add it to the top
         </button>
       </div>

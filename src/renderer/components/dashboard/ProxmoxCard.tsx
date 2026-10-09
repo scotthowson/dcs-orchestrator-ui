@@ -4,15 +4,16 @@
 // =============================================================================
 
 import { Server, Cpu, MemoryStick, Satellite } from 'lucide-react'
-import { Badge } from '@mantine/core'
 import { usePolling } from '../../hooks/usePolling'
 import { pollKeys } from '../../api/pollKeys'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { pageLabel } from '../../constants/pageTitles'
 import { BTN_CARD, TONE_OK } from '../../lib/ui'
 import { fetchProxmoxStatus, fetchProxmoxVms, fetchProxmoxNodes, fetchFleetStatus, fetchFleetOverview } from '../../api/endpoints'
-import { Card, CardBody, CardEmpty, CardError, CardLoading, pctTone, TONE_FILL } from './cardShared'
-
+import { Card, CardBody } from './cardShared'
+import { pctTone, TONE_FILL } from '../../lib/tone'
+import { Skeleton, EmptyState, ErrorState } from '../common/PageState'
+import { Pill } from '../common/Pill'
 function fmtGb(n: number): string { return n ? `${(n / 1073741824).toFixed(n >= 10737418240 ? 0 : 1)} GB` : '0' }
 
 export default function ProxmoxCard() {
@@ -33,22 +34,22 @@ export default function ProxmoxCard() {
       meta={s?.reachable ? `${s.vms.running}/${s.vms.total} running` : undefined}
       open="proxmox"
       clickable={false}
-      badge={ready && s?.version ? <Badge component="span" color="slate">PVE {s.version}</Badge> : undefined}
+      badge={ready && s?.version ? <Pill tone="neutral">PVE {s.version}</Pill> : undefined}
     >
       {status.error && !s ? (
-        <CardError title={`Could not reach ${pageLabel('proxmox')}`} error={status.error} onRetry={status.refresh} />
+        <ErrorState card title={`Could not reach ${pageLabel('proxmox')}`} error={status.error} onRetry={status.refresh} />
       ) : !s ? (
-        <CardLoading label="Checking Proxmox…" rows={4} />
+        <Skeleton label="Checking Proxmox…" rows={4} />
       ) : !s.configured ? (
-        <CardEmpty
-          icon={<Server size={20} />}
+        <EmptyState card
+          icon={<Server size={22} />}
           title="Not linked"
           hint={`Add the Proxmox URL and an API token in ${pageLabel('config')} → Proxmox`}
           action={<button type="button" onClick={() => setCurrentPage('config')} className={`${BTN_CARD} ${TONE_OK}`}>Open {pageLabel('config')}</button>}
         />
       ) : !s.reachable ? (
-        <CardEmpty
-          icon={<Server size={20} />}
+        <EmptyState card
+          icon={<Server size={22} />}
           title="Proxmox does not answer"
           hint={s.error || s.hints?.[0] || ''}
           action={<button type="button" onClick={() => setCurrentPage('proxmox')} className={`${BTN_CARD} ${TONE_OK}`}>Open {pageLabel('proxmox')}</button>}
@@ -81,7 +82,7 @@ export default function ProxmoxCard() {
               <button key={`${v.node}/${v.type}/${v.vmid}`} type="button" onClick={() => setCurrentPage('proxmox')} className="w-full flex items-center gap-2 py-1.5 text-left hover:bg-white/[0.03] rounded-lg px-1">
                 <span className={`w-2 h-2 rounded-full shrink-0 ${v.status === 'running' ? 'bg-emerald-400' : v.status === 'paused' ? 'bg-amber-400' : 'bg-slate-500'}`} aria-hidden />
                 <span className="text-xs text-slate-200 truncate flex-1 min-w-0">{v.name}{memberByVm.get(v.vmid) ? <span className="text-[10px] text-violet-300 ml-1">· {memberByVm.get(v.vmid)!.stacks_total} stack{memberByVm.get(v.vmid)!.stacks_total === 1 ? '' : 's'}</span> : null}</span>
-                <Badge component="span" color={v.type === 'qemu' ? 'violet' : 'slate'}>{v.type === 'qemu' ? 'VM' : 'LXC'}</Badge>
+                <Pill tone={v.type === 'qemu' ? 'fleet' : 'neutral'}>{v.type === 'qemu' ? 'VM' : 'LXC'}</Pill>
                 <span className="text-[10px] text-slate-500 tabular-nums w-16 text-right">{v.status === 'running' ? `${v.cpu}% · ${fmtGb(v.mem)}` : v.status}</span>
               </button>
             ))}

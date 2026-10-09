@@ -10,7 +10,10 @@ import { useLogStore } from '../../stores/logStore'
 import { useConnectionStore } from '../../stores/connectionStore'
 import VmCapsule from '../fleet/VmCapsule'
 import type { EventEntry } from '../../../shared/types'
-import { Card, CardBody, CardEmpty, CardOffline } from './cardShared'
+import { Card, CardBody, CardOffline } from './cardShared'
+import { EmptyState } from '../common/PageState'
+import { Pill } from '../common/Pill'
+import { type Tone } from '../../lib/tone'
 
 /** what kind of thing it happened to: an icon, never a status colour */
 function eventTypeIcon(type: string): React.ReactNode {
@@ -23,24 +26,24 @@ function eventTypeIcon(type: string): React.ReactNode {
 }
 
 /** what happened: started is fine, stopped or died is a problem, restarted needs a look, the rest is information */
-function actionColor(action: string): string {
+function actionTone(action: string): Tone {
   switch (action) {
     case 'start':
     case 'create':
-      return 'emerald'
+      return 'ok'
     case 'stop':
     case 'kill':
     case 'die':
     case 'destroy':
-      return 'rose'
+      return 'problem'
     case 'restart':
-      return 'amber'
+      return 'attention'
     case 'pull':
     case 'connect':
     case 'attach':
-      return 'cyan'
+      return 'info'
     default:
-      return 'slate'
+      return 'neutral'
   }
 }
 
@@ -73,7 +76,7 @@ function EventRow({ event, index }: { event: EventEntry; index: number }) {
 
       {onDemandEventWord(event)
         ? <Badge component="span" color="indigo" leftSection={<Moon size={9} aria-hidden />} title="On demand: Sablier puts it to sleep while idle and wakes it on the first request">{onDemandEventWord(event)}</Badge>
-        : <Badge component="span" color={actionColor(event.action)}>{event.action}</Badge>}
+        : <Pill tone={actionTone(event.action)}>{event.action}</Pill>}
 
       {/* Where it happened (only rows of a fleet view carry it) */}
       {event.member !== undefined && <VmCapsule member={event.member} name={event.member_name} vmid={event.vmid} size="xs" />}
@@ -101,7 +104,7 @@ export default function RecentEvents() {
   return (
     <Card card="recent-events" open="activity" clickable={false} meta={recentEvents.length > 0 ? `${recentEvents.length} events` : undefined}>
       {recentEvents.length === 0 ? (
-        <CardEmpty icon={<Activity size={22} />} title="No recent events" hint="Events appear here as Docker activity happens." />
+        <EmptyState card icon={<Activity size={22} />} title="No recent events" hint="Events appear here as Docker activity happens." />
       ) : (
         <CardBody>
           <div className="space-y-0.5">

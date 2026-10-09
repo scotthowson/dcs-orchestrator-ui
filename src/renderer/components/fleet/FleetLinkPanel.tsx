@@ -7,17 +7,16 @@
 // =============================================================================
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Badge } from '@mantine/core'
 import { Radar, Loader2, Link2, CheckCircle2, Server, RefreshCw } from 'lucide-react'
 import { proxmoxTest, runFleetDiscover, fetchFleetMembers } from '../../api/endpoints'
 import type { FleetGuestScan, FleetMember, ProxmoxStatus, ProxmoxVm } from '../../../shared/types'
 import ProgressCard, { type ProgressLine, type ProgressState } from '../common/ProgressCard'
 import MemberSheet, { type MemberSheetPrefill } from './MemberSheet'
 import JoinCodeCard from './JoinCodeCard'
-import { TONE_ATTN } from './fleetShared'
-import { BTN_CARD, BTN_CARD_QUIET } from '../../lib/ui'
+import { BTN_CARD, BTN_CARD_QUIET, TONE_ATTN } from '../../lib/ui'
 import { pageLabel } from '../../constants/pageTitles'
 
+import { Pill } from '../common/Pill'
 const STEPS = [
   { label: 'Connect', hint: 'Proxmox API' },
   { label: 'Token', hint: 'privileges' },
@@ -135,7 +134,7 @@ export default function FleetLinkPanel({ pve, autoRun = true, showJoinCode = tru
                   </p>
                 </div>
                 {g.member ? (
-                  <Badge component="span" color="emerald" leftSection={<CheckCircle2 size={10} />}>linked</Badge>
+                  <Pill tone="ok" icon={<CheckCircle2 size={10} />}>linked</Pill>
                 ) : g.dcs ? (
                   <button type="button" onClick={() => setLinking({ name: g.name, url: g.dcs!.url, vmid: g.vmid, node: g.node, type: g.type })} className={`${BTN_CARD} ${TONE_ATTN} font-medium`}>
                     <Link2 size={12} /> Link

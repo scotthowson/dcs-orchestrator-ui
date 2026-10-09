@@ -11,8 +11,9 @@ import { useSystemStore } from '../../stores/systemStore'
 import { useConnectionStore } from '../../stores/connectionStore'
 import { useFleetScope } from '../../hooks/useFleetScope'
 import { useStackCounts } from '../../hooks/useStackCounts'
-import { Card, CardBody, CardError, CardLoading, CardOffline, loadTone, pctTone, TONE_TEXT, type Tone } from './cardShared'
-
+import { Card, CardBody, CardOffline } from './cardShared'
+import { loadTone, pctTone, TONE_TEXT, type Tone } from '../../lib/tone'
+import { Skeleton, ErrorState } from '../common/PageState'
 /** a value is plain text; it takes a colour only when it means something (needs attention, a problem) */
 function InfoRow({ icon, label, value, tone = 'neutral' }: {
   icon: React.ReactNode
@@ -39,8 +40,8 @@ export default function ServerInfo() {
   // the stacks of this server asleep on demand: fine, they count with the running ones
   const hereStacks = useStackCounts('hub')
 
-  if (!status && error) return <Card card="server-info"><CardError title="Could not load the server details" error={error} onRetry={() => window.dispatchEvent(new Event('app-refresh'))} /></Card>
-  if (!status && connectionStatus === 'connected') return <Card card="server-info"><CardLoading label="Loading the server details…" rows={7} /></Card>
+  if (!status && error) return <Card card="server-info"><ErrorState card title="Could not load the server details" error={error} onRetry={() => window.dispatchEvent(new Event('app-refresh'))} /></Card>
+  if (!status && connectionStatus === 'connected') return <Card card="server-info"><Skeleton label="Loading the server details…" rows={7} /></Card>
   if (!status) return <Card card="server-info" dim><CardOffline /></Card>
 
   const memTotal = status.system.memory_mb.total

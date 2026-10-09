@@ -15,10 +15,11 @@ import { useConfirm } from '../common/ConfirmDialog'
 import Hint from '../common/Hint'
 import { BTN_ICON_SM, TONE_GHOST, TONE_GHOST_DANGER, TONE_GHOST_OK } from '../../lib/ui'
 import { activityOutcome, opGerund, startedInBackground, waitForStackActivity, type StackOp } from '../../lib/stackActivity'
-import { Card, CardBody, CardEmpty, CardError, CardLoading } from './cardShared'
+import { Card, CardBody } from './cardShared'
 import { StackDot } from '../common/StateChip'
 import { stackIsFine, stackLine, stackLineTone, stackState, STACK_META } from '../../lib/containerState'
 
+import { Skeleton, EmptyState, ErrorState } from '../common/PageState'
 type Op = StackOp
 
 export default function StackControls({ stacks, error, onRetry, onRefresh }: {
@@ -36,9 +37,9 @@ export default function StackControls({ stacks, error, onRetry, onRefresh }: {
 
   const run = useCallback(async (stack: string, op: Op) => {
     if (busy) return
-    if (op === 'stop' && !(await confirm({ title: 'Stop the stack', message: `Stop every container of ${stack}?`, confirmLabel: 'Stop', danger: true }))) return
-    if (op === 'restart' && !(await confirm({ title: 'Restart the stack', message: `Restart ${stack}?`, confirmLabel: 'Restart' }))) return
-    if (op === 'update' && !(await confirm({ title: 'Update the stack', message: `Pull the images of ${stack} and recreate what changed?`, confirmLabel: 'Update' }))) return
+    if (op === 'stop' && !(await confirm({ title: 'Stop the stack?', message: `Stop every container of ${stack}?`, confirmLabel: 'Stop', danger: true }))) return
+    if (op === 'restart' && !(await confirm({ title: 'Restart the stack?', message: `Restart ${stack}?`, confirmLabel: 'Restart' }))) return
+    if (op === 'update' && !(await confirm({ title: 'Update the stack?', message: `Pull the images of ${stack} and recreate what changed?`, confirmLabel: 'Update' }))) return
     setBusy(`${stack}:${op}`)
     try {
       const fn = { start: startStack, stop: stopStack, restart: restartStack, update: updateStack }[op]
@@ -67,11 +68,11 @@ export default function StackControls({ stacks, error, onRetry, onRefresh }: {
   return (
     <Card card="stack-controls" meta={stacks ? `${running}/${stacks.length} up` : undefined} open="stacks" clickable={false}>
       {error && !stacks ? (
-        <CardError title="Could not load the stacks" error={error} onRetry={onRetry} />
+        <ErrorState card title="Could not load the stacks" error={error} onRetry={onRetry} />
       ) : stacks === null ? (
-        <CardLoading label="Loading the stacks…" rows={4} />
+        <Skeleton label="Loading the stacks…" rows={4} />
       ) : stacks.length === 0 ? (
-        <CardEmpty icon={<Boxes size={22} />} title="No stacks yet" hint={`Deploy a template or create a stack on the ${pageLabel('stacks')} page.`} />
+        <EmptyState card icon={<Boxes size={22} />} title="No stacks yet" hint={`Deploy a template or create a stack on the ${pageLabel('stacks')} page.`} />
       ) : (
         <CardBody className="space-y-1">
           {stacks.map((s) => {
@@ -88,13 +89,13 @@ export default function StackControls({ stacks, error, onRetry, onRefresh }: {
                 {isAdmin ? (
                   <div className="flex items-center gap-0.5">
                     {!isRunning && (
-                      <Hint label={stackState(s) === 'asleep' ? 'Wake it now (Sablier puts it back to sleep when idle)' : 'Start'}><button type="button" aria-label={`${stackState(s) === 'asleep' ? 'Wake' : 'Start'} ${s.name}`} onClick={() => run(s.name, 'start')} disabled={!!busy} className={`${BTN_ICON_SM} ${TONE_GHOST_OK}`}>{spin('start', <Play size={13} />)}</button></Hint>
+                      <Hint label={stackState(s) === 'asleep' ? 'Wake it now (Sablier puts it back to sleep when idle)' : 'Start'}><button type="button" aria-label={`${stackState(s) === 'asleep' ? 'Wake' : 'Start'} ${s.name}`} onClick={() => run(s.name, 'start')} disabled={!!busy} className={`${BTN_ICON_SM} ${TONE_GHOST_OK}`}>{spin('start', <Play size={12} />)}</button></Hint>
                     )}
                     {isRunning && (
                       <>
-                        <Hint label="Restart"><button type="button" aria-label={`Restart ${s.name}`} onClick={() => run(s.name, 'restart')} disabled={!!busy} className={`${BTN_ICON_SM} ${TONE_GHOST}`}>{spin('restart', <RotateCw size={13} />)}</button></Hint>
-                        <Hint label="Pull the images and recreate what changed"><button type="button" aria-label={`Update ${s.name}`} onClick={() => run(s.name, 'update')} disabled={!!busy} className={`${BTN_ICON_SM} ${TONE_GHOST}`}>{spin('update', <ArrowUpCircle size={13} />)}</button></Hint>
-                        <Hint label="Stop"><button type="button" aria-label={`Stop ${s.name}`} onClick={() => run(s.name, 'stop')} disabled={!!busy} className={`${BTN_ICON_SM} ${TONE_GHOST_DANGER}`}>{spin('stop', <Square size={13} />)}</button></Hint>
+                        <Hint label="Restart"><button type="button" aria-label={`Restart ${s.name}`} onClick={() => run(s.name, 'restart')} disabled={!!busy} className={`${BTN_ICON_SM} ${TONE_GHOST}`}>{spin('restart', <RotateCw size={12} />)}</button></Hint>
+                        <Hint label="Pull the images and recreate what changed"><button type="button" aria-label={`Update ${s.name}`} onClick={() => run(s.name, 'update')} disabled={!!busy} className={`${BTN_ICON_SM} ${TONE_GHOST}`}>{spin('update', <ArrowUpCircle size={12} />)}</button></Hint>
+                        <Hint label="Stop"><button type="button" aria-label={`Stop ${s.name}`} onClick={() => run(s.name, 'stop')} disabled={!!busy} className={`${BTN_ICON_SM} ${TONE_GHOST_DANGER}`}>{spin('stop', <Square size={12} />)}</button></Hint>
                       </>
                     )}
                   </div>

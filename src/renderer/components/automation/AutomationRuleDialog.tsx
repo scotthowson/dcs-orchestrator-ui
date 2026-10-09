@@ -7,10 +7,10 @@
 import { useState, useId } from 'react'
 import { createPortal } from 'react-dom'
 import { SegmentedControl } from '@mantine/core'
-import { Zap, X, Loader2, Pencil, Plus, CalendarClock, AlertTriangle } from 'lucide-react'
+import { Zap, Loader2, Pencil, Plus, CalendarClock, AlertTriangle } from 'lucide-react'
 import ModalOverlay from '../common/ModalOverlay'
 import { useToast } from '../common/Toast'
-import { BTN_ICON_SM, BTN_SHEET_QUIET, BTN_SHEET_PRIMARY, TONE_GHOST } from '../../lib/ui'
+import { BTN_SHEET_QUIET, BTN_SHEET_PRIMARY } from '../../lib/ui'
 import { createAutomation, updateAutomation } from '../../api/endpoints'
 import type { AutomationRule } from '../../../shared/types'
 import {
@@ -18,10 +18,9 @@ import {
   THRESHOLD_CONDITIONS, DEFAULT_THRESHOLD, DEFAULT_COOLDOWN_MIN, cronInWords,
 } from './model'
 
-/** the fields of the rule dialog: one look, one focus ring */
-const FIELD = 'w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs text-slate-200 placeholder-slate-600 transition-colors focus:outline-none focus-visible:border-emerald-500/40 focus-visible:ring-2 focus-visible:ring-emerald-500/40'
-const LABEL = 'text-[10px] text-slate-500 uppercase tracking-wider mb-1.5 block font-semibold'
-
+import { INPUT, CAPTION, CHOICE_SM, CHOICE_ON, CHOICE_OFF } from '../../lib/fieldStyles'
+import CloseButton from '../common/CloseButton'
+import Kbd from '../common/Kbd'
 type Trigger = 'schedule' | 'condition'
 
 export default function AutomationRuleDialog({ editing, startTrigger, member, onSaved, onClose }: {
@@ -100,22 +99,20 @@ export default function AutomationRuleDialog({ editing, startTrigger, member, on
             <Zap size={16} className="text-slate-400 shrink-0" aria-hidden />
             <h2 className="text-sm font-semibold text-slate-200 truncate">{title}</h2>
           </div>
-          <button type="button" aria-label="Close" onClick={onClose} className={`${BTN_ICON_SM} ${TONE_GHOST}`}>
-            <X size={16} />
-          </button>
+          <CloseButton onClick={onClose} />
         </div>
 
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
           <div>
-            <label htmlFor={`${uid}-name`} className={LABEL}>Rule name</label>
+            <label htmlFor={`${uid}-name`} className={CAPTION}>Rule name</label>
             <input id={`${uid}-name`} type="text" value={name} onChange={(e) => setName(e.target.value)}
-              placeholder={trigger === 'condition' ? 'e.g. Restart unhealthy containers' : 'e.g. Nightly prune'} autoComplete="off" className={FIELD} autoFocus />
+              placeholder={trigger === 'condition' ? 'e.g. Restart unhealthy containers' : 'e.g. Nightly prune'} autoComplete="off" className={INPUT} autoFocus />
           </div>
 
           {/* an existing rule may change what it waits for, as it always could */}
           {editing && (
             <div>
-              <span className={LABEL}>Runs</span>
+              <span className={CAPTION}>Runs</span>
               <SegmentedControl
                 fullWidth
                 aria-label="What the rule waits for"
@@ -131,11 +128,11 @@ export default function AutomationRuleDialog({ editing, startTrigger, member, on
 
           {trigger === 'schedule' && (
             <div>
-              <label htmlFor={`${uid}-cron`} className={LABEL}>Cron expression</label>
+              <label htmlFor={`${uid}-cron`} className={CAPTION}>Cron expression</label>
               <input id={`${uid}-cron`} type="text" value={cron} onChange={(e) => setCron(e.target.value)} placeholder="* * * * *"
-                autoComplete="off" spellCheck={false} className={`${FIELD} font-mono`} />
+                autoComplete="off" spellCheck={false} className={`${INPUT} font-mono`} />
               <p className="text-[10px] text-slate-500 mt-1 mb-2">{cronWords ? `${cronWords}, in the server's time zone` : 'minute hour day-of-month month day-of-week, in the server\'s time zone'}</p>
-              <span className={LABEL}>Quick presets</span>
+              <span className={CAPTION}>Quick presets</span>
               <div className="flex flex-wrap gap-1.5">
                 {CRON_PRESETS.map((p) => (
                   <button
@@ -143,11 +140,7 @@ export default function AutomationRuleDialog({ editing, startTrigger, member, on
                     type="button"
                     aria-pressed={cron === p.cron}
                     onClick={() => setCron(p.cron)}
-                    className={`h-8 sm:h-7 px-2.5 rounded-lg text-[11px] font-medium border transition-colors ${
-                      cron === p.cron
-                        ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
-                        : 'bg-white/[0.03] text-slate-400 border-white/5 hover:bg-white/5 hover:text-slate-300'
-                    }`}
+                    className={`${CHOICE_SM} ${cron === p.cron ? CHOICE_ON : CHOICE_OFF}`}
                   >
                     {p.label}
                   </button>
@@ -158,8 +151,8 @@ export default function AutomationRuleDialog({ editing, startTrigger, member, on
 
           {trigger === 'condition' && (
             <div>
-              <label htmlFor={`${uid}-condition`} className={LABEL}>When</label>
-              <select id={`${uid}-condition`} value={condition} onChange={(e) => setCondition(e.target.value)} className={`${FIELD} cursor-pointer`}>
+              <label htmlFor={`${uid}-condition`} className={CAPTION}>When</label>
+              <select id={`${uid}-condition`} value={condition} onChange={(e) => setCondition(e.target.value)} className={`${INPUT} cursor-pointer`}>
                 {CONDITION_OPTIONS.map((c) => <option key={c.value} value={c.value} className="bg-slate-900 text-slate-200">{c.label}</option>)}
               </select>
 
@@ -167,15 +160,15 @@ export default function AutomationRuleDialog({ editing, startTrigger, member, on
               <div className="grid grid-cols-2 gap-3 mt-3">
                 {THRESHOLD_CONDITIONS.has(condition) && (
                   <div>
-                    <label htmlFor={`${uid}-threshold`} className={LABEL}>Threshold (%)</label>
+                    <label htmlFor={`${uid}-threshold`} className={CAPTION}>Threshold (%)</label>
                     <input id={`${uid}-threshold`} type="number" inputMode="numeric" min={1} max={100} step={1} value={threshold}
-                      onChange={(e) => setThreshold(e.target.value)} placeholder={String(DEFAULT_THRESHOLD)} autoComplete="off" className={FIELD} />
+                      onChange={(e) => setThreshold(e.target.value)} placeholder={String(DEFAULT_THRESHOLD)} autoComplete="off" className={INPUT} />
                   </div>
                 )}
                 <div>
-                  <label htmlFor={`${uid}-cooldown`} className={LABEL}>Cooldown (minutes)</label>
+                  <label htmlFor={`${uid}-cooldown`} className={CAPTION}>Cooldown (minutes)</label>
                   <input id={`${uid}-cooldown`} type="number" inputMode="numeric" min={0} step={1} value={cooldown}
-                    onChange={(e) => setCooldown(e.target.value)} placeholder={String(DEFAULT_COOLDOWN_MIN)} autoComplete="off" className={FIELD} />
+                    onChange={(e) => setCooldown(e.target.value)} placeholder={String(DEFAULT_COOLDOWN_MIN)} autoComplete="off" className={INPUT} />
                 </div>
               </div>
               <p className="text-[10px] text-slate-500 mt-1">
@@ -186,16 +179,16 @@ export default function AutomationRuleDialog({ editing, startTrigger, member, on
           )}
 
           <div>
-            <label htmlFor={`${uid}-action`} className={LABEL}>Then</label>
-            <select id={`${uid}-action`} value={actionType} onChange={(e) => setActionType(e.target.value)} className={`${FIELD} cursor-pointer`}>
+            <label htmlFor={`${uid}-action`} className={CAPTION}>Then</label>
+            <select id={`${uid}-action`} value={actionType} onChange={(e) => setActionType(e.target.value)} className={`${INPUT} cursor-pointer`}>
               {AUTOMATION_ACTIONS.map((a) => <option key={a.value} value={a.value} className="bg-slate-900 text-slate-200">{a.label}</option>)}
             </select>
           </div>
 
           <div>
-            <label htmlFor={`${uid}-target`} className={LABEL}>Target</label>
+            <label htmlFor={`${uid}-target`} className={CAPTION}>Target</label>
             <input id={`${uid}-target`} type="text" value={actionTarget} onChange={(e) => setActionTarget(e.target.value)}
-              placeholder={AUTOMATION_TARGET_PLACEHOLDERS[actionType] ?? 'Stack name, container name, or "*" for all'} autoComplete="off" className={FIELD} />
+              placeholder={AUTOMATION_TARGET_PLACEHOLDERS[actionType] ?? 'Stack name, container name, or "*" for all'} autoComplete="off" className={INPUT} />
             <p className="text-[10px] text-slate-500 mt-1">
               {AUTOMATION_TARGET_HINTS[actionType] ?? (trigger === 'condition'
                 ? 'Leave empty or use "*": a container action then applies to the containers that matched the condition.'
@@ -206,12 +199,12 @@ export default function AutomationRuleDialog({ editing, startTrigger, member, on
 
         <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-t border-white/5 shrink-0">
           <span className="text-[10px] text-slate-500 hidden sm:inline">
-            Press <kbd className="px-1.5 py-0.5 rounded border border-white/10 bg-white/[0.03] text-[9px] font-mono text-slate-400">Esc</kbd> to close
+            Press <Kbd>Esc</Kbd> to close
           </span>
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <button type="button" onClick={onClose} className={`${BTN_SHEET_QUIET} flex-1 sm:flex-none sm:px-6`}>Cancel</button>
             <button type="submit" disabled={saving || !name.trim()} className={`${BTN_SHEET_PRIMARY} flex-1 sm:flex-none`}>
-              {saving ? <Loader2 size={14} className="animate-spin" /> : (editing ? <Pencil size={14} /> : <Plus size={14} />)}
+              {saving ? <Loader2 size={16} className="animate-spin" /> : (editing ? <Pencil size={16} /> : <Plus size={16} />)}
               {editing ? 'Save changes' : 'Create'}
             </button>
           </div>

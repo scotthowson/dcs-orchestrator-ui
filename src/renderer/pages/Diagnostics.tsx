@@ -12,7 +12,7 @@ import {
   Lock, Trash2, RotateCcw, ExternalLink,
 } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
-import { Switch, Badge } from '@mantine/core'
+import { Switch } from '@mantine/core'
 import { usePolling } from '../hooks/usePolling'
 import { pollKeys } from '../api/pollKeys'
 import { useFleetScope } from '../hooks/useFleetScope'
@@ -29,8 +29,8 @@ import { useConfirm } from '../components/common/ConfirmDialog'
 import PageHeader from '../components/common/PageHeader'
 import Hint from '../components/common/Hint'
 import { pageLabel } from '../constants/pageTitles'
-import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_SHEET, BTN_SHEET_QUIET, BTN_SHEET_DANGER, TONE_OK, TONE_DANGER } from '../lib/ui'
-import { CARD, FOCUS_RING } from '../lib/pageKit'
+import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_SHEET, BTN_SHEET_QUIET, BTN_SHEET_DANGER, TONE_OK, TONE_DANGER, FOCUS_RING } from '../lib/ui'
+import { CARD } from '../lib/pageKit'
 import { useSettingsStore, DEFAULT_SETTINGS } from '../stores/settingsStore'
 import { useAuthStore } from '../stores/authStore'
 import { useServerStore } from '../stores/serverStore'
@@ -41,6 +41,7 @@ import type {
   ContainerListResponse, ImageListResponse, NetworkListResponse, EventsResponse,
 } from '../../shared/types'
 
+import { Pill } from '../components/common/Pill'
 // =============================================================================
 // Types
 // =============================================================================
@@ -745,7 +746,7 @@ function ServerControlCard() {
     // stopping or restarting every stack takes the whole system with it (core infrastructure and the VMs' stacks too): ask first
     if (action !== 'start') {
       const ok = await confirm({
-        title: action === 'stop' ? 'Stop all stacks' : 'Restart all stacks',
+        title: action === 'stop' ? 'Stop all stacks?' : 'Restart all stacks?',
         message: action === 'stop'
           ? 'Every stack stops — core infrastructure (Traefik, the sign-in, the web dashboard) and the stacks inside your VMs included. This page may stop answering until the stacks are started again.'
           : 'Every stack restarts, one after the other — core infrastructure (Traefik, the sign-in, the web dashboard) and the stacks inside your VMs included. Services are down for a moment, and this page may stop answering meanwhile.',
@@ -1226,7 +1227,7 @@ function DisconnectedHero() {
 
   return (
     <EmptyState
-      icon={<Shield size={32} />}
+      icon={<Shield size={28} />}
       title={isConnecting ? 'Connecting…' : 'Diagnostics unavailable'}
       hint="Connect to your Docker API to see the system diagnostics."
       action={!isConnecting ? (
@@ -1377,9 +1378,9 @@ export default function Diagnostics() {
       <PageHeader
         page="diagnostics"
         badge={isConnected ? (
-          <Badge
-            color="emerald"
-            leftSection={
+          <Pill
+            tone="ok"
+            icon={
               <span className="relative flex h-1.5 w-1.5" aria-hidden>
                 <span className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-75" />
                 <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400" />
@@ -1387,7 +1388,7 @@ export default function Diagnostics() {
             }
           >
             Live
-          </Badge>
+          </Pill>
         ) : undefined}
         actions={isConnected ? (
           <button type="button" onClick={refreshAll} disabled={isLoading} className={`${BTN_TOOLBAR_QUIET} ${FOCUS_RING}`}>

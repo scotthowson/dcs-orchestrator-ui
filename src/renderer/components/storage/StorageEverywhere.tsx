@@ -6,12 +6,12 @@
 // disk lives in a pool, so it is shown but not added again.
 // =============================================================================
 
-import { Badge } from '@mantine/core'
 import { Boxes, HardDrive, Layers, Server, ShieldCheck, ShieldAlert, Cpu, Database, Network } from 'lucide-react'
 import type { StorageOverview, PveNodeStorage, PveDisk, PveStorage, StorageDrive } from '../../../shared/types'
 import { CARD } from '../../lib/pageKit'
 import VmCapsule from '../fleet/VmCapsule'
 
+import { Pill } from '../common/Pill'
 /** bytes in the units the rest of the page uses (1024-based, as df and Proxmox count) */
 export function fmtBytes(b: number): string {
   if (!Number.isFinite(b) || b <= 0) return '0 B'
@@ -88,9 +88,9 @@ export function StorageSummary({ data }: { data: StorageOverview }) {
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 mb-3">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">All storage</span>
-          <Badge color="slate">{data.totals.devices} machine{data.totals.devices !== 1 ? 's' : ''}</Badge>
-          <Badge color="slate">{data.totals.drives} drive{data.totals.drives !== 1 ? 's' : ''}</Badge>
-          {data.totals.pools > 0 && <Badge color="violet">{data.totals.pools} Proxmox pool{data.totals.pools !== 1 ? 's' : ''}</Badge>}
+          <Pill tone="neutral">{data.totals.devices} machine{data.totals.devices !== 1 ? 's' : ''}</Pill>
+          <Pill tone="neutral">{data.totals.drives} drive{data.totals.drives !== 1 ? 's' : ''}</Pill>
+          {data.totals.pools > 0 && <Pill tone="fleet">{data.totals.pools} Proxmox pool{data.totals.pools !== 1 ? 's' : ''}</Pill>}
         </div>
         <div className="flex items-center gap-3 text-xs">
           <span className="text-slate-500"><span className="text-slate-300 font-medium">{fmtBytes(used)}</span><span className="mx-0.5">/</span>{fmtBytes(total)}</span>
@@ -284,9 +284,9 @@ export function VmDisks({ data }: { data: StorageOverview }) {
       <div className="flex items-center justify-between gap-3 mb-1">
         <div className="flex items-center gap-2">
           <Server size={14} className="text-violet-300" aria-hidden />
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">Virtual machines</h2>
+          <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Virtual machines</h2>
         </div>
-        <Badge color="violet">{data.vms.length} VM{data.vms.length !== 1 ? 's' : ''}</Badge>
+        <Pill tone="fleet">{data.vms.length} VM{data.vms.length !== 1 ? 's' : ''}</Pill>
       </div>
       <p className="text-[11px] text-slate-500 mb-4">Their disks live in the Proxmox pools above, so they are not counted again.</p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

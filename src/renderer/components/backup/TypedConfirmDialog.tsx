@@ -17,10 +17,10 @@
 
 import { useId, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { AlertTriangle, Loader2, RotateCcw, X } from 'lucide-react'
+import { AlertTriangle, Loader2, RotateCcw } from 'lucide-react'
 import ModalOverlay from '../common/ModalOverlay'
-import { BTN_ICON_SM, BTN_SHEET_DANGER, BTN_SHEET_QUIET, TONE_GHOST } from '../../lib/ui'
-
+import { BTN_SHEET_DANGER, BTN_SHEET_QUIET } from '../../lib/ui'
+import CloseButton from '../common/CloseButton'
 export default function TypedConfirmDialog({ title, word, confirmLabel, warning, detail, subjectLabel, subject, busy = false, onConfirm, onClose }: {
   title: string
   /** what has to be typed */
@@ -48,9 +48,7 @@ export default function TypedConfirmDialog({ title, word, confirmLabel, warning,
             </div>
             <h2 className="text-base font-semibold text-slate-100">{title}</h2>
           </div>
-          <button type="button" aria-label="Close" onClick={close} disabled={busy} className={`${BTN_ICON_SM} ${TONE_GHOST}`}>
-            <X size={16} />
-          </button>
+          <CloseButton onClick={close} disabled={busy} />
         </div>
 
         <div className="px-6 py-5 space-y-4">
@@ -87,7 +85,7 @@ export default function TypedConfirmDialog({ title, word, confirmLabel, warning,
         <div className="flex items-center gap-3 px-6 py-4 border-t border-white/5">
           <button type="button" onClick={close} disabled={busy} className={`${BTN_SHEET_QUIET} flex-1`}>Cancel</button>
           <button type="button" onClick={onConfirm} disabled={typed !== word || busy} className={`${BTN_SHEET_DANGER} flex-1 disabled:cursor-not-allowed`}>
-            {busy ? <Loader2 size={15} className="animate-spin" /> : <RotateCcw size={15} />}
+            {busy ? <Loader2 size={16} className="animate-spin" /> : <RotateCcw size={16} />}
             {confirmLabel}
           </button>
         </div>

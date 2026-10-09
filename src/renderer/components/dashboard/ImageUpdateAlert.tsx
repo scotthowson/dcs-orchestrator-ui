@@ -6,8 +6,8 @@ import { ArrowUpCircle } from 'lucide-react'
 import { useConnectionStore } from '../../stores/connectionStore'
 import { useAuthStore } from '../../stores/authStore'
 import type { ImageCheckResponse } from '../../../shared/types'
-import { Card, CardEmpty, CardError, CardLoading, CardOffline } from './cardShared'
-
+import { Card, CardOffline } from './cardShared'
+import { Skeleton, EmptyState, ErrorState } from '../common/PageState'
 interface Props {
   data: ImageCheckResponse | null
   error?: Error | null
@@ -20,15 +20,15 @@ export default function ImageUpdateAlert({ data, error, onRetry }: Props) {
   const isAdmin = useAuthStore((s) => s.userRole) === 'admin'
 
   if (!isConnected && !data) return <Card card="image-updates" dim><CardOffline /></Card>
-  if (!data && error) return <Card card="image-updates"><CardError title="Could not check the images" error={error} onRetry={onRetry} /></Card>
-  if (!data) return <Card card="image-updates"><CardLoading label="Checking the images…" rows={2} /></Card>
+  if (!data && error) return <Card card="image-updates"><ErrorState card title="Could not check the images" error={error} onRetry={onRetry} /></Card>
+  if (!data) return <Card card="image-updates"><Skeleton label="Checking the images…" rows={2} /></Card>
 
   const { current, aging, stale, total } = data
 
   return (
     <Card card="image-updates" meta={`${total} image${total === 1 ? '' : 's'}`} open="updates" tone={stale > 0 ? 'attention' : undefined}>
       {total === 0 ? (
-        <CardEmpty icon={<ArrowUpCircle size={22} />} title="No images yet" hint="Images appear here once a stack has pulled them." />
+        <EmptyState card icon={<ArrowUpCircle size={22} />} title="No images yet" hint="Images appear here once a stack has pulled them." />
       ) : (
         <div>
           <div className="flex h-3 w-full overflow-hidden rounded-full bg-slate-800/60 mb-3">

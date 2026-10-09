@@ -24,9 +24,8 @@ import { useConfirm } from '../common/ConfirmDialog'
 import { fetchAutheliaSecondStep, setAutheliaSecondStep, repairAutheliaSecondStep, fetchAutheliaVerificationCode } from '../../api/endpoints'
 import { usePolling } from '../../hooks/usePolling'
 import type { AutheliaSecondStep, AutheliaStepMode, AutheliaVerificationCode } from '../../../shared/types'
-import { BTN_CARD, BTN_CARD_QUIET, TONE_OK } from '../../lib/ui'
-import { CHOICE, CHOICE_ON, CHOICE_OFF, SUBHEAD, FOCUS_RING } from '../../lib/fieldStyles'
-
+import { BTN_CARD, BTN_CARD_QUIET, TONE_OK, SECTION_LABEL, FOCUS_RING } from '../../lib/ui'
+import { CHOICE, CHOICE_ON, CHOICE_OFF, CHOICE_SM } from '../../lib/fieldStyles'
 const MODES: { id: AutheliaStepMode; label: string; hint: string }[] = [
   { id: 'off', label: 'Password only', hint: 'Authelia asks for the password alone (how every server starts).' },
   { id: 'all', label: 'Every app', hint: 'Every app behind Authelia asks for a code or a passkey after the password.' },
@@ -107,7 +106,7 @@ export default function AppSignInCard() {
   const apply = async () => {
     if (mode !== 'off') {
       const ok = await confirm({
-        title: 'Ask for a second step at sign-in',
+        title: 'Ask for a second step at sign-in?',
         message:
           `${mode === 'all' ? 'Every app behind Authelia' : apps.map((a) => (state.domain ? `${a}.${state.domain}` : a)).join(', ')} will ask for a code from an authenticator app or a passkey after the password. ` +
           `Register a device for your Authelia user first (the steps on this card). A user with no device is not locked out: at the next sign-in Authelia says the app needs two-factor authentication and links to the registration, with the verification code shown here. ` +
@@ -177,7 +176,7 @@ export default function AppSignInCard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* 1. register a device */}
         <div className="rounded-lg border border-white/5 bg-white/[0.02] p-3 space-y-2.5">
-          <p className={SUBHEAD}>1 · Register a device first</p>
+          <p className={SECTION_LABEL}>1 · Register a device first</p>
           {live?.managed && live.enrol === false && (
             <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-2.5 flex items-start gap-2 flex-wrap" role="status">
               <ShieldAlert size={14} className="text-amber-300 shrink-0 mt-0.5" aria-hidden />
@@ -243,7 +242,7 @@ export default function AppSignInCard() {
 
         {/* 2. choose */}
         <div className="rounded-lg border border-white/5 bg-white/[0.02] p-3 space-y-3">
-          <p className={SUBHEAD} id="second-step-label">2 · Second step at sign-in</p>
+          <p className={SECTION_LABEL} id="second-step-label">2 · Second step at sign-in</p>
           <div role="radiogroup" aria-labelledby="second-step-label" className="flex gap-2 flex-wrap">
             {MODES.map((m) => (
               <button key={m.id} type="button" role="radio" aria-checked={mode === m.id} onClick={() => setMode(m.id)}
@@ -265,7 +264,7 @@ export default function AppSignInCard() {
                     return (
                       <li key={name}>
                         <button type="button" role="checkbox" aria-checked={on} onClick={() => toggleApp(name)} title={c ? (c.where === 'vm' ? `${c.host} (in a VM)` : c.where ? `${c.host} (${c.where})` : c.host) : 'no route behind Authelia found for it now'}
-                          className={`h-7 px-2 rounded-md text-[11px] border flex items-center gap-1.5 transition-colors ${FOCUS_RING} ${on ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-white/[0.03] border-white/5 text-slate-400 hover:text-slate-200'}`}>
+                          className={`${CHOICE_SM} ${FOCUS_RING} ${on ? CHOICE_ON : CHOICE_OFF}`}>
                           {on ? <Check size={11} aria-hidden /> : <Plus size={11} aria-hidden />}
                           <span className="font-mono">{c ? c.host : state.domain ? `${name}.${state.domain}` : name}</span>
                           {!c && <X size={11} className="text-slate-500" aria-hidden />}

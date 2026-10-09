@@ -8,6 +8,7 @@
 
 import type { LintDiagnostic } from '../../hooks/useComposeLinter'
 
+import { Count } from '../common/Pill'
 const TONE = { error: 'text-rose-400', warning: 'text-amber-400', info: 'text-cyan-400' } as const
 const GLYPH = { error: '●', warning: '▲', info: 'ℹ' } as const
 
@@ -76,4 +77,11 @@ export function EditorDiagnostics({ diagnostics, counts, validation, kind, hint 
       )}
     </div>
   )
+}
+
+/** the count on the Compose / .env tab of an editor: the errors in rose, else the warnings in amber */
+export function CountBadge({ errors, warnings }: { errors: number; warnings: number }) {
+  if (errors > 0) return <Count n={errors} tone="problem" label={`${errors} error${errors === 1 ? '' : 's'}`} />
+  if (warnings > 0) return <Count n={warnings} tone="attention" label={`${warnings} warning${warnings === 1 ? '' : 's'}`} />
+  return null
 }

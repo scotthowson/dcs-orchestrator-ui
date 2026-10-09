@@ -6,22 +6,17 @@
 // =============================================================================
 
 import React, { useState, useMemo, useCallback, useEffect } from 'react'
-import { SegmentedControl, Badge } from '@mantine/core'
-import {
-  Play, Square, Plus, Trash2, RefreshCw, Download,
-  Box, Network, HardDrive, Database,
-  Clock, Filter, Search, Activity as ActivityIcon,
-  Zap, WifiOff, Server, X, ChevronDown, AlertTriangle,
-  Moon,
-} from 'lucide-react'
+import { SegmentedControl } from '@mantine/core'
+import { Play, Square, Plus, Trash2, RefreshCw, Download, Box, Network, HardDrive, Database, Clock, Filter, Activity as ActivityIcon, Zap, WifiOff, Server, X, ChevronDown, AlertTriangle, Moon } from 'lucide-react'
 import { useConnectionStore } from '../../stores/connectionStore'
 import { EmptyState } from '../common/PageState'
-import Hint from '../common/Hint'
-import { BTN_TOOLBAR_QUIET, BTN_TOOLBAR, BTN_ICON_SM, TONE_OK, TONE_GHOST } from '../../lib/ui'
-import { CARD_HOVER, SEARCH_FIELD, FOCUS_RING } from '../../lib/pageKit'
+import { BTN_TOOLBAR_QUIET, BTN_TOOLBAR, TONE_OK, FOCUS_RING } from '../../lib/ui'
+import { CARD_HOVER } from '../../lib/pageKit'
 import type { EventEntry } from '../../../shared/types'
 import { onDemandEventWord } from '../../lib/containerState'
 
+import { Pill } from '../common/Pill'
+import SearchInput from '../common/SearchInput'
 // ---------------------------------------------------------------------------
 // Constants & helpers
 // ---------------------------------------------------------------------------
@@ -326,7 +321,7 @@ const TimelineCard = React.memo(function TimelineCard({ event, index, fresh }: {
                 `} title={odWord ? (odWord === 'fell asleep' ? 'On demand: Sablier stopped it while idle — the first request wakes it' : 'On demand: a request woke it') : undefined}>
                   {odWord ?? event.action}
                 </span>
-                <Badge color="slate" leftSection={badge.icon}>{badge.label}</Badge>
+                <Pill tone="neutral" icon={badge.icon}>{badge.label}</Pill>
               </div>
 
               {/* Resource name */}
@@ -392,14 +387,14 @@ function DayHeader({ label, count, collapsed, onToggle }: { label: string; count
 function EmptyEvents({ filtered, onClear }: { filtered: boolean; onClear: () => void }) {
   return filtered ? (
     <EmptyState
-      icon={<Clock size={30} />}
+      icon={<Clock size={28} />}
       title="No events match"
       hint="Pick another type, or clear the search."
       action={<button type="button" onClick={onClear} className={`${BTN_TOOLBAR_QUIET} ${FOCUS_RING}`}><X size={14} /> Show all events</button>}
     />
   ) : (
     <EmptyState
-      icon={<Clock size={30} />}
+      icon={<Clock size={28} />}
       title="No events yet"
       hint="Docker events will appear here as activity occurs."
     />
@@ -483,27 +478,7 @@ export default function Timeline({ events, isConnected }: { events: EventEntry[]
 
         {/* Search */}
         <div className="relative flex-1 min-w-[12rem] max-w-xs">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" aria-hidden />
-          <input
-            type="text"
-            aria-label="Filter events by name"
-            placeholder="Filter by name…"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className={SEARCH_FIELD}
-          />
-          {searchQuery && (
-            <Hint label="Clear the search">
-              <button
-                type="button"
-                aria-label="Clear the search"
-                onClick={() => setSearchQuery('')}
-                className={`${BTN_ICON_SM} ${TONE_GHOST} ${FOCUS_RING} absolute right-1.5 top-1/2 -translate-y-1/2`}
-              >
-                <X size={14} />
-              </button>
-            </Hint>
-          )}
+          <SearchInput value={searchQuery} onChange={setSearchQuery} label="Filter events by name" placeholder="Filter by name…" />
         </div>
 
         {/* Result count */}

@@ -50,46 +50,9 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from 'recharts'
-import {
-  ArrowLeft,
-  ArrowRight,
-  Cpu,
-  MemoryStick,
-  Network,
-  HardDrive,
-  Users,
-  Box,
-  Clock,
-  Globe,
-  Variable,
-  Info,
-  Activity,
-  Layers,
-  Play,
-  Square,
-  RotateCw,
-  ScrollText,
-  RefreshCw,
-  Eye,
-  EyeOff,
-  ChevronDown,
-  Search,
-  Lock,
-  Download,
-  Terminal,
-  Loader2,
-  AlertCircle,
-  Pencil,
-  Check,
-  X,
-  Trash2,
-  ExternalLink,
-  FileCode,
-  Plus,
-  Undo2,
-  Moon,
-} from 'lucide-react'
-
+import { ArrowLeft, ArrowRight, Cpu, MemoryStick, Network, HardDrive, Users, Box, Clock, Globe, Variable, Info, Activity, Layers, Play, Square, RotateCw, ScrollText, RefreshCw, Eye, EyeOff, ChevronDown, Lock, Download, Terminal, Loader2, AlertCircle, Pencil, Check, X, Trash2, ExternalLink, FileCode, Plus, Undo2, Moon } from 'lucide-react'
+import SearchInput from '../common/SearchInput'
+import Kbd from '../common/Kbd'
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -606,7 +569,7 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
     const gerund: Record<typeof action, string> = { start: 'Starting', stop: 'Stopping', restart: 'Restarting', recreate: 'Recreating', remove: 'Removing' }
 
     if (action === 'remove') {
-      if (!(await confirm({ title: 'Remove container', message: `Remove container "${containerName}"? This will force-remove it and cannot be undone.`, confirmLabel: 'Remove', danger: true }))) return
+      if (!(await confirm({ title: 'Remove this container?', message: `Remove container "${containerName}"? This will force-remove it and cannot be undone.`, confirmLabel: 'Remove', danger: true }))) return
     }
 
     setActionLoading(action)
@@ -862,7 +825,7 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
             <button onClick={onBack} aria-label="Back" className={`${BTN_TOOLBAR_QUIET} flex-shrink-0`}>
               <ArrowLeft size={14} />
               <span className="hidden sm:inline">Back</span>
-              <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono text-slate-500 bg-white/5 border border-white/5 ml-1">Esc</kbd>
+              <Kbd className="hidden sm:inline-flex ml-1">Esc</Kbd>
             </button>
           </Hint>
 
@@ -1079,7 +1042,7 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
           </div>
           <button onClick={retryDetail} className={`${BTN_CARD} ${TONE_DANGER}`}>
             <RefreshCw size={12} />
-            Retry
+            Try again
           </button>
         </div>
       )}
@@ -1340,13 +1303,13 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
                   <div className="min-w-0 flex-1">
                     <span className="inline-flex items-center gap-1.5">
                       <span className="text-sm font-semibold text-slate-200 font-mono truncate">{img.name}</span>
-                      <CopyButton text={containerInfo.image} size={12} />
+                      <CopyButton text={containerInfo.image} label="Copy the image" />
                     </span>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/15">{img.tag}</span>
                       <span className="inline-flex items-center gap-1">
                         <span className="text-[10px] text-slate-500 font-mono truncate" title={containerInfo.image_id}>{containerInfo.image_id ? containerInfo.image_id.slice(0, 16) : '--'}</span>
-                        {containerInfo.image_id && <CopyButton text={containerInfo.image_id} size={10} />}
+                        {containerInfo.image_id && <CopyButton text={containerInfo.image_id} label="Copy the image ID" />}
                       </span>
                     </div>
                   </div>
@@ -1409,7 +1372,7 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
                       <Network className="h-3 w-3 text-purple-400 flex-shrink-0" />
                       <span className="text-[10px] text-slate-500">{entry.network}</span>
                       <span className="text-xs font-mono text-cyan-400">{entry.ip}</span>
-                      <CopyButton text={entry.ip} size={10} />
+                      <CopyButton text={entry.ip} label="Copy the address" />
                     </div>
                   ))}
                 </div>
@@ -1426,7 +1389,7 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
             <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
               <div className="flex items-center gap-2">
                 <Terminal className="h-4 w-4 text-cyan-400" />
-                <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
+                <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                   Running processes
                 </h2>
                 {processes.length > 0 && (
@@ -1500,7 +1463,7 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
               className="flex items-center gap-2 w-full p-5 hover:bg-white/[0.03] transition-colors"
             >
               <Terminal className="h-4 w-4 text-emerald-400" />
-              <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
+              <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                 Run command
               </h2>
               <ChevronDown
@@ -1620,7 +1583,7 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
               className="flex items-center gap-2 w-full py-1.5 -my-1.5 group"
             >
               <Variable className="h-4 w-4 text-cyan-400" />
-              <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
+              <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                 Environment variables
               </h2>
               <span className="text-xs text-slate-500 ml-1">({envEntries.length})</span>
@@ -1640,21 +1603,7 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
               <div className="mt-4 space-y-3">
                 {/* Search/filter input */}
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
-                  <input
-                    type="text"
-                    aria-label="Filter the variables"
-                    placeholder="Filter variables…"
-                    value={envSearch}
-                    onChange={(e) => setEnvSearch(e.target.value)}
-                    className="
-                      w-full pl-9 pr-4 py-2 rounded-lg text-xs font-mono
-                      bg-white/[0.03] border border-white/5
-                      text-slate-300 placeholder-slate-600
-                      focus:outline-none focus:border-cyan-500/30 focus:ring-1 focus:ring-cyan-500/20
-                      transition-all duration-200
-                    "
-                  />
+                  <SearchInput size="sm" value={envSearch} onChange={setEnvSearch} label="Filter the variables" placeholder="Filter variables…" />
                 </div>
 
                 {/* New variables (saved with the other changes) */}
@@ -1829,7 +1778,7 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
           <div className="bg-slate-900/60 backdrop-blur-md border border-white/5 rounded-xl p-5">
             <div className="flex items-center gap-2 mb-4">
               <HardDrive className="h-4 w-4 text-cyan-400" />
-              <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
+              <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                 Volume mounts
               </h2>
               <span className="text-xs text-slate-500 ml-1">({mountEntries.length})</span>
@@ -1897,7 +1846,7 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
           <div className="bg-slate-900/60 backdrop-blur-md border border-white/5 rounded-xl p-5">
             <div className="flex items-center gap-2 mb-4">
               <Globe className="h-4 w-4 text-cyan-400" />
-              <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
+              <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                 Port mappings
               </h2>
               <span className="text-xs text-slate-500 ml-1">({portMappings.length})</span>
@@ -2002,7 +1951,7 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
           <div className="bg-slate-900/60 backdrop-blur-md border border-white/5 rounded-xl p-5">
             <div className="flex items-center gap-2 mb-4">
               <Network className="h-4 w-4 text-purple-400" />
-              <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
+              <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                 Networks
               </h2>
               <span className="text-xs text-slate-500 ml-1">({networks.length})</span>
@@ -2047,7 +1996,7 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
 const SectionHeader: React.FC<{ icon: React.ReactNode; title: string }> = ({ icon, title }) => (
   <div className="flex items-center gap-2">
     {icon}
-    <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">{title}</h2>
+    <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{title}</h2>
   </div>
 )
 

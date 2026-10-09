@@ -23,6 +23,7 @@ import { fetchRecovery, createRecoveryBundle, restoreRecoveryBundle, uploadRecov
 import { formatBytes, uploadRecoveryBundleFile, uploadRefusal } from '../../api/fleetScopedOps'
 import type { RecoveryBundleEntry, RecoveryLastRestore, RestoreSkippedStack } from '../../../shared/types'
 
+import { FIELD_SM, CHOICE_SM, CHOICE_ON, CHOICE_OFF } from '../../lib/fieldStyles'
 /** the warnings of a restore without the ones that name a skipped stack (the red box says those) */
 function otherWarnings(warnings: string[], skipped: RestoreSkippedStack[] | undefined): string[] {
   const p = (skipped ?? []).map((x) => `${x.stack} was not restored:`)
@@ -40,9 +41,6 @@ function restoreFacts(r: Pick<RecoveryLastRestore, 'stopped' | 'started' | 'set_
   if ((r.pruned ?? []).length) out.push(`Older copies from before a restore removed: ${r.pruned.length}`)
   return out
 }
-
-/** the fields of this card: one look, one focus ring */
-const FIELD = 'h-[34px] px-3 rounded-lg text-xs bg-white/5 border border-white/10 text-slate-200 placeholder-slate-500 transition-colors focus:outline-none focus-visible:border-emerald-500/40 focus-visible:ring-2 focus-visible:ring-emerald-500/40'
 
 function readAsBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -158,7 +156,7 @@ export default function RecoveryBundleCard() {
         <span className="text-[10px] text-slate-500 ml-1 hidden sm:inline">rebuilds this install anywhere</span>
         <Hint label="Refresh the list">
           <button type="button" onClick={() => refetch()} aria-label="Refresh the list of bundles" className={`${BTN_ICON_SM} ${TONE_GHOST} ml-auto`}>
-            <RefreshCw size={13} />
+            <RefreshCw size={12} />
           </button>
         </Hint>
       </div>
@@ -195,7 +193,7 @@ export default function RecoveryBundleCard() {
                 aria-label="Passphrase for the bundle"
                 placeholder={data?.passphrase_set ? 'Stored passphrase is used (type one to override)' : 'Passphrase for the bundle (8+ characters)'}
                 autoComplete="new-password"
-                className={`${FIELD} w-full pl-9`}
+                className={`w-full ${FIELD_SM} !pl-9`}
               />
             </div>
             <button
@@ -224,7 +222,7 @@ export default function RecoveryBundleCard() {
                     type="button"
                     aria-pressed={appData.has(s)}
                     onClick={() => setAppData((prev) => { const n = new Set(prev); if (n.has(s)) n.delete(s); else n.add(s); return n })}
-                    className={`h-8 sm:h-7 px-2.5 rounded-lg text-[10px] font-mono border transition-colors ${appData.has(s) ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-200' : 'bg-white/5 border-white/10 text-slate-400 hover:text-slate-200'}`}
+                    className={`${CHOICE_SM} font-mono ${appData.has(s) ? CHOICE_ON : CHOICE_OFF}`}
                   >
                     {s}
                   </button>
@@ -263,12 +261,12 @@ export default function RecoveryBundleCard() {
                 </div>
                 <Hint label="Download">
                   <button type="button" onClick={() => download(b)} disabled={busy !== null} aria-label={`Download ${b.file}`} className={`${BTN_ICON_SM} ${TONE_GHOST}`}>
-                    {busy === `dl:${b.file}` ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+                    {busy === `dl:${b.file}` ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
                   </button>
                 </Hint>
                 <Hint label="Restore this bundle here">
                   <button type="button" onClick={() => { setRestoreTarget(b); setRestorePass('') }} disabled={busy !== null} aria-label={`Restore ${b.file} here`} className={`${BTN_ICON_SM} ${TONE_GHOST_DANGER}`}>
-                    <RotateCcw size={13} />
+                    <RotateCcw size={12} />
                   </button>
                 </Hint>
               </div>
@@ -306,7 +304,7 @@ export default function RecoveryBundleCard() {
                 aria-label="Passphrase of this bundle"
                 placeholder={data?.passphrase_set ? 'Passphrase (stored one is used when empty)' : 'Passphrase of this bundle'}
                 autoComplete="off"
-                className={`${FIELD} flex-1`}
+                className={`${FIELD_SM} flex-1`}
               />
               <button type="button" onClick={restore} disabled={busy !== null || (!data?.passphrase_set && !restorePass)} className={`${BTN_TOOLBAR} ${TONE_DANGER} justify-center`}>
                 {busy === 'restore' ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />}

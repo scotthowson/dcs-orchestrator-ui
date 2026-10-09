@@ -5,20 +5,23 @@
 // =============================================================================
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Search, Plus, Upload, Download, Unlock, Loader2, X, ChevronDown, Info, FlaskConical, Infinity as InfinityIcon, ShieldOff } from 'lucide-react'
+import { Plus, Upload, Download, Unlock, Loader2, X, Info, FlaskConical, Infinity as InfinityIcon, ShieldOff } from 'lucide-react'
 import { usePolling } from '../../hooks/usePolling'
 import { useToast } from '../common/Toast'
 import { useConfirm } from '../common/ConfirmDialog'
 import { crowdsecDecisions, crowdsecUnban, crowdsecBulkUnban, crowdsecExportBans } from '../../api/endpoints'
 import type { CrowdSecDecision, CrowdSecDecisionQuery } from '../../../shared/types'
-import {
-  BTN_DANGER, BTN_PRIMARY, BTN_QUIET, CARD, Chip, Country, downloadText, errMsg, fmtLeft, fmtTime, ICON_BTN, INPUT, originLabel, originTone, Segmented,
-  Skel, useCs, useDebounced, useNow, useOutside, fmtNum,
-} from './kit'
+import { Country, downloadText, errMsg, fmtLeft, fmtTime, originLabel, originTone, useCs, useDebounced, useNow, useOutside, fmtNum, FilterSelect } from './kit'
 import BanSheet from './BanSheet'
 import ImportSheet from './ImportSheet'
 import { AlertSheet } from './AlertsTab'
 
+import { BTN_ICON_QUIET, BTN_TOOLBAR_DANGER, BTN_TOOLBAR_OK, BTN_TOOLBAR_QUIET, BTN_CARD, TONE_GHOST } from '../../lib/ui'
+import { CARD } from '../../lib/pageKit'
+import { Pill } from '../common/Pill'
+import { SkeletonBlock } from '../common/PageState'
+import Segmented from '../common/Segmented'
+import SearchInput from '../common/SearchInput'
 const PAGE = 500
 
 type Sort = NonNullable<CrowdSecDecisionQuery['sort']>
@@ -43,22 +46,12 @@ function reasonOf(d: CrowdSecDecision): { title: string; sub: string } {
 /** a live countdown to the moment a ban ends */
 function Expires({ d }: { d: CrowdSecDecision }) {
   const now = useNow()
-  if (d.permanent) return <span title={`Ends ${fmtTime(d.expires_at)}`}><Chip tone="bad"><InfinityIcon size={10} /> permanent</Chip></span>
+  if (d.permanent) return <span title={`Ends ${fmtTime(d.expires_at)}`}><Pill tone="problem"><InfinityIcon size={10} /> permanent</Pill></span>
   const left = d.expires_at ? Math.round((Date.parse(d.expires_at) - now) / 1000) : (d.seconds_left ?? 0)
   return (
     <span title={d.expires_at ? `Ends ${fmtTime(d.expires_at)}` : undefined} className={`tabular-nums text-xs ${left < 300 ? 'text-amber-300' : 'text-slate-300'}`}>
       {left <= 0 ? 'ending…' : fmtLeft(left)}
     </span>
-  )
-}
-
-function Select({ id, label, value, onChange, children, plain = false }: { id: string; label: string; value: string; onChange: (v: string) => void; children: React.ReactNode; plain?: boolean }) {
-  return (
-    <div className="relative min-w-0 sm:shrink-0">
-      <label htmlFor={id} className="sr-only">{label}</label>
-      <select id={id} value={value} onChange={(e) => onChange(e.target.value)} className={`${INPUT} !h-9 !text-xs pr-8 appearance-none cursor-pointer sm:min-w-[8.5rem] ${value && !plain ? '!border-emerald-500/30 !text-emerald-300' : ''}`}>{children}</select>
-      <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
-    </div>
   )
 }
 
@@ -155,16 +148,14 @@ export default function BansTab({ seedSearch }: { seedSearch?: string }) {
       {/* toolbar */}
       <div className="flex items-center gap-2 flex-wrap">
         <div className="relative w-full sm:w-auto sm:flex-1 sm:min-w-[12rem] sm:max-w-xs">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-          <label htmlFor="bans-search" className="sr-only">Search the bans</label>
-          <input id="bans-search" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search address, reason, country, network" className={`${INPUT} !h-9 !pl-9 !text-xs`} autoComplete="off" />
+          <SearchInput size="sm" value={q} onChange={setQ} id="bans-search" placeholder="Search address, reason, country, network" autoComplete="off" label="Search the bans" />
         </div>
         <Segmented<'' | 'ip' | 'range'> value={scope} onChange={setScope} ariaLabel="Kind of ban" options={[{ value: '', label: 'All' }, { value: 'ip', label: 'Addresses' }, { value: 'range', label: 'Networks' }]} />
         <div className="flex items-center gap-2 sm:ml-auto w-full sm:w-auto">
-          {isAdmin && <button type="button" onClick={() => setBanning({})} className={`${BTN_PRIMARY} flex-1 sm:flex-none`}><Plus size={14} /> Ban an address</button>}
-          {isAdmin && <button type="button" onClick={() => setImporting(true)} className={BTN_QUIET} title="Ban many addresses from a list or a file"><Upload size={13} /><span className="hidden sm:inline">Import</span></button>}
+          {isAdmin && <button type="button" onClick={() => setBanning({})} className={`${BTN_TOOLBAR_OK} flex-1 sm:flex-none`}><Plus size={14} /> Ban an address</button>}
+          {isAdmin && <button type="button" onClick={() => setImporting(true)} className={BTN_TOOLBAR_QUIET} title="Ban many addresses from a list or a file"><Upload size={14} /><span className="hidden sm:inline">Import</span></button>}
           <div className="relative" ref={menuRef}>
-            <button type="button" onClick={() => setMenu((v) => !v)} disabled={busy === 'export'} className={BTN_QUIET} aria-haspopup="menu" aria-expanded={menu} title="Download the list"><Download size={13} /><span className="hidden sm:inline">Export</span></button>
+            <button type="button" onClick={() => setMenu((v) => !v)} disabled={busy === 'export'} className={BTN_TOOLBAR_QUIET} aria-haspopup="menu" aria-expanded={menu} title="Download the list"><Download size={14} /><span className="hidden sm:inline">Export</span></button>
             {menu && (
               <div role="menu" className="absolute right-0 top-10 z-30 w-44 rounded-xl glass border border-white/10 p-1 shadow-xl animate-scale-in">
                 <button role="menuitem" type="button" onClick={() => doExport('csv')} className="w-full text-left px-3 py-2 rounded-lg text-xs text-slate-200 hover:bg-white/10">CSV (spreadsheet)</button>
@@ -176,39 +167,39 @@ export default function BansTab({ seedSearch }: { seedSearch?: string }) {
         </div>
       </div>
       <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:flex-wrap">
-        <Select id="bans-origin" label="Where the ban came from" value={origin} onChange={setOrigin}>
+        <FilterSelect id="bans-origin" label="Where the ban came from" value={origin} onChange={setOrigin}>
           <option value="">All origins</option>
           {(facets?.origins ?? []).map((o) => <option key={o.value} value={o.value}>{originLabel(o.value)} ({o.count})</option>)}
-        </Select>
-        <Select id="bans-country" label="Country" value={country} onChange={setCountry}>
+        </FilterSelect>
+        <FilterSelect id="bans-country" label="Country" value={country} onChange={setCountry}>
           <option value="">All countries</option>
           {(facets?.countries ?? []).map((c) => <option key={c.value} value={c.value}>{c.value} ({c.count})</option>)}
           {facets && facets.unknown_country > 0 && <option value="unknown">Unknown ({facets.unknown_country})</option>}
-        </Select>
-        <Select id="bans-scenario" label="Reason" value={scenario} onChange={setScenario}>
+        </FilterSelect>
+        <FilterSelect id="bans-scenario" label="Reason" value={scenario} onChange={setScenario}>
           <option value="">All reasons</option>
           {(facets?.scenarios ?? []).map((c) => <option key={c.value} value={c.value}>{c.value.replace('crowdsecurity/', '')} ({c.count})</option>)}
-        </Select>
-        <Select id="bans-sort" label="Sort" plain value={sort} onChange={(v) => setSort(v as Sort)}>
+        </FilterSelect>
+        <FilterSelect id="bans-sort" label="Sort" plain value={sort} onChange={(v) => setSort(v as Sort)}>
           {SORTS.map((x) => <option key={x.value} value={x.value}>{x.label}</option>)}
-        </Select>
+        </FilterSelect>
         <label className="inline-flex items-center gap-2 text-xs text-slate-500 cursor-pointer select-none h-9 px-1 col-span-2 sm:col-span-1">
           <input type="checkbox" checked={hideSim} onChange={(e) => setHideSim(e.target.checked)} className="accent-emerald-500" /> Hide simulated
         </label>
-        {filtered && <button type="button" onClick={clearFilters} className="text-xs text-cyan-400 hover:text-cyan-300 inline-flex items-center gap-1 h-9"><X size={12} /> Clear filters</button>}
+        {filtered && <button type="button" onClick={clearFilters} className={`${BTN_CARD} ${TONE_GHOST}`}><X size={12} /> Clear the filters</button>}
       </div>
 
       {/* bulk bar */}
       {isAdmin && selected.size > 0 && (
         <div className="sticky top-2 z-20 rounded-xl glass border border-emerald-500/20 px-3 py-2 flex items-center gap-3 flex-wrap animate-scale-in" role="region" aria-label="Selected bans">
           <span className="text-sm text-slate-100 tabular-nums">{selected.size} selected</span>
-          <button type="button" onClick={unbanSelected} disabled={busy === 'bulk'} className={BTN_DANGER}>{busy === 'bulk' ? <Loader2 size={13} className="animate-spin" /> : <Unlock size={13} />} {busy === 'bulk' && progress ? `Lifting ${progress.done} of ${progress.total}…` : <>Lift {selected.size === 1 ? 'this ban' : `these ${selected.size} bans`}</>}</button>
-          <button type="button" onClick={() => setSelected(new Set())} className="text-xs text-slate-500 hover:text-slate-200 ml-auto">Clear selection</button>
+          <button type="button" onClick={unbanSelected} disabled={busy === 'bulk'} className={BTN_TOOLBAR_DANGER}>{busy === 'bulk' ? <Loader2 size={14} className="animate-spin" /> : <Unlock size={14} />} {busy === 'bulk' && progress ? `Lifting ${progress.done} of ${progress.total}…` : <>Lift {selected.size === 1 ? 'this ban' : `these ${selected.size} bans`}</>}</button>
+          <button type="button" onClick={() => setSelected(new Set())} className={`${BTN_CARD} ${TONE_GHOST} ml-auto`}>Clear the selection</button>
         </div>
       )}
 
       {poll.error && !data && <p className={`${CARD} p-4 text-sm text-rose-300`} role="alert">{poll.error.message}</p>}
-      {!data && !poll.error && <div className="space-y-2" aria-busy="true">{[0, 1, 2, 3, 4].map((i) => <Skel key={i} className="h-12" />)}</div>}
+      {!data && !poll.error && <div className="space-y-2" aria-busy="true">{[0, 1, 2, 3, 4].map((i) => <SkeletonBlock key={i} className="h-12" />)}</div>}
 
       {data && rows.length === 0 && (
         <div className={`${CARD} px-6 py-14 text-center`}>
@@ -216,8 +207,8 @@ export default function BansTab({ seedSearch }: { seedSearch?: string }) {
           <p className="mt-3 text-sm text-slate-300">{filtered ? 'No ban matches these filters.' : 'Nothing is banned right now.'}</p>
           <p className="mt-1 text-xs text-slate-500 max-w-md mx-auto">{filtered ? 'Loosen a filter, or clear them all.' : 'When CrowdSec catches a scanner or a brute-forcer, it shows up here with its country, the reason and a live countdown.'}</p>
           <div className="mt-4 flex items-center justify-center gap-2 flex-wrap">
-            {filtered && <button type="button" onClick={clearFilters} className={BTN_QUIET}><X size={13} /> Clear filters</button>}
-            {isAdmin && !filtered && <button type="button" onClick={() => setBanning({})} className={BTN_PRIMARY}><Plus size={14} /> Ban an address</button>}
+            {filtered && <button type="button" onClick={clearFilters} className={BTN_TOOLBAR_QUIET}><X size={14} /> Clear the filters</button>}
+            {isAdmin && !filtered && <button type="button" onClick={() => setBanning({})} className={BTN_TOOLBAR_OK}><Plus size={14} /> Ban an address</button>}
           </div>
         </div>
       )}
@@ -256,8 +247,8 @@ export default function BansTab({ seedSearch }: { seedSearch?: string }) {
                       <td className="px-3 py-2.5 min-w-0">
                         <div className="flex items-center gap-2 min-w-0">
                           <span className="font-mono text-[13px] text-slate-100 truncate">{d.value ?? d.ip}</span>
-                          {d.scope === 'Range' && <Chip tone="mute">network</Chip>}
-                          {d.simulated && <Chip tone="warn" title="Only alerts: a simulated ban is never enforced"><FlaskConical size={10} /> simulated</Chip>}
+                          {d.scope === 'Range' && <Pill tone="neutral">network</Pill>}
+                          {d.simulated && <Pill tone="attention" title="Only alerts: a simulated ban is never enforced"><FlaskConical size={10} /> simulated</Pill>}
                         </div>
                         {d.as_name && <p className="text-[11px] text-slate-500 truncate max-w-[16rem]" title={`AS${d.as_number} ${d.as_name}`}>AS{d.as_number} · {d.as_name}</p>}
                       </td>
@@ -267,12 +258,12 @@ export default function BansTab({ seedSearch }: { seedSearch?: string }) {
                         {reasonOf(d).sub && <p className="text-[11px] text-slate-500 truncate" title={reasonOf(d).sub}>{reasonOf(d).sub}<span className="xl:hidden"> · {originLabel(d.origin ?? '')}</span></p>}
                         {!reasonOf(d).sub && <p className="text-[11px] text-slate-500 truncate xl:hidden">{originLabel(d.origin ?? '')}</p>}
                       </td>
-                      <td className="px-3 py-2.5 hidden xl:table-cell"><Chip tone={originTone(d.origin ?? '')}>{originLabel(d.origin ?? '')}</Chip></td>
+                      <td className="px-3 py-2.5 hidden xl:table-cell"><Pill tone={originTone(d.origin ?? '')}>{originLabel(d.origin ?? '')}</Pill></td>
                       <td className="px-3 py-2.5 whitespace-nowrap"><Expires d={d} /></td>
                       <td className="pr-4 py-2.5">
                         <div className="flex items-center justify-end gap-1.5">
-                          {d.alert_id && d.origin === 'crowdsec' && <button type="button" className={ICON_BTN} aria-label={`Details of the alert behind ${d.value ?? d.ip}`} title="The alert behind this ban" onClick={() => setAlertId(d.alert_id as number)}><Info size={13} /></button>}
-                          {isAdmin && <button type="button" className={`${ICON_BTN} hover:!bg-rose-500/15 hover:!text-rose-300`} aria-label={`Lift the ban on ${d.value ?? d.ip}`} title="Lift this ban" disabled={busy === `u:${id}`} onClick={() => unbanOne(d)}>{busy === `u:${id}` ? <Loader2 size={13} className="animate-spin" /> : <Unlock size={13} />}</button>}
+                          {d.alert_id && d.origin === 'crowdsec' && <button type="button" className={BTN_ICON_QUIET} aria-label={`Details of the alert behind ${d.value ?? d.ip}`} title="The alert behind this ban" onClick={() => setAlertId(d.alert_id as number)}><Info size={14} /></button>}
+                          {isAdmin && <button type="button" className={`${BTN_ICON_QUIET} hover:!bg-rose-500/15 hover:!text-rose-300`} aria-label={`Lift the ban on ${d.value ?? d.ip}`} title="Lift this ban" disabled={busy === `u:${id}`} onClick={() => unbanOne(d)}>{busy === `u:${id}` ? <Loader2 size={14} className="animate-spin" /> : <Unlock size={14} />}</button>}
                         </div>
                       </td>
                     </tr>
@@ -293,8 +284,8 @@ export default function BansTab({ seedSearch }: { seedSearch?: string }) {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-mono text-sm text-slate-100 break-all">{d.value ?? d.ip}</span>
-                        {d.scope === 'Range' && <Chip tone="mute">network</Chip>}
-                        {d.simulated && <Chip tone="warn"><FlaskConical size={10} /> simulated</Chip>}
+                        {d.scope === 'Range' && <Pill tone="neutral">network</Pill>}
+                        {d.simulated && <Pill tone="attention"><FlaskConical size={10} /> simulated</Pill>}
                       </div>
                       <p className="text-xs text-slate-300 mt-1 truncate">{reasonOf(d).title}</p>
                       {d.as_name && <p className="text-[11px] text-slate-500 truncate">AS{d.as_number} · {d.as_name}</p>}
@@ -302,10 +293,10 @@ export default function BansTab({ seedSearch }: { seedSearch?: string }) {
                     <div className="flex flex-col items-end gap-1 shrink-0"><Expires d={d} /><span className="text-[10px] text-slate-500">ends in</span></div>
                   </div>
                   <div className="flex items-center justify-between gap-2 mt-3 pt-2.5 border-t border-white/5">
-                    <div className="flex items-center gap-2 min-w-0"><Country code={d.country} /><Chip tone={originTone(d.origin ?? '')}>{originLabel(d.origin ?? '')}</Chip></div>
+                    <div className="flex items-center gap-2 min-w-0"><Country code={d.country} /><Pill tone={originTone(d.origin ?? '')}>{originLabel(d.origin ?? '')}</Pill></div>
                     <div className="flex items-center gap-1.5">
-                      {d.alert_id && d.origin === 'crowdsec' && <button type="button" className={ICON_BTN} aria-label={`Details of the alert behind ${d.value ?? d.ip}`} onClick={() => setAlertId(d.alert_id as number)}><Info size={13} /></button>}
-                      {isAdmin && <button type="button" className={`${ICON_BTN} !w-auto px-2.5 gap-1.5 text-[11px]`} aria-label={`Lift the ban on ${d.value ?? d.ip}`} disabled={busy === `u:${id}`} onClick={() => unbanOne(d)}>{busy === `u:${id}` ? <Loader2 size={12} className="animate-spin" /> : <Unlock size={12} />} Lift</button>}
+                      {d.alert_id && d.origin === 'crowdsec' && <button type="button" className={BTN_ICON_QUIET} aria-label={`Details of the alert behind ${d.value ?? d.ip}`} onClick={() => setAlertId(d.alert_id as number)}><Info size={14} /></button>}
+                      {isAdmin && <button type="button" className={`${BTN_ICON_QUIET} !w-auto px-2.5 gap-1.5 text-[11px]`} aria-label={`Lift the ban on ${d.value ?? d.ip}`} disabled={busy === `u:${id}`} onClick={() => unbanOne(d)}>{busy === `u:${id}` ? <Loader2 size={14} className="animate-spin" /> : <Unlock size={14} />} Lift</button>}
                     </div>
                   </div>
                 </div>

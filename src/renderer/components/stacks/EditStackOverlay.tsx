@@ -5,26 +5,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo, useId } from 'react'
 import { createPortal } from 'react-dom'
 import { SegmentedControl } from '@mantine/core'
-import {
-  X,
-  Save,
-  Loader2,
-  AlertTriangle,
-  CheckCircle,
-  FileCode2,
-  FileText,
-  GitCompare,
-  Copy,
-  Check,
-  Search,
-  Pencil,
-  Tag,
-  Shield,
-  History,
-  RotateCcw,
-  ChevronUp,
-  ChevronDown,
-} from 'lucide-react'
+import { Save, Loader2, AlertTriangle, CheckCircle, FileCode2, FileText, GitCompare, Copy, Check, Search, Pencil, Tag, Shield, History, RotateCcw, ChevronUp, ChevronDown } from 'lucide-react'
 import {
   fetchStackCompose,
   fetchStackEnv,
@@ -43,25 +24,16 @@ import { useSettingsStore } from '../../stores/settingsStore'
 import { useComposeLinter, useEnvLinter } from '../../hooks/useComposeLinter'
 import type { StackInfo, StackAnnotation, ComposeVersion } from '../../../shared/types'
 import { useModalA11y } from '../../hooks/useModalA11y'
-import { EditorDiagnostics, DiagNumber } from './LintParts'
-import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD, BTN_ICON, BTN_ICON_SM, BTN_SHEET_PRIMARY, TONE_QUIET, TONE_OK, TONE_GHOST } from '../../lib/ui'
-
+import { EditorDiagnostics, DiagNumber, CountBadge } from './LintParts'
+import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD, BTN_ICON, BTN_ICON_SM, BTN_SHEET_PRIMARY, TONE_QUIET, TONE_OK, TONE_GHOST, TONE_PRESSED } from '../../lib/ui'
+import CloseButton from '../common/CloseButton'
+import Kbd from '../common/Kbd'
 interface Props {
   stack: StackInfo
   onClose: () => void
   onSaved: () => void
   /** Open in compose edit mode with this service's block selected */
   initialService?: string
-}
-
-/** the pressed state of a toggle button: the cyan the dashboard gives a chosen mode (Batch mode, Edit mode) */
-const TONE_ON = 'bg-cyan-500/15 border border-cyan-500/25 text-cyan-400 hover:bg-cyan-500/25'
-
-/** the number of errors (or, without any, warnings) a tab carries */
-function CountBadge({ errors, warnings }: { errors: number; warnings: number }) {
-  if (errors > 0) return <span className="inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-rose-500/20 text-[9px] font-bold text-rose-400 tabular-nums" aria-label={`${errors} error${errors === 1 ? '' : 's'}`}>{errors}</span>
-  if (warnings > 0) return <span className="inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-amber-500/20 text-[9px] font-bold text-amber-400 tabular-nums" aria-label={`${warnings} warning${warnings === 1 ? '' : 's'}`}>{warnings}</span>
-  return null
 }
 
 /** Pretty-print stack category names */
@@ -425,7 +397,7 @@ export default function EditStackOverlay({ stack, onClose, onSaved, initialServi
 
   // a rollback replaces the live compose file: ask first
   const askRollback = useCallback(async (versionId: string) => {
-    if (!(await confirm({ title: 'Roll back the compose file', message: `Replace the current docker-compose.yml of ${stack.name} with the version ${versionId}? Your current file is kept in the history.`, confirmLabel: 'Roll back' }))) return
+    if (!(await confirm({ danger: true, title: 'Roll back the compose file?', message: `Replace the current docker-compose.yml of ${stack.name} with the version ${versionId}? Your current file is kept in the history.`, confirmLabel: 'Roll back' }))) return
     void handleRollback(versionId)
   }, [confirm, handleRollback, stack.name])
 
@@ -518,7 +490,7 @@ export default function EditStackOverlay({ stack, onClose, onSaved, initialServi
 
   const safeClose = useCallback(async () => {
     if (hasAnyChanges) {
-      if (!(await confirm({ title: 'Unsaved changes', message: 'You have unsaved changes. Close without saving?', confirmLabel: 'Close without saving', danger: true }))) return
+      if (!(await confirm({ title: 'Close without saving?', message: 'You have unsaved changes. Close without saving?', confirmLabel: 'Close without saving', danger: true }))) return
     }
     onClose()
   }, [hasAnyChanges, onClose, confirm])
@@ -632,7 +604,7 @@ export default function EditStackOverlay({ stack, onClose, onSaved, initialServi
     // Warn about lint errors before saving
     const errors = composeDiagnostics.filter(d => d.severity === 'error')
     if (errors.length > 0) {
-      if (!(await confirm({ title: 'Lint errors', message: `${errors.length} lint error${errors.length !== 1 ? 's' : ''} detected (port conflicts, etc). Save anyway?`, confirmLabel: 'Save anyway', danger: true }))) return
+      if (!(await confirm({ title: 'Save with lint errors?', message: `${errors.length} lint error${errors.length !== 1 ? 's' : ''} detected (port conflicts, etc). Save anyway?`, confirmLabel: 'Save anyway', danger: true }))) return
     }
 
     setSavingCompose(true)
@@ -1126,7 +1098,7 @@ export default function EditStackOverlay({ stack, onClose, onSaved, initialServi
         {/* Save labels button */}
         <div className="pt-2">
           <button onClick={handleSaveAnnotations} className={BTN_SHEET_PRIMARY}>
-            <Check size={15} />
+            <Check size={16} />
             Save labels
           </button>
         </div>
@@ -1143,7 +1115,7 @@ export default function EditStackOverlay({ stack, onClose, onSaved, initialServi
     if (composeVersions.length === 0) {
       return (
         <EmptyState
-          icon={<History size={32} />}
+          icon={<History size={28} />}
           title="No version history yet"
           hint="Versions are saved automatically when you edit the compose file."
         />
@@ -1298,7 +1270,7 @@ export default function EditStackOverlay({ stack, onClose, onSaved, initialServi
                         setSearchQuery('')
                       }
                     }}
-                    className={`${BTN_TOOLBAR} ${composeEditMode ? TONE_ON : TONE_QUIET}`}
+                    className={`${BTN_TOOLBAR} ${composeEditMode ? TONE_PRESSED : TONE_QUIET}`}
                   >
                     <Pencil size={14} />
                     <span className="hidden sm:inline">{composeEditMode ? 'Editing' : 'Edit'}</span>
@@ -1312,7 +1284,7 @@ export default function EditStackOverlay({ stack, onClose, onSaved, initialServi
                       aria-label="Diff view"
                       aria-pressed={showDiff}
                       onClick={() => setShowDiff((prev) => !prev)}
-                      className={`${BTN_TOOLBAR} ${showDiff ? TONE_ON : TONE_QUIET}`}
+                      className={`${BTN_TOOLBAR} ${showDiff ? TONE_PRESSED : TONE_QUIET}`}
                     >
                       <GitCompare size={14} />
                       <span className="hidden sm:inline">Diff</span>
@@ -1363,7 +1335,7 @@ export default function EditStackOverlay({ stack, onClose, onSaved, initialServi
                         if (!searchOpen) setTimeout(() => searchInputRef.current?.focus(), 0)
                         else setSearchQuery('')
                       }}
-                      className={`${BTN_ICON} ${searchOpen ? TONE_ON : TONE_QUIET}`}
+                      className={`${BTN_ICON} ${searchOpen ? TONE_PRESSED : TONE_QUIET}`}
                     >
                       <Search size={14} />
                     </button>
@@ -1395,7 +1367,7 @@ export default function EditStackOverlay({ stack, onClose, onSaved, initialServi
                       if (envEditMode) setEnvEditMode(false)
                       else { setEnvEditMode(true); setEnvContent(envContent || '') }
                     }}
-                    className={`${BTN_TOOLBAR} ${envEditMode ? TONE_ON : TONE_QUIET}`}
+                    className={`${BTN_TOOLBAR} ${envEditMode ? TONE_PRESSED : TONE_QUIET}`}
                   >
                     <Pencil size={14} />
                     <span className="hidden sm:inline">{envEditMode ? 'Editing' : 'Edit'}</span>
@@ -1419,14 +1391,7 @@ export default function EditStackOverlay({ stack, onClose, onSaved, initialServi
 
             {/* Close */}
             <Hint label="Close">
-              <button
-                type="button"
-                onClick={safeClose}
-                className={`${BTN_ICON} ${TONE_QUIET}`}
-                aria-label="Close"
-              >
-                <X size={16} />
-              </button>
+              <CloseButton onClick={safeClose} />
             </Hint>
           </div>
         </div>
@@ -1503,12 +1468,7 @@ export default function EditStackOverlay({ stack, onClose, onSaved, initialServi
               </div>
             )}
             <Hint label="Close the search">
-              <button aria-label="Close the search"
-                onClick={() => { setSearchOpen(false); setSearchQuery('') }}
-                className={`${BTN_ICON_SM} ${TONE_GHOST}`}
-              >
-                <X size={14} />
-              </button>
+              <CloseButton label="Close the search" size="sm" onClick={() => { setSearchOpen(false); setSearchQuery('') }} />
             </Hint>
           </div>
         )}
@@ -1602,7 +1562,7 @@ export default function EditStackOverlay({ stack, onClose, onSaved, initialServi
               {activeTab === 'compose' ? 'YAML' : activeTab === 'env' ? 'ENV' : activeTab === 'annotations' ? 'Labels' : 'History'}
             </span>
             <span className="hidden sm:inline text-[10px] text-slate-500">
-              Press <kbd className="px-1 py-0.5 rounded bg-white/[0.06] border border-white/10 text-slate-400 font-mono text-[9px]">Esc</kbd> to close
+              Press <Kbd>Esc</Kbd> to close
             </span>
           </div>
         </div>

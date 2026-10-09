@@ -21,11 +21,11 @@ import { useFleetScope } from '../hooks/useFleetScope'
 import { useAuthStore } from '../stores/authStore'
 import { useSettingsStore } from '../stores/settingsStore'
 import { DisconnectedBanner } from '../components/common/DisconnectedBanner'
-import { ErrorState } from '../components/common/PageState'
+import { ErrorState, SkeletonBlock } from '../components/common/PageState'
 import FleetScopeChips from '../components/fleet/FleetScopeChips'
 import { crowdsecStatus } from '../api/endpoints'
 import type { CrowdSecStatusResponse } from '../../shared/types'
-import { CsCtx, Segmented, Skel, BTN_QUIET, Chip, fmtNum } from '../components/crowdsec/kit'
+import { CsCtx, fmtNum } from '../components/crowdsec/kit'
 import StatusStrip from '../components/crowdsec/StatusStrip'
 import { IssueBanners, NotDeployed, ProblemView, TooOld } from '../components/crowdsec/StateViews'
 import OverviewTab from '../components/crowdsec/OverviewTab'
@@ -38,6 +38,9 @@ import HubTab from '../components/crowdsec/HubTab'
 import BouncersTab from '../components/crowdsec/BouncersTab'
 import LogsTab from '../components/crowdsec/LogsTab'
 
+import { BTN_TOOLBAR_QUIET } from '../lib/ui'
+import { Pill } from '../components/common/Pill'
+import Segmented from '../components/common/Segmented'
 const POLL_MS = 15_000
 const TAB_KEY = 'dcs-crowdsec-tab'
 type TabId = 'overview' | 'bans' | 'alerts' | 'allowlist' | 'notifications' | 'settings' | 'hub' | 'bouncers' | 'logs'
@@ -119,19 +122,19 @@ export default function CrowdSec() {
             <div className="min-w-0">
               <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2 flex-wrap"><span className="text-gradient">CrowdSec</span>
                 {scopeMember && <span className="text-sm font-medium text-violet-300">· VM {memberName}</span>}
-                {s && state && state !== 'healthy' && state !== 'not_deployed' && <Chip tone={state === 'starting' ? 'info' : state === 'crash_loop' || state === 'docker_unavailable' ? 'bad' : 'warn'}>{state.replace(/_/g, ' ')}</Chip>}
+                {s && state && state !== 'healthy' && state !== 'not_deployed' && <Pill tone={state === 'starting' ? 'info' : state === 'crash_loop' || state === 'docker_unavailable' ? 'problem' : 'attention'}>{state.replace(/_/g, ' ')}</Pill>}
               </h1>
               {hasFleet && <div className="mt-2"><FleetScopeChips scope={pageScope} members={scopeMembers} onChange={setScope} label="Server" busy={status.loading && !!s} everywhere={false} /></div>}
               <p className="text-sm text-slate-500 mt-0.5 truncate">{subtitle}</p>
             </div>
           </div>
-          <button type="button" onClick={statusRefresh} disabled={status.loading} className={BTN_QUIET} aria-label="Refresh"><RefreshCw size={14} className={status.loading ? 'animate-spin' : ''} /><span className="hidden sm:inline">Refresh</span></button>
+          <button type="button" onClick={statusRefresh} disabled={status.loading} className={BTN_TOOLBAR_QUIET} aria-label="Refresh"><RefreshCw size={14} className={status.loading ? 'animate-spin' : ''} /><span className="hidden sm:inline">Refresh</span></button>
         </div>
 
         {!s && !status.error && (
           <div className="space-y-3" aria-busy="true" aria-label="Loading CrowdSec">
-            <div className="grid grid-cols-3 xl:grid-cols-6 gap-2 sm:gap-2.5">{[0, 1, 2, 3, 4, 5].map((i) => <Skel key={i} className="h-[58px] sm:h-[74px]" />)}</div>
-            <Skel className="h-11" /><Skel className="h-64" />
+            <div className="grid grid-cols-3 xl:grid-cols-6 gap-2 sm:gap-2.5">{[0, 1, 2, 3, 4, 5].map((i) => <SkeletonBlock key={i} className="h-[58px] sm:h-[74px]" />)}</div>
+            <SkeletonBlock className="h-11" /><SkeletonBlock className="h-64" />
           </div>
         )}
         {!s && status.error && <ErrorState title="Could not ask CrowdSec for its state" error={status.error} onRetry={statusRefresh} />}

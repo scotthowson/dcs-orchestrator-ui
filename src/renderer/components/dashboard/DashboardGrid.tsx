@@ -4,12 +4,11 @@
 
 import React, { useCallback, useRef, useState, useEffect } from 'react'
 import { X, RotateCcw, Settings2, Plus, Check, Move, LayoutDashboard, Box, Puzzle } from 'lucide-react'
-import { Badge } from '@mantine/core'
 import { createPortal } from 'react-dom'
 import type { DashboardCard } from '../../../shared/types'
 import { getCardEntry, clampCardSize, CARD_ICONS, H_UNIT, GRID_COLS } from './cardRegistry'
 import Hint from '../common/Hint'
-import { BTN_ICON_SM, BTN_TOOLBAR, BTN_TOOLBAR_QUIET, TONE_DANGER, TONE_GHOST } from '../../lib/ui'
+import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, TONE_DANGER } from '../../lib/ui'
 import { pageLabel } from '../../constants/pageTitles'
 
 // The CSS grid gap (px); the real row pitch is H_UNIT + GRID_GAP
@@ -48,6 +47,8 @@ import ProxmoxCard from './ProxmoxCard'
 import NeedsYouCard from './NeedsYouCard'
 import ModalOverlay from '../common/ModalOverlay'
 
+import { Pill } from '../common/Pill'
+import CloseButton from '../common/CloseButton'
 const COMPONENT_MAP: Record<string, React.ComponentType<any>> = {
   'needs-you': NeedsYouCard,
   'overview': OverviewCards, 'stack-grid': StackStatusGrid,
@@ -434,7 +435,7 @@ export default function DashboardGrid({
           <div className="glass rounded-2xl p-6 w-full max-w-md mx-4 animate-scale-in border border-white/10" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2"><Plus className="h-4 w-4 text-emerald-400" aria-hidden /><h3 className="text-sm font-semibold text-slate-200">Add cards</h3></div>
-              <Hint label="Close"><button type="button" aria-label="Close" onClick={() => setShowPicker(false)} className={`${BTN_ICON_SM} ${TONE_GHOST}`}><X size={14} /></button></Hint>
+              <Hint label="Close"><CloseButton size="sm" onClick={() => setShowPicker(false)} /></Hint>
             </div>
             <div className="space-y-2 max-h-[60vh] overflow-y-auto scrollbar-thin">
               {hiddenCards.length === 0 ? (
@@ -486,7 +487,7 @@ export default function DashboardGrid({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <p className="text-xs font-medium text-slate-200">{pc.title}</p>
-                          <Badge component="span" color="slate">Plugin</Badge>
+                          <Pill tone="neutral">Plugin</Pill>
                         </div>
                         <p className="text-[11px] text-slate-500 truncate">{pc.description}</p>
                       </div>

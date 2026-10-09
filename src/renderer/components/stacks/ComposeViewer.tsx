@@ -6,22 +6,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { SegmentedControl } from '@mantine/core'
-import {
-  X,
-  Copy,
-  Check,
-  Search,
-  FileCode2,
-  Pencil,
-  Save,
-  CheckCircle,
-  AlertTriangle,
-  GitCompare,
-  FileText,
-  Loader2,
-  ChevronUp,
-  ChevronDown,
-} from 'lucide-react'
+import { Copy, Check, Search, FileCode2, Pencil, Save, CheckCircle, AlertTriangle, GitCompare, FileText, Loader2, ChevronUp, ChevronDown } from 'lucide-react'
 import {
   validateStackCompose,
   saveStackCompose,
@@ -36,19 +21,10 @@ import { LoadingState } from '../common/PageState'
 import Hint from '../common/Hint'
 import type { ComposeValidateResponse, StackEnvResponse } from '../../../shared/types'
 import { useModalA11y } from '../../hooks/useModalA11y'
-import { DiagNumber, EditorDiagnostics } from './LintParts'
-import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_ICON, BTN_ICON_SM, TONE_QUIET, TONE_OK, TONE_GHOST } from '../../lib/ui'
-
-/** the pressed state of a toggle button: the cyan the dashboard gives a chosen mode (Batch mode, Edit mode) */
-const TONE_ON = 'bg-cyan-500/15 border border-cyan-500/25 text-cyan-400 hover:bg-cyan-500/25'
-
-/** the number of errors (or, without any, warnings) a tab carries */
-function CountBadge({ errors, warnings }: { errors: number; warnings: number }) {
-  if (errors > 0) return <span className="inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-rose-500/20 text-[9px] font-bold text-rose-400 tabular-nums" aria-label={`${errors} error${errors === 1 ? '' : 's'}`}>{errors}</span>
-  if (warnings > 0) return <span className="inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-amber-500/20 text-[9px] font-bold text-amber-400 tabular-nums" aria-label={`${warnings} warning${warnings === 1 ? '' : 's'}`}>{warnings}</span>
-  return null
-}
-
+import { DiagNumber, EditorDiagnostics, CountBadge } from './LintParts'
+import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_ICON, BTN_ICON_SM, TONE_QUIET, TONE_OK, TONE_GHOST, TONE_PRESSED } from '../../lib/ui'
+import CloseButton from '../common/CloseButton'
+import Kbd from '../common/Kbd'
 interface ComposeViewerProps {
   stackName: string
   /** the docker-compose.yml as read from the API (the caller does not open the viewer when the read failed) */
@@ -1059,7 +1035,7 @@ export function ComposeViewer({ stackName, content, onClose, isAdmin = false }: 
             <div className="min-w-0">
               <h2
                 id="compose-viewer-title"
-                className="text-sm font-semibold text-slate-100 truncate"
+                className="text-sm font-semibold text-slate-200 truncate"
               >
                 {formattedName}
               </h2>
@@ -1106,7 +1082,7 @@ export function ComposeViewer({ stackName, content, onClose, isAdmin = false }: 
                           setSearchQuery('')
                         }
                       }}
-                      className={`${BTN_TOOLBAR} ${editMode ? TONE_ON : TONE_QUIET}`}
+                      className={`${BTN_TOOLBAR} ${editMode ? TONE_PRESSED : TONE_QUIET}`}
                     >
                       <Pencil size={14} />
                       <span className="hidden sm:inline">{editMode ? 'Editing' : 'Edit'}</span>
@@ -1122,7 +1098,7 @@ export function ComposeViewer({ stackName, content, onClose, isAdmin = false }: 
                       aria-label="Diff view"
                       aria-pressed={showDiff}
                       onClick={() => setShowDiff((prev) => !prev)}
-                      className={`${BTN_TOOLBAR} ${showDiff ? TONE_ON : TONE_QUIET}`}
+                      className={`${BTN_TOOLBAR} ${showDiff ? TONE_PRESSED : TONE_QUIET}`}
                     >
                       <GitCompare size={14} />
                       <span className="hidden sm:inline">Diff</span>
@@ -1179,7 +1155,7 @@ export function ComposeViewer({ stackName, content, onClose, isAdmin = false }: 
                           setSearchQuery('')
                         }
                       }}
-                      className={`${BTN_ICON} ${searchOpen ? TONE_ON : TONE_QUIET}`}
+                      className={`${BTN_ICON} ${searchOpen ? TONE_PRESSED : TONE_QUIET}`}
                     >
                       <Search size={14} />
                     </button>
@@ -1220,7 +1196,7 @@ export function ComposeViewer({ stackName, content, onClose, isAdmin = false }: 
                           }
                         }}
                         disabled={envLoading || envError !== null}
-                        className={`${BTN_TOOLBAR} ${envEditMode ? TONE_ON : TONE_QUIET}`}
+                        className={`${BTN_TOOLBAR} ${envEditMode ? TONE_PRESSED : TONE_QUIET}`}
                       >
                         <Pencil size={14} />
                         <span className="hidden sm:inline">{envEditMode ? 'Editing' : 'Edit'}</span>
@@ -1247,14 +1223,7 @@ export function ComposeViewer({ stackName, content, onClose, isAdmin = false }: 
 
             {/* Close button (always visible) */}
             <Hint label="Close">
-              <button
-                type="button"
-                onClick={onClose}
-                className={`${BTN_ICON} ${TONE_QUIET}`}
-                aria-label="Close"
-              >
-                <X size={16} />
-              </button>
+              <CloseButton onClick={onClose} />
             </Hint>
           </div>
         </div>
@@ -1332,16 +1301,10 @@ export function ComposeViewer({ stackName, content, onClose, isAdmin = false }: 
               </div>
             )}
             <Hint label="Close the search">
-              <button
-                onClick={() => {
+              <CloseButton label="Close the search" size="sm" onClick={() => {
                   setSearchOpen(false)
                   setSearchQuery('')
-                }}
-                className={`${BTN_ICON_SM} ${TONE_GHOST}`}
-                aria-label="Close the search"
-              >
-                <X size={14} />
-              </button>
+                }} />
             </Hint>
           </div>
         )}
@@ -1409,7 +1372,7 @@ export function ComposeViewer({ stackName, content, onClose, isAdmin = false }: 
               {activeTab === 'compose' ? 'YAML' : 'ENV'}
             </span>
             <span className="hidden sm:inline text-[10px] text-slate-500">
-              Press <kbd className="px-1 py-0.5 rounded bg-white/[0.06] border border-white/10 text-slate-400 font-mono text-[9px]">Esc</kbd> to close
+              Press <Kbd>Esc</Kbd> to close
             </span>
           </div>
         </div>

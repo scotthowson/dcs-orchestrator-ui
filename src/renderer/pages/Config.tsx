@@ -41,12 +41,10 @@ import { useConnectionStore } from '../stores/connectionStore'
 import { DisconnectedBanner } from '../components/common/DisconnectedBanner'
 import type { ServerConfig } from '../../shared/types'
 
+import { FIELD } from '../lib/fieldStyles'
 // ---------------------------------------------------------------------------
 // The rows of a card — one family
 // ---------------------------------------------------------------------------
-
-/** every field in a row (choice, text, number): one padding, one border, one focus ring */
-const FIELD = 'rounded-lg bg-white/5 border border-white/10 px-3 py-1.5 text-sm text-slate-200 placeholder-slate-600 transition-colors focus:outline-none focus-visible:border-emerald-500/40 focus-visible:ring-2 focus-visible:ring-emerald-500/40 disabled:opacity-50'
 
 /** a status shown in place of a control (Configured · Active): one pill for all of them */
 function StatePill({ tone, children }: { tone: 'ok' | 'off'; children: React.ReactNode }) {

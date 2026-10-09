@@ -18,6 +18,7 @@ import {
 import { isWebMode } from '../../lib/env'
 import ModalOverlay from './ModalOverlay'
 
+import { BTN_TOOLBAR_PRIMARY } from '../../lib/ui'
 const STORAGE_KEY = 'onboarding_complete'
 
 interface StepDef {
@@ -244,11 +245,11 @@ export default function OnboardingOverlay() {
             )}
             <button
               onClick={next}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-emerald-500 text-white hover:bg-emerald-400 transition-all shadow-lg shadow-emerald-500/20"
+              className={BTN_TOOLBAR_PRIMARY}
             >
               {isLast ? (
                 <>
-                  Get Started
+                  Get started
                   <Sparkles size={14} />
                 </>
               ) : (

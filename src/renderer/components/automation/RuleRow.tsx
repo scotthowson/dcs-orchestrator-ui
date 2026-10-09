@@ -5,7 +5,6 @@
 // =============================================================================
 
 import { useEffect, useState } from 'react'
-import { Badge } from '@mantine/core'
 import {
   CalendarClock, Radar, Clock, Zap, Pause, Play, Pencil, Trash2, Loader2, ChevronDown, ChevronRight,
   History, CheckCircle, XCircle, ArrowRight,
@@ -17,6 +16,7 @@ import { useScheduleStore } from '../../stores/scheduleStore'
 import { fetchAutomationHistory } from '../../api/endpoints'
 import { SCHEDULE_ACTION_LABELS, relativeTime, type UnifiedRule } from './model'
 
+import { Pill } from '../common/Pill'
 export interface RuleRowProps {
   rule: UnifiedRule
   isAdmin: boolean
@@ -48,8 +48,8 @@ export default function RuleRow({ rule, isAdmin, scopeMember, running, toggling,
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className={`text-sm font-medium truncate max-w-full ${rule.enabled ? 'text-slate-100' : 'text-slate-400'}`}>{rule.name}</h3>
             {rule.member !== undefined && <VmCapsule member={rule.member} name={rule.member_name} vmid={rule.vmid} size="xs" onClick={() => onScope(rule.member ?? 'hub')} />}
-            <Badge component="span" color={timed ? 'cyan' : 'amber'} leftSection={timed ? <CalendarClock size={10} /> : <Radar size={10} />}>{timed ? 'Timed' : 'Condition'}</Badge>
-            <Badge component="span" color={rule.enabled ? 'emerald' : 'slate'}>{rule.enabled ? 'Active' : 'Paused'}</Badge>
+            <Pill tone={timed ? 'info' : 'attention'} icon={timed ? <CalendarClock size={10} /> : <Radar size={10} />}>{timed ? 'Timed' : 'Condition'}</Pill>
+            <Pill tone={rule.enabled ? 'ok' : 'neutral'}>{rule.enabled ? 'Active' : 'Paused'}</Pill>
           </div>
           {/* when → what → where */}
           <p className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mt-1 text-xs text-slate-300">
@@ -171,7 +171,7 @@ function RuleHistory({ rule, member }: { rule: UnifiedRule; member: string | nul
                 {h.success ? <CheckCircle className="w-3.5 h-3.5 text-emerald-400 shrink-0" aria-label="Succeeded" /> : <XCircle className="w-3.5 h-3.5 text-rose-400 shrink-0" aria-label="Failed" />}
                 <span className="text-slate-400 tabular-nums">{new Date(h.timestamp).toLocaleString()}</span>
                 {h.label && <span className="text-slate-400">{h.label}</span>}
-                {h.manual && <Badge component="span" color="slate">manual</Badge>}
+                {h.manual && <Pill tone="neutral">manual</Pill>}
                 {h.durationMs != null && <span className="text-slate-500 tabular-nums">{h.durationMs} ms</span>}
                 {expandable && (isOpen ? <ChevronDown size={12} className="text-slate-500 ml-auto shrink-0" aria-hidden /> : <ChevronRight size={12} className="text-slate-500 ml-auto shrink-0" aria-hidden />)}
               </>

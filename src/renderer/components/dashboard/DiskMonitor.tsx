@@ -5,13 +5,14 @@
 
 import { useState, useCallback } from 'react'
 import { HardDrive, Pencil, Check, X, FolderPlus, AlertTriangle, ShieldAlert } from 'lucide-react'
-import { Badge } from '@mantine/core'
 import { useSettingsStore } from '../../stores/settingsStore'
 import Hint from '../common/Hint'
 import { BTN_ICON_SM, TONE_GHOST, TONE_GHOST_OK } from '../../lib/ui'
 import type { DiskInfo, CustomDiskEntry } from '../../../shared/types'
-import { Card, CardBody, CardEmpty, PCT_PROBLEM, pctTone, TONE_FILL, TONE_TEXT } from './cardShared'
-
+import { Card, CardBody } from './cardShared'
+import { PCT_PROBLEM, pctTone, TONE_FILL, TONE_TEXT } from '../../lib/tone'
+import { EmptyState } from '../common/PageState'
+import { Pill } from '../common/Pill'
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -84,13 +85,13 @@ function DiskRow({ mount, disk, custom, label, fallbackName, onLabelChange }: {
                 className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded px-2 py-1 text-xs text-slate-200 focus:outline-none focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/30"
                 placeholder="Custom label…"
               />
-              <Hint label="Save"><button type="button" aria-label="Save the label" onClick={handleSave} className={`${BTN_ICON_SM} ${TONE_GHOST_OK}`}><Check size={13} /></button></Hint>
-              <Hint label="Cancel"><button type="button" aria-label="Cancel" onClick={handleCancel} className={`${BTN_ICON_SM} ${TONE_GHOST}`}><X size={13} /></button></Hint>
+              <Hint label="Save"><button type="button" aria-label="Save the label" onClick={handleSave} className={`${BTN_ICON_SM} ${TONE_GHOST_OK}`}><Check size={12} /></button></Hint>
+              <Hint label="Cancel"><button type="button" aria-label="Cancel" onClick={handleCancel} className={`${BTN_ICON_SM} ${TONE_GHOST}`}><X size={12} /></button></Hint>
             </div>
           ) : (
             <>
               <span className="text-xs font-semibold text-slate-200 truncate" title={mount}>{displayName}</span>
-              {custom && <Badge component="span" color="slate">custom</Badge>}
+              {custom && <Pill tone="neutral">custom</Pill>}
               {nearCapacity && <span className="shrink-0 inline-flex" role="img" aria-label="Near capacity" title="Near capacity"><ShieldAlert size={12} className="text-rose-400" /></span>}
               <Hint label="Rename">
                 <button
@@ -99,7 +100,7 @@ function DiskRow({ mount, disk, custom, label, fallbackName, onLabelChange }: {
                   onClick={() => { setEditValue(label); setEditing(true) }}
                   className={`${BTN_ICON_SM} ${TONE_GHOST} opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100`}
                 >
-                  <Pencil size={11} />
+                  <Pencil size={12} />
                 </button>
               </Hint>
             </>
@@ -188,7 +189,7 @@ export default function DiskMonitor({ disks }: { disks: DiskInfo[] }) {
   if (totalMounts === 0) {
     return (
       <Card card="disk-monitor">
-        <CardEmpty icon={<HardDrive size={22} />} title="No disk data" hint="The server has not reported a disk yet." />
+        <EmptyState card icon={<HardDrive size={22} />} title="No disk data" hint="The server has not reported a disk yet." />
       </Card>
     )
   }

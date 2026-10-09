@@ -9,10 +9,12 @@ import { Link2, Loader2, PlugZap } from 'lucide-react'
 import { addFleetMember, updateFleetMember } from '../../api/endpoints'
 import type { FleetMember, FleetMemberBase, ProxmoxVm } from '../../../shared/types'
 import ProgressCard, { type ProgressLine, type ProgressState } from '../common/ProgressCard'
-import { Sheet, inputCls, labelCls, MATCH_LABEL } from './fleetShared'
+import { MATCH_LABEL } from './fleetShared'
 import { BTN_SHEET_PRIMARY, BTN_SHEET_QUIET } from '../../lib/ui'
 import { pageLabel } from '../../constants/pageTitles'
 
+import Sheet from '../common/Sheet'
+import { INPUT_FLEET, LABEL } from '../../lib/fieldStyles'
 const ADD_STEPS = [
   { label: 'Reach', hint: 'the member' },
   { label: 'Sign in', hint: 'with the account' },
@@ -104,7 +106,7 @@ export default function MemberSheet({ member, prefill, vms = [], onClose, onSave
   }
 
   return (
-    <Sheet
+    <Sheet tone="fleet"
       title={editing ? `Edit ${member?.name}` : 'Add a member'}
       subtitle={editing ? 'Name, address, account and the guest this member runs in' : 'A DCS on another VM, reached by address with an account that exists there'}
       icon={<Link2 size={18} />}
@@ -121,25 +123,25 @@ export default function MemberSheet({ member, prefill, vms = [], onClose, onSave
     >
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-          <label htmlFor={`${uid}-name`} className={labelCls}>Name</label>
-          <input id={`${uid}-name`} value={name} onChange={(e) => setName(e.target.value)} placeholder="media-services" className={inputCls} disabled={busy} />
+          <label htmlFor={`${uid}-name`} className={LABEL}>Name</label>
+          <input id={`${uid}-name`} value={name} onChange={(e) => setName(e.target.value)} placeholder="media-services" className={INPUT_FLEET} disabled={busy} />
         </div>
         <div>
-          <label htmlFor={`${uid}-url`} className={labelCls}>API address</label>
-          <input id={`${uid}-url`} value={url} onChange={(e) => setUrl(e.target.value)} placeholder="http://192.168.1.50:9876" className={`${inputCls} font-mono`} disabled={busy} />
+          <label htmlFor={`${uid}-url`} className={LABEL}>API address</label>
+          <input id={`${uid}-url`} value={url} onChange={(e) => setUrl(e.target.value)} placeholder="http://192.168.1.50:9876" className={`${INPUT_FLEET} font-mono`} disabled={busy} />
         </div>
         <div>
-          <label htmlFor={`${uid}-user`} className={labelCls}>Username on that server</label>
-          <input id={`${uid}-user`} value={username} onChange={(e) => setUsername(e.target.value)} className={inputCls} disabled={busy} autoComplete="off" />
+          <label htmlFor={`${uid}-user`} className={LABEL}>Username on that server</label>
+          <input id={`${uid}-user`} value={username} onChange={(e) => setUsername(e.target.value)} className={INPUT_FLEET} disabled={busy} autoComplete="off" />
         </div>
         <div>
-          <label htmlFor={`${uid}-password`} className={labelCls}>Password{editing ? ' (leave empty to keep)' : ''}</label>
-          <input id={`${uid}-password`} type="password" value={password} onChange={(e) => setPassword(e.target.value)} className={inputCls} disabled={busy} autoComplete="new-password" />
+          <label htmlFor={`${uid}-password`} className={LABEL}>Password{editing ? ' (leave empty to keep)' : ''}</label>
+          <input id={`${uid}-password`} type="password" value={password} onChange={(e) => setPassword(e.target.value)} className={INPUT_FLEET} disabled={busy} autoComplete="new-password" />
         </div>
         {vms.length > 0 && (
           <div className="sm:col-span-2">
-            <label htmlFor={`${uid}-guest`} className={labelCls}>Runs in</label>
-            <select id={`${uid}-guest`} value={vmKey} onChange={(e) => setVmKey(e.target.value)} className={inputCls} disabled={busy}>
+            <label htmlFor={`${uid}-guest`} className={LABEL}>Runs in</label>
+            <select id={`${uid}-guest`} value={vmKey} onChange={(e) => setVmKey(e.target.value)} className={INPUT_FLEET} disabled={busy}>
               <option value="">{editing ? 'Keep the current guest' : 'Let the hub match the guest'}</option>
               {vms.map((v) => <option key={`${v.node}/${v.type}/${v.vmid}`} value={`${v.node}/${v.type}/${v.vmid}`}>{v.name} · {v.type === 'qemu' ? 'VM' : 'LXC'} {v.vmid} on {v.node}</option>)}
             </select>

@@ -6,7 +6,6 @@ import React from 'react'
 import {
   ShieldCheck, ShieldAlert, ShieldX, ShieldQuestion, HeartPulse, Cpu, MemoryStick, HardDrive, Timer,
 } from 'lucide-react'
-import { Badge } from '@mantine/core'
 import { useHealthStore } from '../../stores/healthStore'
 import { useConnectionStore } from '../../stores/connectionStore'
 import { useApiLink } from '../../hooks/useApiLink'
@@ -18,10 +17,13 @@ import { useStackCounts } from '../../hooks/useStackCounts'
 import VmCapsule from '../fleet/VmCapsule'
 import Hint from '../common/Hint'
 import type { HealthContainer, HealthScoreResponse } from '../../../shared/types'
-import { Card, CardBody, CardError, CardOffline, pctTone, TONE_TEXT, type CardTone } from './cardShared'
+import { Card, CardBody, CardOffline, type CardTone } from './cardShared'
 import { StateDot } from '../common/StateChip'
 import { containerState, countStates, fineCount, isAsleep, statesLine, STATE_META } from '../../lib/containerState'
 
+import { pctTone, TONE_TEXT, GRADE_TONE, scoreGrade, type Tone } from '../../lib/tone'
+import { ErrorState } from '../common/PageState'
+import { Pill } from '../common/Pill'
 // ---------------------------------------------------------------------------
 // Score gauge colors: a grade is a scale from fine to a problem
 // ---------------------------------------------------------------------------
@@ -32,26 +34,16 @@ const gradeColors: Record<string, string> = {
 const gradeStroke: Record<string, string> = {
   A: '#10b981', B: '#06b6d4', C: '#f59e0b', D: '#f97316', F: '#f43f5e',
 }
-const gradeBadge: Record<string, string> = { A: 'emerald', B: 'cyan', C: 'amber', D: 'orange', F: 'rose' }
-
-function getGrade(score: number): string {
-  if (score >= 90) return 'A'
-  if (score >= 75) return 'B'
-  if (score >= 60) return 'C'
-  if (score >= 40) return 'D'
-  return 'F'
-}
-
 // ---------------------------------------------------------------------------
 // Health status config
 // ---------------------------------------------------------------------------
 
 const statusConfig = {
-  healthy: { icon: ShieldCheck, label: 'Healthy', color: 'emerald', tone: undefined },
-  degraded: { icon: ShieldAlert, label: 'Degraded', color: 'amber', tone: 'attention' },
-  critical: { icon: ShieldX, label: 'Critical', color: 'rose', tone: 'problem' },
-  unknown: { icon: ShieldQuestion, label: 'Unknown', color: 'slate', tone: undefined },
-} as const satisfies Record<string, { icon: typeof ShieldCheck; label: string; color: string; tone: CardTone | undefined }>
+  healthy: { icon: ShieldCheck, label: 'Healthy', pill: 'ok', tone: undefined },
+  degraded: { icon: ShieldAlert, label: 'Degraded', pill: 'attention', tone: 'attention' },
+  critical: { icon: ShieldX, label: 'Critical', pill: 'problem', tone: 'problem' },
+  unknown: { icon: ShieldQuestion, label: 'Unknown', pill: 'neutral', tone: undefined },
+} as const satisfies Record<string, { icon: typeof ShieldCheck; label: string; pill: Tone; tone: CardTone | undefined }>
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -206,7 +198,7 @@ export default function HealthSummary() {
   const scoreLoading = scorePoll.loading && !scoreData
 
   // The poll failed before anything loaded: say why instead of a skeleton that never resolves
-  if (!report && error) return <Card card="health-summary"><CardError title="Could not load the health report" error={error} onRetry={() => window.dispatchEvent(new Event('app-refresh'))} /></Card>
+  if (!report && error) return <Card card="health-summary"><ErrorState card title="Could not load the health report" error={error} onRetry={() => window.dispatchEvent(new Event('app-refresh'))} /></Card>
 
   // Skeleton: the shape of the card once it is filled
   if (!report && isConnected) {
@@ -242,7 +234,7 @@ export default function HealthSummary() {
   const config = statusConfig[effectiveStatus]
   const StatusIcon = config.icon
   const score = scoreData?.score ?? 0
-  const grade = scoreData?.grade ?? getGrade(score)
+  const grade = scoreData?.grade ?? scoreGrade(score)
   const factors = scoreData?.factors
   const containers = report.containers ?? []
   // asleep on demand is up (the first request wakes it): x/y counts it, the line says it apart
@@ -258,10 +250,10 @@ export default function HealthSummary() {
       clickable={false}
       tone={cardTone}
       badge={link.live ? (
-        <Badge component="span" color={config.color} leftSection={<StatusIcon size={11} />}>{config.label}</Badge>
+        <Pill tone={config.pill} icon={<StatusIcon size={10} />}>{config.label}</Pill>
       ) : (
         <Hint label={`${link.label} — showing the last known state`}>
-          <Badge component="span" color={link.state === 'trouble' ? 'amber' : 'rose'} leftSection={<HeartPulse size={11} className="animate-pulse" />}>{link.short}</Badge>
+          <Pill tone={link.state === 'trouble' ? 'attention' : 'problem'} icon={<HeartPulse size={10} className="animate-pulse" />}>{link.short}</Pill>
         </Hint>
       )}
     >
@@ -270,7 +262,7 @@ export default function HealthSummary() {
         <div className="flex items-start gap-4">
           <div className="flex flex-col items-center gap-1.5">
             <ScoreGauge score={score} grade={grade} loading={scoreLoading} />
-            <Badge component="span" color={gradeBadge[grade] ?? 'slate'}>Grade {grade}</Badge>
+            <Pill tone={GRADE_TONE[grade] ?? 'neutral'}>Grade {grade}</Pill>
           </div>
 
           <div className="flex-1 min-w-0">

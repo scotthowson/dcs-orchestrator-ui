@@ -7,11 +7,7 @@
 
 import { fetchContainers } from '../api/endpoints'
 import { useState, useCallback, useEffect, useMemo, useRef, useId } from 'react'
-import {
-  FolderOpen, FileText, Link, Folder, ChevronRight,
-  Loader2, WifiOff, AlertTriangle, X, ArrowUp,
-  RefreshCw, Search, Box, Download, Info,
-} from 'lucide-react'
+import { FolderOpen, FileText, Link, Folder, ChevronRight, Loader2, WifiOff, AlertTriangle, ArrowUp, RefreshCw, Search, Box, Download, Info } from 'lucide-react'
 import { createPortal } from 'react-dom'
 import { useConnectionStore } from '../stores/connectionStore'
 import { DisconnectedBanner } from '../components/common/DisconnectedBanner'
@@ -31,9 +27,10 @@ import type {
 import { LoadingState, ErrorState, EmptyState } from '../components/common/PageState'
 import ModalOverlay from '../components/common/ModalOverlay'
 import PageHeader from '../components/common/PageHeader'
-import { BTN_TOOLBAR_QUIET, BTN_CARD_QUIET, BTN_ICON } from '../lib/ui'
-import { CARD, FIELD, FOCUS_RING } from '../lib/pageKit'
-
+import { BTN_TOOLBAR_QUIET, BTN_CARD_QUIET, FOCUS_RING } from '../lib/ui'
+import { CARD } from '../lib/pageKit'
+import { INPUT } from '../lib/fieldStyles'
+import CloseButton from '../components/common/CloseButton'
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -136,12 +133,7 @@ function FileViewer({ filePath, content, size, where, onClose }: FileViewerProps
               <Download size={12} aria-hidden />
               Save
             </button>
-            <button type="button" aria-label="Close"
-              onClick={onClose}
-              className={`${BTN_ICON} text-slate-400 hover:text-slate-200 hover:bg-white/5 ${FOCUS_RING}`}
-            >
-              <X size={16} />
-            </button>
+            <CloseButton onClick={onClose} />
           </div>
         </div>
 
@@ -383,7 +375,7 @@ export default function FileBrowser() {
       </PageHeader>
 
       {!isConnected ? (
-        <EmptyState icon={<WifiOff size={26} />} title="Connect to a server to browse container files" />
+        <EmptyState icon={<WifiOff size={28} />} title="Connect to a server to browse container files" />
       ) : (
       <>
       {/* ----------------------------------------------------------------- */}
@@ -411,7 +403,7 @@ export default function FileBrowser() {
             value={selectedContainer}
             onChange={(e) => handleContainerChange(e.target.value)}
             disabled={containersLoading}
-            className={`${FIELD} !pl-9 !pr-9 !py-2.5 !text-xs appearance-none cursor-pointer`}
+            className={`${INPUT} !pl-9 !pr-9 !py-2.5 !text-xs appearance-none cursor-pointer`}
           >
             <option value="" className="bg-slate-900 text-slate-400">
               {containersLoading
@@ -440,7 +432,7 @@ export default function FileBrowser() {
         {containersError && (
           <div role="alert" className="mt-2 flex items-center justify-between gap-2 text-xs text-rose-300">
             <span className="flex items-center gap-1.5 min-w-0"><AlertTriangle size={12} className="shrink-0" aria-hidden /><span className="truncate">Could not list the containers{whereLabel ? ` on ${whereLabel}` : ''}: {containersError}</span></span>
-            <button type="button" onClick={loadContainers} className={`${BTN_CARD_QUIET} ${FOCUS_RING}`}>Retry</button>
+            <button type="button" onClick={loadContainers} className={`${BTN_CARD_QUIET} ${FOCUS_RING}`}>Try again</button>
           </div>
         )}
       </div>
@@ -450,7 +442,7 @@ export default function FileBrowser() {
       {/* ----------------------------------------------------------------- */}
       {!selectedContainer && (
         <EmptyState
-          icon={<Search size={24} />}
+          icon={<Search size={28} />}
           title="Select a running container above to browse its filesystem"
           hint={!containersLoading && containers.length === 0 ? 'Nothing is running here yet — start a stack and its containers show up in the list.' : undefined}
         />
@@ -597,7 +589,7 @@ export default function FileBrowser() {
 
           {/* Empty directory */}
           {sortedEntries.length === 0 && !loading && (
-            <EmptyState compact icon={<FolderOpen size={24} />} title="Directory is empty" />
+            <EmptyState compact icon={<FolderOpen size={28} />} title="Directory is empty" />
           )}
 
           {/* Loading indicator for subsequent fetches */}
@@ -621,7 +613,7 @@ export default function FileBrowser() {
           <div className={`${CARD} overflow-hidden`}>
             <EmptyState
               compact
-              icon={<FolderOpen size={24} />}
+              icon={<FolderOpen size={28} />}
               title="No entries found at the root"
               hint="The container may not support file listing."
             />
