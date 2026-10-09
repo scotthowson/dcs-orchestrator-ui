@@ -47,6 +47,33 @@ The decisions every component and page follows; the kit below draws them.
 | keyboard hint | `Kbd` | `size="md"` in the shortcuts table | `components/common/Kbd.tsx` |
 | hint on hover / focus | `Hint` (Mantine tooltip) | `position` | `components/common/Hint.tsx` |
 | focus ring | `FOCUS_RING` on anything that is not a field or on the button scale | — | `lib/ui.ts` |
+| code editor | `EditorFrame` + `CodeArea` + `SaveBar` + `useSavePipeline` (see *The editors* below) | `CodeArea` `readOnly` (a viewer), `lang` yaml/env, `focusBlock`; `SaveBar` `placement` panel/page/static, `pip` | `components/editor/` |
+| unsaved changes of a page's form | `FloatingSaveBar` (the `SaveBar` at page placement) | `extra` (a switch beside the status), `detail` | `components/common/FloatingSaveBar.tsx` |
+
+## The editors
+
+The stack's files (Stacks → Edit, a stack's Compose, a container's Edit compose, which opens at its service) and a
+template (Templates → Edit / Create) open in one editor, `components/editor`; the template's deploy sheet ends in the
+same bar.
+
+| part | what it does |
+|---|---|
+| `EditorFrame` | full screen on a phone, a 92 vh panel above; title, what it edits, the file tabs, the tools (always **Find · Diff · Copy**), ✕; Ctrl/Cmd+S saves, Ctrl/Cmd+F finds, Escape closes Find or the diff first, then the editor — asking "Close without saving?" (Keep editing) when something is unsaved |
+| `CodeArea` | one editable code area: a transparent text area over its highlighted copy (YAML / .env), line numbers with the linter's marks, a bar beside each line changed since the save, Find and Replace (Enter / Shift+Enter, Replace, Replace all, the browser's undo); a viewer's is read-only |
+| `SaveBar` | comes up when the text changes: what changed ("3 lines changed"), what saving changes (the services, when the containers take it), then **Discard** (asks) · **Check only** · the one primary (**Save**, **Create template**, **Deploy**). What the check found is listed above it, each problem with its line, a press away; a pass is one quiet green line. Panel placement floats over the editor's bottom (the code keeps its last lines clear of it); page placement sits above a phone's tab bar and lifts the chat and back-to-top buttons (`--dcs-savebar-h`); static is a sheet's footer |
+| `useSavePipeline` | one press: check, then save. The check's errors stop it (nothing saved); lint errors Docker accepts ask "Save anyway?"; a result older than the text says so |
+| `DiffView`, `EditorStatus`, `EditorTools`, `codeText` | the diff (folded, one column on a phone), the status line (lines, Ln/Col, the lint list), the tools, the text helpers (highlighting, the line diff, the services a change touches, problems with their lines from Docker's output) |
+
+The checks are the server's: a stack's compose file `POST /stacks/{stack}/compose/validate` (the save checks again and
+refuses what Docker cannot read, so the two cannot disagree), a template's `POST /compose/validate` then
+`POST /templates/{template}/update` (the template routes do not check: the dashboard checks, then saves), a deploy
+`POST /templates/{template}/dry-run` then `…/deploy`. A stack's .env is checked by the dashboard's linter only.
+
+Different on purpose: the stack editor has History (the server keeps the compose file's versions) and Labels (the
+dashboard's own); the template editor has Details and Variables and no history; the deploy sheet's bar is always
+there (nothing to be unsaved), says what the deploy adds, has Cancel for Discard and no Ctrl+S (a deploy is not a
+save); a page's form bar (Settings, Config, the environment, a container's variables) discards without asking, as
+before.
 
 ## Rules the kit holds the pages to
 

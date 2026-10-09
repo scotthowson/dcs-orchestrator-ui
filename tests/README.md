@@ -62,7 +62,9 @@ PUPPETEER_DIR=/tmp/dcs-ui-sweep node tests/data-layer.mjs
 scripted journey per page in `tests/journeys/` (every button, tab, filter, sort, dialog, form with its validation and
 read-back, copy button, phone width and the light look), plus the frame around them (`shell`: Ctrl+K, Ctrl+1…0, ?,
 Escape, the section strip, the pages that moved, links to a page, hidden pages, the lock screen, the phone's More
-sheet), two servers with two accounts (`servers`), a viewer pressing everything (`viewer-census`), the requests per
+sheet), the three editors and their save bar (`editors`: one press that the check stops and one that saves, Check
+only, Ctrl+S, Discard, Escape, Find, Diff, History, a viewer, a phone; the lab's docker refuses YAML it cannot parse
+and a service without an image, as `docker compose config` does), two servers with two accounts (`servers`), a viewer pressing everything (`viewer-census`), the requests per
 page against docs/data-layer.md (`polling`), the empty server (`empty-states`, the lab's empty API) and failed requests
 (`error-states`). Every tab is held to no console error, no token in an address and, for a viewer, no 403.
 
