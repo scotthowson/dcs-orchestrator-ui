@@ -1450,6 +1450,10 @@ textarea.code-input::selection {
 .lift-over-savebar {
   /* (the property, not transform: the buttons' own hover lift stays; their transition-all moves it) */
   translate: 0 calc(-1 * var(--dcs-savebar-h, 0px));
+/* the bottom edge of a panel that has padding of its own (a sheet's footer): its padding, or the phone's inset when that is larger.
+   .safe-area-bottom on such an element replaced the padding by the inset, 0 on most screens, and its buttons sat on the edge */
+.safe-area-pad-bottom {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
 }
 
 /* ══════════════════════════════════════════════════════════════

@@ -14,7 +14,7 @@
 // "Push bans to Cloudflare" for why it is a list and a WAF rule, not a Worker.
 // =============================================================================
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Check, Cloud, CloudOff, KeyRound, Loader2, RefreshCw, Settings2, ShieldCheck, Trash2 } from 'lucide-react'
 import { usePolling } from '../../hooks/usePolling'
 import { useToast } from '../common/Toast'
@@ -90,7 +90,8 @@ function EnableSheet({ st, onClose, onDone }: { st: CloudflareBouncerStatus; onC
   const { addToast } = useToast()
   const [token, setToken] = useState('')
   const [capacity, setCapacity] = useState(String(st.settings.capacity))
-  const [community, setCommunity] = useState(st.settings.community)
+  // the community blocklist is a choice made here, never carried over: unticked every time the sheet opens
+  const [community, setCommunity] = useState(false)
   const [busy, setBusy] = useState<'' | 'verify' | 'enable'>('')
   const [refusal, setRefusal] = useState<CloudflareBouncerRefusal | null>(null)
   const [checked, setChecked] = useState<CloudflareBouncerVerifyResponse | null>(null)
@@ -118,7 +119,8 @@ function EnableSheet({ st, onClose, onDone }: { st: CloudflareBouncerStatus; onC
     setBusy('enable'); setRefusal(null)
     try {
       const r = await crowdsecCloudflareEnable({ ...(t ? { token: t } : {}), capacity: cap, community }, member)
-      addToast({ type: r.synced ? 'success' : 'warning', message: r.message, duration: r.synced ? 7000 : 10000 })
+      // the answer comes before the first sync: the panel says "Turning on" from the status until it is done
+      addToast({ type: 'success', message: r.message, duration: 7000 })
       onDone(); onClose()
     } catch (e) { fail(e, 'Push bans to Cloudflare was not turned on') } finally { setBusy('') }
   }
@@ -175,8 +177,8 @@ function EnableSheet({ st, onClose, onDone }: { st: CloudflareBouncerStatus; onC
 
         <div className="space-y-4">
           <CapacityField id="cf-capacity" value={capacity} onChange={setCapacity} />
-          <ToggleRow id="cf-community" label="Also the community blocklist" checked={community} onChange={setCommunity} def="off"
-            help="Tens of thousands of addresses other CrowdSec users caught. They come after your own bans and are cut at the capacity, so they never push one of yours out." />
+          <ToggleRow id="cf-community" label="Also push the community blocklist (fills the list up to the capacity; slower)" checked={community} onChange={setCommunity} def="off"
+            help="Tens of thousands of addresses other CrowdSec users caught. Your own bans always come first; these fill what is left of the capacity." />
         </div>
 
         {checked && (
@@ -280,8 +282,8 @@ function SettingsSheet({ st, onClose, onDone }: { st: CloudflareBouncerStatus; o
     >
       <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); void save() }}>
         <CapacityField id="cf-capacity-set" value={capacity} onChange={setCapacity} autoFocus />
-        <ToggleRow id="cf-community-set" label="Also the community blocklist" checked={community} onChange={setCommunity} def="off"
-          help="After your own bans and within the capacity." />
+        <ToggleRow id="cf-community-set" label="Also push the community blocklist (fills the list up to the capacity; slower)" checked={community} onChange={setCommunity} def="off"
+          help="Your own bans always come first; these fill what is left of the capacity." />
         {error && <Notice tone="problem" role="alert">{error}</Notice>}
         <button type="submit" className="hidden" aria-hidden="true" tabIndex={-1} />
       </form>
@@ -309,7 +311,10 @@ export default function CloudflareEdge({ onChanged }: { onChanged?: () => void }
   const { addToast } = useToast()
   const confirm = useConfirm()
   const now = useNow()
-  const poll = usePolling<CloudflareBouncerStatus>(() => crowdsecCloudflare(member), 15000)
+  // every 3 s while a sync works (the first one after turning on), every 15 s otherwise
+  const [fast, setFast] = useState(false)
+  const poll = usePolling<CloudflareBouncerStatus>(() => crowdsecCloudflare(member), fast ? 3000 : 15000)
+  useEffect(() => { setFast(!!poll.data && poll.data.enabled && (poll.data.health === 'starting' || !!poll.data.sync.running)) }, [poll.data])
   const [sheet, setSheet] = useState<'' | 'on' | 'off' | 'settings'>('')
   const [busy, setBusy] = useState('')
   const st = poll.data
@@ -330,7 +335,7 @@ export default function CloudflareEdge({ onChanged }: { onChanged?: () => void }
   if (!on) text = 'Cloudflare forwards a scanner CrowdSec banned, and Traefik answers it 403: one more request at your server, one more detection for CrowdSec. Turn this on to have Cloudflare refuse banned addresses at its edge.'
   else if (st.health === 'error' && st.error) text = st.error.message
   else if (st.health === 'stale') text = `${st.sync.last_sync ? 'The last good sync with Cloudflare was more than 10 minutes ago.' : 'No sync with Cloudflare has succeeded yet.'} Cloudflare keeps refusing the addresses it holds; new bans reach it once the sync works again.`
-  else if (st.health === 'starting') text = 'DCS is pushing the bans to Cloudflare. This takes a few seconds.'
+  else if (st.health === 'starting') text = st.sync.running ? `DCS is working through ${plural(st.sync.running.rows, 'address', 'addresses')} and pushing them to Cloudflare. This takes a few seconds.` : 'DCS is pushing the bans to Cloudflare. This takes a few seconds.'
   else text = `${plural(cfItems ?? st.sync.items, 'address', 'addresses')} on Cloudflare’s list, blocked in ${zones.map((z) => z.name).join(', ') || 'your zones'} before they reach this server.`
 
   const sync = async () => {
@@ -411,7 +416,8 @@ export default function CloudflareEdge({ onChanged }: { onChanged?: () => void }
             {st.bouncer.registered ? <> · {st.bouncer.last_pull ? <>last pull <Ago at={st.bouncer.last_pull} /></> : 'has not pulled yet'}</> : st.bouncer.crowdsec_running ? ' · not registered: the next sync registers it again' : ' · CrowdSec is not running'}
           </StatusLine>
           <StatusLine as="li" tone={SYNC_TONE[st.health] ?? 'problem'} title="Last sync">
-            {st.sync.last_sync ? <>In step <Ago at={iso(st.sync.last_sync)} />{st.sync.last_push ? <> · list changed <Ago at={iso(st.sync.last_push)} /></> : null}</> : 'Not yet'}
+            {st.sync.running ? <>Working through {plural(st.sync.running.rows, 'address', 'addresses')} now{st.sync.last_sync ? <> · last in step <Ago at={iso(st.sync.last_sync)} /></> : null}</>
+              : st.sync.last_sync ? <>In step <Ago at={iso(st.sync.last_sync)} />{st.sync.last_push ? <> · list changed <Ago at={iso(st.sync.last_push)} /></> : null}</> : 'Not yet'}
           </StatusLine>
           <StatusLine as="li" tone={st.sync.dropped ? 'attention' : 'neutral'} title="What goes to Cloudflare">
             {st.settings.community ? 'Your own bans, then the community blocklist' : 'Your own bans (CrowdSec’s detections, this page, imports, the console)'}, the newest first, at most {whole(st.settings.capacity)}
