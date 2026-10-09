@@ -74,7 +74,7 @@ export function TraefikFeedPanel({ enabled }: { enabled: boolean }) {
   const [rotating, setRotating] = useState(false)
   const f = feed.data
   const rotate = async () => {
-    if (!(await confirm({ title: 'Mint a new feed token', message: 'Mint a new feed token? The Traefik that pulls the feed keeps failing until you paste the new one.', confirmLabel: 'Mint token' }))) return
+    if (!(await confirm({ title: 'Mint a new feed token?', message: 'Mint a new feed token? The Traefik that pulls the feed keeps failing until you paste the new one.', confirmLabel: 'Mint token' }))) return
     setRotating(true)
     try { await rotateTraefikFeedToken(); feed.refresh() } finally { setRotating(false) }
   }
@@ -158,7 +158,7 @@ export function HomarrPanel({ onOpenSecrets }: { onOpenSecrets?: () => void }) {
   }
 
   const remove = async () => {
-    if (!(await confirm({ title: 'Remove the Homarr key', message: 'Remove the stored API key? Apps deployed from now on land in Homarr\'s library only, without a tile on the board.', confirmLabel: 'Remove key', danger: true }))) return
+    if (!(await confirm({ title: 'Remove the Homarr key?', message: 'Remove the stored API key? Apps deployed from now on land in Homarr\'s library only, without a tile on the board.', confirmLabel: 'Remove key', danger: true }))) return
     setRemoving(true)
     try {
       await removeHomarrKey()

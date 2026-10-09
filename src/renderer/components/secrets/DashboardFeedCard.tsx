@@ -38,14 +38,14 @@ export default function DashboardFeedCard() {
   if (missing || !status) return null
 
   const make = async () => {
-    if (status.enabled && !(await confirm({ title: 'Make a new token', message: 'The token in use stops working at once: every dashboard that has it needs the new one.', confirmLabel: 'Make a new token', danger: true }))) return
+    if (status.enabled && !(await confirm({ title: 'Make a new token?', message: 'The token in use stops working at once: every dashboard that has it needs the new one.', confirmLabel: 'Make a new token', danger: true }))) return
     setBusy('make')
     try { const r = await createDashboardFeedToken(); setToken(r.token); load() }
     catch (e) { addToast({ type: 'error', message: e instanceof Error ? e.message : 'Could not make a token' }) }
     finally { setBusy('') }
   }
   const off = async () => {
-    if (!(await confirm({ title: 'Switch the dashboard feed off', message: 'The token is removed: dashboards that read the feed get nothing until you make a new one.', confirmLabel: 'Switch off', danger: true }))) return
+    if (!(await confirm({ title: 'Switch the dashboard feed off?', message: 'The token is removed: dashboards that read the feed get nothing until you make a new one.', confirmLabel: 'Switch off', danger: true }))) return
     setBusy('off')
     try { await deleteDashboardFeedToken(); setToken(''); load() }
     catch (e) { addToast({ type: 'error', message: e instanceof Error ? e.message : 'Could not switch the feed off' }) }

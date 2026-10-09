@@ -229,7 +229,7 @@ export default function DiskAnalysis() {
   // ---- Deep prune: ask first (Cancel is focused), then do it ----
   const handleDeepPrune = useCallback(async () => {
     const ok = await confirm({
-      title: 'Deep prune',
+      title: 'Delete everything unused?',
       message: 'This removes all unused Docker resources: stopped containers, unused networks, dangling and unreferenced images, unused volumes and the build cache.\n\nData in the volumes it removes is lost for good, and this cannot be undone. Go on only if nothing important sits in dangling volumes or unused images.',
       confirmLabel: 'Delete everything unused',
       danger: true,

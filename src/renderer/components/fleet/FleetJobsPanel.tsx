@@ -152,7 +152,7 @@ export function FleetJobCard({ job, onChanged, compact = false }: { job: FleetJo
     let destroy = false
     if (leftover) {
       destroy = await confirm({
-        title: 'Forget this build',
+        title: 'Forget this build?',
         message: job.status === 'failed'
           ? `Also destroy VM #${job.vmid} on Proxmox? Cancel keeps the VM and only forgets the job.`
           : `VM #${job.vmid} never joined — also destroy it on Proxmox? Cancel keeps the VM and only forgets the build.`,

@@ -901,7 +901,7 @@ function VmSheet({ vm, member, live, isAdmin, busyKey, pveUrl, refreshTick = 0, 
   const agentOn = /^(1|enabled=1)/.test(d?.agent ?? '')
   const enableBalloon = async () => {
     // the floor the API sets: the memory minus a quarter, at most 512 MB — three quarters or more stay with the guest
-    if (!(await confirm({ title: 'Enable ballooning', message: `Give ${vm.name} a memory balloon with three quarters or more of its memory as the floor? Proxmox then reports the guest's real memory use and can reclaim idle memory. It takes effect at the next reboot.`, confirmLabel: 'Enable ballooning' }))) return
+    if (!(await confirm({ title: 'Enable ballooning?', message: `Give ${vm.name} a memory balloon with three quarters or more of its memory as the floor? Proxmox then reports the guest's real memory use and can reclaim idle memory. It takes effect at the next reboot.`, confirmLabel: 'Enable ballooning' }))) return
     setBusy(true)
     try { const r = await proxmoxVmBalloon(vm.node, vm.vmid); addToast({ type: 'success', message: r.message || `Balloon set to ${r.balloon} MB of ${r.memory} MB` }); detail.refresh(); onChanged() }
     catch (e) { addToast({ type: 'error', message: e instanceof Error ? e.message : 'Ballooning could not be enabled' }) }
@@ -1049,7 +1049,7 @@ function ResizePanel({ vm, running, cores, memoryMb, diskBytes, onDone }: { vm: 
   const submit = async () => {
     if (!anything || !valid) return
     const parts = [add > 0 ? `${add} GB more disk (a disk never shrinks again)` : '', coresChanged ? `${newCores} cores` : '', memChanged ? `${Math.round(newMem / 102.4) / 10} GB of memory` : ''].filter(Boolean)
-    if (!(await confirm({ title: `Resize ${vm.name}`, message: `${parts.join(', ')}.${(coresChanged || memChanged) && running ? (restart ? ' The VM reboots to apply the cores and memory.' : ' The cores and memory apply at the next reboot.') : ''}`, confirmLabel: 'Resize' }))) return
+    if (!(await confirm({ title: `Resize ${vm.name}?`, message: `${parts.join(', ')}.${(coresChanged || memChanged) && running ? (restart ? ' The VM reboots to apply the cores and memory.' : ' The cores and memory apply at the next reboot.') : ''}`, confirmLabel: 'Resize' }))) return
     setBusy(true)
     try {
       const r = await proxmoxVmResize(vm.node, vm.type === 'lxc' ? 'lxc' : 'qemu', vm.vmid, { ...(add > 0 ? { disk_add_gb: add } : {}), ...(coresChanged ? { cores: newCores } : {}), ...(memChanged ? { memory_mb: newMem } : {}), restart })
@@ -1101,7 +1101,7 @@ function MemberMenuSheet({ member, vms, onClose, onEdit, onChanged }: { member: 
   }
   // the hub lost the VM's password (the secret was deleted, the account changed) or is locked out of it: the VM joins again
   const relink = async () => {
-    if (!(await confirm({ title: `Relink ${member.name}`, message: `The hub opens ${member.name} over its ssh key, lifts its own lock-out there and has the VM join the hub again with a new password. Stacks, placement and settings stay as they are.`, confirmLabel: 'Relink' }))) return
+    if (!(await confirm({ title: `Relink ${member.name}?`, message: `The hub opens ${member.name} over its ssh key, lifts its own lock-out there and has the VM join the hub again with a new password. Stacks, placement and settings stay as they are.`, confirmLabel: 'Relink' }))) return
     setBusy('relink'); setNote('')
     try {
       const r = await relinkFleetMember(member.id)
@@ -1120,7 +1120,7 @@ function MemberMenuSheet({ member, vms, onClose, onEdit, onChanged }: { member: 
     } catch (e) { setNote(e instanceof Error ? e.message : 'The sync failed') } finally { setBusy('') }
   }
   const remove = async () => {
-    if (!(await confirm({ title: 'Forget this member', message: `Forget ${member.name}? Its stacks keep running; only the hub stops managing it.`, confirmLabel: 'Forget', danger: true }))) return
+    if (!(await confirm({ title: 'Forget this member?', message: `Forget ${member.name}? Its stacks keep running; only the hub stops managing it.`, confirmLabel: 'Forget', danger: true }))) return
     setBusy('remove')
     try { await removeFleetMember(member.id); addToast({ type: 'success', message: `${member.name} removed from the fleet` }); onChanged(); onClose() }
     catch (e) { setNote(e instanceof Error ? e.message : 'Could not remove'); setBusy('') }
@@ -1209,7 +1209,7 @@ export default function Proxmox() {
   const templates = usePolling(fetchFleetTemplates, 60_000, { enabled: isConnected && isAdmin && configured && reachable && isHub })
   const [removingTemplate, setRemovingTemplate] = useState<number | null>(null)
   const removeTemplate = async (t: FleetTemplate) => {
-    if (!(await confirm({ title: 'Remove the template', message: `Remove the DCS template ${t.image_id} (VM ${t.vmid})? The next build from that image installs everything again (a minute and a half) until a new one is baked.`, confirmLabel: 'Remove', danger: true }))) return
+    if (!(await confirm({ title: 'Remove the template?', message: `Remove the DCS template ${t.image_id} (VM ${t.vmid})? The next build from that image installs everything again (a minute and a half) until a new one is baked.`, confirmLabel: 'Remove', danger: true }))) return
     setRemovingTemplate(t.vmid)
     try { await deleteFleetTemplate(t.vmid); addToast({ type: 'success', message: `Template ${t.image_id} removed` }); templates.refresh(); vms.refresh() }
     catch (e) { addToast({ type: 'error', message: e instanceof Error ? e.message : 'The template could not be removed' }) }

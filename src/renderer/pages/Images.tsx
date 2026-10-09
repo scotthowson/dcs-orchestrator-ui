@@ -171,7 +171,7 @@ const Images: React.FC = () => {
     if (pruneLoading) return
     if (scope === 'all') { addToast({ type: 'info', message: 'Everywhere is a view: pick the hub or one VM above, then change it there' }); return }
     if (!(await confirm({
-      title: 'Prune dangling images',
+      title: 'Prune the dangling images?',
       message: `Remove every dangling image (an untagged image that no container uses) ${scopeMember ? `on the VM ${memberName}` : 'on the hub'}? This cannot be undone.`,
       confirmLabel: 'Prune',
       danger: true,
@@ -244,7 +244,7 @@ const Images: React.FC = () => {
     if (selectedImages.size === 0 || batchLoading) return
     const n = selectedImages.size
     if (!(await confirm({
-      title: 'Delete images',
+      title: 'Delete these images?',
       message: `Delete ${n} image${n !== 1 ? 's' : ''}? Docker refuses an image a container still uses; the rest cannot be brought back without pulling them again.`,
       confirmLabel: 'Delete',
       danger: true,

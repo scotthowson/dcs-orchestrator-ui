@@ -259,7 +259,7 @@ export default function StackList({ onAction, onSelect, onRefresh, loading = fal
     const running = stacks.filter((s) => s.status === 'running')
     if (running.length === 0) return
     if (!(await confirm({
-      title: 'Stop all stacks',
+      title: 'Stop all stacks?',
       message: `Stop ${running.length} running stack${running.length !== 1 ? 's' : ''}? Every container in ${running.length !== 1 ? 'them' : 'it'} stops until you start ${running.length !== 1 ? 'them' : 'it'} again.`,
       confirmLabel: 'Stop all',
       danger: true,

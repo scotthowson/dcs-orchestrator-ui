@@ -371,7 +371,7 @@ export default function Bookmarks() {
 
   const handleDelete = useCallback(async (item: BookmarkItem) => {
     const ok = await confirm({
-      title: 'Delete bookmark',
+      title: 'Delete this bookmark?',
       message: `Delete the bookmark "${item.label}"? It is only removed from this browser.`,
       confirmLabel: 'Delete bookmark',
       danger: true,

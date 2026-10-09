@@ -174,7 +174,7 @@ export default function CardStudio({ onClose, onSaved }: { onClose: () => void; 
     finally { setSaving(false) }
   }
   const handleDelete = async () => {
-    if (!loadedFrom || !(await confirm({ title: 'Delete this card', message: `Delete the card ${loadedFrom.plugin}/${loadedFrom.card}?`, confirmLabel: 'Delete card', danger: true }))) return
+    if (!loadedFrom || !(await confirm({ title: 'Delete this card?', message: `Delete the card ${loadedFrom.plugin}/${loadedFrom.card}?`, confirmLabel: 'Delete card', danger: true }))) return
     try {
       await deleteCard(loadedFrom.plugin, loadedFrom.card)
       setExisting((l) => l.filter((x) => !(x.plugin === loadedFrom.plugin && x.card === loadedFrom.card)))

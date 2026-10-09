@@ -749,7 +749,7 @@ function ServerControlCard() {
     // stopping or restarting every stack takes the whole system with it (core infrastructure and the VMs' stacks too): ask first
     if (action !== 'start') {
       const ok = await confirm({
-        title: action === 'stop' ? 'Stop all stacks' : 'Restart all stacks',
+        title: action === 'stop' ? 'Stop all stacks?' : 'Restart all stacks?',
         message: action === 'stop'
           ? 'Every stack stops — core infrastructure (Traefik, the sign-in, the web dashboard) and the stacks inside your VMs included. This page may stop answering until the stacks are started again.'
           : 'Every stack restarts, one after the other — core infrastructure (Traefik, the sign-in, the web dashboard) and the stacks inside your VMs included. Services are down for a moment, and this page may stop answering meanwhile.',

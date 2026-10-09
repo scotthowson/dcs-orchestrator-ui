@@ -397,7 +397,7 @@ export default function EditStackOverlay({ stack, onClose, onSaved, initialServi
 
   // a rollback replaces the live compose file: ask first
   const askRollback = useCallback(async (versionId: string) => {
-    if (!(await confirm({ danger: true, title: 'Roll back the compose file', message: `Replace the current docker-compose.yml of ${stack.name} with the version ${versionId}? Your current file is kept in the history.`, confirmLabel: 'Roll back' }))) return
+    if (!(await confirm({ danger: true, title: 'Roll back the compose file?', message: `Replace the current docker-compose.yml of ${stack.name} with the version ${versionId}? Your current file is kept in the history.`, confirmLabel: 'Roll back' }))) return
     void handleRollback(versionId)
   }, [confirm, handleRollback, stack.name])
 
@@ -490,7 +490,7 @@ export default function EditStackOverlay({ stack, onClose, onSaved, initialServi
 
   const safeClose = useCallback(async () => {
     if (hasAnyChanges) {
-      if (!(await confirm({ title: 'Unsaved changes', message: 'You have unsaved changes. Close without saving?', confirmLabel: 'Close without saving', danger: true }))) return
+      if (!(await confirm({ title: 'Close without saving?', message: 'You have unsaved changes. Close without saving?', confirmLabel: 'Close without saving', danger: true }))) return
     }
     onClose()
   }, [hasAnyChanges, onClose, confirm])
@@ -604,7 +604,7 @@ export default function EditStackOverlay({ stack, onClose, onSaved, initialServi
     // Warn about lint errors before saving
     const errors = composeDiagnostics.filter(d => d.severity === 'error')
     if (errors.length > 0) {
-      if (!(await confirm({ title: 'Lint errors', message: `${errors.length} lint error${errors.length !== 1 ? 's' : ''} detected (port conflicts, etc). Save anyway?`, confirmLabel: 'Save anyway', danger: true }))) return
+      if (!(await confirm({ title: 'Save with lint errors?', message: `${errors.length} lint error${errors.length !== 1 ? 's' : ''} detected (port conflicts, etc). Save anyway?`, confirmLabel: 'Save anyway', danger: true }))) return
     }
 
     setSavingCompose(true)

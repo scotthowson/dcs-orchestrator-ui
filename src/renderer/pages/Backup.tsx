@@ -208,7 +208,7 @@ export default function Backup() {
     const targets = fleetTargets(scopeMembers)
     const vms = targets.length - 1
     const ok = await confirm({
-      title: 'Back up everything',
+      title: 'Back up everything?',
       message: `Start a full backup on the hub and on ${vms} VM${vms === 1 ? '' : 's'}? Each server writes its own archive to its own BACKUP_DEST_DIR; a VM that is not configured for backups reports that and the others carry on.`,
       confirmLabel: 'Start everywhere',
     })

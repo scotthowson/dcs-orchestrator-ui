@@ -138,7 +138,7 @@ const ContainerList: React.FC<ContainerListProps> = ({
     if (selectedContainers.size === 0) return
     const rows = containers.filter((c) => selectedContainers.has(rowKey(c)))
     if (action === 'remove') {
-      if (!(await confirm({ title: 'Remove containers', message: `Remove ${rows.length} container(s)? This will force-remove them and cannot be undone.`, confirmLabel: 'Remove', danger: true }))) return
+      if (!(await confirm({ title: 'Remove these containers?', message: `Remove ${rows.length} container(s)? This will force-remove them and cannot be undone.`, confirmLabel: 'Remove', danger: true }))) return
     }
     setBatchLoading(true)
     setBatchResults(null)

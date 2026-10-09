@@ -265,7 +265,7 @@ export default function Volumes() {
     }
     const where = scopeMember ? ` on the VM ${memberName}` : ''
     const ok = await confirm({
-      title: 'Delete volume',
+      title: 'Delete this volume?',
       message: `Permanently delete the volume ${volumeName}${where}? All data stored in it will be lost. This cannot be undone.`,
       confirmLabel: 'Delete volume',
       danger: true,

@@ -576,7 +576,7 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
     const gerund: Record<typeof action, string> = { start: 'Starting', stop: 'Stopping', restart: 'Restarting', recreate: 'Recreating', remove: 'Removing' }
 
     if (action === 'remove') {
-      if (!(await confirm({ title: 'Remove container', message: `Remove container "${containerName}"? This will force-remove it and cannot be undone.`, confirmLabel: 'Remove', danger: true }))) return
+      if (!(await confirm({ title: 'Remove this container?', message: `Remove container "${containerName}"? This will force-remove it and cannot be undone.`, confirmLabel: 'Remove', danger: true }))) return
     }
 
     setActionLoading(action)

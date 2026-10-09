@@ -50,7 +50,7 @@ export default function ApiKeysCard() {
     catch (err) { fail(err, 'Could not make the key') } finally { setBusy('') }
   }
   const remove = async (k: ApiKeyInfo) => {
-    if (!(await confirm({ title: `Remove the key "${k.name}"`, message: 'It stops working at once: whatever uses it gets nothing until you give it a new one.', confirmLabel: 'Remove', danger: true }))) return
+    if (!(await confirm({ title: `Remove the key "${k.name}"?`, message: 'It stops working at once: whatever uses it gets nothing until you give it a new one.', confirmLabel: 'Remove', danger: true }))) return
     setBusy(k.id)
     try { await deleteApiKey(k.id); if (made?.name === k.name) setMade(null); load() }
     catch (err) { fail(err, 'Could not remove the key') } finally { setBusy('') }

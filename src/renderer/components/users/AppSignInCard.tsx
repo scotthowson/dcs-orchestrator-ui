@@ -108,7 +108,7 @@ export default function AppSignInCard() {
   const apply = async () => {
     if (mode !== 'off') {
       const ok = await confirm({
-        title: 'Ask for a second step at sign-in',
+        title: 'Ask for a second step at sign-in?',
         message:
           `${mode === 'all' ? 'Every app behind Authelia' : apps.map((a) => (state.domain ? `${a}.${state.domain}` : a)).join(', ')} will ask for a code from an authenticator app or a passkey after the password. ` +
           `Register a device for your Authelia user first (the steps on this card). A user with no device is not locked out: at the next sign-in Authelia says the app needs two-factor authentication and links to the registration, with the verification code shown here. ` +

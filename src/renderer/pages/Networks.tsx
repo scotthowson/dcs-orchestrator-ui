@@ -793,7 +793,7 @@ export default function Networks() {
     }
     const where = scopeMember ? ` on the VM ${memberName}` : ''
     const ok = await confirm({
-      title: 'Delete network',
+      title: 'Delete this network?',
       message: `Delete the network ${name}${where}? This cannot be undone.`,
       confirmLabel: 'Delete network',
       danger: true,

@@ -71,7 +71,7 @@ export default function SshAccessSheet({ focus, onClose }: { focus?: string; onC
     } catch (ex) { setErr(errText(ex, 'Could not make the key')); setPassword('') } finally { setBusy('') }
   }
   const removeKey = async (k: SshKeyInfo) => {
-    if (!(await confirm({ title: `Remove the key "${k.name}"`, message: `It is taken off ${k.members.length} VM${k.members.length === 1 ? '' : 's'}${k.hub ? ' and the hub' : ''} at once: whoever holds it can no longer sign in.`, confirmLabel: 'Remove', danger: true }))) return
+    if (!(await confirm({ title: `Remove the key "${k.name}"?`, message: `It is taken off ${k.members.length} VM${k.members.length === 1 ? '' : 's'}${k.hub ? ' and the hub' : ''} at once: whoever holds it can no longer sign in.`, confirmLabel: 'Remove', danger: true }))) return
     setBusy(k.id)
     try { await deleteSshKey(k.id); addToast({ type: 'success', message: `The key "${k.name}" no longer opens anything` }); load() }
     catch (ex) { addToast({ type: 'error', message: errText(ex, 'Could not remove the key') }) } finally { setBusy('') }

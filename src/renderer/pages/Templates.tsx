@@ -1025,7 +1025,7 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
   const handleUndoDeploy = useCallback(async () => {
     if (!deployResult || !onUndeploy) return
     // the undeploy removes the data too (remove_data): say so before asking
-    if (!(await confirm({ title: 'Undo deploy', message: `Undo deploy? This removes the deployed services from "${deployResult.target_stack}" together with their data — the App-Data folders they own are deleted.`, confirmLabel: 'Undo deploy', danger: true }))) return
+    if (!(await confirm({ title: 'Undo the deploy?', message: `Undo deploy? This removes the deployed services from "${deployResult.target_stack}" together with their data — the App-Data folders they own are deleted.`, confirmLabel: 'Undo deploy', danger: true }))) return
     setUndeploying(true)
     const ok = await onUndeploy(template.name, deployResult.target_stack, deployResult.services_added || [])
     setUndeploying(false)
@@ -2382,7 +2382,7 @@ function CreateEditModal({ mode, initial, stacks, onClose, onSave, saving }: Cre
 
   // Esc closes (the overlay's key: it asks first when there are unsaved changes), Ctrl/Cmd+S saves
   const requestClose = useCallback(async () => {
-    if (hasChanges && mode === 'edit' && !(await confirm({ title: 'Discard changes', message: 'Discard unsaved changes to this template?', confirmLabel: 'Discard', danger: true }))) return
+    if (hasChanges && mode === 'edit' && !(await confirm({ title: 'Discard the changes?', message: 'Discard unsaved changes to this template?', confirmLabel: 'Discard', danger: true }))) return
     onClose()
   }, [hasChanges, mode, onClose, confirm])
   useEffect(() => {
@@ -3581,7 +3581,7 @@ export default function Templates() {
   // the History table's Undeploy (the deploy sheet asks on its own): the data goes with the services, so ask first
   const askUndeploy = useCallback(async (templateName: string, targetStack: string, services: string[]) => {
     const what = services.length > 0 ? services.join(', ') : templateName
-    if (!(await confirm({ title: 'Undeploy', message: `Remove ${what} from "${targetStack}"? The containers go, and so does the app's data — the App-Data folders these services own are deleted.`, confirmLabel: 'Undeploy', danger: true }))) return
+    if (!(await confirm({ title: 'Undeploy it?', message: `Remove ${what} from "${targetStack}"? The containers go, and so does the app's data — the App-Data folders these services own are deleted.`, confirmLabel: 'Undeploy', danger: true }))) return
     await handleUndeploy(templateName, targetStack, services)
   }, [confirm, handleUndeploy])
 
@@ -3717,7 +3717,7 @@ export default function Templates() {
 
   // Delete template
   const handleDeleteTemplate = useCallback(async (template: TemplateInfo) => {
-    if (!(await confirm({ title: 'Delete template', message: `Delete template "${template.name}"? This cannot be undone.`, confirmLabel: 'Delete', danger: true }))) return
+    if (!(await confirm({ title: 'Delete this template?', message: `Delete template "${template.name}"? This cannot be undone.`, confirmLabel: 'Delete', danger: true }))) return
     try {
       const res = await deleteTemplate(template.name)
       if (res.success) {

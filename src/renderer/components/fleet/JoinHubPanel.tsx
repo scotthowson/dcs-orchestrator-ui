@@ -91,7 +91,7 @@ export default function JoinHubPanel({ hub, initial, pending = null, autoRun = f
   }, [autoRun])
 
   const leave = async () => {
-    if (!(await confirm({ title: 'Leave the hub', message: 'Leave the hub? Its account here is removed; remove this server on the hub too.', confirmLabel: 'Leave', danger: true }))) return
+    if (!(await confirm({ title: 'Leave the hub?', message: 'Leave the hub? Its account here is removed; remove this server on the hub too.', confirmLabel: 'Leave', danger: true }))) return
     setLeaving(true)
     try { await leaveFleetHub(); onLeft?.() } catch (e) { setErr(e instanceof Error ? e.message : 'Could not leave') } finally { setLeaving(false) }
   }
