@@ -48,7 +48,7 @@ import { usePolling } from '../hooks/usePolling'
 import { FloatingSaveBar } from '../components/common/FloatingSaveBar'
 import { fetchVersion, fetchDisks, fetchAlertConfig, updateAlertConfig, updateConfig, fetchConfig, authVerify, authChangePassword } from '../api/endpoints'
 import { ApiError } from '../api/client'
-import { patchServerProfile, syncProfileFromServer, readLocalProfile, mergeServerProfile, cleanPrefs, PROFILE_KEYS, SYNCED_PREFS } from '../lib/userSync'
+import { patchServerProfile, syncProfileFromServer, readLocalProfile, mergeServerProfile, cleanPrefs, PROFILE_KEYS, SYNCED_PREFS, profileStorageKey } from '../lib/userSync'
 import type { APIVersion, DiskInfo, CustomDiskEntry, AppSettings, AlertThresholds, PageId } from '../../shared/types'
 
 // ---------------------------------------------------------------------------
@@ -111,7 +111,7 @@ interface ProfileData {
 /** Get the per-user localStorage key for profile data */
 function getProfileKey(): string {
   const user = useAuthStore.getState().currentUser
-  return user ? `user-profile-${user}` : 'user-profile'
+  return user ? profileStorageKey(user) : 'user-profile'
 }
 
 function getProfileData(): ProfileData {

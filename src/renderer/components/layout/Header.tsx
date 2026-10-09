@@ -17,6 +17,7 @@ import { useConnectionStore } from '../../stores/connectionStore'
 import { useApiLink } from '../../hooks/useApiLink'
 import { useSystemStore } from '../../stores/systemStore'
 import { useAuthStore } from '../../stores/authStore'
+import { profileStorageKey } from '../../lib/userSync'
 import { useNotificationStore } from '../../stores/notificationStore'
 import { NotificationDrawer } from '../NotificationDrawer'
 import Breadcrumbs from '../common/Breadcrumbs'
@@ -191,7 +192,7 @@ function UserProfileDropdown({ onClose, onWhatsNew, hasUnseen }: { onClose: () =
   // Get profile data from per-user localStorage key
   const profileData = (() => {
     try {
-      const key = currentUser ? `user-profile-${currentUser}` : 'user-profile'
+      const key = currentUser ? profileStorageKey(currentUser) : 'user-profile'
       let raw = localStorage.getItem(key)
       if (!raw && key !== 'user-profile') raw = localStorage.getItem('user-profile')
       return raw ? JSON.parse(raw) : {}
@@ -403,7 +404,7 @@ export function Header() {
   const profileIcon = (() => {
     void profileVersion // dependency trigger
     try {
-      const key = currentUser ? `user-profile-${currentUser}` : 'user-profile'
+      const key = currentUser ? profileStorageKey(currentUser) : 'user-profile'
       let raw = localStorage.getItem(key)
       if (!raw && key !== 'user-profile') raw = localStorage.getItem('user-profile')
       return raw ? JSON.parse(raw).icon ?? '' : ''

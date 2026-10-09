@@ -24,6 +24,7 @@ import { useAuthStore } from '../stores/authStore'
 import { useSettingsStore, DEFAULT_SETTINGS, type PersistedSettings } from '../stores/settingsStore'
 import { useThemeStore, resolveTheme } from '../stores/themeStore'
 import { fetchProfile, saveProfileToServer, fetchDashboardLayout } from '../api/endpoints'
+import { apiClient } from '../api/client'
 import { pageMeta } from '../constants/pageTitles'
 import type { PageId } from '../../shared/types'
 
@@ -36,9 +37,13 @@ export const SYNCED_PREFS = ['theme', 'themeName', 'reduceMotion', 'use24hClock'
 type PrefKey = (typeof SYNCED_PREFS)[number]
 export type Prefs = Pick<PersistedSettings, PrefKey>
 
-const profileStorageKey = (user: string) => `user-profile-${user}`
-const prefsAtKey = (user: string) => `dcs-prefs-at-${user}`
-/** whose choices this device's settings currently hold (settings are per device, the choices per person) */
+/** A person is a username ON a server: the same name on two servers is two people, and what one of them keeps on this
+ *  device (the profile, when the choices were made, whose choices the settings hold) never goes to the other server. */
+const identity = (user: string, server = apiClient.getBaseUrl()) => `${user}@${server}`
+/** this device's copy of the person's profile on the server in use */
+export const profileStorageKey = (user: string, server?: string) => `user-profile-${identity(user, server)}`
+const prefsAtKey = (user: string, server?: string) => `dcs-prefs-at-${identity(user, server)}`
+/** whose choices this device's settings currently hold, as user@server (settings are per device, the choices per person) */
 const OWNER_KEY = 'dcs-prefs-owner'
 const PUSH_DELAY_MS = 1200
 
@@ -60,14 +65,35 @@ function storeItem(key: string, value: string): void {
   }
 }
 
+/** Builds before 4.0.37 kept these under the username alone: they move once to the server in use (the server the
+ *  device was used with), and are never read again for another server. */
+function migrateLegacyKeys(server: string): void {
+  try {
+    let moved = false
+    for (const k of Object.keys(localStorage)) {
+      if (!/^(user-profile|dcs-prefs-at)-./.test(k) || k.includes('://')) continue
+      const value = localStorage.getItem(k)
+      const scoped = `${k}@${server}`
+      if (value !== null && localStorage.getItem(scoped) === null) localStorage.setItem(scoped, value)
+      localStorage.removeItem(k)
+      moved = true
+    }
+    const owner = localStorage.getItem(OWNER_KEY)
+    if (owner && !owner.includes('://')) localStorage.setItem(OWNER_KEY, identity(owner, server))
+    if (moved) window.dispatchEvent(new Event('profile-updated'))
+  } catch {
+    // storage unavailable: nothing to move
+  }
+}
+
 /** the profile this device holds for the person (null: none yet) */
 export function readLocalProfile(user: string): Record<string, unknown> | null {
   return readObject(profileStorageKey(user))
 }
 
 /** true when this device already holds a profile for the person (it is not a first sight) */
-export function hasLocalProfile(user: string): boolean {
-  return !!readObject(profileStorageKey(user))
+export function hasLocalProfile(user: string, server?: string): boolean {
+  return !!readObject(profileStorageKey(user, server))
 }
 
 /** an emoji older builds saved as its JSON escape text ("🟢") */
@@ -86,8 +112,8 @@ function decodeEmoji(v: string): string {
  * empty (a person who never saved on the server keeps what they set here).
  * Returns the merged fields; tells the header and the shell when something changed.
  */
-export function mergeServerProfile(user: string, server: Record<string, unknown>): Record<string, unknown> {
-  const local = readObject(profileStorageKey(user)) ?? {}
+export function mergeServerProfile(user: string, server: Record<string, unknown>, at?: string): Record<string, unknown> {
+  const local = readObject(profileStorageKey(user, at)) ?? {}
   const merged: Record<string, unknown> = { ...local }
   for (const k of PROFILE_KEYS) {
     const v = server[k]
@@ -96,7 +122,7 @@ export function mergeServerProfile(user: string, server: Record<string, unknown>
   const before = JSON.stringify(local)
   const after = JSON.stringify(merged)
   if (after !== before) {
-    storeItem(profileStorageKey(user), after)
+    storeItem(profileStorageKey(user, at), after)
     window.dispatchEvent(new Event('profile-updated'))
   }
   return merged
@@ -127,8 +153,8 @@ function differsFromDefaults(): boolean {
   return SYNCED_PREFS.some((k) => cur[k] !== DEFAULT_SETTINGS[k])
 }
 
-const getLocalAt = (user: string): number => Number(localStorage.getItem(prefsAtKey(user))) || 0
-const setLocalAt = (user: string, at: number): void => storeItem(prefsAtKey(user), String(at))
+const getLocalAt = (user: string, server?: string): number => Number(localStorage.getItem(prefsAtKey(user, server))) || 0
+const setLocalAt = (user: string, at: number, server?: string): void => storeItem(prefsAtKey(user, server), String(at))
 
 /** true while the server's choices are being taken in: those changes are not written back */
 let applying = false
@@ -162,9 +188,13 @@ let writeChain: Promise<unknown> = Promise.resolve()
  * choices stored beside it and a choice never drops the profile.
  */
 export function patchServerProfile(patch: Record<string, unknown>): Promise<boolean> {
+  // written to the server in use when it was asked for, never to the one the dashboard switched to meanwhile
+  const server = apiClient.getBaseUrl()
   const run = async (): Promise<boolean> => {
     try {
+      if (apiClient.getBaseUrl() !== server) return false
       const current = (await fetchProfile()).profile ?? {}
+      if (apiClient.getBaseUrl() !== server) return false
       await saveProfileToServer({ ...current, ...patch })
       return true
     } catch {
@@ -196,6 +226,7 @@ useSettingsStore.subscribe((state, prev) => {
   if (applying || !activeUser) return
   if (!SYNCED_PREFS.some((k) => state[k] !== prev[k])) return
   setLocalAt(activeUser, Date.now())
+  storeItem(OWNER_KEY, identity(activeUser))
   schedulePush()
 })
 
@@ -206,39 +237,43 @@ useSettingsStore.subscribe((state, prev) => {
  * `themesLoaded` says the theme list is already here (a personal theme is only
  * taken over when this device can resolve it).
  */
-function takeInDocument(user: string, server: Record<string, unknown> | null): void {
+function takeInDocument(user: string, server: Record<string, unknown> | null, at = apiClient.getBaseUrl()): void {
   let pushNow = false
+  // the settings on this device are this person's choices (nobody else's, not the same name's on another server)
+  const owner = localStorage.getItem(OWNER_KEY)
+  let mine = !owner || owner === identity(user, at)
   if (server) {
-    mergeServerProfile(user, server)
+    mergeServerProfile(user, server, at)
     const prefs = cleanPrefs(server.prefs)
     const serverAt = typeof server.prefsAt === 'number' ? server.prefsAt : 0
-    const localAt = getLocalAt(user)
+    const localAt = getLocalAt(user, at)
     if (Object.keys(prefs).length > 0) {
       if (serverAt >= localAt) {
         applyPrefs(prefs)
-        setLocalAt(user, serverAt)
-      } else {
+        setLocalAt(user, serverAt, at)
+        mine = true
+      } else if (mine) {
         pushNow = true // this device changed them after the server last heard
       }
     }
   }
   const noChoicesStored = !server || Object.keys(cleanPrefs(server.prefs)).length === 0
-  if (noChoicesStored) {
-    // first time the server hears of this person's choices: the settings on this device are theirs, unless the device last belonged to somebody else
-    const owner = localStorage.getItem(OWNER_KEY)
-    if ((!owner || owner === user) && differsFromDefaults()) {
-      setLocalAt(user, Date.now())
-      pushNow = true
-    }
+  if (noChoicesStored && mine && differsFromDefaults()) {
+    // first time the server hears of this person's choices: the settings on this device are theirs
+    setLocalAt(user, Date.now(), at)
+    pushNow = true
   }
-  storeItem(OWNER_KEY, user)
+  // the device's settings become this person's when they took theirs in (or were theirs already); a choice they make
+  // here makes them theirs too (below, the settings subscription)
+  if (mine) storeItem(OWNER_KEY, identity(user, at))
   activeUser = user
-  const seedProfile = !server && hasLocalProfile(user)
+  // only what this device keeps for the person ON THIS SERVER seeds this server's empty document
+  const seedProfile = !server && hasLocalProfile(user, at)
   if (seedProfile) {
-    const local = readObject(profileStorageKey(user)) ?? {}
+    const local = readObject(profileStorageKey(user, at)) ?? {}
     const fields: Record<string, unknown> = {}
     for (const k of PROFILE_KEYS) if (typeof local[k] === 'string') fields[k] = local[k]
-    void patchServerProfile({ ...fields, ...(pushNow ? { prefs: currentPrefs(), prefsAt: getLocalAt(user) } : {}) })
+    void patchServerProfile({ ...fields, ...(pushNow ? { prefs: currentPrefs(), prefsAt: getLocalAt(user, at) } : {}) })
   } else if (pushNow) {
     schedulePush()
   }
@@ -281,13 +316,16 @@ export function hydrateUser(opts: { user?: string; timeoutMs?: number } = {}): P
   const key = `${useSettingsStore.getState().serverUrl}|${user}|${(auth.apiToken ?? '').slice(-10)}`
   if (doneKey === key) return Promise.resolve()
   if (!running || running.key !== key) {
+    const server = apiClient.getBaseUrl()
+    migrateLegacyKeys(server)
     const promise = (async () => {
       const [profile, layout, themes] = await Promise.allSettled([fetchProfile(), fetchDashboardLayout(), useThemeStore.getState().refresh()])
       void themes // a failed theme list leaves the cached one in place; the shell retries on its own schedule
+      if (apiClient.getBaseUrl() !== server) return // another server meanwhile: its own sign-in reads its own document
       if (profile.status === 'fulfilled') {
         const doc = profile.value.profile && typeof profile.value.profile === 'object' ? (profile.value.profile as Record<string, unknown>) : null
         try {
-          takeInDocument(user, doc)
+          takeInDocument(user, doc, server)
           doneKey = key
         } catch {
           // an unreadable document leaves the look as it is; the next sign-in tries again

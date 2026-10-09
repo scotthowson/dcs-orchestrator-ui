@@ -64,7 +64,7 @@ import { apiClient } from './api/client'
 import { sseClient } from './lib/sse'
 import { sanitizeCss } from './lib/cssSanitize'
 import { useThemeStore, syncDocumentTheme, effectiveThemeNeedsDoc, THEME_POLL_MS } from './stores/themeStore'
-import { hydrateUser, resetUserSync } from './lib/userSync'
+import { hydrateUser, resetUserSync, profileStorageKey } from './lib/userSync'
 import { toggleMode, useResolvedMode } from './lib/colorMode'
 import type { PageId } from '../shared/types'
 import { ADMIN_ONLY_PAGES } from '../shared/types'
@@ -330,7 +330,7 @@ export default function App() {
   useEffect(() => {
     const readProfile = () => {
       try {
-        const key = currentUser ? `user-profile-${currentUser}` : 'user-profile'
+        const key = currentUser ? profileStorageKey(currentUser) : 'user-profile'
         let raw = localStorage.getItem(key)
         // Fallback to legacy global key for migration
         if (!raw && key !== 'user-profile') raw = localStorage.getItem('user-profile')
