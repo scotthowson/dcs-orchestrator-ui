@@ -20,6 +20,7 @@ import { useHealthStore } from '../../stores/healthStore'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { useConnectionStore } from '../../stores/connectionStore'
 import { pageLabel } from '../../constants/pageTitles'
+import { ADMIN_ONLY_PAGES, type PageId } from '../../../shared/types'
 import type { BackupStatusResponse, CrowdSecCommunityResponse, DiskInfo, ImageCheckResponse, OsUpdatesResponse, StackInfo } from '../../../shared/types'
 import { collectNeeds, plural, type NeedItem } from '../../lib/needs'
 import { Card, CardOffline } from './cardShared'
@@ -28,6 +29,9 @@ import { Pill } from '../common/Pill'
 import { BTN_CARD, BTN_ICON_SM, TONE_GHOST } from '../../lib/ui'
 import { REVEAL } from '../../lib/pageKit'
 const HIDDEN_KEY = 'dcs-needs-you-hidden'
+
+/** where an item leads a viewer when the page that fixes it is an admin's: a full disk shows on Disk Analysis */
+const VIEWER_PAGE: Partial<Record<PageId, PageId>> = { maintenance: 'disk-analysis' }
 
 function loadHidden(): Record<string, string> {
   try { return JSON.parse(localStorage.getItem(HIDDEN_KEY) || '{}') as Record<string, string> } catch { return {} }
@@ -78,7 +82,9 @@ export default function NeedsYouCard({ stacks, stacksError, images, backup, disk
   const os = isAdmin ? osUpdates ?? null : null
   const cs = isAdmin ? crowdsecCommunity ?? null : null
   const items = useMemo(() => collectNeeds({ stacks, health, images, backup, disks, dcsUpdates, osUpdates: os, crowdsecCommunity: cs }), [stacks, health, images, backup, disks, dcsUpdates, os, cs])
+  // a viewer is never sent to an admin's page (it bounces back to the dashboard): the page they may open, or none
   const shown = items.filter((i) => hidden[i.key] !== i.fingerprint)
+    .map((i) => ({ ...i, to: isAdmin || !ADMIN_ONLY_PAGES.has(i.page) ? i.page : VIEWER_PAGE[i.page] }))
   const hiddenNow = items.length - shown.length
 
   const saveHidden = (next: Record<string, string>) => {
@@ -119,10 +125,17 @@ export default function NeedsYouCard({ stacks, stacksError, images, backup, disk
           {shown.map((i) => (
             <li key={i.key} className="group flex items-stretch gap-3 px-1 py-2">
               <span className={`w-1 shrink-0 rounded-full ${i.severity === 'problem' ? 'bg-rose-500' : 'bg-amber-500'}`} aria-hidden />
-              <button type="button" onClick={() => setCurrentPage(i.page, i.payload)} className="min-w-0 flex-1 text-left rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40">
-                <span className="block text-[13px] font-medium text-slate-200 truncate">{i.title}</span>
-                {i.detail && <span className="block text-xs text-slate-500 truncate" title={i.detail}>{i.detail}</span>}
-              </button>
+              {i.to ? (
+                <button type="button" onClick={() => setCurrentPage(i.to!, i.payload)} className="min-w-0 flex-1 text-left rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40">
+                  <span className="block text-[13px] font-medium text-slate-200 truncate">{i.title}</span>
+                  {i.detail && <span className="block text-xs text-slate-500 truncate" title={i.detail}>{i.detail}</span>}
+                </button>
+              ) : (
+                <div className="min-w-0 flex-1">
+                  <span className="block text-[13px] font-medium text-slate-200 truncate">{i.title}</span>
+                  {i.detail && <span className="block text-xs text-slate-500 truncate" title={i.detail}>{i.detail}</span>}
+                </div>
+              )}
               <div className="flex shrink-0 items-center gap-1">
                 {i.fix && isAdmin && (
                   <button type="button" onClick={() => runFix(i)} disabled={!!fixing}
@@ -134,9 +147,11 @@ export default function NeedsYouCard({ stacks, stacksError, images, backup, disk
                   className={`${BTN_ICON_SM} ${TONE_GHOST} ${REVEAL}`}>
                   <EyeOff size={12} />
                 </button>
-                <button type="button" onClick={() => setCurrentPage(i.page, i.payload)} className={`${BTN_CARD} ${TONE_GHOST} whitespace-nowrap`}>
-                  {pageLabel(i.page)} <ChevronRight size={12} aria-hidden />
-                </button>
+                {i.to && (
+                  <button type="button" onClick={() => setCurrentPage(i.to!, i.payload)} className={`${BTN_CARD} ${TONE_GHOST} whitespace-nowrap`}>
+                    {pageLabel(i.to)} <ChevronRight size={12} aria-hidden />
+                  </button>
+                )}
               </div>
             </li>
           ))}

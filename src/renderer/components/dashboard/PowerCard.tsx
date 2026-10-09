@@ -6,6 +6,7 @@
 import { BatteryCharging, BatteryWarning, BatteryLow, Usb, ExternalLink } from 'lucide-react'
 import { usePolling } from '../../hooks/usePolling'
 import { useSettingsStore } from '../../stores/settingsStore'
+import { useAuthStore } from '../../stores/authStore'
 import { pageLabel } from '../../constants/pageTitles'
 import { fetchPower } from '../../api/endpoints'
 import type { PowerStatus } from '../../../shared/types'
@@ -46,6 +47,8 @@ function problemOf(d: PowerStatus): { title: string; detail: string } | null {
 
 export default function PowerCard(_props: CardCommonProps) {
   const setCurrentPage = useSettingsStore((s) => s.setCurrentPage)
+  // Config is an admin's page: a viewer reads where the UPS is set up, with no button that only bounces back
+  const isAdmin = useAuthStore((s) => s.userRole) === 'admin'
   const { data, error, refresh } = usePolling(fetchPower, 15000)
 
   if (!data && error) return <Card card="power" tone="attention"><ErrorState card title="Could not read the power status" error={error} onRetry={refresh} /></Card>
@@ -58,7 +61,7 @@ export default function PowerCard(_props: CardCommonProps) {
           icon={<BatteryCharging size={22} />}
           title="No UPS is watched"
           hint="Point DCS at a NUT server (the nut-upsd template serves a USB unit), apcupsd or a CyberPower unit (pwrstat), and it will alert you and stop the stacks cleanly before the battery runs out."
-          action={<button type="button" onClick={() => setCurrentPage('config')} className={`${BTN_CARD} ${TONE_OK}`}>Set it up in {pageLabel('config')}</button>}
+          action={isAdmin ? <button type="button" onClick={() => setCurrentPage('config')} className={`${BTN_CARD} ${TONE_OK}`}>Set it up in {pageLabel('config')}</button> : undefined}
         />
       </Card>
     )

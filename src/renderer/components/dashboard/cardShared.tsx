@@ -37,9 +37,10 @@
 import React from 'react'
 import { ArrowUpRight, Box, ServerOff, type LucideIcon } from 'lucide-react'
 import { SegmentedControl } from '@mantine/core'
-import type { PageId } from '../../../shared/types'
+import { ADMIN_ONLY_PAGES, type PageId } from '../../../shared/types'
 import { pageLabel } from '../../constants/pageTitles'
 import { useSettingsStore } from '../../stores/settingsStore'
+import { useAuthStore } from '../../stores/authStore'
 import Hint from '../common/Hint'
 import { EmptyState } from '../common/PageState'
 import { BTN_ICON_SM, TONE_GHOST, TITLE_PANEL } from '../../lib/ui'
@@ -73,9 +74,16 @@ interface HeaderProps {
   titleId?: string
 }
 
+/** the page a card leads to, when this person may open it: a viewer is never led to an admin's page (it would only bounce back) */
+function useReachable(page?: PageId): PageId | undefined {
+  const isAdmin = useAuthStore((s) => s.userRole) === 'admin'
+  return page && (isAdmin || !ADMIN_ONLY_PAGES.has(page)) ? page : undefined
+}
+
 /** the header every card wears (Card draws it; a card with a frame of its own can use it directly) */
-export function CardHeader({ icon: Icon, title, meta, badge, actions, open, tone, bare = false, wrap = false, titleId }: HeaderProps) {
+export function CardHeader({ icon: Icon, title, meta, badge, actions, open: wanted, tone, bare = false, wrap = false, titleId }: HeaderProps) {
   const setCurrentPage = useSettingsStore((s) => s.setCurrentPage)
+  const open = useReachable(wanted)
   return (
     <div className={`flex items-center ${wrap ? 'flex-wrap gap-x-2 gap-y-2' : 'gap-2'} ${bare ? '' : 'mb-3'} min-h-8 sm:min-h-7`}>
       <Icon size={16} className={`shrink-0 ${tone ? ICON_TINT[tone] : 'text-slate-400'}`} aria-hidden />
@@ -103,7 +111,7 @@ export function CardHeader({ icon: Icon, title, meta, badge, actions, open, tone
   )
 }
 
-export function Card({ card, icon, title, meta, badge, actions, open, clickable = true, tone, dim = false, className = '', children }: Omit<HeaderProps, 'icon' | 'title'> & {
+export function Card({ card, icon, title, meta, badge, actions, open: wanted, clickable = true, tone, dim = false, className = '', children }: Omit<HeaderProps, 'icon' | 'title'> & {
   card?: string
   icon?: LucideIcon
   title?: string
@@ -114,6 +122,7 @@ export function Card({ card, icon, title, meta, badge, actions, open, clickable 
   children: React.ReactNode
 }) {
   const setCurrentPage = useSettingsStore((s) => s.setCurrentPage)
+  const open = useReachable(wanted)
   return (
     <div
       className={`${FRAME} ${tone ? EDGE[tone] : ''} ${open && clickable ? 'cursor-pointer hover:border-white/10' : ''} ${dim ? 'opacity-60' : ''} ${className}`}

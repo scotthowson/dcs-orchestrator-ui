@@ -8,7 +8,7 @@ import { createPortal } from 'react-dom'
 import type { DashboardCard } from '../../../shared/types'
 import { getCardEntry, clampCardSize, CARD_ICONS, H_UNIT, GRID_COLS } from './cardRegistry'
 import Hint from '../common/Hint'
-import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, TONE_DANGER } from '../../lib/ui'
+import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET } from '../../lib/ui'
 import { pageLabel } from '../../constants/pageTitles'
 
 // The CSS grid gap (px); the real row pitch is H_UNIT + GRID_GAP
@@ -285,7 +285,7 @@ export default function DashboardGrid({
               <RotateCcw size={14} /> Reset layout
             </button>
             <Hint label="Throw away every change (Esc)">
-              <button type="button" onClick={onDiscardEdit} className={`${BTN_TOOLBAR} ${TONE_DANGER}`}>
+              <button type="button" onClick={onDiscardEdit} className={BTN_TOOLBAR_QUIET}>
                 <X size={14} /> Discard
               </button>
             </Hint>
@@ -431,8 +431,8 @@ export default function DashboardGrid({
 
       {/* ── Card picker ── */}
       {showPicker && editMode && createPortal(
-        <ModalOverlay onClose={() => setShowPicker(false)} className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setShowPicker(false)}>
-          <div className="glass rounded-2xl p-6 w-full max-w-md mx-4 animate-scale-in border border-white/10" onClick={(e) => e.stopPropagation()}>
+        <ModalOverlay onClose={() => setShowPicker(false)} className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setShowPicker(false)}>
+          <div className="glass rounded-t-3xl sm:rounded-2xl p-6 w-full max-w-md sm:mx-4 animate-slide-up sm:animate-scale-in border border-white/10" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2"><Plus className="h-4 w-4 text-emerald-400" aria-hidden /><h3 className="text-sm font-semibold text-slate-200">Add cards</h3></div>
               <Hint label="Close"><CloseButton size="sm" onClick={() => setShowPicker(false)} /></Hint>

@@ -7,6 +7,7 @@ import { Server, Cpu, MemoryStick, Satellite } from 'lucide-react'
 import { usePolling } from '../../hooks/usePolling'
 import { pollKeys } from '../../api/pollKeys'
 import { useSettingsStore } from '../../stores/settingsStore'
+import { useAuthStore } from '../../stores/authStore'
 import { pageLabel } from '../../constants/pageTitles'
 import { BTN_CARD, TONE_OK } from '../../lib/ui'
 import { fetchProxmoxStatus, fetchProxmoxVms, fetchProxmoxNodes, fetchFleetStatus, fetchFleetOverview } from '../../api/endpoints'
@@ -18,6 +19,8 @@ function fmtGb(n: number): string { return n ? `${(n / 1073741824).toFixed(n >= 
 
 export default function ProxmoxCard() {
   const setCurrentPage = useSettingsStore((s) => s.setCurrentPage)
+  // Config is an admin's page: a viewer is told where the link is made, not sent there
+  const isAdmin = useAuthStore((s) => s.userRole) === 'admin'
   const status = usePolling(fetchProxmoxStatus, 30000, { key: pollKeys.proxmoxStatus })
   const ready = !!status.data?.configured && !!status.data?.reachable
   const vms = usePolling(fetchProxmoxVms, 15000, { key: pollKeys.proxmoxVms, enabled: ready })
@@ -45,7 +48,7 @@ export default function ProxmoxCard() {
           icon={<Server size={22} />}
           title="Not linked"
           hint={`Add the Proxmox URL and an API token in ${pageLabel('config')} → Proxmox`}
-          action={<button type="button" onClick={() => setCurrentPage('config')} className={`${BTN_CARD} ${TONE_OK}`}>Open {pageLabel('config')}</button>}
+          action={isAdmin ? <button type="button" onClick={() => setCurrentPage('config')} className={`${BTN_CARD} ${TONE_OK}`}>Open {pageLabel('config')}</button> : undefined}
         />
       ) : !s.reachable ? (
         <EmptyState card

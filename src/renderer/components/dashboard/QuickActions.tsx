@@ -119,7 +119,8 @@ export default function QuickActions({ cardConfig, onSaveConfig, dashboardEditMo
     if (a.kind === 'url') { if (/^https?:\/\//i.test(a.target)) window.open(a.target, '_blank', 'noopener'); return }
     if (!isConnected || loadingAction) return
     const needsConfirm = (a.kind === 'stack' && a.op !== 'start') || (a.kind === 'container' && a.op !== 'start') || (a.kind === 'maintenance' && a.target !== 'check-health')
-    if (needsConfirm && !(await confirm({ title: a.label, message: `${a.label}: run this now?`, confirmLabel: 'Run now', danger: a.op === 'stop' }))) return
+    // the title asks the question, the button says the verb; stopping and pruning (images gone for good) are rose
+    if (needsConfirm && !(await confirm({ title: `${a.label} now?`, message: `${a.label}: run this now?`, confirmLabel: a.label, danger: a.op === 'stop' || a.target === 'prune-images' }))) return
     setLoadingAction(a.id)
     try {
       if (a.kind === 'maintenance') {
@@ -260,8 +261,8 @@ function ActionsEditor({ initial, isAdmin, onClose, onSave, onReset }: {
   const field = 'px-2 py-1 rounded-md bg-white/5 border border-white/10 text-xs text-slate-200 focus:outline-none focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/30'
 
   return createPortal(
-    <ModalOverlay onClose={onClose} className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="w-full max-w-2xl mx-4 max-h-[88vh] flex flex-col bg-slate-900/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl shadow-black/40 animate-scale-in" onClick={(e) => e.stopPropagation()}>
+    <ModalOverlay onClose={onClose} className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <div className="w-full max-w-2xl sm:mx-4 max-h-[88vh] flex flex-col bg-slate-900/95 backdrop-blur-2xl border border-white/10 rounded-t-3xl sm:rounded-2xl shadow-2xl shadow-black/40 animate-slide-up sm:animate-scale-in" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
           <div className="flex items-center gap-2.5">
             <span className="flex items-center justify-center w-9 h-9 rounded-xl bg-white/5 border border-white/10"><Rocket size={16} className="text-slate-300" aria-hidden /></span>
