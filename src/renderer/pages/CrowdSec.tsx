@@ -15,7 +15,7 @@
 
 import PageHeader from '../components/common/PageHeader'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Activity, Ban, Bell, ShieldCheck, MessageSquare, SlidersHorizontal, Package, Plug, ScrollText, RefreshCw, ShieldOff, UserCheck } from 'lucide-react'
+import { Activity, Ban, Bell, MessageSquare, SlidersHorizontal, Package, Plug, ScrollText, RefreshCw, ShieldOff, UserCheck } from 'lucide-react'
 import { usePolling } from '../hooks/usePolling'
 import { pollKeys } from '../api/pollKeys'
 import { useFleetScope } from '../hooks/useFleetScope'
