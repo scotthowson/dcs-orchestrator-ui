@@ -19,6 +19,7 @@ import ImageCard from '../components/images/ImageCard'
 import { imageKey } from '../components/images/imageFormat'
 import PageHeader from '../components/common/PageHeader'
 import Hint from '../components/common/Hint'
+import StatTile from '../components/common/StatTile'
 import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD, BTN_CARD_QUIET, TONE_QUIET, TONE_OK, TONE_DANGER } from '../lib/ui'
 import {
   HardDrive,
@@ -296,7 +297,7 @@ const Images: React.FC = () => {
   const openHubSearch = () => setActiveTab('search')
 
   return (
-    <div className="h-full overflow-y-auto scrollbar-thin p-4 md:p-6">
+    <div>
       <DisconnectedBanner />
       <div className="flex flex-col gap-4 md:gap-5 animate-fade-in">
         {/* ---- Header ---- */}
@@ -428,38 +429,11 @@ const Images: React.FC = () => {
 
         {/* ---- Summary stat cards ---- */}
         <div className={`grid grid-cols-2 ${counts.updates > 0 ? 'md:grid-cols-5' : 'md:grid-cols-4'} gap-3 stagger-children`}>
-          <SummaryCard
-            icon={<HardDrive className="h-4 w-4 text-cyan-400" />}
-            label="Total images"
-            value={counts.total}
-            color="cyan"
-          />
-          <SummaryCard
-            icon={<CircleCheck className="h-4 w-4 text-emerald-400" />}
-            label="Current"
-            value={counts.current}
-            color="emerald"
-          />
-          <SummaryCard
-            icon={<Clock className="h-4 w-4 text-amber-400" />}
-            label="Aging"
-            value={counts.aging}
-            color="amber"
-          />
-          <SummaryCard
-            icon={<AlertTriangle className="h-4 w-4 text-rose-400" />}
-            label="Stale"
-            value={counts.stale}
-            color="rose"
-          />
-          {counts.updates > 0 && (
-            <SummaryCard
-              icon={<ArrowUpCircle className="h-4 w-4 text-emerald-400" />}
-              label="Updates"
-              value={counts.updates}
-              color="emerald"
-            />
-          )}
+          <StatTile icon={HardDrive} label="Total images" value={counts.total} tone="info" />
+          <StatTile icon={CircleCheck} label="Current" value={counts.current} tone="ok" />
+          <StatTile icon={Clock} label="Aging" value={counts.aging} tone={counts.aging > 0 ? 'attention' : 'neutral'} />
+          <StatTile icon={AlertTriangle} label="Stale" value={counts.stale} tone={counts.stale > 0 ? 'problem' : 'neutral'} />
+          {counts.updates > 0 && <StatTile icon={ArrowUpCircle} label="Updates" value={counts.updates} tone="ok" />}
         </div>
 
         {/* ---- Content ---- */}
@@ -530,7 +504,7 @@ const Images: React.FC = () => {
 
             {/* No results */}
             {!hubSearchLoading && hubSearched && hubSearchResults.length === 0 && (
-              <div className="glass-subtle">
+              <div className="surface">
                 <EmptyState
                   icon={<Search size={28} />}
                   title={`No images found for “${hubSearchQuery}”`}
@@ -541,7 +515,7 @@ const Images: React.FC = () => {
 
             {/* Initial state */}
             {!hubSearchLoading && !hubSearched && (
-              <div className="glass-subtle">
+              <div className="surface">
                 <EmptyState
                   icon={<Globe size={28} className="text-cyan-500/60" />}
                   title="Search Docker Hub for container images"
@@ -559,7 +533,7 @@ const Images: React.FC = () => {
                 {hubSearchResults.map((result, idx) => (
                   <div
                     key={`${result.name}-${idx}`}
-                    className="glass-subtle glass-hover p-4 animate-fade-in"
+                    className="surface hover:border-white/10 transition-colors duration-150 p-4 animate-fade-in"
                     style={{ animationDelay: `${Math.min(idx * 40, 400)}ms` }}
                   >
                     <div className="flex items-start justify-between gap-4">
@@ -609,33 +583,5 @@ const Images: React.FC = () => {
     </div>
   )
 }
-
-// ---------------------------------------------------------------------------
-// SummaryCard — small stat card for the summary row
-// ---------------------------------------------------------------------------
-
-interface SummaryCardProps {
-  icon: React.ReactNode
-  label: string
-  value: number
-  color: 'emerald' | 'cyan' | 'rose' | 'amber'
-}
-
-const GLOW_MAP: Record<string, string> = {
-  emerald: 'glow-emerald',
-  cyan: 'glow-cyan',
-  rose: 'glow-rose',
-  amber: 'glow-amber',
-}
-
-const SummaryCard: React.FC<SummaryCardProps> = ({ icon, label, value, color }) => (
-  <div className={`glass-subtle p-3 md:p-4 flex items-center gap-3 ${GLOW_MAP[color] ?? ''}`}>
-    <div className="flex-shrink-0">{icon}</div>
-    <div>
-      <p className="text-[10px] md:text-xs text-slate-500 uppercase tracking-wide">{label}</p>
-      <p className="text-lg md:text-xl font-bold text-slate-100">{value}</p>
-    </div>
-  </div>
-)
 
 export default Images

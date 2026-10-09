@@ -89,7 +89,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ image, showWhere = false, batchMo
   return (
     <div
       onClick={batchMode ? () => onToggle?.(imageKey(image)) : undefined}
-      className={`glass-subtle glass-hover p-4 flex flex-col gap-3 ${batchMode ? 'cursor-pointer' : ''} ${picked ? 'ring-1 ring-cyan-500/40 bg-cyan-500/[0.06]' : ''}`}
+      className={`surface hover:border-white/10 transition-colors duration-150 p-4 flex flex-col gap-3 ${batchMode ? 'cursor-pointer' : ''} ${picked ? 'ring-1 ring-cyan-500/40 bg-cyan-500/[0.06]' : ''}`}
     >
       {/* Header: repo:tag + staleness badge */}
       <div className="flex items-start justify-between gap-2">

@@ -64,7 +64,7 @@ type Show = 'all' | 'running' | 'stopped' | 'qemu' | 'lxc' | 'dcs'
 type StackAct = 'start' | 'stop' | 'restart'
 
 // the house card; its buttons are the shared scale (lib/ui)
-const CARD = 'rounded-xl bg-white/[0.03] border border-white/5'
+const CARD = 'surface'
 const HOST_VIEW_HINT = "Proxmox shows the host's view of this VM's memory: without a balloon device the whole allocation fills with page cache. Open the details to enable ballooning."
 
 function loadView(): View { try { return localStorage.getItem(VIEW_KEY) === 'table' ? 'table' : 'cards' } catch { return 'cards' } }

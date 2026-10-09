@@ -595,7 +595,7 @@ export default function StackList({ onAction, onSelect, onRefresh, loading = fal
           )}
         </div>
       ) : (
-        <div className="glass-subtle rounded-xl">
+        <div className="surface">
           <EmptyState
             icon={<Layers size={28} />}
             title={filtering ? 'No stacks match your filters' : 'No stacks found'}

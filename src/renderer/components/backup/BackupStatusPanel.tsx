@@ -46,7 +46,7 @@ export default function BackupStatusPanel({
   const dot = (c: string) => <span className={`w-1.5 h-1.5 rounded-full ${c}`} />
 
   return (
-    <section aria-labelledby="backup-status-title" className="glass rounded-xl border border-white/5 overflow-hidden">
+    <section aria-labelledby="backup-status-title" className="surface overflow-hidden">
       <div className="px-5 py-4 border-b border-white/5 flex flex-wrap items-center gap-2">
         <Shield size={16} className="text-slate-400" aria-hidden />
         <h2 id="backup-status-title" className="text-sm font-semibold text-slate-200">Backup status</h2>

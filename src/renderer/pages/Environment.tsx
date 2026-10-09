@@ -159,7 +159,7 @@ function EnvTable({
 /** the table's shape while a file is read */
 function EnvSkeleton({ label }: { label: string }) {
   return (
-    <div className="glass rounded-xl border border-white/5 overflow-hidden" role="status" aria-label={label}>
+    <div className="surface overflow-hidden" role="status" aria-label={label}>
       <div className="px-4 py-3 border-b border-white/5"><div className="skeleton h-3 w-40 rounded" /></div>
       <div className="divide-y divide-white/[0.03]" aria-hidden>
         {Array.from({ length: 8 }, (_, i) => (
@@ -553,7 +553,7 @@ export default function Environment() {
 
           {/* Content */}
           {rootEnvData && (
-            <div className="glass rounded-xl border border-white/5 overflow-hidden">
+            <div className="surface overflow-hidden">
               {viewMode === 'table' ? (
                 <EnvTable variables={rootEnvData.variables} />
               ) : (
@@ -628,7 +628,7 @@ export default function Environment() {
 
           {/* No stack selected */}
           {!selectedStack && (
-            <div className="glass rounded-xl border border-white/5">
+            <div className="surface">
               <EmptyState
                 icon={<FileCode size={28} />}
                 title="Select a stack from the list to view its environment variables"
@@ -641,7 +641,7 @@ export default function Environment() {
 
           {/* No .env file: the next step is the editor, where one can be written */}
           {selectedStack && !stackEnvLoading && stackEnvEmpty && stackViewMode === 'table' && (
-            <div className="glass rounded-xl border border-white/5">
+            <div className="surface">
               <EmptyState
                 icon={<FileCode size={28} />}
                 title="No .env file"
@@ -658,7 +658,7 @@ export default function Environment() {
 
           {/* Stack env content */}
           {selectedStack && !stackEnvLoading && (stackEnvData || stackEnvEmpty) && !(stackEnvEmpty && stackViewMode === 'table') && (
-            <div className="glass rounded-xl border border-white/5 overflow-hidden">
+            <div className="surface overflow-hidden">
               {stackViewMode === 'table' ? (
                 <EnvTable variables={stackEnvData?.variables ?? []} />
               ) : (

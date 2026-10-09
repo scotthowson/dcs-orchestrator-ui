@@ -670,7 +670,7 @@ export default function DNS() {
 
       {/* ---- Not configured: how to fix it ---- */}
       {isConnected && dnsStatus && !dnsStatus.cf_configured && (
-        <div className="glass border border-cyan-500/15 rounded-xl p-5 flex flex-col md:flex-row md:items-center gap-4 animate-fade-in">
+        <div className="surface border-cyan-500/15 p-5 flex flex-col md:flex-row md:items-center gap-4 animate-fade-in">
           <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/15 flex items-center justify-center shrink-0"><KeyRound size={18} className="text-cyan-400" /></div>
           <div className="flex-1 min-w-0">
             <p className="text-sm text-slate-200 font-medium">Connect Cloudflare to manage DNS from here</p>
@@ -687,7 +687,7 @@ export default function DNS() {
         </div>
       )}
       {isConnected && dnsStatus?.cf_configured && dnsStatus.hint && (
-        <div className="glass border border-amber-500/15 rounded-xl p-4 flex items-center gap-3 animate-fade-in">
+        <div className="surface border-amber-500/15 p-4 flex items-center gap-3 animate-fade-in">
           <AlertTriangle size={16} className="text-amber-400 shrink-0" />
           <p className="text-xs text-amber-200/80">{dnsStatus.hint}</p>
         </div>
@@ -764,7 +764,7 @@ function CertificatesPanel({ data, loading, onRefresh }: { data: RouteCertificat
   const tone = !data ? 'text-slate-500' : problems > 0 || certs.length === 0 ? 'text-amber-400' : 'text-emerald-400'
   const challengeLabel = data?.challenge === 'dns' ? 'DNS-01 via Cloudflare' : data?.challenge === 'http' ? 'HTTP-01 on port 80' : data?.challenge === 'none' ? 'no resolver' : 'unknown'
   return (
-    <div className="glass border border-white/5 rounded-xl p-4 animate-fade-in">
+    <div className="surface p-4 animate-fade-in">
       <div className="flex items-center justify-between gap-3 mb-3">
         <div className="flex items-center gap-2 min-w-0">
           <Lock size={15} className={tone} />
@@ -864,7 +864,7 @@ function RoutesPanel(props: {
   const setCurrentPage = useSettingsStore.getState().setCurrentPage
 
   return (
-    <div className="glass border border-white/5 rounded-xl overflow-hidden">
+    <div className="surface overflow-hidden">
       <div className="px-5 py-3.5 border-b border-white/5 flex items-center justify-between bg-slate-900/40">
         <div className="flex items-center gap-2.5">
           <Globe size={14} className="text-cyan-400" />
@@ -983,14 +983,14 @@ function RecordsPanel(props: {
 
   if (!cfConfigured) {
     return (
-      <div className="glass border border-white/5 rounded-xl">
+      <div className="surface">
         <EmptyState icon={<CloudOff size={28} className="text-slate-500" />} title="DNS records appear here once Cloudflare is connected" hint="Store the API token as the secret CF_DNS_API_TOKEN" />
       </div>
     )
   }
 
   return (
-    <div className="glass border border-white/5 rounded-xl overflow-hidden">
+    <div className="surface overflow-hidden">
       {/* Toolbar */}
       <div className="px-4 md:px-5 py-3 border-b border-white/5 bg-slate-900/40 flex flex-col lg:flex-row lg:items-center gap-3">
         <div className="flex items-center gap-2 min-w-0">

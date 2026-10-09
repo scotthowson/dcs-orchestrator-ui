@@ -141,19 +141,13 @@ export default function StackCard({ stack, isActionLoading, onAction, onSelect, 
   return (
     <div
       className={`
-        group relative glass glass-hover cursor-pointer overflow-hidden
-        border-l-2 transition-all duration-300
+        group relative surface cursor-pointer overflow-hidden flex flex-col
+        border-l-2 hover:bg-white/[0.02] transition-colors duration-150
         ${borderColor}
-        ${isRunning && !batchMode ? 'glow-emerald' : ''}
         ${batchMode && isSelected ? 'ring-2 ring-cyan-500/40' : ''}
       `}
       onClick={handleCardClick}
     >
-      {/* Subtle glow overlay for running stacks */}
-      {isRunning && !batchMode && (
-        <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/[0.03] to-transparent pointer-events-none" />
-      )}
-
       {/* Selected glow overlay in batch mode */}
       {batchMode && isSelected && (
         <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/[0.05] to-transparent pointer-events-none" />
@@ -167,10 +161,10 @@ export default function StackCard({ stack, isActionLoading, onAction, onSelect, 
       )}
 
       {/* Card content */}
-      <div className="relative p-5 pb-6">
+      <div className="relative flex flex-1 flex-col p-4 md:p-5">
         {/* Header row: checkbox (batch mode) + name + status + edit */}
-        <div className="flex items-start justify-between mb-2">
-          <div className="flex items-start gap-3 flex-1 min-w-0 mr-3">
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div className="flex items-start gap-3 flex-1 min-w-0">
             {/* Batch mode checkbox */}
             {batchMode && (
               <button role="checkbox" aria-checked={isSelected} aria-label={`Select ${stack.name}`}
@@ -225,42 +219,9 @@ export default function StackCard({ stack, isActionLoading, onAction, onSelect, 
 
           <div className="flex flex-col items-end gap-1.5 shrink-0">
           <div className="flex items-center gap-1.5">
-            {!batchMode && onMoveToVm && !stack.hub_only && (
-              <Hint label="Move this stack into a Proxmox VM of its own, with its data">
-                <button
-                  onClick={(e) => { e.stopPropagation(); onMoveToVm(stack.name) }}
-                  aria-label={`Move ${stack.name} into a VM`}
-                  className={`${BTN_CARD_QUIET} text-violet-300 hover:bg-violet-500/10`}
-                >
-                  <Server size={12} />
-                  <span className="hidden sm:inline">To a VM</span>
-                </button>
-              </Hint>
-            )}
-            {!batchMode && onEdit && (
-              <button
-                onClick={(e) => { e.stopPropagation(); onEdit(stack.name) }}
-                aria-label={`Edit ${stack.name}`}
-                className={BTN_CARD_QUIET}
-              >
-                <Pencil size={12} />
-                <span className="hidden sm:inline">Edit</span>
-              </button>
-            )}
-            {!batchMode && onDelete && !isRunning && (
-              <Hint label="Delete the stack">
-                <button
-                  onClick={(e) => { e.stopPropagation(); onDelete(stack.name) }}
-                  aria-label={`Delete ${stack.name}`}
-                  className={`${BTN_ICON_SM} ${TONE_GHOST_DANGER} sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100`}
-                >
-                  <Trash2 size={12} />
-                </button>
-              </Hint>
-            )}
             <span
               className={`
-                inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ml-1
+                inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium
                 ${
                   isRunning
                     ? 'bg-emerald-500/15 text-emerald-400 ring-1 ring-emerald-500/25'
@@ -385,12 +346,10 @@ export default function StackCard({ stack, isActionLoading, onAction, onSelect, 
             {appLinks.length > 4 && <span className="text-[10px] text-slate-500">+{appLinks.length - 4}</span>}
           </div>
         )}
-        <div className="mb-2.5" />
-
-        {/* Action buttons (hidden in batch mode) */}
+        {/* Action buttons (hidden in batch mode): the stack's controls left, editing it right */}
         {!batchMode && (
           <div
-            className="flex flex-wrap items-center gap-1.5 pt-3 border-t border-white/5"
+            className="mt-auto flex flex-wrap items-center gap-1.5 pt-3 border-t border-white/5"
             onClick={(e) => e.stopPropagation()}
           >
             {/* start, stop, restart and update are admin calls on the API: a viewer sees the state, not the controls */}
@@ -415,10 +374,45 @@ export default function StackCard({ stack, isActionLoading, onAction, onSelect, 
               )
             })}
 
-            {/* Compose file indicator */}
-            {stack.has_env && (
-              <span className="ml-auto text-[10px] text-slate-500 font-mono">.env</span>
-            )}
+            <div className="ml-auto flex items-center gap-1.5">
+              {/* Compose file indicator */}
+              {stack.has_env && (
+                <span className="mr-1 text-[10px] text-slate-500 font-mono">.env</span>
+              )}
+              {!batchMode && onMoveToVm && !stack.hub_only && (
+                <Hint label="Move this stack into a Proxmox VM of its own, with its data">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onMoveToVm(stack.name) }}
+                    aria-label={`Move ${stack.name} into a VM`}
+                    className={`${BTN_CARD_QUIET} text-violet-300 hover:bg-violet-500/10`}
+                  >
+                    <Server size={12} />
+                    <span className="hidden sm:inline">To a VM</span>
+                  </button>
+                </Hint>
+              )}
+              {!batchMode && onEdit && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onEdit(stack.name) }}
+                  aria-label={`Edit ${stack.name}`}
+                  className={BTN_CARD_QUIET}
+                >
+                  <Pencil size={12} />
+                  <span className="hidden sm:inline">Edit</span>
+                </button>
+              )}
+              {!batchMode && onDelete && !isRunning && (
+                <Hint label="Delete the stack">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onDelete(stack.name) }}
+                    aria-label={`Delete ${stack.name}`}
+                    className={`${BTN_ICON_SM} ${TONE_GHOST_DANGER} sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100`}
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </Hint>
+              )}
+            </div>
           </div>
         )}
       </div>

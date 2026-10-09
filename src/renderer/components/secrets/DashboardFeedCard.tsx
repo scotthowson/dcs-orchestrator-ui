@@ -53,7 +53,7 @@ export default function DashboardFeedCard() {
   }
 
   return (
-    <section aria-label="Dashboard feed" className="glass rounded-xl border border-white/5 p-4 space-y-3">
+    <section aria-label="Dashboard feed" className="surface p-4 space-y-3">
       <div className="flex items-start gap-3 flex-wrap">
         <div className="h-9 w-9 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0"><Radio size={16} className="text-emerald-400" /></div>
         <div className="min-w-0 flex-1">

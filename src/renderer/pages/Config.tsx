@@ -272,7 +272,7 @@ function GroupCard({ icon, title, description, children, storageKey }: GroupCard
   }
 
   return (
-    <div className="glass rounded-xl border border-white/5 overflow-hidden">
+    <div className="surface overflow-hidden">
       <h2 className="m-0">
         <button
           type="button"
@@ -315,7 +315,7 @@ function GroupCard({ icon, title, description, children, storageKey }: GroupCard
 
 function ConfigSkeleton() {
   const card = (rows: number, key: number) => (
-    <div key={key} className="glass rounded-xl border border-white/5 overflow-hidden" aria-hidden>
+    <div key={key} className="surface overflow-hidden" aria-hidden>
       <div className="px-5 py-4 border-b border-white/5 flex items-center gap-2.5">
         <div className="skeleton h-4 w-4 rounded" />
         <div className="skeleton h-4 w-36 rounded" />

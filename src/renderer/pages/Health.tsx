@@ -140,7 +140,7 @@ function ResourceGauge({ label, value, icon: Icon, detail }: {
   const clampedPct = Math.min(100, Math.max(0, pct))
   const tone = pctTone(pct)
   return (
-    <div className="glass-subtle p-3 md:p-4 min-w-0">
+    <div className="surface p-3 md:p-4 min-w-0">
       <div className="flex items-center gap-2 mb-2">
         <Icon size={14} className="text-slate-400" aria-hidden />
         <span className="text-[10px] md:text-xs text-slate-500 uppercase tracking-wide">{label}</span>

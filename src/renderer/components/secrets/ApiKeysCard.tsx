@@ -58,7 +58,7 @@ export default function ApiKeysCard() {
   const copy = () => { if (made) navigator.clipboard?.writeText(made.key).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1500) }).catch(() => {}) }
 
   return (
-    <section aria-label="API keys" className="glass rounded-xl border border-white/5 p-4 space-y-3">
+    <section aria-label="API keys" className="surface p-4 space-y-3">
       <div className="flex items-start gap-3">
         <div className="h-9 w-9 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center shrink-0"><KeyRound size={16} className="text-sky-400" /></div>
         <div className="min-w-0 flex-1">

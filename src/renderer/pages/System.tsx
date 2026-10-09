@@ -191,7 +191,7 @@ function MaintenancePanel({ member, whereLabel }: ScopedProps) {
           type="button"
           onClick={handlePrune}
           disabled={pruning || imagePruning}
-          className="flex items-center gap-3 rounded-xl p-4 bg-white/[0.03] border border-white/5 hover:bg-white/5 hover:border-white/10 disabled:opacity-50 transition-all duration-200 text-left"
+          className="flex items-center gap-3 surface p-4 hover:bg-white/5 hover:border-white/10 disabled:opacity-50 transition-all duration-200 text-left"
         >
           <div className="rounded-lg p-2.5 bg-rose-500/10 text-rose-400">
             {pruning ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />}
@@ -206,7 +206,7 @@ function MaintenancePanel({ member, whereLabel }: ScopedProps) {
           type="button"
           onClick={handleImagePrune}
           disabled={pruning || imagePruning}
-          className="flex items-center gap-3 rounded-xl p-4 bg-white/[0.03] border border-white/5 hover:bg-white/5 hover:border-white/10 disabled:opacity-50 transition-all duration-200 text-left"
+          className="flex items-center gap-3 surface p-4 hover:bg-white/5 hover:border-white/10 disabled:opacity-50 transition-all duration-200 text-left"
         >
           <div className="rounded-lg p-2.5 bg-rose-500/10 text-rose-400">
             {imagePruning ? <Loader2 size={18} className="animate-spin" /> : <HardDrive size={18} />}

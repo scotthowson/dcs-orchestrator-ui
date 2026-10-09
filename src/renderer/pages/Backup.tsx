@@ -330,7 +330,7 @@ export default function Backup() {
       {/* ================================================================= */}
       {/* Saved copies: the backups (data) and the snapshots (settings)     */}
       {/* ================================================================= */}
-      <section ref={listRef} aria-labelledby="saved-copies-title" className="glass border border-white/5 rounded-xl overflow-hidden scroll-mt-4">
+      <section ref={listRef} aria-labelledby="saved-copies-title" className="surface overflow-hidden scroll-mt-4">
         <div className="px-5 py-4 border-b border-white/5 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
           <div className="flex items-center gap-2 min-w-0">
             <HardDrive size={16} className="text-slate-400" aria-hidden />

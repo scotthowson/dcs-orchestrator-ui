@@ -612,7 +612,7 @@ export default function Notifications() {
 
       {/* ── Guide ──────────────────────────────────────────────────────── */}
       {showGuide && (
-        <div id="notification-guide" className="glass border border-white/5 rounded-xl overflow-hidden animate-fade-in">
+        <div id="notification-guide" className="surface overflow-hidden animate-fade-in">
           <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <BookOpen size={14} className="text-cyan-400" />
@@ -675,7 +675,7 @@ export default function Notifications() {
       )}
 
       {/* ── Quick add presets (adding a rule is for admins) ─────────────── */}
-      {isAdmin && <div className="glass border border-white/5 rounded-xl p-4 md:p-5">
+      {isAdmin && <div className="surface p-4 md:p-5">
         <div className="flex items-center gap-2 mb-4">
           <Zap size={14} className="text-slate-400" />
           <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Quick add — notification presets</h2>
@@ -727,7 +727,7 @@ export default function Notifications() {
       {/* ── Channels: ntfy and Discord, side by side ──────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* ── ntfy connection status ──────────────────────────────────────── */}
-        <div className="glass border border-white/5 rounded-xl p-4 md:p-6">
+        <div className="surface p-4 md:p-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="relative">
@@ -775,7 +775,7 @@ export default function Notifications() {
         </div>
 
         {/* Discord channel */}
-        <div className="glass border border-white/5 rounded-xl p-4 md:p-6">
+        <div className="surface p-4 md:p-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="relative">
@@ -821,13 +821,13 @@ export default function Notifications() {
         {/* Loading */}
         {rulesLoading && !rulesData && (
           <div className="space-y-2" role="status" aria-label="Loading notification rules">
-            {[1, 2].map((i) => <div key={i} className="glass rounded-xl h-[72px] skeleton" />)}
+            {[1, 2].map((i) => <div key={i} className="rounded-xl h-[72px] skeleton" />)}
           </div>
         )}
 
         {/* Empty state */}
         {rulesData && rules.length === 0 && (
-          <div className="glass border border-white/5 rounded-xl">
+          <div className="surface">
             <EmptyState
               compact
               icon={<Bell size={28} />}
@@ -849,7 +849,7 @@ export default function Notifications() {
             {rules.map((rule) => (
               <div
                 key={rule.id}
-                className={`glass border border-white/5 rounded-xl p-4 md:p-6 transition-all ${
+                className={`surface p-4 md:p-6 transition-all ${
                   !rule.enabled ? 'opacity-60' : ''
                 }`}
               >
@@ -942,7 +942,7 @@ export default function Notifications() {
 
             {/* Empty state */}
             {historyData && history.length === 0 && (
-              <div className="glass border border-white/5 rounded-xl">
+              <div className="surface">
                 <EmptyState
                   compact
                   icon={<Clock size={28} />}
@@ -958,7 +958,7 @@ export default function Notifications() {
                 {history.map((entry) => (
                   <div
                     key={entry.timestamp}
-                    className={`glass border border-white/5 rounded-xl p-4 md:p-5 border-l-2 ${historyPriorityAccent(entry.priority)}`}
+                    className={`surface p-4 md:p-5 border-l-2 ${historyPriorityAccent(entry.priority)}`}
                   >
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <div className="flex flex-col gap-1.5 min-w-0">
@@ -1040,7 +1040,7 @@ export default function Notifications() {
 
             {/* Inline add webhook form */}
             {showAddWebhook && (
-              <div className="glass border border-cyan-500/20 rounded-xl p-4 md:p-5 space-y-4 animate-fade-in">
+              <div className="surface border-cyan-500/20 p-4 md:p-5 space-y-4 animate-fade-in">
                 <div className="flex items-center gap-2 mb-1">
                   <Webhook size={14} className="text-cyan-400" />
                   <h3 className="text-xs font-semibold text-slate-300">New webhook</h3>
@@ -1117,13 +1117,13 @@ export default function Notifications() {
             {/* Loading */}
             {!webhooksData && (
               <div className="space-y-2" role="status" aria-label="Loading webhooks">
-                <div className="glass rounded-xl h-[72px] skeleton" />
+                <div className="rounded-xl h-[72px] skeleton" />
               </div>
             )}
 
             {/* Empty state */}
             {webhooksData && webhooks.length === 0 && (
-              <div className="glass border border-white/5 rounded-xl">
+              <div className="surface">
                 <EmptyState
                   compact
                   icon={<Webhook size={28} />}
@@ -1139,7 +1139,7 @@ export default function Notifications() {
                 {webhooks.map((wh) => (
                   <div
                     key={wh.id}
-                    className={`glass border border-white/5 rounded-xl p-4 md:p-5 transition-all ${
+                    className={`surface p-4 md:p-5 transition-all ${
                       !wh.enabled ? 'opacity-60' : ''
                     }`}
                   >

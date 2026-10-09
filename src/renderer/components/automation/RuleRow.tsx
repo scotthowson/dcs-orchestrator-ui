@@ -37,7 +37,7 @@ export default function RuleRow({ rule, isAdmin, scopeMember, running, toggling,
   const Icon = rule.actionIcon
   const timed = rule.kind === 'timed'
   return (
-    <li className={`glass rounded-xl overflow-hidden border transition-colors ${rule.enabled ? 'border-white/5 hover:border-white/10' : 'border-white/[0.03]'}`}>
+    <li className={`surface overflow-hidden transition-colors ${rule.enabled ? 'hover:border-white/10' : 'border-white/[0.03]'}`}>
       <div className="p-4 flex flex-wrap items-center gap-x-4 gap-y-3">
         {/* the action's icon: emerald while the rule is on */}
         <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${rule.enabled ? 'bg-emerald-500/10 text-emerald-400' : 'bg-white/5 text-slate-500'}`} aria-hidden>

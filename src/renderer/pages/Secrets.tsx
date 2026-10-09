@@ -236,7 +236,7 @@ export default function Secrets() {
 
       {/* Guide */}
       {showGuide && (
-        <section aria-label={`${pageLabel('secrets')} guide`} className="glass rounded-xl border border-white/5 overflow-hidden animate-fade-in">
+        <section aria-label={`${pageLabel('secrets')} guide`} className="surface overflow-hidden animate-fade-in">
           <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <BookOpen size={16} className="text-slate-400" aria-hidden />
@@ -287,10 +287,10 @@ export default function Secrets() {
       {/* Cards */}
       {loading && entries.length === 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" role="status" aria-label="Reading the secrets">
-          {[1, 2, 3].map((i) => <div key={i} className="glass rounded-xl p-4 h-24 skeleton" aria-hidden />)}
+          {[1, 2, 3].map((i) => <div key={i} className="rounded-xl p-4 h-24 skeleton" aria-hidden />)}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="glass rounded-xl border border-white/5">
+        <div className="surface">
           <EmptyState
             icon={<KeyRound size={28} />}
             title={search ? 'No secrets match your search' : 'No secrets stored yet'}
@@ -309,7 +309,7 @@ export default function Secrets() {
             const r = refs[id]
             const open = refsFor === id
             return (
-              <div key={id} className="glass rounded-xl p-4 border border-white/5 hover:border-white/10 transition-colors animate-fade-in">
+              <div key={id} className="surface p-4 hover:border-white/10 transition-colors animate-fade-in">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0" aria-hidden>

@@ -1275,7 +1275,7 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
               tabIndex={0}
               aria-label="Container logs"
               className="
-                glass-subtle mt-3 p-4 max-h-80 overflow-auto
+                surface mt-3 p-4 max-h-80 overflow-auto
                 text-xs leading-relaxed font-mono text-slate-300
                 whitespace-pre-wrap break-words scrollbar-thin
                 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500/40
@@ -2009,7 +2009,7 @@ interface StatCardProps {
 }
 
 const StatCard: React.FC<StatCardProps> = ({ icon, label, value, subValue, loading }) => (
-  <div className="glass-subtle p-4 flex flex-col gap-2">
+  <div className="surface p-4 flex flex-col gap-2">
     <div className="flex items-center gap-2">
       {icon}
       <span className="text-xs text-slate-500 uppercase tracking-wide">{label}</span>

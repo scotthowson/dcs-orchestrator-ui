@@ -342,7 +342,7 @@ export default function Stacks() {
   const isComplete = batchResults !== null && !batchLoading
 
   return (
-    <div className="h-full overflow-y-auto scrollbar-thin p-4 md:p-6">
+    <div>
       <DisconnectedBanner />
       {selectedStackName && !batchMode ? (
         <StackDetail

@@ -274,7 +274,7 @@ export default function Automations() {
       {/* the rules at a glance, both kinds */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 md:gap-3">
         {tiles.map((t) => (
-          <div key={t.label} className="glass border border-white/5 rounded-xl p-3 sm:p-4 md:p-5">
+          <div key={t.label} className="surface p-3 sm:p-4 md:p-5">
             <div className="flex items-center gap-2 mb-1">
               <t.icon size={14} className={t.iconTone} aria-hidden />
               <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">{t.label}</span>
@@ -320,10 +320,10 @@ export default function Automations() {
 
           {!ready ? (
             <div className="space-y-3" role="status" aria-label="Reading the rules">
-              {[0, 1, 2].map((i) => <div key={i} className="glass border border-white/5 rounded-xl h-[5.5rem] skeleton" aria-hidden />)}
+              {[0, 1, 2].map((i) => <div key={i} className="surface h-[5.5rem] skeleton" aria-hidden />)}
             </div>
           ) : shown.length === 0 ? (
-            <div className="glass border border-white/5 rounded-xl">
+            <div className="surface">
               <EmptyState
                 icon={<Bot size={28} />}
                 title={rules.length === 0 ? 'No rules yet' : kind === 'timed' ? 'No timed rules' : 'No rules that wait for something to happen'}

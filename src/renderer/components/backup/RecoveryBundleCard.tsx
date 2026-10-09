@@ -149,7 +149,7 @@ export default function RecoveryBundleCard() {
   if (!isAdmin) return null
 
   return (
-    <section aria-labelledby="recovery-bundle-title" className="glass rounded-xl border border-white/5 overflow-hidden">
+    <section aria-labelledby="recovery-bundle-title" className="surface overflow-hidden">
       <div className="px-5 py-4 border-b border-white/5 flex items-center gap-2">
         <LifeBuoy size={16} className="text-slate-400" aria-hidden />
         <h2 id="recovery-bundle-title" className="text-sm font-semibold text-slate-200">Recovery bundle</h2>
@@ -167,15 +167,15 @@ export default function RecoveryBundleCard() {
 
         {data && (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="glass border border-white/5 rounded-lg p-3">
+            <div className="rounded-lg bg-white/[0.03] border border-white/5 p-3">
               <p className="text-[10px] text-slate-500 uppercase tracking-wider">Destination</p>
               <p className="text-xs font-mono text-slate-300 truncate mt-1" title={data.dest_dir}>{data.dest_dir}</p>
             </div>
-            <div className="glass border border-white/5 rounded-lg p-3">
+            <div className="rounded-lg bg-white/[0.03] border border-white/5 p-3">
               <p className="text-[10px] text-slate-500 uppercase tracking-wider">Off-box copy</p>
               <p className="text-xs font-mono text-slate-300 truncate mt-1" title={data.remote || 'not set'}>{data.remote || <span className="text-slate-500">not set ({pageLabel('config')} → Recovery bundle)</span>}</p>
             </div>
-            <div className="glass border border-white/5 rounded-lg p-3">
+            <div className="rounded-lg bg-white/[0.03] border border-white/5 p-3">
               <p className="text-[10px] text-slate-500 uppercase tracking-wider">Passphrase</p>
               <p className="text-xs mt-1 flex items-center gap-1.5">{data.passphrase_set ? <><CheckCircle size={12} className="text-emerald-400" /><span className="text-emerald-300">stored (schedules can run)</span></> : <><AlertTriangle size={12} className="text-amber-400" /><span className="text-amber-300">not stored yet</span></>}</p>
             </div>

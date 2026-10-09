@@ -1092,7 +1092,7 @@ export default function Updates() {
           </div>
 
           {/* This dashboard */}
-          <div className="rounded-xl bg-white/[0.03] border border-white/5 p-5">
+          <div className="surface p-5">
             <div className="flex items-center gap-3 mb-4">
               <CardIcon><Monitor size={16} /></CardIcon>
               <div>

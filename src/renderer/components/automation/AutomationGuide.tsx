@@ -137,7 +137,7 @@ Tips:
 export default function AutomationGuide({ onClose }: { onClose: () => void }) {
   const [expanded, setExpanded] = useState<number | null>(0)
   return (
-    <section aria-label={`${pageLabel('automations')} guide`} className="glass rounded-xl border border-white/5 overflow-hidden animate-fade-in">
+    <section aria-label={`${pageLabel('automations')} guide`} className="surface overflow-hidden animate-fade-in">
       <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <BookOpen size={16} className="text-slate-400" aria-hidden />

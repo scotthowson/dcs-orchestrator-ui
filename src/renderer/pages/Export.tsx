@@ -259,7 +259,7 @@ function ExportCard({ card, selected, onToggle, onExport, isLoading, isConnected
   const Icon = card.icon
 
   return (
-    <div className={`relative glass rounded-xl border transition-colors ${selected ? 'border-cyan-500/30 bg-cyan-500/[0.05]' : 'border-white/5 hover:border-white/10'}`}>
+    <div className={`relative surface transition-colors ${selected ? 'border-cyan-500/30 bg-cyan-500/[0.05]' : 'hover:border-white/10'}`}>
       {isAdmin && (
         <button
           type="button"
@@ -433,7 +433,7 @@ export default function Export() {
 
       {/* ── Non-admin notice ── */}
       {!isAdmin && (
-        <div className="glass rounded-xl p-4 border border-cyan-500/20 flex items-center gap-3" role="status">
+        <div className="surface p-4 border-cyan-500/20 flex items-center gap-3" role="status">
           <ShieldAlert className="w-5 h-5 text-cyan-400 shrink-0" aria-hidden />
           <p className="text-sm text-cyan-200/90">
             Admin privileges are required to export server data.
@@ -443,7 +443,7 @@ export default function Export() {
 
       {/* ── Full system report ── */}
       {isAdmin && (
-        <section aria-labelledby="export-full-title" className="glass rounded-xl border border-white/5 overflow-hidden">
+        <section aria-labelledby="export-full-title" className="surface overflow-hidden">
           <div className="p-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
               <div className="flex items-center gap-2">
@@ -489,7 +489,7 @@ export default function Export() {
 
       {/* ── Batch selection toolbar ── */}
       {isAdmin && selectedCards.size > 0 && (
-        <div className="glass rounded-xl p-3 border border-cyan-500/20 flex flex-wrap items-center justify-between gap-2 animate-fade-in">
+        <div className="surface p-3 border-cyan-500/20 flex flex-wrap items-center justify-between gap-2 animate-fade-in">
           <div className="flex items-center gap-2" role="status">
             <Zap className="w-4 h-4 text-cyan-400" aria-hidden />
             <span className="text-sm text-slate-300">
@@ -546,7 +546,7 @@ export default function Export() {
 
       {/* ── Export history ── */}
       {showHistory && history.length > 0 && (
-        <section aria-labelledby="export-history-title" className="glass rounded-xl border border-white/5 overflow-hidden animate-fade-in">
+        <section aria-labelledby="export-history-title" className="surface overflow-hidden animate-fade-in">
           <div className="px-5 py-3 border-b border-white/5 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4 text-slate-400" aria-hidden />

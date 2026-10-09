@@ -59,7 +59,7 @@ function Choice({ id, icon, tone, title, tag, children, description }: {
   children: ReactNode
 }) {
   return (
-    <section aria-labelledby={id} className="glass rounded-xl border border-white/5 p-4 flex flex-col gap-3 min-w-0">
+    <section aria-labelledby={id} className="surface p-4 flex flex-col gap-3 min-w-0">
       <div className="flex items-start gap-3">
         <div className={`flex items-center justify-center w-9 h-9 rounded-lg shrink-0 ${tone}`} aria-hidden>{icon}</div>
         <div className="min-w-0">
@@ -321,7 +321,7 @@ export default function MakeCopy({
 
       {/* The settings a backup runs with: one server's */}
       {openPanel === 'settings' && (
-        <section id="backup-settings-panel" aria-labelledby="backup-settings-title" className="glass rounded-xl border border-white/5 overflow-hidden animate-fade-in">
+        <section id="backup-settings-panel" aria-labelledby="backup-settings-title" className="surface overflow-hidden animate-fade-in">
           <div className="px-5 py-4 border-b border-white/5 flex flex-wrap items-center gap-2">
             <SlidersHorizontal size={16} className="text-slate-400" aria-hidden />
             <h2 id="backup-settings-title" className="text-sm font-semibold text-slate-200">Backup settings</h2>
@@ -331,21 +331,21 @@ export default function MakeCopy({
             {!config && <p className="text-xs text-slate-500">Reading the settings…</p>}
             {config && (
               <div className={`grid grid-cols-1 gap-3 ${(config.appdata_dirs?.length ?? 0) > 0 ? 'sm:grid-cols-2 lg:grid-cols-4' : 'sm:grid-cols-3'}`}>
-                <div className="glass border border-white/5 rounded-lg p-3 min-w-0">
+                <div className="rounded-lg bg-white/[0.03] border border-white/5 p-3 min-w-0">
                   <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Destination</p>
                   <p className="mt-1 text-xs font-mono text-slate-300 truncate" title={config.destination}>{config.destination || 'not set'}</p>
                 </div>
-                <div className="glass border border-white/5 rounded-lg p-3 min-w-0">
+                <div className="rounded-lg bg-white/[0.03] border border-white/5 p-3 min-w-0">
                   <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Source</p>
                   <p className="mt-1 text-xs font-mono text-slate-300 truncate" title={config.source}>{config.source || 'N/A'}</p>
                 </div>
-                <div className="glass border border-white/5 rounded-lg p-3 min-w-0">
+                <div className="rounded-lg bg-white/[0.03] border border-white/5 p-3 min-w-0">
                   <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Retention</p>
                   <p className="mt-1 text-xs font-mono text-slate-300">{config.retention_count} backup{config.retention_count !== 1 ? 's' : ''} of each kind</p>
                 </div>
                 {/* App-Data on drives of their own: parts of their own in every backup */}
                 {(config.appdata_dirs?.length ?? 0) > 0 && (
-                  <div className="glass border border-white/5 rounded-lg p-3 min-w-0">
+                  <div className="rounded-lg bg-white/[0.03] border border-white/5 p-3 min-w-0">
                     <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">App-Data on drives</p>
                     <ul className="mt-1 space-y-0.5">
                       {config.appdata_dirs!.map((d) => (

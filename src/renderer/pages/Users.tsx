@@ -362,7 +362,7 @@ export default function Users() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-5">
         {/* ---- Users List ---- */}
-        <section className="glass rounded-xl border border-white/5 p-5">
+        <section className="surface p-5">
           <div className="flex items-center justify-between mb-5">
             <CardTitle icon={<UsersIcon className="h-4 w-4 text-emerald-400" aria-hidden />} count={users.length}>Registered users</CardTitle>
           </div>
@@ -472,7 +472,7 @@ export default function Users() {
         </section>
 
         {/* ---- Create a user directly ---- */}
-        <section className="glass rounded-xl border border-white/5 p-5">
+        <section className="surface p-5">
           <CardTitle icon={<UserPlus className="h-4 w-4 text-emerald-400" aria-hidden />}>Create user</CardTitle>
           <p className="text-xs text-slate-500 mt-1 mb-4">
             An account you set up yourself, no invite code: for the Discord bot, an automation, or someone who should not register on their own. Bots need admin for the start, stop and update commands.
@@ -527,7 +527,7 @@ export default function Users() {
         </section>
 
         {/* ---- Invite Codes ---- */}
-        <section className="glass rounded-xl border border-white/5 p-5">
+        <section className="surface p-5">
           <div className="mb-5">
             <CardTitle icon={<KeyRound className="h-4 w-4 text-cyan-400" aria-hidden />}>Invite codes</CardTitle>
           </div>
@@ -633,7 +633,7 @@ export default function Users() {
         </section>
 
         {/* ── Active sessions ── */}
-        <section className="glass rounded-xl border border-white/5 overflow-hidden">
+        <section className="surface overflow-hidden">
           <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <KeyRound className="h-4 w-4 text-cyan-400" aria-hidden />
@@ -685,7 +685,7 @@ export default function Users() {
       </div>
 
       {/* ── Sign-in to your apps: Authelia's second step ── */}
-      <section className="glass rounded-xl border border-white/5 p-5 space-y-4" aria-labelledby="app-sign-in-title">
+      <section className="surface p-5 space-y-4" aria-labelledby="app-sign-in-title">
         <div className="flex items-center gap-2">
           <Fingerprint className="h-4 w-4 text-emerald-400" aria-hidden />
           <h2 id="app-sign-in-title" className="text-sm font-semibold text-slate-200">Sign-in to your apps (Authelia)</h2>
@@ -706,7 +706,7 @@ function SummaryCard({ icon, label, value }: {
   value: number
 }) {
   return (
-    <div className="glass rounded-xl border border-white/5 p-5 flex items-center gap-4">
+    <div className="surface p-5 flex items-center gap-4">
       <div className="flex-shrink-0" aria-hidden>{icon}</div>
       <div>
         <p className="text-[10px] text-slate-500 uppercase tracking-wider">{label}</p>

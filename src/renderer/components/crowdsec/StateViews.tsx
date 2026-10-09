@@ -188,7 +188,7 @@ function LogPanel({ initial, onRefresh }: { initial: string[]; onRefresh: () => 
 function Step({ icon: Icon, title, text, tone }: { icon: React.ElementType; title: string; text: string; tone: Tone }) {
   const tile = tone === 'problem' ? 'bg-rose-500/10 border-rose-500/20 text-rose-300' : tone === 'ok' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300' : tone === 'attention' ? 'bg-amber-500/10 border-amber-500/20 text-amber-300' : 'bg-cyan-500/10 border-cyan-500/20 text-cyan-400'
   return (
-    <div className="flex-1 min-w-0 rounded-xl bg-white/[0.03] border border-white/5 p-3.5">
+    <div className="flex-1 min-w-0 surface p-3.5">
       <div className={`w-9 h-9 rounded-xl border flex items-center justify-center ${tile}`}><Icon size={16} /></div>
       <p className="text-sm font-medium text-slate-100 mt-2.5">{title}</p>
       <p className="text-xs text-slate-500 mt-0.5">{text}</p>

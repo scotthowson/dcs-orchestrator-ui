@@ -396,7 +396,7 @@ export default function Maintenance() {
 
       {/* Guide Panel */}
       {showGuide && (
-        <section aria-label={`${pageLabel('maintenance')} guide`} className="glass rounded-xl border border-white/5 overflow-hidden animate-fade-in">
+        <section aria-label={`${pageLabel('maintenance')} guide`} className="surface overflow-hidden animate-fade-in">
           <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <BookOpen size={16} className="text-slate-400" aria-hidden />
@@ -445,7 +445,7 @@ export default function Maintenance() {
       {/* ================================================================== */}
       {/* 1. Actions */}
       {/* ================================================================== */}
-      <section aria-labelledby="maint-actions-title" className="glass rounded-xl p-5 border border-white/5">
+      <section aria-labelledby="maint-actions-title" className="surface p-5">
         <h2 id="maint-actions-title" className="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2">Actions{hasFleet && <span className="text-[11px] font-normal text-slate-500">{everywhere ? `on the hub and ${vmCount} VM${vmCount === 1 ? '' : 's'}` : `on ${whereLabel}`}</span>}</h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {/* Safe prune: nothing to lose (emerald) */}
@@ -477,7 +477,7 @@ export default function Maintenance() {
       {/* ================================================================== */}
       {/* 2. System report */}
       {/* ================================================================== */}
-      <section aria-labelledby="maint-report-title" className="glass rounded-xl p-5 border border-white/5">
+      <section aria-labelledby="maint-report-title" className="surface p-5">
         <h2 id="maint-report-title" className="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2">System report{everywhere && <span className="text-[11px] font-normal text-slate-500">added up across {targets.length} server{targets.length === 1 ? '' : 's'}</span>}</h2>
 
         {reportLoading && !report ? (
@@ -572,7 +572,7 @@ export default function Maintenance() {
       {/* ================================================================== */}
       {/* 3. Orphan detection */}
       {/* ================================================================== */}
-      <section aria-labelledby="maint-orphans-title" className="glass rounded-xl p-5 border border-white/5">
+      <section aria-labelledby="maint-orphans-title" className="surface p-5">
         <div className="flex items-center justify-between mb-3">
           <h2 id="maint-orphans-title" className="text-sm font-semibold text-slate-200">Orphan detection</h2>
           {!orphansLoading && orphans && allClean && (
@@ -694,7 +694,7 @@ export default function Maintenance() {
       {/* ================================================================== */}
       {/* 4. Disk usage */}
       {/* ================================================================== */}
-      <section aria-labelledby="maint-disk-title" className="glass rounded-xl p-5 border border-white/5">
+      <section aria-labelledby="maint-disk-title" className="surface p-5">
         <h2 id="maint-disk-title" className="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2">Disk usage{everywhere && <span className="text-[11px] font-normal text-slate-500">every server&apos;s stacks; Docker&apos;s table added up per type</span>}</h2>
 
         {diskLoading && !disk ? (

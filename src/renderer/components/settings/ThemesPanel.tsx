@@ -408,7 +408,7 @@ function ThemeStudio({ initial, editing, isAdmin, serverOk, onClose, onSaved }: 
             </div>
           )}
 
-          <div className="rounded-xl bg-white/[0.03] border border-white/5 overflow-hidden">
+          <div className="surface overflow-hidden">
             {GROUPS.map((group) => (
               <div key={group.title} className="border-b border-white/[0.04] last:border-b-0">
                 <p className="px-3 pt-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">{group.title}</p>

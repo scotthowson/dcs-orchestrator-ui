@@ -93,7 +93,7 @@ export default function DomainsPanel({ data, isAdmin, onChanged }: { data: Domai
 
   const effectiveDefault = data.vm_default ?? data.primary ?? ''
   return (
-    <div className="glass border border-white/5 rounded-xl p-4 animate-fade-in">
+    <div className="surface p-4 animate-fade-in">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-1">
         <div className="flex items-center gap-2 min-w-0">
           <Globe size={15} className="text-cyan-400" aria-hidden />

@@ -2446,7 +2446,7 @@ function SectionCard({ icon, title, children, fullWidth, defaultCollapsed }: {
   const bodyId = `${storageKey}-body`
 
   return (
-    <div className={`glass rounded-xl border border-white/5 overflow-hidden ${fullWidth ? 'lg:col-span-2' : ''} transition-all duration-300`}>
+    <div className={`surface overflow-hidden ${fullWidth ? 'lg:col-span-2' : ''} transition-all duration-300`}>
       <h2>
         <button
           type="button"

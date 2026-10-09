@@ -19,6 +19,7 @@ import { AsleepCount } from '../common/StateChip'
 import { containerState, countStates, statesLine, ASLEEP_HINT } from '../../lib/containerState'
 import PageHeader from '../common/PageHeader'
 import SortableTh from '../common/SortableTh'
+import StatTile from '../common/StatTile'
 import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, TONE_QUIET, BTN_CARD, TONE_GHOST, BTN_TOOLBAR_OK, BTN_TOOLBAR_DANGER, BTN_TOOLBAR_ATTN } from '../../lib/ui'
 import type { FleetScope, ScopeMember } from '../../hooks/useFleetScope'
 import { Box, CircleCheck, CircleX, CirclePause, Moon, Loader2, CheckSquare, Square as SquareIcon, Play, RefreshCw, RotateCw, Minus, Trash2 } from 'lucide-react'
@@ -379,15 +380,15 @@ const ContainerList: React.FC<ContainerListProps> = ({
       {/* ---- Summary cards ---- */}
       {/* asleep on demand has its own calm card (only when there is one): it is not counted as stopped */}
       <div className={`grid grid-cols-2 ${asleepCount > 0 ? 'md:grid-cols-5' : 'md:grid-cols-4'} gap-3`}>
-        <SummaryCard icon={<Box className="h-4 w-4 text-cyan-400" />} label="Total" value={containers.length} color="cyan" className={asleepCount > 0 ? 'col-span-2 md:col-span-1' : ''} />
-        <SummaryCard icon={<CircleCheck className="h-4 w-4 text-emerald-400" />} label="Running" value={runningCount} color="emerald" />
-        {asleepCount > 0 && <SummaryCard icon={<Moon className="h-4 w-4 text-indigo-300" />} label="Asleep" value={asleepCount} color="indigo" title={`${ASLEEP_HINT}. Not a problem.`} />}
-        <SummaryCard icon={<CircleX className={`h-4 w-4 ${stoppedCount > 0 ? 'text-rose-400' : 'text-slate-500'}`} />} label="Stopped" value={stoppedCount} color={stoppedCount > 0 ? 'rose' : 'slate'} />
-        <SummaryCard icon={<CirclePause className="h-4 w-4 text-amber-400" />} label="Paused" value={pausedCount} color="amber" />
+        <StatTile icon={Box} label="Total" value={containers.length} tone="info" className={asleepCount > 0 ? 'col-span-2 md:col-span-1' : ''} />
+        <StatTile icon={CircleCheck} label="Running" value={runningCount} tone="ok" />
+        {asleepCount > 0 && <StatTile icon={Moon} label="Asleep" value={asleepCount} iconClass="bg-indigo-500/10 text-indigo-300" title={`${ASLEEP_HINT}. Not a problem.`} />}
+        <StatTile icon={CircleX} label="Stopped" value={stoppedCount} tone={stoppedCount > 0 ? 'problem' : 'neutral'} />
+        <StatTile icon={CirclePause} label="Paused" value={pausedCount} tone={pausedCount > 0 ? 'attention' : 'neutral'} />
       </div>
 
       {/* ---- Filter tabs ---- */}
-      <div className="flex items-center gap-1 overflow-x-auto scrollbar-none bg-white/[0.03] border border-white/[0.05] rounded-xl p-1">
+      <div className="surface flex items-center gap-1 overflow-x-auto scrollbar-none p-1">
         {(['all', 'running', 'asleep', 'stopped', 'paused'] as const).filter((f) => f !== 'asleep' || asleepCount > 0 || filter === 'asleep').map((filterVal) => {
           const labelMap = { all: 'All', running: 'Running', asleep: 'Asleep', stopped: 'Stopped', paused: 'Paused' }
           const countMap = { all: containers.length, running: runningCount, asleep: asleepCount, stopped: stoppedCount, paused: pausedCount }
@@ -471,7 +472,7 @@ const ContainerList: React.FC<ContainerListProps> = ({
       </div>
 
       {/* ---- Desktop table ---- */}
-      <div className="hidden md:block glass overflow-hidden">
+      <div className="hidden md:block surface overflow-hidden">
         <div className="overflow-x-auto scrollbar-thin">
           <table className="w-full">
             <thead>
@@ -566,35 +567,5 @@ const ContainerList: React.FC<ContainerListProps> = ({
     </div>
   )
 }
-
-// ---------------------------------------------------------------------------
-// SummaryCard
-// ---------------------------------------------------------------------------
-
-interface SummaryCardProps {
-  icon: React.ReactNode
-  label: string
-  value: number
-  color: 'emerald' | 'cyan' | 'rose' | 'amber' | 'indigo' | 'slate'
-  title?: string
-  className?: string
-}
-
-const GLOW_MAP: Record<string, string> = {
-  emerald: 'glow-emerald',
-  cyan: 'glow-cyan',
-  rose: 'glow-rose',
-  amber: 'glow-amber',
-}
-
-const SummaryCard: React.FC<SummaryCardProps> = ({ icon, label, value, color, title, className = '' }) => (
-  <div className={`glass-subtle p-3 md:p-4 flex items-center gap-3 ${GLOW_MAP[color] ?? ''} ${className}`} title={title}>
-    <div className="flex-shrink-0">{icon}</div>
-    <div>
-      <p className="text-[10px] md:text-xs text-slate-500 uppercase tracking-wide">{label}</p>
-      <p className="text-lg md:text-xl font-bold text-white">{value}</p>
-    </div>
-  </div>
-)
 
 export default ContainerList

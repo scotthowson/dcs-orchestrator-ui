@@ -57,7 +57,7 @@ export default function TypedConfirmDialog({ title, word, confirmLabel, warning,
             {detail && <p className="text-xs text-rose-400/70 mt-1.5">{detail}</p>}
           </div>
 
-          <div className="glass border border-white/5 rounded-lg p-3.5">
+          <div className="rounded-lg bg-white/[0.03] border border-white/5 p-3.5">
             <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-2">{subjectLabel}</p>
             {subject}
           </div>

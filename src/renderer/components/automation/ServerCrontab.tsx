@@ -226,7 +226,7 @@ export default function ServerCrontab({ refreshKey, serverName }: {
   return (
     <div className="space-y-4">
       {/* whose crontab this is: this server's, not the fleet's, and commands rather than DCS tasks */}
-      <div className="glass border border-white/5 rounded-xl p-4 flex flex-wrap items-center gap-x-4 gap-y-3">
+      <div className="surface p-4 flex flex-wrap items-center gap-x-4 gap-y-3">
         <div className="flex items-start gap-3 flex-1 min-w-[14rem]">
           <span className="w-9 h-9 rounded-lg bg-white/5 border border-white/10 text-slate-300 flex items-center justify-center shrink-0" aria-hidden><Server size={16} /></span>
           <div className="min-w-0">
@@ -274,7 +274,7 @@ export default function ServerCrontab({ refreshKey, serverName }: {
       {showAddForm && (
         <form
           onSubmit={(e) => { e.preventDefault(); handleAddEntry() }}
-          className="glass border border-white/5 rounded-xl p-4 animate-scale-in"
+          className="surface p-4 animate-scale-in"
         >
           <h2 className="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2">
             <Plus size={14} className="text-slate-400" aria-hidden />
@@ -347,7 +347,7 @@ export default function ServerCrontab({ refreshKey, serverName }: {
 
       {/* Loading: the table's shape */}
       {loading && !data && (
-        <div className="glass border border-white/5 rounded-xl overflow-hidden" role="status" aria-label="Reading the cron entries">
+        <div className="surface overflow-hidden" role="status" aria-label="Reading the cron entries">
           <div className="px-4 py-3 border-b border-white/5"><div className="skeleton h-3 w-48 rounded" /></div>
           <div className="divide-y divide-white/[0.03]" aria-hidden>
             {[0, 1, 2, 3].map((i) => (
@@ -363,7 +363,7 @@ export default function ServerCrontab({ refreshKey, serverName }: {
 
       {/* Empty state */}
       {data && entries.length === 0 && (
-        <div className="glass border border-white/5 rounded-xl">
+        <div className="surface">
           <EmptyState
             icon={<CalendarClock size={28} />}
             title={search ? 'No entries match your filter' : 'No cron entries found'}
@@ -384,7 +384,7 @@ export default function ServerCrontab({ refreshKey, serverName }: {
 
       {/* Cron entries table */}
       {entries.length > 0 && (
-        <div className="glass border border-white/5 rounded-xl overflow-hidden">
+        <div className="surface overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[640px]">
               <thead>

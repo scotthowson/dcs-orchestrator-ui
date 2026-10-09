@@ -202,7 +202,7 @@ const ImageList: React.FC<ImageListProps> = ({ rows, query = '', onClearSearch, 
       </div>
 
       {/* ---- Table ---- */}
-      <div className="glass overflow-hidden">
+      <div className="surface overflow-hidden">
         <div className="overflow-x-auto scrollbar-thin">
           <table className="w-full">
             <thead>

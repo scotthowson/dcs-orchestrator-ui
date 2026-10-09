@@ -170,7 +170,7 @@ const Containers: React.FC = () => {
   const detailMemberName = detailMember ? (scopeMembers.find((m) => m.id === detailMember)?.name ?? selectedContainer?.member_name ?? detailMember) : ''
 
   return (
-    <div className="h-full overflow-y-auto scrollbar-thin p-4 md:p-6 animate-fade-in">
+    <div className="animate-fade-in">
       <DisconnectedBanner />
       <OnDemandMissingBanner />
       {selected && selectedContainer ? (
