@@ -41,7 +41,7 @@ export function StateChip({ state, size = 'sm', label, onDemandTag = true, title
   )
   if (onClick) {
     return (
-      <button type="button" onClick={(e) => { e.stopPropagation(); onClick(e) }} title={title ?? m.hint} className={`${cls} hover:brightness-125 transition`}>
+      <button type="button" onClick={(e) => { e.stopPropagation(); onClick(e) }} title={title ?? m.hint} className={`${cls} relative after:absolute after:inset-x-0 after:-inset-y-1 after:content-[''] hover:brightness-125 transition`}>
         {body}
       </button>
     )

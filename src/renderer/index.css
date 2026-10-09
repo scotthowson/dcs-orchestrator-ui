@@ -136,13 +136,15 @@
   }
 
   /* Don't override colored text (emerald, cyan, rose, amber, violet) */
-  .light .text-emerald-400 { color: #059669 !important; }
-  .light .text-emerald-300 { color: #059669 !important; }
-  .light .text-cyan-400 { color: #0891b2 !important; }
-  .light .text-rose-400 { color: #e11d48 !important; }
-  .light .text-rose-300 { color: #e11d48 !important; }
-  .light .text-amber-400 { color: #d97706 !important; }
-  .light .text-amber-300 { color: #d97706 !important; }
+  /* status text one step deeper than the fills, so a word or a count in a tone reads at AA on white and on its own
+     10-20 % tint (#059669 was 3.8:1 on white, #d97706 3.2:1, #0891b2 3.7:1) */
+  .light .text-emerald-400 { color: #047857 !important; }
+  .light .text-emerald-300 { color: #047857 !important; }
+  .light .text-cyan-400 { color: #0e7490 !important; }
+  .light .text-rose-400 { color: #be123c !important; }
+  .light .text-rose-300 { color: #be123c !important; }
+  .light .text-amber-400 { color: #b45309 !important; }
+  .light .text-amber-300 { color: #b45309 !important; }
   .light .text-violet-400 { color: #7c3aed !important; }
 
   /* Gradient text stays colorful */

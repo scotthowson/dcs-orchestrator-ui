@@ -2169,8 +2169,8 @@ function AlertThresholdsEditor() {
       <div className="flex items-center justify-between">
         <span className="text-xs font-medium text-slate-400">{label}</span>
         <div className="flex items-center gap-3">
-          <span className="text-[10px] text-amber-400/70">Warning: {thresholds[warningKey]}{unit}</span>
-          <span className="text-[10px] text-rose-400/70">Critical: {thresholds[criticalKey]}{unit}</span>
+          <span className="text-[11px] text-amber-400">Warning: {thresholds[warningKey]}{unit}</span>
+          <span className="text-[11px] text-rose-400">Critical: {thresholds[criticalKey]}{unit}</span>
         </div>
       </div>
       <div className="flex items-center gap-3">

@@ -196,7 +196,7 @@ const ImageList: React.FC<ImageListProps> = ({ rows, query = '', onClearSearch, 
           onChange={(v) => setActiveTab(v as FilterTab)}
           data={TABS.map((tab) => ({
             value: tab.key,
-            label: <span className="flex items-center gap-1.5">{tab.label}<span className="tabular-nums text-[10px] opacity-60">{tabCounts[tab.key]}</span></span>,
+            label: <span className="flex items-center gap-1.5">{tab.label}<span className="tabular-nums text-[10px] opacity-80">{tabCounts[tab.key]}</span></span>,
           }))}
         />
       </div>

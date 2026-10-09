@@ -1444,7 +1444,7 @@ export default function Proxmox() {
                     onChange={(v) => setShow(v as Show)}
                     data={(['all', 'running', 'stopped', 'qemu', 'lxc', ...(isHub ? ['dcs' as const] : [])] as Show[]).map((k) => ({
                       value: k,
-                      label: <span className="flex items-center gap-1">{SHOW_LABEL[k]}{vms.data && <span className="tabular-nums text-[10px] opacity-60 hidden sm:inline">{counts[k]}</span>}</span>,
+                      label: <span className="flex items-center gap-1">{SHOW_LABEL[k]}{vms.data && <span className="tabular-nums text-[10px] opacity-80 hidden sm:inline">{counts[k]}</span>}</span>,
                     }))}
                   />
                 </div>

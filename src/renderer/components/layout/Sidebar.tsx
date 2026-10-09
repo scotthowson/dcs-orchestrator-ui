@@ -146,6 +146,7 @@ function NavButton({
     <button
       onClick={onClick}
       title={collapsed ? label : undefined}
+      aria-label={collapsed ? label : undefined}
       aria-current={isActive ? 'page' : undefined}
       className={`
         group relative flex items-center gap-3 w-full h-9

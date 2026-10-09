@@ -448,7 +448,7 @@ const ContainerList: React.FC<ContainerListProps> = ({
                   <div className="flex items-center gap-2 px-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
                     <span className={`w-1.5 h-1.5 rounded-full ${g.key === 'hub' ? 'bg-emerald-400' : 'bg-amber-300'}`} />
                     {g.header}
-                    <span className="text-slate-600 normal-case tracking-normal" title={statesLine(countStates(g.rows))}>{statesLine(countStates(g.rows), { noun: false })} · {g.rows.length} in all</span>
+                    <span className="text-slate-500 normal-case tracking-normal" title={statesLine(countStates(g.rows))}>{statesLine(countStates(g.rows), { noun: false })} · {g.rows.length} in all</span>
                   </div>
                 )}
                 {g.rows.map((container) => (
@@ -537,7 +537,7 @@ const ContainerList: React.FC<ContainerListProps> = ({
                         <span className="inline-flex items-center gap-2">
                           <span className={`w-1.5 h-1.5 rounded-full ${g.key === 'hub' ? 'bg-emerald-400' : 'bg-amber-300'}`} />
                           {g.header}
-                          <span className="text-slate-600 normal-case tracking-normal" title={statesLine(countStates(g.rows))}>{statesLine(countStates(g.rows), { noun: false })} · {g.rows.length} in all</span>
+                          <span className="text-slate-500 normal-case tracking-normal" title={statesLine(countStates(g.rows))}>{statesLine(countStates(g.rows), { noun: false })} · {g.rows.length} in all</span>
                         </span>
                       </td>
                     </tr>

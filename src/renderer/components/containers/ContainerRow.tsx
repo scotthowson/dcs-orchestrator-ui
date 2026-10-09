@@ -466,7 +466,7 @@ function ContainerNameWithPopover({ container, formatUptime, onOpen }: { contain
           onClick={(e) => { e.stopPropagation(); onOpen() }}
           onFocus={handleEnter}
           onBlur={handleLeave}
-          className="rounded text-left whitespace-nowrap text-slate-200 group-hover:text-white transition-colors"
+          className="-my-0.5 py-0.5 rounded text-left whitespace-nowrap text-slate-200 group-hover:text-white transition-colors"
         >
           {container.name}
         </button>

@@ -194,7 +194,7 @@ export default function StackCard({ stack, isActionLoading, onAction, onSelect, 
                     type="button"
                     data-stack-open={stack.name}
                     onClick={(e) => { e.stopPropagation(); handleCardClick() }}
-                    className="max-w-full truncate rounded text-left text-slate-100 group-hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
+                    className="-my-0.5 py-0.5 max-w-full truncate rounded text-left text-slate-100 group-hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
                     aria-label={batchMode ? undefined : `Open ${annotation.label || formatStackName(stack.name)}`}
                   >
                     {annotation.label || formatStackName(stack.name)}

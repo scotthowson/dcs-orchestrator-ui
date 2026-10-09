@@ -67,8 +67,8 @@ const COUNT: Record<Tone, string> = {
 export function Count({ n, tone = 'neutral', label, alert = false, className = '' }: { n: number | string; tone?: Tone; label?: string; alert?: boolean; className?: string }) {
   const look = alert ? 'bg-rose-500 text-white ring-2 ring-slate-900' : COUNT[tone]
   return (
-    <span aria-label={label} title={label} className={`${COUNT_SHAPE} ${look} ${className}`}>
-      {n}
+    <span title={label} className={`${COUNT_SHAPE} ${look} ${className}`}>
+      {label ? <><span aria-hidden>{n}</span><span className="sr-only">{label}</span></> : n}
     </span>
   )
 }

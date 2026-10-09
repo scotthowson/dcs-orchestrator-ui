@@ -55,7 +55,7 @@ export default function Segmented<T extends string>({ value, options, onChange, 
               <span className="inline-flex items-center gap-1.5 whitespace-nowrap" title={o.title}>
                 {Icon && <Icon size={12} aria-hidden />}
                 {o.label}
-                {o.count !== undefined && <span className="tabular-nums text-[10px] opacity-75">{o.count}</span>}
+                {o.count !== undefined && <span className="tabular-nums text-[10px] opacity-80">{o.count}</span>}
               </span>
             ),
           }

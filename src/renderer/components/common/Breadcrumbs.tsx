@@ -47,7 +47,7 @@ export default function Breadcrumbs({ segments }: BreadcrumbsProps) {
             {isClickable ? (
               <button
                 onClick={() => setCurrentPage(crumb.page!)}
-                className="hover:text-slate-300 transition-colors"
+                className="-my-0.5 py-0.5 rounded hover:text-slate-300 transition-colors"
               >
                 {crumb.label}
               </button>
