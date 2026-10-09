@@ -115,7 +115,9 @@ export default function Logs() {
 
   const { data: tagged, loading: polling, error, refresh } = usePolling<{ member: string | null; res: LogsResponse }>(fetchFn, scopeMember ? 5000 : 3000)
   const data = tagged && tagged.member === scopeMember ? tagged.res : null
-  const loading = polling || !data
+  // (a read that failed before anything came is not "loading": the output says it failed and offers Try again)
+  const loading = polling || (!data && !error)
+  const failed = !!error && !data
   const memberRef = useRef(scopeMember)
   useEffect(() => { if (memberRef.current !== scopeMember) { memberRef.current = scopeMember; refresh() } }, [scopeMember, refresh])
 
@@ -204,7 +206,7 @@ export default function Logs() {
     navigator.clipboard.writeText(text).then(() => {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
-    })
+    }, () => { /* the browser refused: nothing was copied, the button stays as it was */ })
   }, [filteredLines])
 
   // Download logs as file
@@ -302,7 +304,9 @@ export default function Logs() {
             <BarChart3 size={14} />
             <span className="hidden sm:inline">Stats</span>
           </button>
-          <button type="button" onClick={handleCopy} aria-label={copied ? 'Copied' : 'Copy the lines'} className={`${BTN_TOOLBAR_QUIET} ${FOCUS_RING}`}>
+          {/* Copy and Export act on the Logs view's lines: the live tail has its own Export, the archives none */}
+          {activeTab === 'logs' && <>
+          <button type="button" onClick={handleCopy} disabled={filteredLines.length === 0} aria-label={copied ? 'Copied' : 'Copy the lines'} className={`${BTN_TOOLBAR_QUIET} ${FOCUS_RING}`}>
             {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
             <span className="hidden sm:inline">{copied ? 'Copied' : 'Copy'}</span>
           </button>
@@ -310,6 +314,7 @@ export default function Logs() {
             <Download size={14} />
             <span className="hidden sm:inline">Export</span>
           </button>
+          </>}
           <button type="button" onClick={refresh} disabled={loading} aria-label="Refresh" className={`${BTN_TOOLBAR_QUIET} ${FOCUS_RING}`}>
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
             <span className="hidden sm:inline">Refresh</span>
@@ -339,7 +344,7 @@ export default function Logs() {
           </div>
 
           <div className="p-4 sm:p-5">
-            {statsError && <ErrorState title="Failed to load log statistics" error={statsError} />}
+            {statsError && <ErrorState title="Failed to load log statistics" error={statsError} onRetry={loadStats} />}
 
             {statsLoading && !stats && (
               <LoadingState compact label="Loading the statistics…" />
@@ -419,8 +424,8 @@ export default function Logs() {
         </div>
       )}
 
-      {/* Error state */}
-      {error && (
+      {/* Error state: a later read that failed, above the lines already shown (nothing shown yet: the output says it) */}
+      {error && !failed && (
         <div role="alert" className="rounded-xl border border-rose-500/20 bg-rose-500/[0.06] px-4 py-3 text-xs text-rose-300 shrink-0">
           Failed to fetch {scopeMember ? `the log of the VM ${memberName}` : 'the logs'}: {error.message}
         </div>
@@ -595,7 +600,12 @@ export default function Logs() {
               {loading && filteredLines.length === 0 && (
                 <span className="text-slate-500">Loading the logs…</span>
               )}
-              {!loading && filteredLines.length === 0 && (
+              {failed && !loading && (
+                <div className="font-sans">
+                  <ErrorState title={`Could not read ${scopeMember ? `the log of the VM ${memberName}` : 'the logs'}`} error={error} onRetry={refresh} />
+                </div>
+              )}
+              {!loading && !failed && filteredLines.length === 0 && (
                 <div className="font-sans">
                   <EmptyState
                     compact
@@ -653,7 +663,7 @@ export default function Logs() {
           <div className="flex-1 overflow-auto">
             {archivesError && (
               <div className="p-5">
-                <ErrorState title="Failed to load archived logs" error={archivesError} />
+                <ErrorState title="Failed to load archived logs" error={archivesError} onRetry={loadArchives} />
               </div>
             )}
 

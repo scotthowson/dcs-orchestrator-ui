@@ -12,7 +12,7 @@ import ContainerRow, { ContainerCard } from './ContainerRow'
 import OnDemandDialog from './OnDemandDialog'
 import { useConfirm } from '../common/ConfirmDialog'
 import { useToast } from '../common/Toast'
-import { EmptyState } from '../common/PageState'
+import { EmptyState, ErrorState } from '../common/PageState'
 import FleetScopeChips from '../fleet/FleetScopeChips'
 import VmCapsule from '../fleet/VmCapsule'
 import { AsleepCount } from '../common/StateChip'
@@ -127,10 +127,6 @@ const ContainerList: React.FC<ContainerListProps> = ({
     })
   }, [])
 
-  const selectAll = useCallback(() => {
-    setSelectedContainers(new Set(containers.map(rowKey)))
-  }, [containers])
-
   const clearSelection = useCallback(() => {
     setSelectedContainers(new Set())
   }, [])
@@ -140,6 +136,10 @@ const ContainerList: React.FC<ContainerListProps> = ({
     const rows = containers.filter((c) => selectedContainers.has(rowKey(c)))
     if (action === 'remove') {
       if (!(await confirm({ title: 'Remove these containers?', message: `Remove ${rows.length} container(s)? This will force-remove them and cannot be undone.`, confirmLabel: 'Remove', danger: true }))) return
+    }
+    // stopping takes what they serve away: it asks first, like a row's Stop
+    if (action === 'stop') {
+      if (!(await confirm({ title: 'Stop these containers?', message: `Stop ${rows.length} container${rows.length === 1 ? '' : 's'}? What ${rows.length === 1 ? 'it serves is' : 'they serve is'} unavailable until ${rows.length === 1 ? 'it is' : 'they are'} started again.`, confirmLabel: 'Stop', danger: true }))) return
     }
     setBatchLoading(true)
     setBatchResults(null)
@@ -177,6 +177,8 @@ const ContainerList: React.FC<ContainerListProps> = ({
 
   const handleQuickAction = useCallback(async (c: ContainerInfo, action: 'start' | 'stop' | 'restart') => {
     if (quickActionLoading) return
+    // stopping is the one that takes something away: it asks first, like a stack's Stop
+    if (action === 'stop' && !(await confirm({ title: `Stop ${c.name}?`, message: `Stop the container ${c.name}${c.member ? ` on VM ${c.member_name || c.member}` : ''}? What it serves is unavailable until it is started again.`, confirmLabel: 'Stop', danger: true }))) return
     setQuickActionLoading(`${rowKey(c)}-${action}`)
     try {
       const r = await containerActionOn(c.name, action as ContainerActionName, targetOf(c))
@@ -185,7 +187,7 @@ const ContainerList: React.FC<ContainerListProps> = ({
     } catch (err) {
       addToast({ type: 'error', message: `Could not ${action} ${c.name}${c.member ? ` on VM ${c.member_name || c.member}` : ''}: ${err instanceof Error ? err.message : String(err)}`, duration: 6000 })
     } finally { setQuickActionLoading(null) }
-  }, [quickActionLoading, targetOf, addToast, onRefresh])
+  }, [quickActionLoading, targetOf, addToast, onRefresh, confirm])
 
   // Filter by tab + search
   const filtered = useMemo(() => {
@@ -228,6 +230,11 @@ const ContainerList: React.FC<ContainerListProps> = ({
     })
   }, [filtered, sort, favorites])
 
+  // "Select all" takes the rows on screen (the filter and the search), never ones hidden from the person
+  const selectAll = useCallback(() => {
+    setSelectedContainers(new Set(sorted.map(rowKey)))
+  }, [sorted])
+
   // Everywhere: the VMs are the stacks — containers sit under their VM, the hub's own last
   const groups = useMemo(() => {
     if (scope !== 'all' || !sorted.some((c) => c.member)) return [{ key: 'all', header: '', rows: sorted }]
@@ -255,6 +262,8 @@ const ContainerList: React.FC<ContainerListProps> = ({
   const pausedCount = containers.filter((c) => c.state.toLowerCase() === 'paused').length
 
   const favSet = new Set(favorites)
+  /** the list could not be read and there is nothing to show: the failed state replaces the tiles and the table */
+  const failed = !!error && containers.length === 0
   // the page's own line (constants/pageTitles) unless it shows one part of a fleet
   const subtitle = scope === 'all'
     ? `Every container on the hub and its ${members.length} VM${members.length === 1 ? '' : 's'}`
@@ -282,12 +291,12 @@ const ContainerList: React.FC<ContainerListProps> = ({
         page="containers"
         badge={<>
           {scopeMember && <VmCapsule member={scopeMember} name={memberName} vmid={members.find((m) => m.id === scopeMember)?.vmid} />}
-          <span className="text-sm text-slate-400">
+          {!failed && <span className="text-sm text-slate-400">
             <span className="text-emerald-400 font-semibold">{runningCount} running</span>
             {asleepCount > 0 && <><span className="mx-1.5 text-slate-500">&middot;</span><AsleepCount n={asleepCount} /></>}
             <span className="mx-1.5 text-slate-500">&middot;</span>
             <span>{containers.length} total</span>
-          </span>
+          </span>}
         </>}
         subtitle={subtitle}
         actions={<>
@@ -305,11 +314,11 @@ const ContainerList: React.FC<ContainerListProps> = ({
           {isAdmin && (
             <button
               onClick={() => batchMode ? exitBatchMode() : setBatchMode(true)}
-              aria-label={batchMode ? 'Exit Batch' : 'Batch Select'}
+              aria-label={batchMode ? 'Exit batch' : 'Batch select'}
               className={`${BTN_TOOLBAR} ${batchMode ? 'bg-cyan-500/15 border border-cyan-500/25 text-cyan-400 hover:bg-cyan-500/25' : TONE_QUIET}`}
             >
               <CheckSquare size={14} />
-              <span className="hidden sm:inline">{batchMode ? 'Exit Batch' : 'Batch Select'}</span>
+              <span className="hidden sm:inline">{batchMode ? 'Exit batch' : 'Batch select'}</span>
             </button>
           )}
         </>}
@@ -317,11 +326,9 @@ const ContainerList: React.FC<ContainerListProps> = ({
         {hasFleet && <FleetScopeChips scope={scope} members={members} onChange={setScope} busy={busy} />}
       </PageHeader>
 
-      {/* ---- Could not load ---- */}
-      {error && containers.length === 0 && (
-        <div className="rounded-xl border border-rose-500/20 bg-rose-500/[0.06] px-4 py-3 text-xs text-rose-300">
-          Could not load the containers{scopeMember ? ` of the VM ${memberName}` : ''}: {error.message}
-        </div>
+      {/* ---- Could not load (nothing read yet): the kit's failed state, never zeros or an endless shimmer ---- */}
+      {failed && (
+        <ErrorState title={`Could not load the containers${scopeMember ? ` of the VM ${memberName}` : ''}`} error={error} onRetry={onRefresh} />
       )}
 
       {/* ---- Batch Action Bar ---- */}
@@ -377,6 +384,7 @@ const ContainerList: React.FC<ContainerListProps> = ({
         </div>
       )}
 
+      {!failed && <>
       {/* ---- Summary cards ---- */}
       {/* asleep on demand has its own calm card (only when there is one): it is not counted as stopped */}
       <div className={`grid grid-cols-2 ${asleepCount > 0 ? 'md:grid-cols-5' : 'md:grid-cols-4'} gap-3`}>
@@ -420,7 +428,7 @@ const ContainerList: React.FC<ContainerListProps> = ({
       <div className="relative">
         <SearchInput value={search} onChange={setSearch} placeholder={scope === 'all' ? 'Search containers, stacks and VMs...' : 'Search containers...'} />
         {search && (
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">
+          <span className="absolute right-10 top-1/2 -translate-y-1/2 text-xs text-slate-500 pointer-events-none">
             {sorted.length} result{sorted.length !== 1 ? 's' : ''}
           </span>
         )}
@@ -552,7 +560,7 @@ const ContainerList: React.FC<ContainerListProps> = ({
                     batchSelected={selectedContainers.has(rowKey(container))}
                     isFavorite={favSet.has(container.name)}
                     onToggleFavorite={toggleFavorite}
-                    onQuickAction={handleQuickAction}
+                    onQuickAction={isAdmin ? handleQuickAction : undefined}
                     quickActionLoading={quickActionLoading}
                     showCapsule={scope === 'all'}
                     onOnDemand={isAdmin && !batchMode && !container.member ? setOnDemandFor : undefined}
@@ -564,6 +572,7 @@ const ContainerList: React.FC<ContainerListProps> = ({
           </table>
         </div>
       </div>
+      </>}
     </div>
   )
 }

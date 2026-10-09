@@ -14,7 +14,7 @@ import { useToast } from '../components/common/Toast'
 import { useConfirm } from '../components/common/ConfirmDialog'
 import { useConnectionStore } from '../stores/connectionStore'
 import { useAuthStore } from '../stores/authStore'
-import ImageList from '../components/images/ImageList'
+import ImageList, { type FilterTab } from '../components/images/ImageList'
 import ImageCard from '../components/images/ImageCard'
 import { imageKey } from '../components/images/imageFormat'
 import PageHeader from '../components/common/PageHeader'
@@ -55,6 +55,8 @@ const Images: React.FC = () => {
   const loading = useImageStore((s) => s.loading)
 
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table')
+  /** the table's freshness filter (All / Current / Aging / Stale): "Select all" takes only the rows it shows */
+  const [freshness, setFreshness] = useState<FilterTab>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [pruneLoading, setPruneLoading] = useState(false)
   const [batchMode, setBatchMode] = useState(false)
@@ -80,22 +82,23 @@ const Images: React.FC = () => {
   // a hub: everywhere (the hub and every VM), the hub alone, or one VM — the choice the Health and Updates pages share
   const { scope, setScope, member: scopeMember, memberName, members: scopeMembers, hasFleet } = useFleetScope()
 
-  // Fetch images via the connection-aware polling hook
+  // Fetch images via the connection-aware polling hook; an answer for a scope no longer shown is dropped
+  const scopeRef = useRef(scope)
   const handleFetch = useCallback(async () => {
     setLoading(true)
     try {
       const result = await fetchImages(scope)
-      setImages(result.images)
+      if (scopeRef.current === scope) setImages(result.images)
       return result
     } finally {
-      // (a failed read must not leave the table waiting for ever)
-      setLoading(false)
+      // (a failed read must not leave the table waiting for ever; the read of the scope shown ends the wait)
+      if (scopeRef.current === scope) setLoading(false)
     }
   }, [setImages, setLoading, scope])
 
   const { refresh, error: fetchError } = usePolling(handleFetch, IMAGE_POLL_INTERVAL)
-  const scopeRef = useRef(scope)
-  useEffect(() => { if (scopeRef.current !== scope) { scopeRef.current = scope; setSelectedImages(new Set()); refresh() } }, [scope, refresh])
+  // a switch never shows the old scope's rows under the new label: the table waits (skeleton) for the new answer
+  useEffect(() => { if (scopeRef.current !== scope) { scopeRef.current = scope; setSelectedImages(new Set()); setImages([]); refresh() } }, [scope, refresh, setImages])
 
   // Docker Hub search handler
   const handleHubSearch = useCallback(async (e?: React.FormEvent) => {
@@ -234,8 +237,9 @@ const Images: React.FC = () => {
   }, [])
 
   const handleSelectAll = useCallback(() => {
-    setSelectedImages(new Set(filteredImages.map(imageKey)))
-  }, [filteredImages])
+    const shown = viewMode === 'table' && freshness !== 'all' ? filteredImages.filter((i) => i.staleness === freshness) : filteredImages
+    setSelectedImages(new Set(shown.map(imageKey)))
+  }, [filteredImages, viewMode, freshness])
 
   const handleClearSelection = useCallback(() => {
     setSelectedImages(new Set())
@@ -322,7 +326,8 @@ const Images: React.FC = () => {
           ) : undefined}
           subtitle={subtitle}
           actions={<>
-            <Hint label="Compare the local digests with the upstream registries">
+            {/* the registry check is a POST only an admin may send (POST /fleet/images/check answers a viewer 403) */}
+            {isAdmin && <Hint label="Compare the local digests with the upstream registries">
               <button
                 onClick={handleCheckRegistry}
                 disabled={registryChecking || !isConnected}
@@ -332,7 +337,7 @@ const Images: React.FC = () => {
                 {registryChecking ? <Loader2 size={14} className="animate-spin" /> : <PackageSearch size={14} />}
                 <span className="hidden sm:inline">{registryChecking ? 'Checking…' : 'Check registry'}</span>
               </button>
-            </Hint>
+            </Hint>}
             <button aria-label="Refresh" onClick={refresh} disabled={loading} className={BTN_TOOLBAR_QUIET}>
               <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
               <span className="hidden sm:inline">Refresh</span>
@@ -398,7 +403,7 @@ const Images: React.FC = () => {
         <div className="relative">
           <SearchInput value={searchQuery} onChange={setSearchQuery} label="Search images" placeholder="Search images by repository, tag or ID…" />
           {searchQuery && (
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">
+            <span className="absolute right-10 top-1/2 -translate-y-1/2 text-xs text-slate-500 pointer-events-none">
               {filteredImages.length} result{filteredImages.length !== 1 ? 's' : ''}
             </span>
           )}
@@ -427,14 +432,14 @@ const Images: React.FC = () => {
           </div>
         )}
 
-        {/* ---- Summary stat cards ---- */}
-        <div className={`grid grid-cols-2 ${counts.updates > 0 ? 'md:grid-cols-5' : 'md:grid-cols-4'} gap-3 stagger-children`}>
+        {/* ---- Summary stat cards (not while the list failed to load: no zeros beside the failure) ---- */}
+        {!(fetchError && images.length === 0) && <div className={`grid grid-cols-2 ${counts.updates > 0 ? 'md:grid-cols-5' : 'md:grid-cols-4'} gap-3 stagger-children`}>
           <StatTile icon={HardDrive} label="Total images" value={counts.total} tone="info" />
           <StatTile icon={CircleCheck} label="Current" value={counts.current} tone="ok" />
           <StatTile icon={Clock} label="Aging" value={counts.aging} tone={counts.aging > 0 ? 'attention' : 'neutral'} />
           <StatTile icon={AlertTriangle} label="Stale" value={counts.stale} tone={counts.stale > 0 ? 'problem' : 'neutral'} />
           {counts.updates > 0 && <StatTile icon={ArrowUpCircle} label="Updates" value={counts.updates} tone="ok" />}
-        </div>
+        </div>}
 
         {/* ---- Content ---- */}
         {fetchError && images.length === 0 ? (
@@ -450,6 +455,8 @@ const Images: React.FC = () => {
             showWhere={scope === 'all'}
             onPickWhere={(m) => setScope(m ?? 'hub')}
             onSearchHub={openHubSearch}
+            freshness={freshness}
+            onFreshnessChange={setFreshness}
           />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">

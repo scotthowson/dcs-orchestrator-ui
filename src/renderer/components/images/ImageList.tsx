@@ -54,7 +54,7 @@ function compareValues(a: unknown, b: unknown, direction: SortDirection): number
 // Filter (freshness)
 // ---------------------------------------------------------------------------
 
-type FilterTab = 'all' | 'current' | 'aging' | 'stale'
+export type FilterTab = 'all' | 'current' | 'aging' | 'stale'
 
 const TABS: { key: FilterTab; label: string }[] = [
   { key: 'all', label: 'All' },
@@ -140,14 +140,19 @@ interface ImageListProps {
   onPickWhere?: (member: string | null) => void
   /** an empty library offers the Docker Hub search as its next step */
   onSearchHub?: () => void
+  /** the freshness filter, when the page keeps it (its "Select all" takes only the rows the filter shows) */
+  freshness?: FilterTab
+  onFreshnessChange?: (tab: FilterTab) => void
 }
 
-const ImageList: React.FC<ImageListProps> = ({ rows, query = '', onClearSearch, batchMode = false, selectedImages, onToggleImage, showWhere = false, onPickWhere, onSearchHub }) => {
+const ImageList: React.FC<ImageListProps> = ({ rows, query = '', onClearSearch, batchMode = false, selectedImages, onToggleImage, showWhere = false, onPickWhere, onSearchHub, freshness, onFreshnessChange }) => {
   const storeImages = useImageStore((s) => s.images)
   const images = rows ?? storeImages
   const loading = useImageStore((s) => s.loading)
 
-  const [activeTab, setActiveTab] = useState<FilterTab>('all')
+  const [ownTab, setOwnTab] = useState<FilterTab>('all')
+  const activeTab = freshness ?? ownTab
+  const setActiveTab = (tab: FilterTab) => { setOwnTab(tab); onFreshnessChange?.(tab) }
   const [sort, setSort] = useState<SortConfig>({ key: 'repository', direction: 'asc' })
 
   // Filter by staleness tab

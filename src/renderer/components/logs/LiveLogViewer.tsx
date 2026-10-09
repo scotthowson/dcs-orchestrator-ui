@@ -248,16 +248,15 @@ export default function LiveLogViewer({
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `logs-${member ? `${member}-` : ''}${containerName || 'app'}-${new Date().toISOString().slice(0, 19)}.txt`
+    a.download = `logs-${member ? `${member}-` : ''}${containerName || 'app'}-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.txt` // (no colons: Windows refuses them in a file name)
     a.click()
     URL.revokeObjectURL(url)
   }, [filteredLines, containerName, member])
 
-  // Clear buffer
+  // Clear buffer: the lines on screen go; the tail goes on from where it was (forgetting the last stamp would ask
+  // for the whole first page again, and the same lines would come straight back)
   const handleClear = useCallback(() => {
     setLines([])
-    lastTimestampRef.current = ''
-    lastBatchRef.current = new Map()
   }, [])
 
   // Level counts

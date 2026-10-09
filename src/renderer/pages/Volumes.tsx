@@ -107,7 +107,7 @@ function BatchDeleteConfirmModal({
           <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-rose-500/20 shrink-0">
             <AlertTriangle size={20} className="text-rose-400" />
           </div>
-          <h3 className="text-base font-semibold text-slate-100">Delete {count} volume{count !== 1 ? 's' : ''}</h3>
+          <h3 className="text-base font-semibold text-slate-100">Delete {count === 1 ? 'this volume' : `these ${count} volumes`}?</h3>
         </div>
 
         {/* Warning message */}
@@ -178,15 +178,18 @@ export default function Volumes() {
 
   // Poll volumes data
   const { scope, setScope, member: scopeMember, memberName, members: scopeMembers, hasFleet } = useFleetScope()
-  const fetchScopedVolumes = useCallback(() => fetchVolumes(scope), [scope])
+  // each answer carries the scope it was asked for: a switch never shows the old scope's rows under the new label
+  const fetchScopedVolumes = useCallback(() => fetchVolumes(scope).then((list) => ({ scope, list })), [scope])
   const {
-    data: volumesData,
+    data: scopedData,
     loading,
     error,
     refresh,
-  } = usePolling<VolumeListResponse>(fetchScopedVolumes, VOLUME_POLL_INTERVAL)
+  } = usePolling<{ scope: typeof scope; list: VolumeListResponse }>(fetchScopedVolumes, VOLUME_POLL_INTERVAL)
+  const volumesData = scopedData?.scope === scope ? scopedData.list : null
   const scopeRef = useRef(scope)
-  useEffect(() => { if (scopeRef.current !== scope) { scopeRef.current = scope; refresh() } }, [scope, refresh])
+  // a selection belongs to the server it was made on: a scope switch drops it (a batch delete never reaches the server left behind)
+  useEffect(() => { if (scopeRef.current !== scope) { scopeRef.current = scope; setSelectedVolumes(new Set()); setBatchResults(null); refresh() } }, [scope, refresh])
 
   const volumes: VolumeInfo[] = volumesData?.volumes ?? []
   const hasLoaded = volumesData !== null
@@ -346,7 +349,7 @@ export default function Volumes() {
     }
 
     refresh()
-  }, [selectedVolumes, addToast, refresh])
+  }, [selectedVolumes, addToast, refresh, scope, scopeMember])
 
   // Not connected state
   if (!isConnected) {
@@ -423,7 +426,11 @@ export default function Volumes() {
           </div>
           <button
             type="button"
-            onClick={() => setBatchConfirmOpen(true)}
+            onClick={() => {
+              // Everywhere is a view: say so before asking for the number, like a row's Delete
+              if (scope === 'all') { addToast({ type: 'warning', message: 'Everywhere is a view: pick the hub or one VM above, then delete the volumes there' }); return }
+              setBatchConfirmOpen(true)
+            }}
             disabled={selectedVolumes.size === 0 || batchLoading}
             className={`${BTN_TOOLBAR} ${TONE_DANGER} ${FOCUS_RING}`}
           >
@@ -539,7 +546,7 @@ export default function Volumes() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="relative overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-white/5">
@@ -587,42 +594,13 @@ export default function Volumes() {
               </tr>
             </thead>
             <tbody className="stagger-children">
-              {/* Loading skeleton */}
-              {!hasLoaded && loading && (
+              {/* Loading skeleton (the first read, and the read of a scope just picked) */}
+              {!hasLoaded && !(error && !loading) && (
                 <>
                   {[0, 1, 2, 3, 4].map((i) => <SkeletonRow key={i} batch={batchMode} admin={isAdmin} />)}
                 </>
               )}
 
-              {/* The poll failed before anything loaded */}
-              {!hasLoaded && !loading && error && (
-                <tr>
-                  <td colSpan={colCount} className="px-5 py-6">
-                    <ErrorState title="Failed to load volumes" error={error} onRetry={refresh} />
-                  </td>
-                </tr>
-              )}
-
-              {/* Empty state */}
-              {hasLoaded && filteredVolumes.length === 0 && (
-                <tr>
-                  <td colSpan={colCount} className="px-5">
-                    <EmptyState
-                      icon={<Database size={28} strokeWidth={1.5} />}
-                      title={searchQuery ? 'No volumes match your search' : 'No named volumes here'}
-                      hint={searchQuery
-                        ? 'Try another name, driver or mountpoint.'
-                        : 'DCS stacks keep their data in App-Data folders next to each compose file. Docker volumes appear here when a stack creates one.'}
-                      action={searchQuery ? (
-                        <button type="button" onClick={() => setSearchQuery('')} className={`${BTN_TOOLBAR_QUIET} ${FOCUS_RING}`}>
-                          <X size={14} />
-                          Clear the search
-                        </button>
-                      ) : undefined}
-                    />
-                  </td>
-                </tr>
-              )}
 
               {/* Volume rows */}
               {hasLoaded &&
@@ -731,6 +709,31 @@ export default function Volumes() {
                 })}
             </tbody>
           </table>
+          {/* Empty state: under the table, not in a row of it (a row's hint would widen the table past a phone) */}
+          {hasLoaded && filteredVolumes.length === 0 && (
+            <div className="px-5">
+              <EmptyState
+                icon={<Database size={28} strokeWidth={1.5} />}
+                title={searchQuery ? 'No volumes match your search' : 'No named volumes here'}
+                hint={searchQuery
+                  ? 'Try another name, driver or mountpoint.'
+                  : 'DCS stacks keep their data in App-Data folders next to each compose file. Docker volumes appear here when a stack creates one.'}
+                action={searchQuery ? (
+                  <button type="button" onClick={() => setSearchQuery('')} className={`${BTN_TOOLBAR_QUIET} ${FOCUS_RING}`}>
+                    <X size={14} />
+                    Clear the search
+                  </button>
+                ) : undefined}
+              />
+            </div>
+          )}
+          {/* The poll failed before anything loaded (under the table too) */}
+          {!hasLoaded && !loading && error && (
+            <div className="px-5 py-6">
+              <ErrorState title="Could not load the volumes" error={error} onRetry={refresh} />
+            </div>
+          )}
+
         </div>
       </div>
     </div>

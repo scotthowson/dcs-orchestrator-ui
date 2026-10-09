@@ -7,7 +7,6 @@ import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { SegmentedControl } from '@mantine/core'
 import { Clock, Cpu, HardDrive, MemoryStick, RefreshCw, Loader2, Database, WifiOff, Camera, BarChart3, Timer, Settings2, Save, ImageDown } from 'lucide-react'
 import { toPng } from 'html-to-image'
-import { createPortal } from 'react-dom'
 import { usePolling } from '../hooks/usePolling'
 import { useConnectionStore } from '../stores/connectionStore'
 import { useAuthStore } from '../stores/authStore'
@@ -25,14 +24,13 @@ import {
   Tooltip, ResponsiveContainer, ReferenceLine,
 } from 'recharts'
 import { EmptyState, ErrorState } from '../components/common/PageState'
-import ModalOverlay from '../components/common/ModalOverlay'
+import Sheet from '../components/common/Sheet'
 import PageHeader from '../components/common/PageHeader'
 import Hint from '../components/common/Hint'
 import { Panel, METRIC_HEX } from '../components/dashboard/cardShared'
 import { BTN_SHEET_PRIMARY, BTN_SHEET_QUIET, BTN_TOOLBAR, BTN_TOOLBAR_QUIET, TONE_OK, TONE_QUIET } from '../lib/ui'
 import { pctTone, quiet } from '../lib/tone'
 import StatTile from '../components/common/StatTile'
-import CloseButton from '../components/common/CloseButton'
 // ---------------------------------------------------------------------------
 // Types & Constants
 // ---------------------------------------------------------------------------
@@ -271,21 +269,42 @@ export default function Trends() {
     [range, trendsMember],
   )
 
-  const { data, loading, error, refresh } = usePolling<MetricsTrendsResponse>(
+  const { data: polled, loading: pollLoading, error: pollError, refresh } = usePolling<MetricsTrendsResponse>(
     fetchTrends,
     pollIntervalFor(range),
     { enabled: autoRefresh },
   )
 
-  // A new range must show new data at once, not at the next poll
+  // Paused: the poll asks nothing (a disabled poll has no one listening), so Refresh and a new range or scope ask once
+  // here; the answer counts only for the range and server it was asked for
+  const trendsKey = `${trendsMember ?? 'hub'}|${range}`
+  const [once, setOnce] = useState<{ key: string; data: MetricsTrendsResponse | null; error: Error | null; loading: boolean } | null>(null)
+  const askOnce = useCallback(async () => {
+    setOnce((o) => ({ key: trendsKey, data: o?.key === trendsKey ? o.data : null, error: null, loading: true }))
+    try {
+      const d = await fetchTrends()
+      setOnce((o) => (o?.key === trendsKey ? { key: trendsKey, data: d, error: null, loading: false } : o))
+    } catch (err) {
+      setOnce((o) => (o?.key === trendsKey ? { key: trendsKey, data: o.data, error: err instanceof Error ? err : new Error(String(err)), loading: false } : o))
+    }
+  }, [fetchTrends, trendsKey])
+  // (paused before anything was asked here: the last polled answer stays)
+  const paused = !autoRefresh && once?.key === trendsKey
+  const data = paused ? (once.data ?? polled) : polled
+  const loading = paused ? once.loading : pollLoading
+  const error = paused ? once.error : pollError
+
+  // A new range (or server) must show new data at once, not at the next poll (pausing or resuming asks nothing by itself)
+  const askRef = useRef(() => {})
+  askRef.current = () => { if (autoRefresh) void refresh(); else void askOnce() }
   const firstRangeRender = useRef(true)
   useEffect(() => {
     if (firstRangeRender.current) { firstRangeRender.current = false; return }
-    if (isConnected) refresh()
-  }, [range, isConnected, refresh])
+    if (isConnected) askRef.current()
+  }, [range, trendsMember, isConnected])
 
   // Fetch alert thresholds (once, low frequency). They are an admin's: the route answers 403 to anyone else
-  const { data: alertConfig } = usePolling<AlertConfigResponse>(
+  const { data: alertConfig, refresh: refreshAlertConfig } = usePolling<AlertConfigResponse>(
     fetchAlertConfig,
     300000,
     { enabled: isAdmin },
@@ -339,8 +358,9 @@ export default function Trends() {
     } finally { setExporting(false) }
   }, [exporting, range, addToast])
   const handleRefresh = useCallback(() => {
-    refresh()
-  }, [refresh])
+    if (autoRefresh) refresh()
+    else void askOnce()
+  }, [autoRefresh, refresh, askOnce])
 
   // Open alert config modal
   const openAlertConfig = useCallback(() => {
@@ -363,17 +383,24 @@ export default function Trends() {
     try {
       await updateAlertConfig(editThresholds)
       addToast({ type: 'success', message: 'Alert thresholds updated' })
+      // the lines on the charts and the next opening of this sheet read the levels just saved
+      await refreshAlertConfig()
       setShowAlertConfig(false)
     } catch {
       addToast({ type: 'error', message: 'Failed to update alert thresholds' })
     } finally {
       setSavingConfig(false)
     }
-  }, [editThresholds, addToast])
+  }, [editThresholds, addToast, refreshAlertConfig])
 
 
 
   const rangeLabel = TIME_RANGES.find((r) => r.id === range)?.label ?? range
+  // a warning at or above its critical level would never warn first
+  const thresholdProblems = editThresholds
+    ? ([['CPU', editThresholds.cpu_warning, editThresholds.cpu_critical], ['Memory', editThresholds.memory_warning, editThresholds.memory_critical], ['Disk', editThresholds.disk_warning, editThresholds.disk_critical]] as const)
+        .filter(([, w, c]) => w >= c).map(([what, w, c]) => `${what}: the warning (${w}%) must be below the critical level (${c}%)`)
+    : []
 
   // -------------------------------------------------------------------------
   // Disconnected state
@@ -591,71 +618,71 @@ export default function Trends() {
         </div>
       )}
 
-      {/* Alert thresholds */}
-      {showAlertConfig && editThresholds && createPortal(
-        <ModalOverlay onClose={() => setShowAlertConfig(false)} className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in p-4">
-          <div className="w-full max-w-md bg-slate-900 border border-white/10 rounded-2xl shadow-2xl shadow-black/40 flex flex-col animate-scale-in overflow-hidden max-h-[90vh]">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-white/5 shrink-0">
-              <div className="flex items-center gap-2">
-                <Settings2 size={16} className="text-slate-300" aria-hidden />
-                <h3 className="text-sm font-semibold text-slate-200">Alert thresholds</h3>
-              </div>
-              <Hint label="Close"><CloseButton onClick={() => setShowAlertConfig(false)} /></Hint>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-5 space-y-5">
-              <p className="text-xs text-slate-500">A warning is raised when a resource passes the first level, a critical alert at the second.</p>
-              {/* CPU */}
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <Cpu size={14} className="text-slate-400" aria-hidden />
-                  <span className="text-xs font-semibold text-slate-300">CPU load</span>
-                </div>
-                <div className="space-y-3">
-                  {slider('thr-cpu-warn', 'CPU warning', 'warning', editThresholds.cpu_warning, (n) => setEditThresholds({ ...editThresholds, cpu_warning: n }))}
-                  {slider('thr-cpu-crit', 'CPU critical', 'critical', editThresholds.cpu_critical, (n) => setEditThresholds({ ...editThresholds, cpu_critical: n }))}
-                </div>
-              </div>
-
-              <div className="border-t border-white/5" />
-
-              {/* Memory */}
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <MemoryStick size={14} className="text-slate-400" aria-hidden />
-                  <span className="text-xs font-semibold text-slate-300">Memory usage</span>
-                </div>
-                <div className="space-y-3">
-                  {slider('thr-mem-warn', 'Memory warning', 'warning', editThresholds.memory_warning, (n) => setEditThresholds({ ...editThresholds, memory_warning: n }))}
-                  {slider('thr-mem-crit', 'Memory critical', 'critical', editThresholds.memory_critical, (n) => setEditThresholds({ ...editThresholds, memory_critical: n }))}
-                </div>
-              </div>
-
-              <div className="border-t border-white/5" />
-
-              {/* Disk */}
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <HardDrive size={14} className="text-slate-400" aria-hidden />
-                  <span className="text-xs font-semibold text-slate-300">Disk usage</span>
-                </div>
-                <div className="space-y-3">
-                  {slider('thr-disk-warn', 'Disk warning', 'warning', editThresholds.disk_warning, (n) => setEditThresholds({ ...editThresholds, disk_warning: n }))}
-                  {slider('thr-disk-crit', 'Disk critical', 'critical', editThresholds.disk_critical, (n) => setEditThresholds({ ...editThresholds, disk_critical: n }))}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-white/5 shrink-0">
+      {/* Alert thresholds: the kit's Sheet (a bottom sheet on a phone); a warning level must sit below its critical one */}
+      {showAlertConfig && editThresholds && (
+        <Sheet
+          title="Alert thresholds"
+          icon={<Settings2 size={18} />}
+          tone="info"
+          onClose={() => setShowAlertConfig(false)}
+          footer={
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <button type="button" onClick={() => setShowAlertConfig(false)} className={BTN_SHEET_QUIET}>Cancel</button>
-              <button type="button" onClick={handleSaveAlertConfig} disabled={savingConfig} className={BTN_SHEET_PRIMARY}>
+              <button type="button" onClick={handleSaveAlertConfig} disabled={savingConfig || thresholdProblems.length > 0} className={BTN_SHEET_PRIMARY}>
                 {savingConfig ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                 Save thresholds
               </button>
             </div>
+          }
+        >
+          <div className="space-y-5">
+          <p className="text-xs text-slate-500">A warning is raised when a resource passes the first level, a critical alert at the second.</p>
+          {/* CPU */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Cpu size={14} className="text-slate-400" aria-hidden />
+              <span className="text-xs font-semibold text-slate-300">CPU load</span>
+            </div>
+            <div className="space-y-3">
+              {slider('thr-cpu-warn', 'CPU warning', 'warning', editThresholds.cpu_warning, (n) => setEditThresholds({ ...editThresholds, cpu_warning: n }))}
+              {slider('thr-cpu-crit', 'CPU critical', 'critical', editThresholds.cpu_critical, (n) => setEditThresholds({ ...editThresholds, cpu_critical: n }))}
+            </div>
           </div>
-        </ModalOverlay>,
-        document.body,
+
+          <div className="border-t border-white/5" />
+
+          {/* Memory */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <MemoryStick size={14} className="text-slate-400" aria-hidden />
+              <span className="text-xs font-semibold text-slate-300">Memory usage</span>
+            </div>
+            <div className="space-y-3">
+              {slider('thr-mem-warn', 'Memory warning', 'warning', editThresholds.memory_warning, (n) => setEditThresholds({ ...editThresholds, memory_warning: n }))}
+              {slider('thr-mem-crit', 'Memory critical', 'critical', editThresholds.memory_critical, (n) => setEditThresholds({ ...editThresholds, memory_critical: n }))}
+            </div>
+          </div>
+
+          <div className="border-t border-white/5" />
+
+          {/* Disk */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <HardDrive size={14} className="text-slate-400" aria-hidden />
+              <span className="text-xs font-semibold text-slate-300">Disk usage</span>
+            </div>
+            <div className="space-y-3">
+              {slider('thr-disk-warn', 'Disk warning', 'warning', editThresholds.disk_warning, (n) => setEditThresholds({ ...editThresholds, disk_warning: n }))}
+              {slider('thr-disk-crit', 'Disk critical', 'critical', editThresholds.disk_critical, (n) => setEditThresholds({ ...editThresholds, disk_critical: n }))}
+            </div>
+          </div>
+            {thresholdProblems.length > 0 && (
+              <ul role="alert" className="space-y-1 text-xs text-amber-300/90">
+                {thresholdProblems.map((m) => <li key={m}>{m}</li>)}
+              </ul>
+            )}
+          </div>
+        </Sheet>
       )}
     </div>
   )

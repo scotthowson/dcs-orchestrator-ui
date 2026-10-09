@@ -259,9 +259,9 @@ const ContainerRow: React.FC<ContainerRowProps> = ({
         </span>
       </td>
 
-      {/* Quick actions: they show under the pointer and while the keyboard is inside the group */}
+      {/* Quick actions (an admin's): they show under the pointer, while the keyboard is inside the group, and always on a touch screen */}
       <td className="px-3 py-2">
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+        {onQuickAction && <div className={`flex items-center gap-1 transition-opacity ${REVEAL}`}>
           {container.state !== 'running' && (
             <Hint label={isAsleep(container) ? 'Wake it now (Sablier puts it back to sleep when idle)' : 'Start'}>
               <button
@@ -295,7 +295,7 @@ const ContainerRow: React.FC<ContainerRowProps> = ({
               </button>
             </Hint>
           )}
-        </div>
+        </div>}
       </td>
     </tr>
   )

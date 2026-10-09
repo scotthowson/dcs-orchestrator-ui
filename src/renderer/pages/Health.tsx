@@ -24,7 +24,7 @@ import { containerState, isAsleep, ASLEEP_HINT } from '../lib/containerState'
 import { DisconnectedBanner } from '../components/common/DisconnectedBanner'
 import PageHeader from '../components/common/PageHeader'
 import SortableTh from '../components/common/SortableTh'
-import { EmptyState } from '../components/common/PageState'
+import { EmptyState, ErrorState } from '../components/common/PageState'
 import { Panel, CardSwitch } from '../components/dashboard/cardShared'
 import { BTN_TOOLBAR_QUIET } from '../lib/ui'
 import UptimeTimeline, { type TimelineRow } from '../components/health/UptimeTimeline'
@@ -254,7 +254,8 @@ export default function Health() {
 
   // Also use the global store as fallback if the local poll hasn't returned yet
   const storeReport = useHealthStore((s) => s.report)
-  const report = data ?? storeReport
+  // (only the answer of the scope shown: a switch never shows the old scope's report under the new label)
+  const report = (reportOf === reportKey ? data : null) ?? (scopeMember ? null : storeReport)
   // NEVER default to 'healthy' — only the API can say we're healthy
   const status: HealthStatus = report?.status ?? 'unknown'
   // while the API does not answer the page says so, in place of the last verdict
@@ -461,6 +462,9 @@ export default function Health() {
   const incidentUnhealthy = incidents.filter((c) => c.health.toLowerCase() === 'unhealthy').length
   const incidentRestarted = incidents.filter((c) => (c.restart_count ?? 0) > 0).length
 
+  /** the report could not be read and there is none to show (the link itself is up: that has its own state) */
+  const failed = !!error && !report && !stale
+
   // Refresh: the report, the container list and the events (the button, Ctrl+R and the palette's refresh)
   const refreshAll = React.useCallback(() => { refresh(); refreshContainers(); refreshEvents() }, [refresh, refreshContainers, refreshEvents])
   React.useEffect(() => {
@@ -492,12 +496,17 @@ export default function Health() {
         {hasFleet && <FleetScopeChips scope={scope} members={scopeMembers} onChange={setScope} busy={loading && !!report} />}
       </PageHeader>
 
-      {/* Error state */}
-      {error && !stale && (
+      {/* Error state: nothing read yet → the kit's failed state in place of the page (never a verdict of zeros); a later
+          failure keeps the last report under a small notice */}
+      {failed && (
+        <ErrorState title={`Could not load the health report${scopeMember ? ` of the VM ${memberName}` : ''}`} error={error} onRetry={refreshAll} />
+      )}
+      {error && !stale && !failed && (
         <div className="rounded-xl border border-rose-500/20 bg-rose-500/[0.06] px-4 py-3 text-xs text-rose-300" role="alert">
           Could not load the health data: {error.message}
         </div>
       )}
+      {!failed && <>
 
       {/* Everywhere: how each DCS is doing */}
       {scope === 'all' && report?.members && report.members.length > 0 && (
@@ -878,6 +887,7 @@ export default function Health() {
         {/* Incident log, or all clear */}
         <IncidentLog incidents={incidents} show={enrichedContainers.length > 0 && (!!eventsData || !eventsLoading)} fleetWide={scope === 'all'} />
       </div>
+      </>}
     </div>
   )
 }

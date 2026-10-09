@@ -571,6 +571,11 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
     if (action === 'remove') {
       if (!(await confirm({ title: 'Remove this container?', message: `Remove container "${containerName}"? This will force-remove it and cannot be undone.`, confirmLabel: 'Remove', danger: true }))) return
     }
+    // stopping, restarting and recreating take what it serves away for a while: they ask first, like a stack's and a row's Stop
+    const where = member ? ` on VM ${memberName || member}` : ''
+    if (action === 'stop' && !(await confirm({ title: `Stop ${containerName}?`, message: `Stop the container ${containerName}${where}? What it serves is unavailable until it is started again.`, confirmLabel: 'Stop', danger: true }))) return
+    if (action === 'restart' && !(await confirm({ title: `Restart ${containerName}?`, message: `Restart the container ${containerName}${where}? What it serves is unavailable for a few seconds.`, confirmLabel: 'Restart' }))) return
+    if (action === 'recreate' && !(await confirm({ title: `Recreate ${containerName}?`, message: `Remove the container ${containerName}${where} and create it again from its image? What it serves is unavailable until it is back.`, confirmLabel: 'Recreate', danger: true }))) return
 
     setActionLoading(action)
     addToast({ type: 'info', message: `${gerund[action]} "${containerName}"${member ? ` on VM ${memberName || member}` : ''}...`, duration: 2000 })
@@ -914,7 +919,8 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
               onError={(message) => addToast({ type: 'error', message })}
             />
           )}
-          {containerInfo.state !== 'running' && (
+          {/* starting, stopping, restarting and recreating are an admin's calls on the API (a viewer is answered 403) */}
+          {isAdmin && containerInfo.state !== 'running' && (
             <button
               onClick={() => handleAction('start')}
               disabled={!!actionLoading}
@@ -925,7 +931,7 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
               {isAsleep(containerInfo) ? 'Wake now' : 'Start'}
             </button>
           )}
-          {containerInfo.state === 'running' && (
+          {isAdmin && containerInfo.state === 'running' && (
             <>
               <button
                 onClick={() => handleAction('restart')}

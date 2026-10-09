@@ -27,6 +27,7 @@ import { useToast } from '../components/common/Toast'
 import { useConfirm } from '../components/common/ConfirmDialog'
 import { LoadingState, ErrorState, EmptyState } from '../components/common/PageState'
 import ModalOverlay from '../components/common/ModalOverlay'
+import Sheet from '../components/common/Sheet'
 import PageHeader from '../components/common/PageHeader'
 import Hint from '../components/common/Hint'
 import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD, BTN_CARD_QUIET, BTN_ICON, BTN_ICON_SM, BTN_SHEET_QUIET, BTN_SHEET_PRIMARY, TONE_QUIET, TONE_OK, TONE_DANGER, TONE_GHOST, TONE_GHOST_DANGER, FOCUS_RING } from '../lib/ui'
@@ -152,19 +153,32 @@ function NetworkFormModal({ initial, onClose, onSaved }: {
     }
   }
 
-  return createPortal(
-    <ModalOverlay onClose={onClose} className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
-      <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto scrollbar-thin glass rounded-2xl p-5 sm:p-6 animate-scale-in" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-start gap-3 mb-5">
-          <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${editing ? 'bg-cyan-500/10 border-cyan-500/20' : 'bg-emerald-500/10 border-emerald-500/20'}`}>
-            {editing ? <Pencil size={18} className="text-cyan-400" /> : <Network size={18} className="text-emerald-400" />}
-          </div>
-          <div className="min-w-0 flex-1">
-            <h3 className="text-base font-semibold text-slate-100">{editing ? 'Edit network' : 'Create Docker network'}</h3>
-            <p className="text-sm text-slate-400 mt-0.5">{editing ? `${initial?.name} is rebuilt with the settings below` : 'Configure a new isolated network'}</p>
-          </div>
-          <CloseButton onClick={onClose} className="-mr-1 -mt-1" />
+  // the kit's Sheet: a bottom sheet on a phone, a centred dialog above it; the buttons stay in reach under the form
+  return (
+    <Sheet
+      title={editing ? 'Edit network' : 'Create Docker network'}
+      subtitle={editing ? `${initial?.name} is rebuilt with the settings below` : 'Configure a new isolated network'}
+      icon={editing ? <Pencil size={18} /> : <Network size={18} />}
+      tone={editing ? 'info' : 'ok'}
+      onClose={onClose}
+      footer={
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:gap-3">
+          <button type="button" onClick={onClose} className={`${BTN_SHEET_QUIET} sm:flex-1 ${FOCUS_RING}`}>
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={!isValid || saving || !changed}
+            title={editing && !changed ? 'Nothing changed yet' : undefined}
+            className={`${BTN_SHEET_PRIMARY} sm:flex-1 disabled:cursor-not-allowed ${FOCUS_RING}`}
+          >
+            {saving ? <Loader2 size={16} className="animate-spin" /> : editing ? <RefreshCw size={16} /> : <Plus size={16} />}
+            {saving ? (editing ? 'Rebuilding…' : 'Creating…') : editing ? 'Rebuild network' : 'Create network'}
+          </button>
         </div>
+      }
+    >
 
         {editing && (
           <div className="mb-4 rounded-lg bg-amber-500/10 border border-amber-500/20 px-3.5 py-3 text-xs text-amber-200/90 leading-relaxed">
@@ -283,24 +297,7 @@ function NetworkFormModal({ initial, onClose, onSaved }: {
           )}
         </div>
 
-        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:gap-3 mt-6">
-          <button type="button" onClick={onClose} className={`${BTN_SHEET_QUIET} sm:flex-1 ${FOCUS_RING}`}>
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={!isValid || saving || !changed}
-            title={editing && !changed ? 'Nothing changed yet' : undefined}
-            className={`${BTN_SHEET_PRIMARY} sm:flex-1 disabled:cursor-not-allowed ${FOCUS_RING}`}
-          >
-            {saving ? <Loader2 size={16} className="animate-spin" /> : editing ? <RefreshCw size={16} /> : <Plus size={16} />}
-            {saving ? (editing ? 'Rebuilding…' : 'Creating…') : editing ? 'Rebuild network' : 'Create network'}
-          </button>
-        </div>
-      </div>
-    </ModalOverlay>,
-    document.body,
+    </Sheet>
   )
 }
 
@@ -358,7 +355,15 @@ function NetworkDetailPanel({ network, onClose, onRefresh, onEdit, isAdmin }: {
 
   const connectable = allContainers.filter((n) => !detail?.containers.some((c) => c.name === n))
 
+  const confirm = useConfirm()
   const handleDisconnect = async (containerName: string) => {
+    // taking a container off a network cuts its link there: it asks first, like every rose action
+    if (!(await confirm({
+      title: `Disconnect ${containerName}?`,
+      message: `Disconnect ${containerName} from ${network.name}? It loses its link on this network (and its address there) until it is connected again.`,
+      confirmLabel: 'Disconnect',
+      danger: true,
+    }))) return
     setDisconnecting(containerName)
     setError('')
     try {
@@ -740,13 +745,16 @@ export default function Networks() {
 
   // a hub: everywhere (the hub and every VM), the hub alone, or one VM — the choice every fleet-aware page shares
   const { scope, setScope, member: scopeMember, memberName, members: scopeMembers, hasFleet } = useFleetScope()
-  const fetchScopedNetworks = useCallback(() => fetchNetworks(scope), [scope])
+  // each answer carries the scope it was asked for: a switch never shows the old scope's networks under the new label
+  const fetchScopedNetworks = useCallback(() => fetchNetworks(scope).then((list) => ({ scope, list })), [scope])
   const {
-    data: networksData,
-    loading: networksLoading,
+    data: scopedData,
+    loading: pollLoading,
     error: networksError,
     refresh: refreshNetworks,
-  } = usePolling<NetworkListResponse>(fetchScopedNetworks, 30000)
+  } = usePolling<{ scope: typeof scope; list: NetworkListResponse }>(fetchScopedNetworks, 30000)
+  const networksData = scopedData?.scope === scope ? scopedData.list : null
+  const networksLoading = pollLoading || (!networksData && !networksError)
   const scopeRef = useRef(scope)
   useEffect(() => { if (scopeRef.current !== scope) { scopeRef.current = scope; refreshNetworks() } }, [scope, refreshNetworks])
 
@@ -826,7 +834,7 @@ export default function Networks() {
           network={inspectNetwork}
           onClose={() => setInspectNetwork(null)}
           onRefresh={refreshNetworks}
-          onEdit={(detail) => setEditTarget(detail)}
+          onEdit={(detail) => { setInspectNetwork(null); setEditTarget(detail) }}
           isAdmin={isAdmin}
         />
       )}
@@ -851,11 +859,12 @@ export default function Networks() {
       </PageHeader>
 
       {/* Stats row — 3 columns */}
-      <div className="grid grid-cols-3 gap-2 sm:gap-3">
+      {/* (not while the list failed to load: no zeros beside the failure) */}
+      {!(networksError && !networksData) && <div className="grid grid-cols-3 gap-2 sm:gap-3">
         <StatTile icon={Network} label="Total networks" short="Total" value={networks.length} />
         <StatTile icon={Plus} label="Custom networks" short="Custom" value={userNetworks.length} />
         <StatTile icon={Plug} label="Connections" short="Links" value={totalContainers} />
-      </div>
+      </div>}
 
       {/* Search + sort bar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -891,21 +900,21 @@ export default function Networks() {
       ) : networksError && !networksData ? (
         <ErrorState title="Failed to load networks" error={networksError} onRetry={refreshNetworks} />
       ) : filteredNetworks.length === 0 ? (
-        <div className={`${CARD} px-6 py-10 text-center`}>
-          <Network size={26} className="mx-auto text-slate-500" aria-hidden />
-          <p className="mt-2 text-sm text-slate-300">{searchQuery ? 'No network matches' : 'No networks found'}</p>
-          <p className="mt-1 text-xs text-slate-500">
-            {searchQuery
+        <div className={CARD}>
+          <EmptyState
+            icon={<Network size={28} />}
+            title={searchQuery ? 'No networks match your search.' : 'No networks found.'}
+            hint={searchQuery
               ? `None of the ${networks.length} network${networks.length === 1 ? '' : 's'} has “${searchQuery.trim()}” in its name, driver or containers.`
               : isAdmin
                 ? 'Docker creates its built-in networks on its own. Use New network to make one, or deploy a stack that declares its own.'
                 : 'Docker networks appear here once a stack creates one.'}
-          </p>
-          {searchQuery && (
-            <button type="button" onClick={() => setSearchQuery('')} className={`${BTN_TOOLBAR_QUIET} ${FOCUS_RING} mx-auto mt-4`}>
-              <X size={14} /> Clear the search
-            </button>
-          )}
+            action={searchQuery ? (
+              <button type="button" onClick={() => setSearchQuery('')} className={`${BTN_TOOLBAR_QUIET} ${FOCUS_RING}`}>
+                <X size={14} /> Clear the search
+              </button>
+            ) : undefined}
+          />
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 stagger-children">
