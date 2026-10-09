@@ -496,6 +496,9 @@ export function Header() {
           <div className="relative">
             <button
               onClick={() => setShowProfileMenu(!showProfileMenu)}
+              aria-label={`Account: ${currentUser}`}
+              aria-haspopup="true"
+              aria-expanded={showProfileMenu}
               className="
                 flex items-center gap-1.5 md:gap-2 px-1.5 md:px-2 py-1.5 rounded-lg min-h-[44px] md:min-h-0
                 bg-white/[0.03] border border-white/5

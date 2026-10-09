@@ -431,9 +431,10 @@ export default function Terminal() {
   const handleCopyOutput = (index: number) => {
     const entry = entries[index]
     if (entry) {
-      navigator.clipboard.writeText(entry.output)
-      setCopiedIndex(index)
-      setTimeout(() => setCopiedIndex(null), 2000)
+      navigator.clipboard.writeText(entry.output).then(() => {
+        setCopiedIndex(index)
+        setTimeout(() => setCopiedIndex(null), 2000)
+      }, () => { /* the browser refused: nothing was copied, the button stays as it was */ })
     }
   }
 

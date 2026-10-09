@@ -38,6 +38,7 @@ export function copyWithSelection(text: string): boolean {
 export async function copyText(text: string): Promise<void> {
   if (typeof navigator !== 'undefined' && navigator.clipboard && window.isSecureContext) {
     try {
+      // (the wrapped writeText of installClipboardFallback already tries the selection when the clipboard refuses)
       await navigator.clipboard.writeText(text)
       return
     } catch {
@@ -47,9 +48,22 @@ export async function copyText(text: string): Promise<void> {
   if (!copyWithSelection(text)) throw new DOMException('Copying was refused by the browser', 'NotAllowedError')
 }
 
-/** Gives an insecure page a navigator.clipboard.writeText (no-op where the real one exists). */
+/**
+ * Gives an insecure page a navigator.clipboard.writeText; on a secure page the real one keeps working and falls back to
+ * the selection when it refuses (no clipboard permission, the window not focused), so no Copy button rejects there.
+ */
 export function installClipboardFallback(): void {
-  if (typeof navigator === 'undefined' || navigator.clipboard) return
+  if (typeof navigator === 'undefined') return
+  const real = navigator.clipboard
+  if (real) {
+    if (typeof real.writeText !== 'function') return
+    const write = real.writeText.bind(real)
+    const writeText = (text: string) => write(text).catch(() => {
+      if (!copyWithSelection(text)) throw new DOMException('Copying was refused by the browser', 'NotAllowedError')
+    })
+    try { Object.defineProperty(real, 'writeText', { value: writeText, configurable: true }) } catch { /* a locked-down browser */ }
+    return
+  }
   const shim = {
     writeText: (text: string) => copyText(text),
     readText: () => Promise.reject(new DOMException('Reading the clipboard needs a secure page (https)', 'NotAllowedError')),

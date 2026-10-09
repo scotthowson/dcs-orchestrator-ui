@@ -162,7 +162,7 @@ export default function ChatPanel({ onClose }: { onClose: () => void }) {
     const ok = await confirm({
       title: mine ? 'Delete your message?' : `Delete ${m.user}'s message?`,
       message: mine ? 'It is removed for everyone. The room shows that a message was deleted.' : 'It is removed for everyone, and the audit log records that you removed it (without its text).',
-      confirmLabel: 'Delete',
+      confirmLabel: 'Delete message',
       danger: true,
     })
     if (!ok) return

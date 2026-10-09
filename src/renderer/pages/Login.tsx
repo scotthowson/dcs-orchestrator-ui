@@ -46,7 +46,9 @@ export default function Login() {
   const returnTo = useServerStore((s) => (s.returnToId ? s.servers.find((x) => x.id === s.returnToId) ?? null : null))
   const signInReason = useServerStore((s) => s.signInReason)
   const settingsLastUsername = useSettingsStore((s) => s.lastUsername)
-  const lastUsername = server?.lastUsername || server?.session?.username || (serverCount <= 1 ? settingsLastUsername : '') || ''
+  // Settings → Lock & session → Remember username: off, the field starts empty (the server's remembered name included)
+  const rememberUsername = useSettingsStore((s) => s.rememberUsername) ?? true
+  const lastUsername = rememberUsername ? (server?.lastUsername || server?.session?.username || (serverCount <= 1 ? settingsLastUsername : '') || '') : ''
   const [canRemember, setCanRemember] = useState(false)
   const [rememberPw, setRememberPw] = useState(!!server?.remember)
   const [cancelling, setCancelling] = useState(false)
@@ -675,7 +677,7 @@ export default function Login() {
                       id="setup-username"
                       type="text"
                       value={username}
-                      onChange={(e) => { setUsername(e.target.value); clearError() }}
+                      onChange={(e) => { setUsername(e.target.value); clearError(); setServerAuthError(null) }}
                       placeholder="Enter username"
                       autoFocus
                       autoComplete="username"
@@ -693,7 +695,7 @@ export default function Login() {
                       id="setup-password"
                       type={showPassword ? 'text' : 'password'}
                       value={password}
-                      onChange={(e) => { setPassword(e.target.value); clearError() }}
+                      onChange={(e) => { setPassword(e.target.value); clearError(); setServerAuthError(null) }}
                       placeholder="Enter password"
                       autoComplete="new-password"
                       className={`${INPUT_ICON} !pr-12`}
@@ -893,7 +895,7 @@ export default function Login() {
                       id="signin-username"
                       type="text"
                       value={username}
-                      onChange={(e) => { setUsername(e.target.value); clearError() }}
+                      onChange={(e) => { setUsername(e.target.value); clearError(); setServerAuthError(null) }}
                       placeholder="Enter username"
                       autoFocus
                       autoComplete="username"
@@ -911,7 +913,7 @@ export default function Login() {
                       id="signin-password"
                       type={showPassword ? 'text' : 'password'}
                       value={password}
-                      onChange={(e) => { setPassword(e.target.value); clearError() }}
+                      onChange={(e) => { setPassword(e.target.value); clearError(); setServerAuthError(null) }}
                       placeholder="Enter password"
                       autoComplete="current-password"
                       className={`${INPUT_ICON} !pr-12`}

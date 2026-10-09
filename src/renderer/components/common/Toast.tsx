@@ -168,6 +168,8 @@ function ToastItem({
 
   return (
     <div
+      data-toast
+      role={toast.type === 'error' ? 'alert' : 'status'}
       className={`
         relative overflow-hidden
         w-[calc(100vw-2rem)] max-w-[340px]
@@ -211,7 +213,7 @@ function ToastItem({
             )}
             {toast.type === 'error' && (
               <button
-                onClick={() => navigator.clipboard.writeText(toast.message)}
+                onClick={() => { navigator.clipboard.writeText(toast.message).catch(() => { /* the browser refused: nothing to copy into */ }) }}
                 className="text-[10px] text-slate-500 hover:text-slate-300 mt-1 ml-2 transition-colors"
               >
                 Copy
@@ -298,8 +300,11 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     <ToastContext.Provider value={contextValue}>
       {children}
 
-      {/* Toast container — fixed bottom-right, safe area aware */}
+      {/* Toast container — fixed bottom-right, safe area aware; a live region, so a screen reader hears each toast */}
       <div
+        data-toast-region
+        aria-live="polite"
+        aria-relevant="additions"
         className="fixed right-5 z-[10001] flex flex-col gap-2.5 pointer-events-none"
         style={{
           bottom: 'calc(1.25rem + env(safe-area-inset-bottom, 0px))',

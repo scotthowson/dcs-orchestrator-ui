@@ -1352,7 +1352,7 @@ export default function SetupWizard({ onComplete }: WizardProps) {
                     />
                   </div>
                   {adminUsername && adminUsername.length < 3 && (
-                    <p className="text-[10px] text-amber-400 mt-1">At least 3 characters required</p>
+                    <p role="alert" className="text-[10px] text-rose-400 mt-1">At least 3 characters required</p>
                   )}
                 </div>
 
@@ -1393,7 +1393,7 @@ export default function SetupWizard({ onComplete }: WizardProps) {
                       />
                     </div>
                     {adminConfirm && adminPassword !== adminConfirm && (
-                      <p className="text-[10px] text-rose-400 mt-1">Passwords do not match</p>
+                      <p role="alert" className="text-[10px] text-rose-400 mt-1">Passwords do not match</p>
                     )}
                   </div>
                 )}

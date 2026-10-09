@@ -1,14 +1,14 @@
 // =============================================================================
 // ShowPasswordButton — the eye at the end of a password field. Place it inside
 // a `relative` wrapper; it can be reached with the keyboard and is named for
-// what it does next ("Show password" / "Hide password").
+// what it does next ("Show the password" / "Hide the password", the words of every other eye).
 // =============================================================================
 
 import { Eye, EyeOff } from 'lucide-react'
 import Hint from '../common/Hint'
 import { BTN_ICON_SM, FOCUS_RING } from '../../lib/ui'
 export default function ShowPasswordButton({ shown, onToggle }: { shown: boolean; onToggle: () => void }) {
-  const label = shown ? 'Hide password' : 'Show password'
+  const label = shown ? 'Hide the password' : 'Show the password'
   return (
     <Hint label={label}>
       <button

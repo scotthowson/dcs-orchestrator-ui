@@ -689,7 +689,8 @@ export default function App() {
           <Sidebar />
 
           {/* Main content area */}
-          <main ref={mainRef} className="flex-1 overflow-y-auto p-4 md:p-6 transition-all duration-300 scrollbar-thin overscroll-contain">
+          {/* room at the bottom for the floating chat and back-to-top buttons: the last row of a page scrolls clear of them */}
+          <main ref={mainRef} className="flex-1 overflow-y-auto p-4 md:p-6 pb-24 md:pb-24 transition-all duration-300 scrollbar-thin overscroll-contain">
             <div className="max-w-[1600px] mx-auto">
               {/* the section's pages: outside the fade, so switching tabs never blinks the strip */}
               <SectionTabs />

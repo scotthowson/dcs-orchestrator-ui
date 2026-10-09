@@ -52,7 +52,7 @@ export function EmptyState({ icon, title, hint, action, compact = false, card = 
 }) {
   const box = card ? 'flex-1 min-h-0 py-3 gap-1' : compact ? 'py-10 gap-1' : 'py-16 md:py-20 gap-1'
   return (
-    <div className={`flex flex-col items-center justify-center text-center animate-fade-in ${box}`}>
+    <div data-state="empty" className={`flex flex-col items-center justify-center text-center animate-fade-in ${box}`}>
       {icon && <div className={card ? 'mb-1.5' : 'mb-3'}><StateIcon small={card || compact}>{icon}</StateIcon></div>}
       <p className="text-sm font-medium text-slate-300">{title}</p>
       {hint && <p className={`text-xs leading-relaxed text-slate-500 ${card ? 'max-w-[34ch]' : 'max-w-sm'}`}>{hint}</p>}
@@ -71,7 +71,7 @@ export function ErrorState({ title = 'Could not load this', error, onRetry, card
   const message = typeof error === 'string' ? error : error?.message
   if (card) {
     return (
-      <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-1 py-3 text-center" role="alert">
+      <div data-state="error" className="flex-1 min-h-0 flex flex-col items-center justify-center gap-1 py-3 text-center" role="alert">
         <div className="mb-1.5"><StateIcon small tone="problem"><AlertTriangle size={18} /></StateIcon></div>
         <p className="text-sm font-medium text-slate-300">{title}</p>
         {message && <p className="text-xs text-slate-500 max-w-[34ch] break-words">{message}</p>}
@@ -84,7 +84,7 @@ export function ErrorState({ title = 'Could not load this', error, onRetry, card
     )
   }
   return (
-    <div className={`${CARD} border-rose-500/20 px-6 py-10 flex flex-col items-center text-center animate-fade-in`} role="alert">
+    <div data-state="error" className={`${CARD} border-rose-500/20 px-6 py-10 flex flex-col items-center text-center animate-fade-in`} role="alert">
       <div className="mb-3"><StateIcon small={false} tone="problem"><AlertTriangle size={24} /></StateIcon></div>
       <p className="text-sm font-medium text-slate-200">{title}</p>
       {message && <p className="mt-1 text-xs text-slate-500 max-w-md leading-relaxed break-words">{message}</p>}
