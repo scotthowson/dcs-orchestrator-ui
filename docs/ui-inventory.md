@@ -5,6 +5,22 @@ needs something the list does not have adds it here (a variant as a prop, never 
 The numbers are measured in `src/renderer` of v4.0.36 (before) and of this branch (after). The older,
 page-by-page audit that led here is in [ui-polish/AUDIT.md](ui-polish/AUDIT.md).
 
+## The design system (polish/visual)
+
+The decisions every component and page follows; the kit below draws them.
+
+| | rule | where |
+|---|---|---|
+| type scale | page title 24/32 semibold (20/28 on a phone) · dialog 16/24 · panel 14/20 semibold · body 14/20 · meta 12/16 · label 12/16 semibold capitals; big numbers semibold, tight tracking, tabular | `lib/ui` `TITLE_PAGE`, `TITLE_DIALOG`, `TITLE_PANEL`, `TEXT_BODY`, `TEXT_META`, `SECTION_LABEL` |
+| spacing | 4 px grid: a page's parts 16 apart on a phone, 24 from md up (`PAGE_STACK`); 16 / 20 inside a panel or tile; 12 between rows; 8 between buttons; gutters 16 on a phone, 24 above | `lib/pageKit`, `App.tsx` `main` |
+| surfaces | two: **quiet** `.surface` (`CARD`) for every panel, tile, list and table of a page — one fill, one hairline, the theme's radius, no blur, no shadow in dark, a hairline shadow in light; **raised** `.glass` for what floats (sheets, dialogs, menus, toasts). Both from the theme tokens (`--dcs-surface`, `--dcs-border`, `--dcs-radius`). The dashboard's widgets keep `glass-card` | `index.css`, `lib/pageKit` |
+| radii | 12 cards and panels (the theme's radius), 8 controls, fields, notices and wells, 16 dialogs, 24 a phone's bottom sheet, full pills | — |
+| motion | 150 ms for a control's colours and press (2 %, never while disabled), 200 ms hover and entrances, 240 ms a sheet; `prefers-reduced-motion` and Settings → reduced motion cut all of it | `lib/ui` `MOTION`, `tailwind.config.js`, `index.css` |
+| focus | the accent outline on `:focus-visible` only (a click never lights it); `FOCUS_RING` where a control draws its own | `index.css`, `lib/ui` |
+| contrast | text 4.5:1 in both looks of every theme: quiet notes (`text-slate-500`) are muted text a fifth of the way to the page in dark, `#5b6b80` in light; status text in the stock light look one step deeper than the fills | `index.css`, `lib/themeEngine` `rampOf` |
+| targets | 24 px of hit area at least (a pill or a text button grows its area, not its box); 40-44 px on a phone | `lib/mantine-dcs.css`, the phone shell in `index.css` |
+| states | empty: a quiet round icon tile, one line, one hint, one next step; failed: the same in rose with Try again; loading: a shimmer in the final shape (`StatTile loading` for a number) | `PageState`, `StatTile` |
+
 ## The kit
 
 | concept | canonical | variants (props) | file |
@@ -14,8 +30,8 @@ page-by-page audit that led here is in [ui-polish/AUDIT.md](ui-polish/AUDIT.md).
 | close / dismiss ✕ | `CloseButton` | `size="md"` (a sheet, a dialog: ✕ 16) · `"sm"` (a guide, a panel, a toast, a notice: ✕ 14); `label` | `components/common/CloseButton.tsx` |
 | copy | `CopyButton`, `CopyBlock` | `variant="icon"` (24 px, beside a value) · `"chip"` (card button with its word); `CopyBlock` = a command in a well | `components/common/CopyButton.tsx` |
 | headings | `PageHeader` (the page's one `<h1>`), `TITLE_PANEL`, `TITLE_DIALOG`, `SECTION_LABEL` / `SectionHeader` | `SectionHeader`: icon, count, controls on the right | `components/common/PageHeader.tsx`, `lib/ui.ts`, `components/common/SectionHeader.tsx` |
-| page section / card | `Panel` (the page card `CARD` + the card header) | `sub`, `flush`, `id`, `tone`, `actions`, `badge`, `open`; the dashboard's widgets keep their own `Card` (glass) | `components/dashboard/cardShared.tsx`, `lib/pageKit.ts` |
-| number tile | `StatTile` | `tone`, `short` (three to a row on a phone), `onClick` (leads to the detail), `sub` | `components/common/StatTile.tsx` |
+| page section / card | `Panel` (the quiet surface `CARD` + the card header) | `sub`, `flush`, `id`, `tone`, `actions`, `badge`, `open`; the dashboard's widgets keep their own `Card` (glass) | `components/dashboard/cardShared.tsx`, `lib/pageKit.ts` |
+| number tile | `StatTile` | `tone` (the icon tile; the value is coloured only for attention / problem), `short` (three to a row on a phone), `onClick` (leads to the detail), `sub`, `loading`, `iconClass` | `components/common/StatTile.tsx` |
 | status chip | `Pill` (the themed Mantine Badge) | `tone`, `dot`, `icon` (10 px), `size` `xs`/`sm`/`md`, `title`; a container's own state keeps `StateChip` | `components/common/Pill.tsx` |
 | number bubble | `Count` | `tone` (beside a tab or heading) · `alert` (the red count on an icon) | `components/common/Pill.tsx` |
 | status line | `StatusLine` | `tone`, `icon`, `action`, `dense` (a long checklist), `as="li"`; a screen reader hears the verdict first | `components/common/StatusLine.tsx` |
