@@ -283,7 +283,7 @@ export default function Logs() {
       : undefined
 
   return (
-    <div className="space-y-4 md:space-y-5 flex flex-col" style={{ height: 'calc(100vh - 160px)' }}>
+    <div className="space-y-4 md:space-y-6 flex flex-col" style={{ height: 'calc(100vh - 160px)' }}>
       <DisconnectedBanner />
       <PageHeader
         page="logs"

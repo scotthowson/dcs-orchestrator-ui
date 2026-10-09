@@ -292,7 +292,7 @@ export default function StackList({ onAction, onSelect, onRefresh, loading = fal
   const batchClass = batchMode ? 'bg-cyan-500/15 border border-cyan-500/25 text-cyan-400 hover:bg-cyan-500/25' : TONE_QUIET
 
   return (
-    <div className="space-y-4 md:space-y-5">
+    <div className="space-y-4 md:space-y-6">
       {/* Delete Confirmation Modal */}
       {showDeleteModal && createPortal(
         <ModalOverlay onClose={closeDelete} className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">

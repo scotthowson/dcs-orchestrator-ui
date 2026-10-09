@@ -329,7 +329,7 @@ export default function StackDetail({ stackName, onBack, onAction, isActionLoadi
           <div className="w-48 h-6 rounded bg-white/5 animate-pulse" />
         </div>
         {/* Card skeleton */}
-        <div className="surface p-6 space-y-4">
+        <div className="surface p-4 md:p-5 space-y-4">
           <div className="w-64 h-8 rounded bg-white/5 animate-pulse" />
           <div className="w-32 h-5 rounded bg-white/5 animate-pulse" />
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-4">
@@ -339,7 +339,7 @@ export default function StackDetail({ stackName, onBack, onAction, isActionLoadi
           </div>
         </div>
         {/* Table skeleton */}
-        <div className="surface p-6 space-y-3">
+        <div className="surface p-4 md:p-5 space-y-3">
           {[1, 2, 3].map((i) => (
             <div key={i} className="h-12 rounded bg-white/5 animate-pulse" />
           ))}
@@ -487,7 +487,7 @@ export default function StackDetail({ stackName, onBack, onAction, isActionLoadi
       )}
 
       {/* Status + actions card */}
-      <div className="surface p-5">
+      <div className="surface p-4 md:p-5">
         <div className="flex items-center justify-between flex-wrap gap-4">
           {/* Status info */}
           <div className="flex items-center flex-wrap gap-x-4 gap-y-2">
@@ -868,7 +868,7 @@ function ServicesList({ services }: { services: string[] }) {
   }
 
   return (
-    <div className="surface p-5">
+    <div className="surface p-4 md:p-5">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
         {services.map((service) => (
           <div

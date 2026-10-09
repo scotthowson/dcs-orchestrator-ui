@@ -124,7 +124,7 @@ export function ProblemView({ s, onRefresh, onDeploy }: { s: CrowdSecStatusRespo
   const log = s.log_tail ?? []
   return (
     <div className="space-y-4">
-      <div className={`${CARD} p-5 sm:p-6`}>
+      <div className={`${CARD} p-4 md:p-5`}>
         <div className="flex items-start gap-4 flex-wrap sm:flex-nowrap">
           <div className={`w-12 h-12 rounded-2xl border flex items-center justify-center shrink-0 ${tile}`}><Icon size={22} className={state === 'starting' ? 'animate-spin' : ''} /></div>
           <div className="min-w-0 flex-1 basis-64">
@@ -280,7 +280,7 @@ export function NotDeployed({ s, onRefresh }: { s: CrowdSecStatusResponse; onRef
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-        <div className={`${CARD} p-5 lg:col-span-3`}>
+        <div className={`${CARD} p-4 md:p-5 lg:col-span-3`}>
           <h3 className={SECTION_LABEL}>Before it deploys</h3>
           {!pre ? <div className="mt-3 space-y-2"><div className="skeleton h-5 rounded" /><div className="skeleton h-5 rounded w-2/3" /></div> : (
             <ul className="mt-2 divide-y divide-white/[0.04]">
@@ -302,7 +302,7 @@ export function NotDeployed({ s, onRefresh }: { s: CrowdSecStatusResponse; onRef
           ) : null}
         </div>
 
-        <div className={`${CARD} p-5 lg:col-span-2 flex flex-col`}>
+        <div className={`${CARD} p-4 md:p-5 lg:col-span-2 flex flex-col`}>
           <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Deploy</p>
           <div className="mt-3 space-y-3 flex-1">
             <div>
@@ -351,7 +351,7 @@ export function NotDeployed({ s, onRefresh }: { s: CrowdSecStatusResponse; onRef
 export function TooOld() {
   const setCurrentPage = useSettingsStore((st) => st.setCurrentPage)
   return (
-    <div className={`${CARD} p-6 text-center`}>
+    <div className={`${CARD} p-4 md:p-5 text-center`}>
       <PackageOpen size={30} className="mx-auto text-amber-400" />
       <h2 className="mt-3 text-lg font-semibold text-slate-100">This DCS is older than the CrowdSec page</h2>
       <p className="mt-1.5 text-sm text-slate-500 max-w-lg mx-auto">The server did not report a CrowdSec state, so it predates the API this page uses. Update DCS on that server and come back.</p>

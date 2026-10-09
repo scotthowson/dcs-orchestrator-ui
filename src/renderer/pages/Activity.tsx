@@ -111,7 +111,7 @@ export default function Activity() {
   }
 
   return (
-    <div className="space-y-4 md:space-y-5">
+    <div className="space-y-4 md:space-y-6">
       <DisconnectedBanner />
       <PageHeader
         page="activity"

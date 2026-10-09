@@ -29,7 +29,7 @@ import { useConfirm } from '../components/common/ConfirmDialog'
 import PageHeader from '../components/common/PageHeader'
 import Hint from '../components/common/Hint'
 import { pageLabel } from '../constants/pageTitles'
-import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_SHEET, BTN_SHEET_QUIET, BTN_SHEET_DANGER, TONE_OK, TONE_DANGER, FOCUS_RING } from '../lib/ui'
+import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_SHEET, BTN_SHEET_QUIET, BTN_SHEET_DANGER, TONE_OK, TONE_DANGER, FOCUS_RING, TITLE_PANEL } from '../lib/ui'
 import { CARD } from '../lib/pageKit'
 import { useSettingsStore, DEFAULT_SETTINGS } from '../stores/settingsStore'
 import { useAuthStore } from '../stores/authStore'
@@ -200,7 +200,7 @@ function SemiGauge({
         </svg>
         {/* Center value */}
         <div className="absolute inset-0 flex items-end justify-center pb-1">
-          <span className="text-xl font-bold tabular-nums text-slate-100">
+          <span className="text-xl font-semibold tracking-tight tabular-nums text-slate-100">
             {Math.round(clamped)}<span className="text-xs text-slate-500 ml-0.5">{suffix}</span>
           </span>
         </div>
@@ -217,12 +217,12 @@ function SemiGauge({
 // Section Header
 // =============================================================================
 
+/** a panel's title, the way every Panel draws it (icon 16, lib/ui TITLE_PANEL) */
 function SectionHeader({ icon, title }: { icon: React.ReactNode; title: string }) {
   return (
-    <div className="flex items-center gap-2.5 mb-4 w-full">
-      <span className="text-slate-500" aria-hidden>{icon}</span>
-      <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{title}</h2>
-      <div className="flex-1 h-px bg-gradient-to-r from-white/[0.06] to-transparent" aria-hidden />
+    <div className="flex items-center gap-2 mb-3 min-h-8 sm:min-h-7 w-full">
+      <span className="text-slate-400 [&>svg]:h-4 [&>svg]:w-4" aria-hidden>{icon}</span>
+      <h2 className={TITLE_PANEL}>{title}</h2>
     </div>
   )
 }
@@ -1372,7 +1372,7 @@ export default function Diagnostics() {
   const showDisconnected = !isConnected && hasNoData
 
   return (
-    <div className="space-y-4 md:space-y-5">
+    <div className="space-y-4 md:space-y-6">
       <DisconnectedBanner />
       {/* ── Page header ──────────────────────────────────────────── */}
       <PageHeader
@@ -1410,7 +1410,7 @@ export default function Diagnostics() {
 
             {/* Health Score Ring */}
             <div className="lg:col-span-4">
-              <div className={`${CARD} p-4 md:p-6 flex flex-col items-center justify-center h-full relative overflow-hidden`}>
+              <div className={`${CARD} p-4 md:p-5 flex flex-col items-center justify-center h-full relative overflow-hidden`}>
                 {/* Ambient glow behind ring */}
                 <div className="absolute inset-0 pointer-events-none">
                   <div
@@ -1453,7 +1453,7 @@ export default function Diagnostics() {
 
             {/* Resource Gauges + Server Control */}
             <div className="lg:col-span-8 flex flex-col gap-4 md:gap-5">
-              <div className={`${CARD} p-4 md:p-6`}>
+              <div className={`${CARD} p-4 md:p-5`}>
                 <SectionHeader icon={<Activity size={14} />} title="Resource gauges" />
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
                   <SemiGauge
@@ -1481,13 +1481,13 @@ export default function Diagnostics() {
                 </div>
               </div>
               {isAdmin && (
-                <div className={`${CARD} p-4 md:p-6`}>
+                <div className={`${CARD} p-4 md:p-5`}>
                   <SectionHeader icon={<Power size={14} />} title="Server control" />
                   <ServerControlCard />
                 </div>
               )}
               {isAdmin && (
-                <div className={`${CARD} !border-rose-500/10 p-4 md:p-6`}>
+                <div className={`${CARD} !border-rose-500/10 p-4 md:p-5`}>
                   <SectionHeader icon={<Trash2 size={14} />} title="Factory reset" />
                   <FactoryResetCard />
                 </div>
@@ -1501,13 +1501,13 @@ export default function Diagnostics() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-5">
 
             {/* Container Health Matrix */}
-            <div className={`${CARD} p-4 md:p-6`}>
+            <div className={`${CARD} p-4 md:p-5`}>
               <SectionHeader icon={<Box size={14} />} title="Container health matrix" />
               <ContainerHealthMatrix containers={containers} />
             </div>
 
             {/* Image Freshness Breakdown */}
-            <div className={`${CARD} p-4 md:p-6`}>
+            <div className={`${CARD} p-4 md:p-5`}>
               <SectionHeader icon={<HardDrive size={14} />} title="Image freshness" />
               <ImageFreshnessBar images={images} />
             </div>
@@ -1519,13 +1519,13 @@ export default function Diagnostics() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-5">
 
             {/* Port Allocation Map */}
-            <div className={`${CARD} p-4 md:p-6`}>
+            <div className={`${CARD} p-4 md:p-5`}>
               <SectionHeader icon={<TrendingUp size={14} />} title="Port allocation map" />
               <PortAllocationMap containers={containers} />
             </div>
 
             {/* Event Frequency */}
-            <div className={`${CARD} p-4 md:p-6`}>
+            <div className={`${CARD} p-4 md:p-5`}>
               <SectionHeader icon={<BarChart3 size={14} />} title="Event frequency" />
               <EventFrequencyChart events={events} />
             </div>
@@ -1534,7 +1534,7 @@ export default function Diagnostics() {
           {/* ══════════════════════════════════════════════════════════ */}
           {/* ROW 4: Networks                                          */}
           {/* ══════════════════════════════════════════════════════════ */}
-          <div className={`${CARD} p-4 md:p-6`}>
+          <div className={`${CARD} p-4 md:p-5`}>
             <SectionHeader icon={<Network size={14} />} title="Networks" />
             <NetworkSummary networks={networks} />
           </div>
@@ -1542,7 +1542,7 @@ export default function Diagnostics() {
           {/* ══════════════════════════════════════════════════════════ */}
           {/* ROW 5: Alerts Panel                                      */}
           {/* ══════════════════════════════════════════════════════════ */}
-          <div className={`${CARD} p-4 md:p-6`}>
+          <div className={`${CARD} p-4 md:p-5`}>
             <SectionHeader icon={<AlertTriangle size={14} />} title="Active alerts" />
             <AlertsPanel
               containers={containers}

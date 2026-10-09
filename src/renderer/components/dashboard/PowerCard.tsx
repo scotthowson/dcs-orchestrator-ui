@@ -118,7 +118,7 @@ export default function PowerCard(_props: CardCommonProps) {
     >
       <CardBody>
         <div className="flex items-end gap-3 mb-2">
-          <span className={`text-3xl font-bold tabular-nums ${TONE_TEXT[tone]}`}>{charge === null ? '—' : `${charge}%`}</span>
+          <span className={`text-3xl font-semibold tracking-tight tabular-nums ${TONE_TEXT[tone]}`}>{charge === null ? '—' : `${charge}%`}</span>
           <span className="text-[11px] text-slate-500 mb-1.5">{fmtRuntime(data.runtime_seconds)} left{data.load !== null && data.load !== undefined ? ` · load ${data.load}%` : ''}{data.load_watts !== null && data.load_watts !== undefined ? ` (${data.load_watts} W${data.rated_watts ? ` of ${data.rated_watts}` : ''})` : ''}</span>
         </div>
         <div className="h-1.5 rounded-full bg-white/5 overflow-hidden mb-3" role="meter" aria-label="Battery charge" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.max(0, Math.min(100, charge ?? 0))}>

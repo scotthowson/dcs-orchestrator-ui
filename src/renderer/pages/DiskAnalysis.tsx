@@ -132,11 +132,11 @@ function DiskSkeleton() {
           </div>
         ))}
       </div>
-      <div className={`${CARD} p-5`} aria-hidden>
+      <div className={`${CARD} p-4 md:p-5`} aria-hidden>
         <div className="skeleton h-3 w-28 rounded mb-3" />
         <div className="skeleton h-4 w-full rounded-full" />
       </div>
-      <div className={`${CARD} p-5 space-y-3`} aria-hidden>
+      <div className={`${CARD} p-4 md:p-5 space-y-3`} aria-hidden>
         <div className="skeleton h-3 w-32 rounded" />
         <div className="skeleton h-24 w-full rounded-xl" />
       </div>
@@ -327,7 +327,7 @@ export default function DiskAnalysis() {
   // ---------------------------------------------------------------------------
 
   return (
-    <div className="space-y-4 md:space-y-5 animate-fade-in">
+    <div className="space-y-4 md:space-y-6 animate-fade-in">
       <DisconnectedBanner />
 
       <PageHeader
@@ -406,7 +406,7 @@ export default function DiskAnalysis() {
                 ? 'bg-gradient-to-r from-amber-500 to-orange-500 shadow-amber-500/20'
                 : 'bg-gradient-to-r from-emerald-500 to-cyan-500 shadow-emerald-500/20'
             return (
-              <div className={`${CARD} p-4 sm:p-5 animate-fade-in`} style={{ animationDelay: '60ms' }}>
+              <div className={`${CARD} p-4 md:p-5 animate-fade-in`} style={{ animationDelay: '60ms' }}>
                 <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 mb-3">
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Total storage</span>
@@ -437,7 +437,7 @@ export default function DiskAnalysis() {
           {/* ----------------------------------------------------------------- */}
           {mountedDrives.length > 0 && (
             <div
-              className={`${CARD} p-4 md:p-6 animate-fade-in`}
+              className={`${CARD} p-4 md:p-5 animate-fade-in`}
               style={{ animationDelay: '90ms' }}
             >
               <CardTitle
@@ -561,7 +561,7 @@ export default function DiskAnalysis() {
           {/* ----------------------------------------------------------------- */}
           {disk?.docker_df && disk.docker_df.length > 0 && (
             <div
-              className={`${CARD} p-4 md:p-6 animate-fade-in`}
+              className={`${CARD} p-4 md:p-5 animate-fade-in`}
               style={{ animationDelay: '120ms' }}
             >
               <CardTitle icon={<Layers size={14} className="text-cyan-400" aria-hidden />}>
@@ -661,7 +661,7 @@ export default function DiskAnalysis() {
           {/* ----------------------------------------------------------------- */}
           {sortedStacks.length > 0 && (
             <div
-              className={`${CARD} p-4 md:p-6 animate-fade-in`}
+              className={`${CARD} p-4 md:p-5 animate-fade-in`}
               style={{ animationDelay: '180ms' }}
             >
               <CardTitle
@@ -702,7 +702,7 @@ export default function DiskAnalysis() {
           {/* ----------------------------------------------------------------- */}
           {sortedVolumes.length > 0 && (
             <div
-              className={`${CARD} p-4 md:p-6 animate-fade-in`}
+              className={`${CARD} p-4 md:p-5 animate-fade-in`}
               style={{ animationDelay: '240ms' }}
             >
               <CardTitle

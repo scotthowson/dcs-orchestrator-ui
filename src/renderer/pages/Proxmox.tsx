@@ -1338,7 +1338,7 @@ export default function Proxmox() {
   const overviewGrid = n >= 4 ? 'md:grid-cols-2 xl:grid-cols-4' : n === 3 ? 'md:grid-cols-2 xl:grid-cols-3' : 'md:grid-cols-2'
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4 md:space-y-6">
       <DisconnectedBanner />
       <PageHeader
         page="proxmox"
@@ -1460,7 +1460,7 @@ export default function Proxmox() {
               </div>
             </div>
             {vms.error && !vms.data ? (
-              <div className={`${CARD} p-5 text-sm text-rose-300`}>{vms.error.message}</div>
+              <div className={`${CARD} p-4 md:p-5 text-sm text-rose-300`}>{vms.error.message}</div>
             ) : !vms.data ? (
               <div role="status" aria-label="Reading the guests" className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3">{[0, 1, 2, 3].map((i) => <GuestCardSkeleton key={i} />)}</div>
             ) : list.length === 0 ? (

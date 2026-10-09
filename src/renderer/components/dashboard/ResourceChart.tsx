@@ -188,7 +188,7 @@ function LoadAverage({ values, cores }: { values: [number, number, number]; core
       <div className="flex items-center gap-5">
         {values.map((val, i) => (
           <div key={labels[i]} className="flex flex-col items-center">
-            <span className={`text-xl font-bold tabular-nums ${TONE_TEXT[loadTone(val, cores)]}`}>{val.toFixed(2)}</span>
+            <span className={`text-xl font-semibold tracking-tight tabular-nums ${TONE_TEXT[loadTone(val, cores)]}`}>{val.toFixed(2)}</span>
             <span className="mt-0.5 text-[10px] text-slate-500 uppercase tracking-wider">{labels[i]}</span>
           </div>
         ))}

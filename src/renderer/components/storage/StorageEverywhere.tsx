@@ -84,7 +84,7 @@ export function StorageSummary({ data }: { data: StorageOverview }) {
   const { total, used, avail } = data.totals
   const pct = pctOf(used, total)
   return (
-    <div className={`${CARD} p-4 sm:p-5 animate-fade-in`} style={{ animationDelay: '60ms' }}>
+    <div className={`${CARD} p-4 md:p-5 animate-fade-in`} style={{ animationDelay: '60ms' }}>
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 mb-3">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">All storage</span>
@@ -280,7 +280,7 @@ function rootDrive(drives: StorageDrive[]): StorageDrive | null {
 export function VmDisks({ data }: { data: StorageOverview }) {
   if (data.vms.length === 0) return null
   return (
-    <div className={`${CARD} p-4 md:p-6 animate-fade-in`} style={{ animationDelay: '160ms' }}>
+    <div className={`${CARD} p-4 md:p-5 animate-fade-in`} style={{ animationDelay: '160ms' }}>
       <div className="flex items-center justify-between gap-3 mb-1">
         <div className="flex items-center gap-2">
           <Server size={14} className="text-violet-300" aria-hidden />

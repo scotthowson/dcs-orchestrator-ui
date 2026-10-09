@@ -10,6 +10,7 @@
 // The Schedules and Cron Jobs pages open here (PAGE_ALIASES: {tab, kind}).
 // =============================================================================
 
+import StatTile from '../components/common/StatTile'
 import { serverLabel } from '../hooks/useBrand'
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { Plus, RefreshCw, BookOpen, Bot, Layers, Zap, CalendarClock, Radar, ListChecks, Server } from 'lucide-react'
@@ -229,14 +230,14 @@ export default function Automations() {
     { value: 'condition', label: 'When something happens', count: stats.condition, icon: Radar },
   ]
   const tiles = [
-    { label: 'Rules', value: stats.total, icon: Layers, tone: 'text-slate-100', iconTone: 'text-slate-400' },
-    { label: 'Active', value: stats.active, icon: Zap, tone: 'text-emerald-400', iconTone: 'text-emerald-400' },
-    { label: 'Timed', value: stats.timed, icon: CalendarClock, tone: 'text-slate-100', iconTone: 'text-cyan-400' },
-    { label: 'Condition', value: stats.condition, icon: Radar, tone: 'text-slate-100', iconTone: 'text-amber-400' },
+    { label: 'Rules', value: stats.total, icon: Layers, tone: 'neutral' as const },
+    { label: 'Active', value: stats.active, icon: Zap, tone: 'ok' as const },
+    { label: 'Timed', value: stats.timed, icon: CalendarClock, tone: 'info' as const },
+    { label: 'Condition', value: stats.condition, icon: Radar, tone: 'neutral' as const },
   ]
 
   return (
-    <div className="space-y-5 animate-fade-in">
+    <div className="space-y-4 md:space-y-6 animate-fade-in">
       <DisconnectedBanner />
       <PageHeader
         page="automations"
@@ -272,16 +273,8 @@ export default function Automations() {
       </PageHeader>
 
       {/* the rules at a glance, both kinds */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 md:gap-3">
-        {tiles.map((t) => (
-          <div key={t.label} className="surface p-3 sm:p-4 md:p-5">
-            <div className="flex items-center gap-2 mb-1">
-              <t.icon size={14} className={t.iconTone} aria-hidden />
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">{t.label}</span>
-            </div>
-            <p className={`text-xl sm:text-2xl font-bold tabular-nums ${t.tone}`}>{ready ? t.value : '–'}</p>
-          </div>
-        ))}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {tiles.map((t) => <StatTile key={t.label} icon={t.icon} label={t.label} value={ready ? t.value : '–'} tone={t.tone} />)}
       </div>
 
       {showGuide && <AutomationGuide onClose={() => setShowGuide(false)} />}

@@ -444,7 +444,7 @@ const ContainerFileBrowser: React.FC<Props> = ({ containerName, member = null })
   return (
     <>
       <section className="animate-fade-in">
-        <div className="bg-slate-900/60 backdrop-blur-xl border border-white/5 rounded-xl overflow-hidden">
+        <div className="surface overflow-hidden">
           {/* Header with collapse toggle */}
           <button
             onClick={() => setCollapsed(!collapsed)}

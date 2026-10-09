@@ -259,7 +259,7 @@ export default function Backup() {
   const count = (n: number | undefined) => <span className="tabular-nums text-slate-500 ml-1">{n ?? '…'}</span>
 
   return (
-    <div className="space-y-5 animate-fade-in">
+    <div className="space-y-4 md:space-y-6 animate-fade-in">
       <DisconnectedBanner />
       <PageHeader
         page="backup"

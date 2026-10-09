@@ -13,6 +13,7 @@
 //   short    the name on a phone, where three tiles share a row (the icon and the line under it wait for a wider screen)
 //   onClick  the tile is a button that leads to the detail (a hint in `title`); its edge firms up under the pointer
 //   iconClass  the icon tile's colours when no tone says it (the indigo of "asleep on demand")
+//   loading  the first answer is on its way: a shimmer the size of the value, so nothing jumps when it lands
 // =============================================================================
 
 import type { ReactNode } from 'react'
@@ -21,7 +22,7 @@ import { TONE_TEXT, TONE_TILE, type Tone } from '../../lib/tone'
 import { FOCUS_RING } from '../../lib/ui'
 import { CARD } from '../../lib/pageKit'
 
-export default function StatTile({ icon: Icon, label, short, value, sub, tone = 'neutral', onClick, title, iconClass, className = '' }: {
+export default function StatTile({ icon: Icon, label, short, value, sub, tone = 'neutral', onClick, title, iconClass, loading = false, className = '' }: {
   icon?: LucideIcon
   label: string
   short?: string
@@ -31,6 +32,7 @@ export default function StatTile({ icon: Icon, label, short, value, sub, tone = 
   onClick?: () => void
   title?: string
   iconClass?: string
+  loading?: boolean
   className?: string
 }) {
   const verdict = tone === 'attention' || tone === 'problem'
@@ -45,7 +47,9 @@ export default function StatTile({ icon: Icon, label, short, value, sub, tone = 
         <p className="text-[10px] sm:text-[11px] font-medium leading-4 text-slate-500 uppercase tracking-wider truncate">
           {short ? <><span className="sm:hidden">{short}</span><span className="hidden sm:inline">{label}</span></> : label}
         </p>
-        <p className={`mt-0.5 text-xl md:text-2xl leading-7 md:leading-8 font-semibold tracking-tight tabular-nums truncate ${verdict ? TONE_TEXT[tone] : 'text-slate-100'}`}>{value}</p>
+        {loading
+          ? <div aria-hidden className="skeleton mt-0.5 h-7 md:h-8 w-12 rounded-md" />
+          : <p className={`mt-0.5 text-xl md:text-2xl leading-7 md:leading-8 font-semibold tracking-tight tabular-nums truncate ${verdict ? TONE_TEXT[tone] : 'text-slate-100'}`}>{value}</p>}
         {sub !== undefined && sub !== null && sub !== false && <p className={`text-xs leading-4 text-slate-500 truncate ${short ? 'hidden sm:block' : ''}`}>{sub}</p>}
       </div>
     </>

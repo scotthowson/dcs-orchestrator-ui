@@ -297,7 +297,7 @@ export default function Maintenance() {
   const notAnswering = scopeMembers.filter((m) => !m.reachable)
 
   return (
-    <div className="space-y-5 animate-fade-in">
+    <div className="space-y-4 md:space-y-6 animate-fade-in">
       <DisconnectedBanner />
 
       {/* Deep prune confirmation */}
@@ -445,7 +445,7 @@ export default function Maintenance() {
       {/* ================================================================== */}
       {/* 1. Actions */}
       {/* ================================================================== */}
-      <section aria-labelledby="maint-actions-title" className="surface p-5">
+      <section aria-labelledby="maint-actions-title" className="surface p-4 md:p-5">
         <h2 id="maint-actions-title" className="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2">Actions{hasFleet && <span className="text-[11px] font-normal text-slate-500">{everywhere ? `on the hub and ${vmCount} VM${vmCount === 1 ? '' : 's'}` : `on ${whereLabel}`}</span>}</h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {/* Safe prune: nothing to lose (emerald) */}
@@ -477,7 +477,7 @@ export default function Maintenance() {
       {/* ================================================================== */}
       {/* 2. System report */}
       {/* ================================================================== */}
-      <section aria-labelledby="maint-report-title" className="surface p-5">
+      <section aria-labelledby="maint-report-title" className="surface p-4 md:p-5">
         <h2 id="maint-report-title" className="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2">System report{everywhere && <span className="text-[11px] font-normal text-slate-500">added up across {targets.length} server{targets.length === 1 ? '' : 's'}</span>}</h2>
 
         {reportLoading && !report ? (
@@ -492,9 +492,9 @@ export default function Maintenance() {
               <div className="rounded-lg bg-white/[0.03] border border-white/5 p-3">
                 <div className="flex items-center gap-1.5 mb-2">
                   <Box size={12} className="text-slate-400" aria-hidden />
-                  <span className="text-[10px] text-slate-500 uppercase tracking-wider">Containers</span>
+                  <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">Containers</span>
                 </div>
-                <p className="text-xl md:text-2xl font-bold text-slate-100 tabular-nums">{report.containers.total}</p>
+                <p className="text-xl md:text-2xl font-semibold tracking-tight text-slate-100 tabular-nums">{report.containers.total}</p>
                 <div className="flex items-center gap-2 mt-1.5">
                   <Pill tone="ok" icon={dot('bg-emerald-400')} title="Running">{report.containers.running}</Pill>
                   {/* asleep on demand is not stopped: Sablier stopped them on purpose, and a prune leaves them alone */}
@@ -507,9 +507,9 @@ export default function Maintenance() {
               <div className="rounded-lg bg-white/[0.03] border border-white/5 p-3">
                 <div className="flex items-center gap-1.5 mb-2">
                   <Image size={12} className="text-slate-400" aria-hidden />
-                  <span className="text-[10px] text-slate-500 uppercase tracking-wider">Images</span>
+                  <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">Images</span>
                 </div>
-                <p className="text-xl md:text-2xl font-bold text-slate-100 tabular-nums">{report.images.total}</p>
+                <p className="text-xl md:text-2xl font-semibold tracking-tight text-slate-100 tabular-nums">{report.images.total}</p>
                 <div className="flex items-center gap-2 mt-1.5">
                   {report.images.dangling > 0 ? (
                     <Pill tone="attention" icon={dot('bg-amber-400')}>{report.images.dangling} dangling</Pill>
@@ -523,9 +523,9 @@ export default function Maintenance() {
               <div className="rounded-lg bg-white/[0.03] border border-white/5 p-3">
                 <div className="flex items-center gap-1.5 mb-2">
                   <HardDrive size={12} className="text-slate-400" aria-hidden />
-                  <span className="text-[10px] text-slate-500 uppercase tracking-wider">Volumes</span>
+                  <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">Volumes</span>
                 </div>
-                <p className="text-xl md:text-2xl font-bold text-slate-100 tabular-nums">{report.volumes.total}</p>
+                <p className="text-xl md:text-2xl font-semibold tracking-tight text-slate-100 tabular-nums">{report.volumes.total}</p>
                 <div className="flex items-center gap-2 mt-1.5">
                   {report.volumes.dangling > 0 ? (
                     <Pill tone="attention" icon={dot('bg-amber-400')}>{report.volumes.dangling} dangling</Pill>
@@ -539,9 +539,9 @@ export default function Maintenance() {
               <div className="rounded-lg bg-white/[0.03] border border-white/5 p-3">
                 <div className="flex items-center gap-1.5 mb-2">
                   <Network size={12} className="text-slate-400" aria-hidden />
-                  <span className="text-[10px] text-slate-500 uppercase tracking-wider">Networks</span>
+                  <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">Networks</span>
                 </div>
-                <p className="text-xl md:text-2xl font-bold text-slate-100 tabular-nums">{report.networks.total}</p>
+                <p className="text-xl md:text-2xl font-semibold tracking-tight text-slate-100 tabular-nums">{report.networks.total}</p>
                 <div className="flex items-center gap-2 mt-1.5">
                   <Pill tone="info">{report.networks.custom} custom</Pill>
                 </div>
@@ -551,7 +551,7 @@ export default function Maintenance() {
               <div className="rounded-lg bg-white/[0.03] border border-white/5 p-3 sm:col-span-2">
                 <div className="flex items-center gap-1.5 mb-2">
                   <HardDrive size={12} className="text-slate-400" aria-hidden />
-                  <span className="text-[10px] text-slate-500 uppercase tracking-wider">App data</span>
+                  <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">App data</span>
                 </div>
                 <p className="text-lg font-bold text-slate-100 font-mono">{report.app_data_size}</p>
               </div>
@@ -560,7 +560,7 @@ export default function Maintenance() {
               <div className="rounded-lg bg-white/[0.03] border border-white/5 p-3 sm:col-span-2">
                 <div className="flex items-center gap-1.5 mb-2">
                   <FileText size={12} className="text-slate-400" aria-hidden />
-                  <span className="text-[10px] text-slate-500 uppercase tracking-wider">Log size</span>
+                  <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">Log size</span>
                 </div>
                 <p className="text-lg font-bold text-slate-100 font-mono">{report.log_size}</p>
               </div>
@@ -572,7 +572,7 @@ export default function Maintenance() {
       {/* ================================================================== */}
       {/* 3. Orphan detection */}
       {/* ================================================================== */}
-      <section aria-labelledby="maint-orphans-title" className="surface p-5">
+      <section aria-labelledby="maint-orphans-title" className="surface p-4 md:p-5">
         <div className="flex items-center justify-between mb-3">
           <h2 id="maint-orphans-title" className="text-sm font-semibold text-slate-200">Orphan detection</h2>
           {!orphansLoading && orphans && allClean && (
@@ -694,7 +694,7 @@ export default function Maintenance() {
       {/* ================================================================== */}
       {/* 4. Disk usage */}
       {/* ================================================================== */}
-      <section aria-labelledby="maint-disk-title" className="surface p-5">
+      <section aria-labelledby="maint-disk-title" className="surface p-4 md:p-5">
         <h2 id="maint-disk-title" className="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2">Disk usage{everywhere && <span className="text-[11px] font-normal text-slate-500">every server&apos;s stacks; Docker&apos;s table added up per type</span>}</h2>
 
         {diskLoading && !disk ? (

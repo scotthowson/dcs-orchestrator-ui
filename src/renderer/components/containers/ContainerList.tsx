@@ -262,7 +262,7 @@ const ContainerList: React.FC<ContainerListProps> = ({
   const emptyHint = search ? 'Try another name, image, stack or VM.' : filter !== 'all' ? `No ${filter} containers right now — pick another filter.` : scopeMember ? `Nothing runs inside the VM ${memberName} yet — deploy a template there and its containers appear here.` : 'Start a stack or deploy a template and its containers appear here.'
 
   return (
-    <div className="flex flex-col gap-4 md:gap-5 animate-fade-in">
+    <div className="flex flex-col gap-4 md:gap-6 animate-fade-in">
       {onDemandFor && (
         <OnDemandDialog
           containerName={onDemandFor.name}

@@ -140,7 +140,7 @@ export function Panel({ id, icon, title, sub, meta, badge, actions, open, tone, 
   const titleId = id ? `${id}-title` : undefined
   const header = <CardHeader icon={icon} title={title} meta={meta} badge={badge} actions={actions} open={open} tone={tone} titleId={titleId} wrap bare={flush || !!sub} />
   return (
-    <section id={id} aria-labelledby={titleId} className={`${CARD} min-w-0 animate-fade-in ${flush ? 'overflow-hidden' : 'p-4'} ${tone ? EDGE[tone] : ''} ${className}`}>
+    <section id={id} aria-labelledby={titleId} className={`${CARD} min-w-0 animate-fade-in ${flush ? 'overflow-hidden' : 'p-4 md:p-5'} ${tone ? EDGE[tone] : ''} ${className}`}>
       {flush ? (
         <div className="px-4 py-3 border-b border-white/5">
           {header}

@@ -173,8 +173,7 @@ function StatCard({ icon, label, value, subtitle, accentColor, trend, loading, i
   const className = `
     relative overflow-hidden rounded-xl border-t-2 ${accentBorderMap[accentColor]}
     border bg-slate-900/60 backdrop-blur-md text-left
-    p-4 transition-all duration-300 hover:bg-slate-900/80 hover:border-white/10
-    hover:shadow-lg hover:shadow-black/20 hover:-translate-y-0.5
+    p-4 flex flex-col transition-colors duration-200 hover:bg-slate-900/80 hover:border-white/10
     animate-fade-in
     ${onClick ? 'cursor-pointer' : ''}
     ${pulse ? 'border-rose-500/30 animate-pulse' : 'border-white/5'}
@@ -209,7 +208,7 @@ function StatCard({ icon, label, value, subtitle, accentColor, trend, loading, i
           </span>
           <span className="mt-4 block">
             <span className="block text-sm font-medium text-slate-400">{label}</span>
-            <span className="mt-1 block text-lg md:text-2xl font-bold text-white tracking-tight tabular-nums">
+            <span className="mt-1 block text-lg md:text-2xl font-semibold text-white tracking-tight tabular-nums">
               {typeof value === 'number' ? <AnimatedCounter value={value} /> : value}
             </span>
             {subtitle && <span className="mt-0.5 block text-xs text-slate-500">{subtitle}</span>}
@@ -234,7 +233,7 @@ function StatCard({ icon, label, value, subtitle, accentColor, trend, loading, i
   )
   // a tile that leads to a page is a button (a keyboard reaches it); the others are plain boxes
   return onClick
-    ? <button type="button" onClick={onClick} aria-label={loading ? `${label}: loading` : undefined} aria-busy={loading || undefined} className={`${className} flex flex-col justify-start`} style={style}>{content}</button>
+    ? <button type="button" onClick={onClick} aria-label={loading ? `${label}: loading` : undefined} aria-busy={loading || undefined} className={className} style={style}>{content}</button>
     : <div className={className} style={style}>{content}</div>
 }
 

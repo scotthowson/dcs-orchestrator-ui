@@ -2582,7 +2582,7 @@ export default function Settings() {
 
   return (
     <SettingsDirtyContext.Provider value={ctxValue}>
-    <div className="space-y-3 md:space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <PageHeader page="settings" />
 
       <div className="space-y-5">

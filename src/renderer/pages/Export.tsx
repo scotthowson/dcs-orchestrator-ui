@@ -418,7 +418,7 @@ export default function Export() {
   const allSelected = selectedCards.size === exportCards.length
 
   return (
-    <div className="space-y-5 animate-fade-in">
+    <div className="space-y-4 md:space-y-6 animate-fade-in">
       <DisconnectedBanner />
       <PageHeader
         page="export"

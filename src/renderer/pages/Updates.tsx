@@ -8,6 +8,7 @@
 // way, a container on an old copy), rose = failed, violet = the fleet (a VM).
 // =============================================================================
 
+import StatTile from '../components/common/StatTile'
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import {
   Download,
@@ -119,43 +120,6 @@ function SkeletonRow({ cols = 6 }: { cols?: number }) {
         </td>
       ))}
     </tr>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Summary Card
-// ---------------------------------------------------------------------------
-
-interface SummaryCardProps {
-  icon: React.ReactNode
-  label: string
-  value: number | null
-  color: 'emerald' | 'cyan' | 'amber' | 'rose'
-  loading: boolean
-}
-
-const GLOW_MAP: Record<string, string> = {
-  emerald: 'glow-emerald',
-  cyan: 'glow-cyan',
-  rose: 'glow-rose',
-  amber: 'glow-amber',
-}
-
-function SummaryCard({ icon, label, value, color, loading }: SummaryCardProps) {
-  return (
-    <div
-      className={`bg-slate-900/60 backdrop-blur-md border border-white/5 hover:border-white/10 rounded-xl p-4 md:p-6 flex items-center gap-3 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/20 transition-all duration-200 ${GLOW_MAP[color] ?? ''}`}
-    >
-      <div className="flex-shrink-0" aria-hidden>{icon}</div>
-      <div>
-        <p className="text-xs text-slate-500 uppercase tracking-wide">{label}</p>
-        {loading ? (
-          <div className="h-6 w-10 rounded skeleton mt-1" />
-        ) : (
-          <p className="text-xl font-bold text-white tabular-nums">{value ?? 0}</p>
-        )}
-      </div>
-    </div>
   )
 }
 
@@ -756,14 +720,14 @@ export default function Updates() {
   const isInitialLoad = loading && !data
 
   return (
-    <div className="space-y-5 animate-fade-in">
+    <div className="space-y-4 md:space-y-6 animate-fade-in">
       <DisconnectedBanner />
       <PageHeader page="updates" />
 
       {/* ══════════════════════════════════════════════════════════════════════
           DCS and Docker: the framework, this dashboard, the engine, the VMs
           ══════════════════════════════════════════════════════════════════════ */}
-      <section aria-label="DCS and Docker" className="bg-slate-900/60 backdrop-blur-md border border-white/5 rounded-xl p-4 md:p-6">
+      <section aria-label="DCS and Docker" className="surface p-4 md:p-5">
         <SectionHead
           icon={<Server size={16} />}
           title="DCS and Docker"
@@ -1092,7 +1056,7 @@ export default function Updates() {
           </div>
 
           {/* This dashboard */}
-          <div className="surface p-5">
+          <div className="surface p-4 md:p-5">
             <div className="flex items-center gap-3 mb-4">
               <CardIcon><Monitor size={16} /></CardIcon>
               <div>
@@ -1352,47 +1316,17 @@ export default function Updates() {
 
         {/* ---- Summary stat cards ---- */}
         <div className={`grid grid-cols-2 ${counts.updates > 0 ? 'sm:grid-cols-5' : 'sm:grid-cols-4'} gap-3 stagger-children`}>
-          <SummaryCard
-            icon={<Package className="h-4 w-4 text-cyan-400" />}
-            label="Total images"
-            value={counts.total}
-            color="cyan"
-            loading={isInitialLoad}
-          />
-          <SummaryCard
-            icon={<CheckCircle className="h-4 w-4 text-emerald-400" />}
-            label="Current"
-            value={counts.current}
-            color="emerald"
-            loading={isInitialLoad}
-          />
-          <SummaryCard
-            icon={<Clock className="h-4 w-4 text-amber-400" />}
-            label="Aging"
-            value={counts.aging}
-            color="amber"
-            loading={isInitialLoad}
-          />
-          <SummaryCard
-            icon={<AlertTriangle className="h-4 w-4 text-rose-400" />}
-            label="Stale"
-            value={counts.stale}
-            color="rose"
-            loading={isInitialLoad}
-          />
+          <StatTile icon={Package} label="Total images" value={counts.total} tone="info" loading={isInitialLoad} />
+          <StatTile icon={CheckCircle} label="Current" value={counts.current} tone="ok" loading={isInitialLoad} />
+          <StatTile icon={Clock} label="Aging" value={counts.aging} tone={(counts.aging ?? 0) > 0 ? 'attention' : 'neutral'} loading={isInitialLoad} />
+          <StatTile icon={AlertTriangle} label="Stale" value={counts.stale} tone={(counts.stale ?? 0) > 0 ? 'problem' : 'neutral'} loading={isInitialLoad} />
           {counts.updates > 0 && (
-            <SummaryCard
-              icon={<ArrowUpCircle className="h-4 w-4 text-cyan-400" />}
-              label="To update"
-              value={counts.updates}
-              color="cyan"
-              loading={isInitialLoad}
-            />
+            <StatTile icon={ArrowUpCircle} label="To update" value={counts.updates} tone="info" loading={isInitialLoad} />
           )}
         </div>
 
         {/* ---- Image table ---- */}
-        <div className="bg-slate-900/60 backdrop-blur-md border border-white/5 rounded-xl p-4 md:p-6">
+        <div className="surface p-4 md:p-5">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-4">
             <h3 className="flex flex-wrap items-center gap-2 text-sm font-semibold text-slate-200">
               Tracked images

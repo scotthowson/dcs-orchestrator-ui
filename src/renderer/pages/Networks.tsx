@@ -694,7 +694,7 @@ function NetworkCard({ net, onInspect, onDelete, isAdmin }: {
 /** a card's shape while the list loads */
 function NetworkCardSkeleton() {
   return (
-    <div className={`${CARD} border-l-2 border-l-slate-600/40 p-4 sm:p-5`} aria-hidden>
+    <div className={`${CARD} border-l-2 border-l-slate-600/40 p-4 md:p-5`} aria-hidden>
       <div className="flex items-center gap-2">
         <div className="skeleton h-3.5 w-3.5 rounded" />
         <div className="skeleton h-4 w-32 rounded" />
@@ -805,7 +805,7 @@ export default function Networks() {
   }
 
   return (
-    <div className="space-y-4 md:space-y-5 animate-fade-in">
+    <div className="space-y-4 md:space-y-6 animate-fade-in">
       <DisconnectedBanner />
       {/* Modals */}
       {showCreateModal && (

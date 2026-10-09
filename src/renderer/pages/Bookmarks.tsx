@@ -127,7 +127,7 @@ function AddBookmarkForm({ onAdd, onCancel }: {
   const labelCls = 'block text-[11px] text-slate-400 uppercase tracking-wider mb-1.5 font-semibold'
 
   return (
-    <form onSubmit={handleSubmit} className={`${CARD} p-4 sm:p-5 border-t-2 !border-t-emerald-500 animate-fade-in`} aria-labelledby={`${uid}-title`}>
+    <form onSubmit={handleSubmit} className={`${CARD} p-4 md:p-5 border-t-2 !border-t-emerald-500 animate-fade-in`} aria-labelledby={`${uid}-title`}>
       <h2 id={`${uid}-title`} className="text-sm font-semibold text-slate-200 mb-4 flex items-center gap-2">
         <Plus size={14} className="text-emerald-400" aria-hidden />
         Add bookmark
@@ -426,7 +426,7 @@ export default function Bookmarks() {
   }
 
   return (
-    <div className="space-y-4 md:space-y-5 animate-fade-in">
+    <div className="space-y-4 md:space-y-6 animate-fade-in">
       <DisconnectedBanner />
       <PageHeader
         page="bookmarks"

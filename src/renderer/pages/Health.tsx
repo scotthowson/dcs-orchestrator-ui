@@ -145,7 +145,7 @@ function ResourceGauge({ label, value, icon: Icon, detail }: {
         <Icon size={14} className="text-slate-400" aria-hidden />
         <span className="text-[10px] md:text-xs text-slate-500 uppercase tracking-wide">{label}</span>
       </div>
-      <p className={`text-xl md:text-2xl font-bold tabular-nums ${tone === 'ok' ? 'text-slate-100' : TONE_TEXT[tone]}`}>{value}</p>
+      <p className={`text-xl md:text-2xl font-semibold tracking-tight tabular-nums ${tone === 'ok' ? 'text-slate-100' : TONE_TEXT[tone]}`}>{value}</p>
       <div className="mt-2 h-1.5 rounded-full bg-slate-800 overflow-hidden" role="meter" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(clampedPct)}>
         <div className={`h-full rounded-full transition-all duration-500 ${TONE_FILL[tone]}`} style={{ width: `${clampedPct}%` }} />
       </div>
@@ -469,7 +469,7 @@ export default function Health() {
   }, [refreshAll])
 
   return (
-    <div className="space-y-4 md:space-y-5 animate-fade-in">
+    <div className="space-y-4 md:space-y-6 animate-fade-in">
       <DisconnectedBanner />
       <OnDemandMissingBanner />
       <PageHeader

@@ -3,6 +3,7 @@
 // and the sign-in to the apps behind Authelia (its second step)
 // =============================================================================
 
+import StatTile from '../components/common/StatTile'
 import { useState, useEffect, useCallback } from 'react'
 import {
   Users as UsersIcon,
@@ -329,7 +330,7 @@ export default function Users() {
   const usedInvites = invites.filter((i) => i.used)
 
   return (
-    <div className="space-y-5 animate-fade-in">
+    <div className="space-y-4 md:space-y-6 animate-fade-in">
       <DisconnectedBanner />
       <PageHeader
         page="users"
@@ -343,26 +344,14 @@ export default function Users() {
 
       {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 stagger-children">
-        <SummaryCard
-          icon={<UsersIcon className="h-5 w-5 text-emerald-400" />}
-          label="Registered users"
-          value={users.length}
-        />
-        <SummaryCard
-          icon={<KeyRound className="h-5 w-5 text-cyan-400" />}
-          label="Active invites"
-          value={activeInvites.length}
-        />
-        <SummaryCard
-          icon={<ShieldCheck className="h-5 w-5 text-slate-300" />}
-          label="Admin users"
-          value={users.filter((u) => u.role === 'admin').length}
-        />
+        <StatTile icon={UsersIcon} label="Registered users" value={users.length} tone="ok" loading={loading && users.length === 0} />
+        <StatTile icon={KeyRound} label="Active invites" value={activeInvites.length} tone="info" loading={loading && users.length === 0} />
+        <StatTile icon={ShieldCheck} label="Admin users" value={users.filter((u) => u.role === 'admin').length} loading={loading && users.length === 0} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-5">
         {/* ---- Users List ---- */}
-        <section className="surface p-5">
+        <section className="surface p-4 md:p-5">
           <div className="flex items-center justify-between mb-5">
             <CardTitle icon={<UsersIcon className="h-4 w-4 text-emerald-400" aria-hidden />} count={users.length}>Registered users</CardTitle>
           </div>
@@ -472,7 +461,7 @@ export default function Users() {
         </section>
 
         {/* ---- Create a user directly ---- */}
-        <section className="surface p-5">
+        <section className="surface p-4 md:p-5">
           <CardTitle icon={<UserPlus className="h-4 w-4 text-emerald-400" aria-hidden />}>Create user</CardTitle>
           <p className="text-xs text-slate-500 mt-1 mb-4">
             An account you set up yourself, no invite code: for the Discord bot, an automation, or someone who should not register on their own. Bots need admin for the start, stop and update commands.
@@ -527,7 +516,7 @@ export default function Users() {
         </section>
 
         {/* ---- Invite Codes ---- */}
-        <section className="surface p-5">
+        <section className="surface p-4 md:p-5">
           <div className="mb-5">
             <CardTitle icon={<KeyRound className="h-4 w-4 text-cyan-400" aria-hidden />}>Invite codes</CardTitle>
           </div>
@@ -685,7 +674,7 @@ export default function Users() {
       </div>
 
       {/* ── Sign-in to your apps: Authelia's second step ── */}
-      <section className="surface p-5 space-y-4" aria-labelledby="app-sign-in-title">
+      <section className="surface p-4 md:p-5 space-y-4" aria-labelledby="app-sign-in-title">
         <div className="flex items-center gap-2">
           <Fingerprint className="h-4 w-4 text-emerald-400" aria-hidden />
           <h2 id="app-sign-in-title" className="text-sm font-semibold text-slate-200">Sign-in to your apps (Authelia)</h2>
@@ -699,22 +688,6 @@ export default function Users() {
 // ---------------------------------------------------------------------------
 // Subcomponents
 // ---------------------------------------------------------------------------
-
-function SummaryCard({ icon, label, value }: {
-  icon: React.ReactNode
-  label: string
-  value: number
-}) {
-  return (
-    <div className="surface p-5 flex items-center gap-4">
-      <div className="flex-shrink-0" aria-hidden>{icon}</div>
-      <div>
-        <p className="text-[10px] text-slate-500 uppercase tracking-wider">{label}</p>
-        <p className="text-2xl font-bold text-white tabular-nums">{value}</p>
-      </div>
-    </div>
-  )
-}
 
 function InviteCard({ invite, copiedCode, onCopy, onDelete, deleting }: {
   invite: InviteCode

@@ -201,7 +201,7 @@ export default function Secrets() {
   const inputClass = 'w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-slate-200 font-mono placeholder-slate-600 transition-colors focus:outline-none focus-visible:border-emerald-500/40 focus-visible:ring-2 focus-visible:ring-emerald-500/40'
 
   return (
-    <div className="space-y-5 animate-fade-in">
+    <div className="space-y-4 md:space-y-6 animate-fade-in">
       <DisconnectedBanner />
       <PageHeader
         page="secrets"

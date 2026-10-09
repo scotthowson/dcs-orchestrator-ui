@@ -299,7 +299,7 @@ const Images: React.FC = () => {
   return (
     <div>
       <DisconnectedBanner />
-      <div className="flex flex-col gap-4 md:gap-5 animate-fade-in">
+      <div className="flex flex-col gap-4 md:gap-6 animate-fade-in">
         {/* ---- Header ---- */}
         <PageHeader
           page="images"

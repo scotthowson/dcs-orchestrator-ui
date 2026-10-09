@@ -1095,7 +1095,7 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
       {(
         <section>
           <SectionHeader icon={<Activity className="h-4 w-4 text-cyan-400" />} title="Metrics history" />
-          <div className="bg-slate-900/60 backdrop-blur-md border border-white/5 rounded-xl p-5 mt-3">
+          <div className="surface p-4 md:p-5 mt-3">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* CPU % over time */}
               <div>
@@ -1290,7 +1290,7 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
       {/* ---- Info section ---- */}
       <section>
         <SectionHeader icon={<Info className="h-4 w-4 text-cyan-400" />} title="Container info" />
-        <div className="bg-slate-900/60 backdrop-blur-md border border-white/5 rounded-xl mt-3 overflow-hidden">
+        <div className="surface mt-3 overflow-hidden">
           {/* Image header */}
           <div className="px-5 py-4 border-b border-white/[0.03]">
             {(() => {
@@ -1385,7 +1385,7 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
       {/* ---- 4C: Process Viewer ---- */}
       {showProcesses && isRunning && (
         <section className="animate-fade-in">
-          <div className="bg-slate-900/60 backdrop-blur-md border border-white/5 rounded-xl p-5">
+          <div className="surface p-4 md:p-5">
             <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
               <div className="flex items-center gap-2">
                 <Terminal className="h-4 w-4 text-cyan-400" />
@@ -1456,7 +1456,7 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
       {/* ---- Command Runner (Phase 7C) — running a command is an admin call on the API ---- */}
       {isAdmin && isRunning && (
         <section className="animate-fade-in">
-          <div className="bg-slate-900/60 backdrop-blur-md border border-white/5 rounded-xl overflow-hidden">
+          <div className="surface overflow-hidden">
             <button
               onClick={() => setShowExec(!showExec)}
               aria-expanded={showExec}
@@ -1575,7 +1575,7 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
       {/* ---- Environment Variables (Enhanced) ---- */}
       {(envEntries.length > 0 || canEditEnv) && (
         <section className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
-          <div className="bg-slate-900/60 backdrop-blur-md border border-white/5 rounded-xl p-5">
+          <div className="surface p-4 md:p-5">
             {/* Header with collapse toggle */}
             <button
               onClick={() => setEnvCollapsed(!envCollapsed)}
@@ -1775,7 +1775,7 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
       {/* ---- Volume Mounts (Enhanced) ---- */}
       {mountEntries.length > 0 && (
         <section className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
-          <div className="bg-slate-900/60 backdrop-blur-md border border-white/5 rounded-xl p-5">
+          <div className="surface p-4 md:p-5">
             <div className="flex items-center gap-2 mb-4">
               <HardDrive className="h-4 w-4 text-cyan-400" />
               <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
@@ -1843,7 +1843,7 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
       {/* ---- Port Mappings (Enhanced) ---- */}
       {portMappings.length > 0 && (
         <section className="animate-fade-in" style={{ animationDelay: '0.3s' }}>
-          <div className="bg-slate-900/60 backdrop-blur-md border border-white/5 rounded-xl p-5">
+          <div className="surface p-4 md:p-5">
             <div className="flex items-center gap-2 mb-4">
               <Globe className="h-4 w-4 text-cyan-400" />
               <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
@@ -1948,7 +1948,7 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
       {/* ---- Network Connections (Enhanced) ---- */}
       {networks.length > 0 && (
         <section className="animate-fade-in" style={{ animationDelay: '0.4s' }}>
-          <div className="bg-slate-900/60 backdrop-blur-md border border-white/5 rounded-xl p-5">
+          <div className="surface p-4 md:p-5">
             <div className="flex items-center gap-2 mb-4">
               <Network className="h-4 w-4 text-purple-400" />
               <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">

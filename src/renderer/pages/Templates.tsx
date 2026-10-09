@@ -3047,7 +3047,7 @@ function GalleryView({ onImport, isAdmin = true }: { onImport: (url: string, nam
           return (
             <div
               key={t.name}
-              className="bg-slate-900/60 backdrop-blur-md border border-white/5 rounded-xl p-4 flex flex-col gap-2.5 hover:border-white/10 hover:bg-white/[0.03] transition-all duration-200 group"
+              className="surface p-4 flex flex-col gap-2.5 hover:border-white/10 hover:bg-white/[0.03] transition-all duration-200 group"
             >
               <div className="flex items-center justify-between">
                 <CategoryChip category={t.category} size="xs" />
@@ -3156,7 +3156,7 @@ function TemplateCard({ template, onDeploy, onEdit, onDelete, onExport, deploySt
   const running = deployStatus?.state === 'running'
 
   return (
-    <div className="bg-slate-900/60 backdrop-blur-md border border-white/5 rounded-xl p-4 md:p-5 flex flex-col gap-2.5 hover:border-white/10 hover:bg-white/[0.03] hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/20 transition-all duration-200 group">
+    <div className="surface p-4 md:p-5 flex flex-col gap-2.5 hover:border-white/10 hover:bg-white/[0.03] hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/20 transition-all duration-200 group">
       {/* Top row: category badge + deploy status + actions */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0 flex-wrap">
@@ -3746,7 +3746,7 @@ export default function Templates() {
   const categoryPills = CATEGORIES.filter((cat) => cat.id === 'all' || templates.some((t) => resolveCategory(t.category).id === cat.id))
 
   return (
-    <div className="space-y-3 md:space-y-6 animate-fade-in">
+    <div className="space-y-4 md:space-y-6 animate-fade-in">
       <DisconnectedBanner />
       {/* Page header */}
       <PageHeader
@@ -3813,7 +3813,7 @@ export default function Templates() {
 
       {/* F3: Deploy History Panel */}
       {showHistory && (
-        <div className="bg-slate-900/60 backdrop-blur-md border border-white/5 rounded-xl p-4 animate-fade-in">
+        <div className="surface p-4 animate-fade-in">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <History size={14} className="text-slate-400" />

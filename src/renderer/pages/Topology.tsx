@@ -5,6 +5,7 @@
 // tiers and the networks, and takes its text and card colours from the theme.
 // =============================================================================
 
+import StatTile from '../components/common/StatTile'
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { Network, RefreshCw, ZoomIn, ZoomOut, Maximize2, Box, Layers, Server, WifiOff, ExternalLink, Download, Copy, Expand, Shrink, Link2 } from 'lucide-react'
@@ -825,7 +826,7 @@ export default function Topology() {
   ]
 
   return (
-    <div className="space-y-4 md:space-y-5 animate-fade-in">
+    <div className="space-y-4 md:space-y-6 animate-fade-in">
       <DisconnectedBanner />
       {/* Detail panel */}
       {selectedNode && (
@@ -860,15 +861,7 @@ export default function Topology() {
           { icon: Box, label: 'Containers', value: totalContainers },
           { icon: Network, label: 'Networks', value: totalNetworks },
           { icon: Link2, label: 'Links', value: totalEdges },
-        ].map((s) => (
-          <div key={s.label} className={`${CARD} hover:border-white/10 transition-colors p-3 md:p-4`}>
-            <div className="flex items-center gap-1.5 mb-1">
-              <s.icon size={13} className="text-cyan-400" aria-hidden />
-              <span className="text-[10px] text-slate-500 uppercase tracking-wider">{s.label}</span>
-            </div>
-            <p className="text-lg md:text-2xl font-bold text-slate-100 tabular-nums">{s.value}</p>
-          </div>
-        ))}
+        ].map((s) => <StatTile key={s.label} icon={s.icon} label={s.label} value={s.value} tone="info" />)}
       </div>
 
       {/* Canvas card */}

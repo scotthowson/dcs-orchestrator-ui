@@ -336,7 +336,7 @@ export default function Dashboard() {
   const showDisconnected = !isConnected && !everConnected && hasNoData
 
   return (
-    <div className="space-y-4 md:space-y-5 animate-fade-in">
+    <div className="space-y-4 md:space-y-6 animate-fade-in">
       {/* the "never connected" screen below says it in full: the banner is for a link that drops later */}
       {!showDisconnected && <DisconnectedBanner />}
       <PageHeader

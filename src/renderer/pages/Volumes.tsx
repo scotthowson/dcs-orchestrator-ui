@@ -360,7 +360,7 @@ export default function Volumes() {
   const colCount = (batchMode ? 1 : 0) + 4 + (isAdmin ? 1 : 0)
 
   return (
-    <div className="space-y-4 md:space-y-5 animate-fade-in">
+    <div className="space-y-4 md:space-y-6 animate-fade-in">
       <DisconnectedBanner />
 
       {/* Batch delete confirmation modal */}
@@ -441,7 +441,7 @@ export default function Volumes() {
       {/* Batch Results Panel                                               */}
       {/* ----------------------------------------------------------------- */}
       {batchResults && batchResults.length > 0 && (
-        <div className={`${CARD} p-4 sm:p-5 animate-fade-in`}>
+        <div className={`${CARD} p-4 md:p-5 animate-fade-in`}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-semibold text-slate-200 flex items-center gap-2">
               <ListChecks size={16} className="text-cyan-400" />

@@ -4,6 +4,7 @@
 // The page links the two, creates what is missing and protects what is in use.
 // =============================================================================
 
+import StatTile from '../components/common/StatTile'
 import { useState, useCallback, useMemo, useEffect, useId, useRef } from 'react'
 import { SegmentedControl, Switch } from '@mantine/core'
 import {
@@ -637,7 +638,7 @@ export default function DNS() {
 
   // ---- Render ----
   return (
-    <div className="space-y-3 md:space-y-6 animate-fade-in">
+    <div className="space-y-4 md:space-y-6 animate-fade-in">
       <DisconnectedBanner />
 
       {deletingRoute && <DeleteRouteModal route={deletingRoute} busy={deleting} onConfirm={() => handleDeleteRoute(deletingRoute)} onCancel={() => setDeletingRoute(null)} />}
@@ -670,7 +671,7 @@ export default function DNS() {
 
       {/* ---- Not configured: how to fix it ---- */}
       {isConnected && dnsStatus && !dnsStatus.cf_configured && (
-        <div className="surface border-cyan-500/15 p-5 flex flex-col md:flex-row md:items-center gap-4 animate-fade-in">
+        <div className="surface border-cyan-500/15 p-4 md:p-5 flex flex-col md:flex-row md:items-center gap-4 animate-fade-in">
           <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/15 flex items-center justify-center shrink-0"><KeyRound size={18} className="text-cyan-400" /></div>
           <div className="flex-1 min-w-0">
             <p className="text-sm text-slate-200 font-medium">Connect Cloudflare to manage DNS from here</p>
@@ -695,10 +696,10 @@ export default function DNS() {
 
       {/* ---- Status Cards ---- */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 stagger-children">
-        <StatCard icon={<Network size={16} className="text-cyan-400" />} label="Routes" value={String(routes.length)} />
-        <StatCard icon={<Globe size={16} className="text-emerald-400" />} label="DNS records" value={cfConfigured ? String(dnsData?.all_total ?? records.length) : '—'} sub={dnsStatus?.zone?.status ? `zone ${dnsStatus.zone.status}` : undefined} />
-        <StatCard icon={<Link2 size={16} className={missingDns.length ? 'text-amber-400' : 'text-slate-500'} />} label="Missing DNS" value={cfConfigured ? String(missingDns.length) : '—'} sub={missingDns.length ? 'routes without a record' : undefined} tone={missingDns.length ? 'warn' : undefined} />
-        <StatCard icon={<Shield size={16} className={traefikStatus?.active ? 'text-emerald-400' : 'text-slate-500'} />} label="Traefik" value={traefikStatus?.active ? 'Active' : 'Inactive'} tone={traefikStatus?.active ? 'ok' : undefined} />
+        <StatTile icon={Network} label="Routes" value={String(routes.length)} tone="info" />
+        <StatTile icon={Globe} label="DNS records" value={cfConfigured ? String(dnsData?.all_total ?? records.length) : '—'} sub={dnsStatus?.zone?.status ? `zone ${dnsStatus.zone.status}` : undefined} tone="ok" />
+        <StatTile icon={Link2} label="Missing DNS" value={cfConfigured ? String(missingDns.length) : '—'} sub={missingDns.length ? 'routes without a record' : undefined} tone={missingDns.length ? 'attention' : 'neutral'} />
+        <StatTile icon={Shield} label="Traefik" value={traefikStatus?.active ? 'Active' : 'Inactive'} tone={traefikStatus?.active ? 'ok' : 'neutral'} />
       </div>
 
       {/* Hidden when the API predates the endpoint (older AIO) */}
@@ -834,19 +835,6 @@ function CertificatesPanel({ data, loading, onRefresh }: { data: RouteCertificat
           )}
         </div>
       )}
-    </div>
-  )
-}
-
-function StatCard({ icon, label, value, sub, tone }: { icon: React.ReactNode; label: string; value: string; sub?: string; tone?: 'ok' | 'warn' }) {
-  return (
-    <div className="bg-slate-900/60 backdrop-blur-md border border-white/5 hover:border-white/10 rounded-xl p-4 flex items-center gap-3 hover:-translate-y-0.5 hover:shadow-lg transition-all duration-200">
-      <div className="shrink-0">{icon}</div>
-      <div className="min-w-0">
-        <p className="text-xs text-slate-500 uppercase tracking-wide">{label}</p>
-        <p className={`text-xl font-bold ${tone === 'ok' ? 'text-emerald-400' : tone === 'warn' ? 'text-amber-400' : 'text-slate-100'}`}>{value}</p>
-        {sub && <p className="text-[10px] text-slate-500 truncate">{sub}</p>}
-      </div>
     </div>
   )
 }

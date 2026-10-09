@@ -112,7 +112,7 @@ export default function CrowdSec() {
 
   return (
     <CsCtx.Provider value={ctx}>
-      <div className="space-y-4 md:space-y-5 animate-fade-in">
+      <div className="space-y-4 md:space-y-6 animate-fade-in">
         <DisconnectedBanner />
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-4 min-w-0 flex-1">

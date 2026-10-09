@@ -459,7 +459,7 @@ export default function Terminal() {
   // Not connected
   if (!isConnected) {
     return (
-      <div className="space-y-4 md:space-y-5 animate-fade-in">
+      <div className="space-y-4 md:space-y-6 animate-fade-in">
         <PageHeader page="terminal" />
         <EmptyState icon={<WifiOff size={28} />} title="Not connected" hint="Connect to a server to use the terminal." />
       </div>

@@ -122,7 +122,7 @@ export default function NotificationsTab() {
 
   if (!data && poll.error) {
     return (
-      <div className={`${CARD} p-6 text-center`} role="alert">
+      <div className={`${CARD} p-4 md:p-5 text-center`} role="alert">
         <AlertTriangle size={26} className="mx-auto text-rose-400" />
         <p className="mt-3 text-sm text-slate-200">Could not read the Discord settings.</p>
         <p className="mt-1 text-xs text-slate-500 max-w-md mx-auto break-words">{poll.error.message}</p>
