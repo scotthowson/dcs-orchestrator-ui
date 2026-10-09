@@ -94,6 +94,8 @@ export default function Stacks() {
     if (!selectedStackName) return
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return
+      // an overlay above the detail took this Escape already (its listener can run first and close it before this one looks)
+      if (e.defaultPrevented) return
       const tag = (e.target as HTMLElement)?.tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
       if ((e.target as HTMLElement)?.isContentEditable) return

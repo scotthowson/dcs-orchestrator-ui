@@ -408,6 +408,8 @@ export function ComposeViewer({ stackName, content, onClose, isAdmin = false }: 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        // this Escape is the viewer's: the stack detail behind it must not take it as well (Stacks checks defaultPrevented)
+        e.preventDefault()
         if (searchOpen) {
           setSearchOpen(false)
           setSearchQuery('')
