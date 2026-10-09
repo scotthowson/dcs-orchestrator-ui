@@ -379,7 +379,7 @@ export default function Dashboard() {
             cardConfig={dashLayout.cardConfig}
             onSaveCardConfig={dashLayout.saveCardConfig}
             cardProps={{
-              'needs-you': { stacks: stacksPoll.data?.stacks ?? null, stacksError: stacksPoll.error, images: imageUpdatesPoll.data ?? null, backup: backupStatusPoll.data ?? null, disks: disksPoll.data?.disks ?? null, osUpdates: osUpdatesPoll.data ?? null, crowdsecCommunity: crowdsecCommunityPoll.data ?? null },
+              'needs-you': { stacks: stacksPoll.data?.stacks ?? null, stacksError: stacksPoll.error, images: imageUpdatesPoll.data ?? null, backup: backupStatusPoll.data ?? null, disks: disksPoll.data?.disks ?? null, osUpdates: osUpdatesPoll.data ?? null, crowdsecCommunity: crowdsecCommunityPoll.data ?? null, cloudflare: crowdsecPoll.data?.cloudflare ?? null },
               'stack-controls': { stacks: stacksPoll.data?.stacks ?? null, error: stacksPoll.error, onRetry: stacksPoll.refresh, onRefresh: stacksPoll.refresh },
               'stack-grid': { stacks: stacksPoll.data?.stacks ?? null, error: stacksPoll.error, onRetry: stacksPoll.refresh },
               'resource-chart': { history: resourceHistoryRef.current },

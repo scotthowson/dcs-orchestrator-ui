@@ -21,7 +21,7 @@ import { useSettingsStore } from '../../stores/settingsStore'
 import { useConnectionStore } from '../../stores/connectionStore'
 import { pageLabel } from '../../constants/pageTitles'
 import { ADMIN_ONLY_PAGES, type PageId } from '../../../shared/types'
-import type { BackupStatusResponse, CrowdSecCommunityResponse, DiskInfo, ImageCheckResponse, OsUpdatesResponse, StackInfo } from '../../../shared/types'
+import type { BackupStatusResponse, CloudflareBouncerBrief, CrowdSecCommunityResponse, DiskInfo, ImageCheckResponse, OsUpdatesResponse, StackInfo } from '../../../shared/types'
 import { collectNeeds, plural, type NeedItem } from '../../lib/needs'
 import { Card, CardOffline } from './cardShared'
 import { Skeleton } from '../common/PageState'
@@ -48,9 +48,11 @@ interface Props {
   osUpdates?: OsUpdatesResponse | null
   /** CrowdSec's community link (polled for admins only, every 10 min, while CrowdSec runs) */
   crowdsecCommunity?: CrowdSecCommunityResponse | null
+  /** Push bans to Cloudflare, from the CrowdSec status the dashboard polls (its rule is for admins: they turn it on and fix it) */
+  cloudflare?: CloudflareBouncerBrief | null
 }
 
-export default function NeedsYouCard({ stacks, stacksError, images, backup, disks, osUpdates, crowdsecCommunity }: Props) {
+export default function NeedsYouCard({ stacks, stacksError, images, backup, disks, osUpdates, crowdsecCommunity, cloudflare }: Props) {
   const health = useHealthStore((s) => s.report)
   // the DCS update count is what an admin's check found (kept on this device): no item for anyone else, who cannot install it
   const isAdmin = useAuthStore((s) => s.userRole) === 'admin'
@@ -81,7 +83,8 @@ export default function NeedsYouCard({ stacks, stacksError, images, backup, disk
 
   const os = isAdmin ? osUpdates ?? null : null
   const cs = isAdmin ? crowdsecCommunity ?? null : null
-  const items = useMemo(() => collectNeeds({ stacks, health, images, backup, disks, dcsUpdates, osUpdates: os, crowdsecCommunity: cs }), [stacks, health, images, backup, disks, dcsUpdates, os, cs])
+  const cf = isAdmin ? cloudflare ?? null : null
+  const items = useMemo(() => collectNeeds({ stacks, health, images, backup, disks, dcsUpdates, osUpdates: os, crowdsecCommunity: cs, cloudflare: cf }), [stacks, health, images, backup, disks, dcsUpdates, os, cs, cf])
   // a viewer is never sent to an admin's page (it bounces back to the dashboard): the page they may open, or none
   const shown = items.filter((i) => hidden[i.key] !== i.fingerprint)
     .map((i) => ({ ...i, to: isAdmin || !ADMIN_ONLY_PAGES.has(i.page) ? i.page : VIEWER_PAGE[i.page] }))

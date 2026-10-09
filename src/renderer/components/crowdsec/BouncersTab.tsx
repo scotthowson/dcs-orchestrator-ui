@@ -2,6 +2,8 @@
 // Bouncers: what enforces the bans, and who reports to CrowdSec.
 //   Traefik enforcement   a checklist (Traefik, the DCS bouncer, its middleware file,
 //                         the chain, the last pull) and the one button that repairs it
+//   Push bans to Cloudflare  the switch that has Cloudflare refuse the bans at its edge
+//                         (CloudflareEdge.tsx)
 //   Bouncers              the programs that ask CrowdSec for the ban list; add one (its
 //                         key is shown once) or delete one
 //   Machines              the engines that read logs and report to this CrowdSec
@@ -29,6 +31,7 @@ import { SkeletonBlock } from '../common/PageState'
 import Sheet from '../common/Sheet'
 import StatusLine from '../common/StatusLine'
 import Notice from '../common/Notice'
+import CloudflareEdge from './CloudflareEdge'
 /** the API's rule for a bouncer name: 2 to 63 characters, letters, digits, dots, dashes and underscores, starting with a letter or a digit */
 const NAME_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{1,62}$/
 function nameProblem(n: string): string {
@@ -92,6 +95,7 @@ function BouncerName({ b }: { b: CrowdSecBouncerRow }) {
     <div className="flex items-center gap-2 flex-wrap min-w-0">
       <span className="font-mono text-[13px] text-slate-100 break-all">{b.name}</span>
       {b.dcs && <Pill tone="info" title="The bouncer DCS registered for Traefik. Traefik uses its key to ask CrowdSec for the ban list.">Traefik bouncer made by DCS</Pill>}
+      {b.name === 'dcs-cloudflare-bouncer' && <Pill tone="info" title="The bouncer of Push bans to Cloudflare: DCS uses its key to keep Cloudflare's list in step. Turn the switch off instead of deleting it.">Cloudflare bouncer made by DCS</Pill>}
       {b.auto_created && <Pill tone="neutral" title="CrowdSec created this bouncer by itself the first time it connected, it was not registered by hand.">auto-registered</Pill>}
     </div>
   )
@@ -693,6 +697,7 @@ export default function BouncersTab() {
       {!b && bp.error && <LoadError what="the bouncers" error={bp.error} onRetry={bp.refresh} />}
       {b && bp.error && <Notice role="status">The last refresh failed ({bp.error.message}). Showing what was loaded before.</Notice>}
       {b && <Enforcement b={b} isAdmin={isAdmin} busy={busy === 'register'} onRegister={register} />}
+      {b && <CloudflareEdge onChanged={bp.refresh} />}
       <BouncerSection poll={bp} isAdmin={isAdmin} busy={busy} onAdd={() => setAdding(true)} onDelete={remove} />
       <MachineSection poll={mp} />
       <CommunitySection poll={cp} />

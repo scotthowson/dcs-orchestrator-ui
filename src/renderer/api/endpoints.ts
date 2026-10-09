@@ -130,7 +130,8 @@ import type {
   CrowdSecStatusResponse,
   CrowdSecUnbanResponse, CrowdSecDecisionQuery, CrowdSecDecisionsResponse, CrowdSecBanBody, CrowdSecBanResponse, CrowdSecBulkDeleteResponse, CrowdSecImportResponse,
   CrowdSecExportResponse, CrowdSecAlertsResponse, CrowdSecAlertDetail, CrowdSecAllowlistResponse, CrowdSecAllowAddBody, CrowdSecAllowAddResponse,
-  CrowdSecBouncersResponse, CrowdSecMachinesResponse, CrowdSecBouncerAddResponse, CrowdSecMetricsResponse, CrowdSecHubResponse, CrowdSecHubAvailableResponse,
+  CrowdSecBouncersResponse, CrowdSecMachinesResponse, CrowdSecBouncerAddResponse,
+  CloudflareBouncerStatus, CloudflareBouncerVerifyResponse, CloudflareBouncerEnableBody, CloudflareBouncerEnableResponse, CloudflareBouncerDisableResponse, CrowdSecMetricsResponse, CrowdSecHubResponse, CrowdSecHubAvailableResponse,
   CrowdSecHubChangeResponse, CrowdSecPluginResponse, CrowdSecPluginSettings, CrowdSecLogsResponse, CrowdSecSimulationResponse, CrowdSecSimulationSetResponse, CrowdSecCommunityResponse, CrowdSecCommunityRegisterResponse, CrowdSecConsoleEnrollBody, CrowdSecConsoleEnrollResponse, CrowdSecSettingsResponse,
   CrowdSecSettingsBody, CrowdSecNotifyResponse, CrowdSecNotifyBody, CrowdSecPreviewResponse, CrowdSecNotifyTestResponse, CrowdSecDigestSendResponse, CrowdSecDigestView, CrowdSecServiceResponse, CrowdSecFix,
   PluginInstallResponse,
@@ -1556,6 +1557,31 @@ export function crowdsecDeleteBouncer(name: string, member?: string | null): Pro
 /** POST /crowdsec/bouncers/register-traefik — the fix for "bans are not enforced at the proxy" */
 export function crowdsecRegisterTraefikBouncer(member?: string | null): Promise<{ success: boolean; name: string; message: string }> {
   return apiClient.post(memberPath(member, '/crowdsec/bouncers/register-traefik'), undefined, 120000)
+}
+
+/** GET /crowdsec/cloudflare — Push bans to Cloudflare: on or off, the token (set, never its value), the zones, the list, the last sync */
+export function crowdsecCloudflare(member?: string | null): Promise<CloudflareBouncerStatus> {
+  return apiClient.get<CloudflareBouncerStatus>(memberPath(member, '/crowdsec/cloudflare'))
+}
+/** POST /crowdsec/cloudflare/verify — check a token (or the stored one) without changing anything; a refused one is a 400 with `missing` */
+export function crowdsecCloudflareVerify(token: string | undefined, member?: string | null): Promise<CloudflareBouncerVerifyResponse> {
+  return apiClient.post<CloudflareBouncerVerifyResponse>(memberPath(member, '/crowdsec/cloudflare/verify'), token ? { token } : {}, 60000)
+}
+/** POST /crowdsec/cloudflare/enable — check the token, register the bouncer, make the list and the rule, push once (up to two minutes) */
+export function crowdsecCloudflareEnable(body: CloudflareBouncerEnableBody, member?: string | null): Promise<CloudflareBouncerEnableResponse> {
+  return apiClient.post<CloudflareBouncerEnableResponse>(memberPath(member, '/crowdsec/cloudflare/enable'), body, 180000)
+}
+/** POST /crowdsec/cloudflare/disable — stop the sync, delete the bouncer; cleanup also removes the rule and the list at Cloudflare */
+export function crowdsecCloudflareDisable(body: { cleanup?: boolean; forget_token?: boolean }, member?: string | null): Promise<CloudflareBouncerDisableResponse> {
+  return apiClient.post<CloudflareBouncerDisableResponse>(memberPath(member, '/crowdsec/cloudflare/disable'), body, 180000)
+}
+/** POST /crowdsec/cloudflare/sync — sync now; answers the status */
+export function crowdsecCloudflareSync(member?: string | null): Promise<CloudflareBouncerStatus> {
+  return apiClient.post<CloudflareBouncerStatus>(memberPath(member, '/crowdsec/cloudflare/sync'), undefined, 180000)
+}
+/** POST /crowdsec/cloudflare/settings — capacity, the community blocklist; a sync follows when it is on */
+export function crowdsecCloudflareSettings(body: { capacity?: number; community?: boolean }, member?: string | null): Promise<CloudflareBouncerStatus> {
+  return apiClient.post<CloudflareBouncerStatus>(memberPath(member, '/crowdsec/cloudflare/settings'), body, 180000)
 }
 
 /** GET /crowdsec/metrics — what has been happening (window 24h, 7d or 30d) */

@@ -3384,6 +3384,8 @@ export interface CrowdSecStatusResponse {
   machines?: CrowdSecMachine[]
   acquisition?: { sources: CrowdSecAcquisitionSource[]; reads: number; parsed: number; unparsed: number; parse_rate: number | null }
   enforcement?: CrowdSecEnforcement
+  /** Push bans to Cloudflare, in brief (absent on a server before it) */
+  cloudflare?: CloudflareBouncerBrief
 }
 
 /** What Traefik's own files say about the CrowdSec bouncer plugin */
@@ -3605,6 +3607,58 @@ export interface CrowdSecBouncersResponse {
   traefik: CrowdSecTraefikInfo
   traefik_registerable: boolean
 }
+// ---- Push bans to Cloudflare (GET /crowdsec/cloudflare and its actions) ----
+/** off · starting (turned on, no sync yet) · ok · stale (no good sync for 10 minutes) · error (the last sync failed) */
+export type CloudflareBouncerHealth = 'off' | 'starting' | 'ok' | 'stale' | 'error'
+export type CloudflareBouncerErrorCode = 'token_missing' | 'token_invalid' | 'token_rejected' | 'zone_not_found' | 'no_domain' | 'missing_permissions'
+  | 'list_quota' | 'list_full' | 'list_gone' | 'rule_quota' | 'cloudflare_error' | 'cloudflare_unreachable' | 'cloudflare_slow' | 'lapi_down' | 'lapi_key' | 'lapi_error' | 'internal'
+export interface CloudflareBouncerError { code: CloudflareBouncerErrorCode | string; message: string; at: number; since: number }
+/** a right the token needs, as Cloudflare's token page names it */
+export interface CloudflarePermission { group: string; item: string; level: string; why: string }
+/** what /crowdsec/status carries (from DCS's own files, no call to Cloudflare) */
+export interface CloudflareBouncerBrief {
+  enabled: boolean
+  health?: CloudflareBouncerHealth
+  last_sync?: number | null
+  last_pull?: number | null
+  items?: number
+  error?: CloudflareBouncerError | null
+  left_at_cloudflare?: boolean
+}
+export interface CloudflareBouncerStatus {
+  enabled: boolean
+  health: CloudflareBouncerHealth
+  token: { set: boolean; source: 'secret' | 'env' | null; setting: string }
+  settings: { capacity: number; community: boolean; interval: number; domains: string[]; domains_from: string; origins: string[] }
+  bouncer: { name: string; crowdsec_running: boolean; registered?: boolean; last_pull?: string | null; created_at?: string; revoked?: boolean }
+  sync: {
+    last_attempt: number | null; last_pull: number | null; last_push: number | null; last_sync: number | null; last_verify: number | null
+    pulled: number | null; items: number; dropped: number; skipped: number; repaired: { at: number; what: string[] } | null; enabled_at: number | null
+  }
+  cloudflare: {
+    /** the addresses on Cloudflare's list, read back from Cloudflare (null: not read yet, or the read failed) */
+    items: number | null; checked_at: number | null; list: string; rule_ref: string
+    accounts: { id: string; name: string; list_id: string }[]
+    zones: { name: string; domains: string[]; id: string; plan: string; rule_id: string }[]
+  }
+  error: CloudflareBouncerError | null
+  /** off, but the list and the rule are still at Cloudflare (turned off without the clean-up) */
+  left_at_cloudflare: boolean
+  permissions: CloudflarePermission[]
+  limits: { free: { lists: number; items: number; rules: number } }
+}
+export interface CloudflareBouncerZone { domain: string; domains?: string[]; name: string; id: string; account: string; account_name: string; plan: string; rule?: boolean; rules?: number }
+export interface CloudflareBouncerVerifyResponse { ok: boolean; success: boolean; message: string; zones: CloudflareBouncerZone[]; token: { kind: 'user' | 'account'; status: string }; warnings: string[]; permissions: CloudflarePermission[] }
+export interface CloudflareBouncerEnableBody { token?: string; capacity?: number; community?: boolean; domains?: string[] }
+export interface CloudflareBouncerEnableResponse { success: boolean; enabled: true; synced: boolean; zones: string[]; items: number; error: CloudflareBouncerError | null; warnings: string[]; message: string }
+export interface CloudflareBouncerDisableResponse {
+  success: boolean; enabled: false; was_enabled: boolean; bouncer: 'deleted' | 'kept'
+  cleanup: { ok: boolean; removed: string[]; failed: string[] } | null
+  left_at_cloudflare: boolean; token_forgotten: boolean; message: string
+}
+/** the body of a refused check (400): reason is the error code, missing the rights the token lacks */
+export interface CloudflareBouncerRefusal { reason?: string; message?: string; missing?: CloudflarePermission[] }
+
 export interface CrowdSecMachinesResponse { machines: CrowdSecMachine[]; count: number }
 export interface CrowdSecBouncerAddResponse { success: boolean; name: string; api_key: string; shown_once: boolean; message: string }
 

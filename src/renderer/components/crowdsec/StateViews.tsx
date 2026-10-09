@@ -79,7 +79,7 @@ export function FixButton({ fix, busy, onRun }: { fix: CrowdSecFix; busy: boolea
 
 export function IssueBanners({ issues, onOpenTab }: { issues: CrowdSecIssue[]; onOpenTab: (tab: string) => void }) {
   const { member, refreshStatus } = useCs()
-  const { run, busy } = useFixRunner(member, refreshStatus, (fix) => { if (fix.id === 'open_hub') onOpenTab('hub') })
+  const { run, busy } = useFixRunner(member, refreshStatus, (fix) => { if (fix.id === 'open_hub') onOpenTab('hub'); if (fix.id === 'open_bouncers') onOpenTab('bouncers') })
   if (!issues.length) return null
   return (
     <div className="space-y-2" role="region" aria-label="Things that need attention">

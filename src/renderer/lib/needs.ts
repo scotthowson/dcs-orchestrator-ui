@@ -5,7 +5,7 @@
 // =============================================================================
 
 import { pageLabel } from '../constants/pageTitles'
-import type { BackupStatusResponse, CrowdSecCommunityResponse, DiskInfo, HealthReport, ImageCheckResponse, OsUpdatesInfo, OsUpdatesResponse, PageId, StackInfo } from '../../shared/types'
+import type { BackupStatusResponse, CloudflareBouncerBrief, CrowdSecCommunityResponse, DiskInfo, HealthReport, ImageCheckResponse, OsUpdatesInfo, OsUpdatesResponse, PageId, StackInfo } from '../../shared/types'
 import { containerState, isAsleep } from './containerState'
 
 export type Severity = 'problem' | 'attention'
@@ -32,6 +32,8 @@ const OS_PLAIN_MANY = 25
 const OS_PLAIN_DAYS = 30
 /** automatic security updates get this long to install a waiting security fix before it is mentioned */
 const OS_AUTO_GRACE_DAYS = 2
+/** Push bans to Cloudflare: how long a sync may fail before it is listed (it runs every 30 s; a blip is not news) */
+const CLOUDFLARE_STALE_S = 600
 
 /** "a, b and 3 more" */
 function names(list: string[], max = 3): string {
@@ -52,6 +54,8 @@ export function collectNeeds(input: {
   osUpdates?: OsUpdatesResponse | null
   /** CrowdSec's community link (admins only, and only while CrowdSec runs: the card passes null otherwise) */
   crowdsecCommunity?: CrowdSecCommunityResponse | null
+  /** Push bans to Cloudflare, from /crowdsec/status (admins only) */
+  cloudflare?: CloudflareBouncerBrief | null
   now?: number
 }): NeedItem[] {
   const { stacks, health, images, backup, disks, dcsUpdates } = input
@@ -176,8 +180,29 @@ export function collectNeeds(input: {
       page: 'crowdsec', payload: { tab: 'overview' }, fingerprint: `refused:${capi.refused_since ?? ''}` })
   }
 
+  // Push bans to Cloudflare is on but has not been in step for 10 minutes (the sync failing, CrowdSec or the API down): new bans do not
+  // reach Cloudflare's edge. Cloudflare keeps the old ones, so it is not an emergency, but a protection the person asked for is gone
+  out.push(...cloudflareNeeds(input.cloudflare ?? null, now))
+
   // worst first, then the order above
   return out.sort((a, b) => (a.severity === b.severity ? 0 : a.severity === 'problem' ? -1 : 1))
+}
+
+/** Push bans to Cloudflare: on, and no good sync for CLOUDFLARE_STALE_S (or failing for that long) */
+export function cloudflareNeeds(cf: CloudflareBouncerBrief | null, now = Date.now()): NeedItem[] {
+  if (!cf?.enabled) return []
+  const nowS = now / 1000
+  const failingFor = cf.error ? nowS - (cf.error.since || cf.error.at) : 0
+  const staleFor = cf.last_sync ? nowS - cf.last_sync : 0
+  const failing = cf.health === 'error' && failingFor >= CLOUDFLARE_STALE_S
+  const stale = cf.health === 'stale' && (staleFor >= CLOUDFLARE_STALE_S || !cf.last_sync)
+  if (!failing && !stale) return []
+  return [{
+    key: 'cloudflare-bans', severity: 'problem',
+    title: failing ? 'Cloudflare isn’t getting the bans' : 'The bans at Cloudflare are out of date',
+    detail: failing && cf.error ? cf.error.message : `No sync with Cloudflare for ${Math.round(staleFor / 60)} minutes: new bans don’t reach its edge.`,
+    page: 'crowdsec', payload: { tab: 'bouncers' }, fingerprint: failing && cf.error ? `error:${cf.error.code}:${cf.error.since}` : `stale:${cf.last_sync ?? 0}`,
+  }]
 }
 
 /** each server's look, the hub first; a VM that does not answer, cannot say or has not looked yet is left out */
