@@ -35,6 +35,8 @@ import Hint from '../components/common/Hint'
 import { pageLabel } from '../constants/pageTitles'
 import { navSections } from '../constants/navSections'
 import SidebarPagesPanel from '../components/settings/SidebarPagesPanel'
+import ChatSettingsPanel from '../components/settings/ChatSettingsPanel'
+import { MessageCircle } from 'lucide-react'
 import { DEFAULT_APP_NAME } from '../hooks/useBrand'
 import { OLD_DEFAULT_SUBTITLES } from '../stores/settingsStore'
 import {
@@ -2626,6 +2628,14 @@ export default function Settings() {
           fullWidth
         >
           <SidebarPagesPanel />
+        </SectionCard>
+
+        <SectionCard
+          icon={<MessageCircle size={16} className="accent-text" />}
+          title="Chat"
+          fullWidth
+        >
+          <ChatSettingsPanel />
         </SectionCard>
 
         {/* Row 3: App Preferences (full-width) */}

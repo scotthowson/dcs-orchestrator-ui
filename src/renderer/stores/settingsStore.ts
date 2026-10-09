@@ -48,6 +48,8 @@ export const DEFAULT_SETTINGS: PersistedSettings = {
   defaultPage: 'dashboard',
   use24hClock: true,
   reduceMotion: false,
+  chatBubble: true,
+  chatNotify: false,
   themeName: '',
   serverThemeActive: '',
   themeModeMigrated: false,

@@ -42,6 +42,7 @@ const TYPE_COLOR: Record<SSEEventType, 'cyan' | 'slate'> = {
   'log-line': 'slate',
   'health-score': 'slate',
   keepalive: 'slate',
+  chat: 'slate',   // (never on '*': the chat is not server activity)
 }
 
 /** An event as the tab keeps it: the message plus where it happened (fleet view only) */

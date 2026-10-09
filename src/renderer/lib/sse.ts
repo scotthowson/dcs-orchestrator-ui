@@ -6,7 +6,7 @@ import { useConnectionStore } from '../stores/connectionStore'
 import { useSettingsStore } from '../stores/settingsStore'
 import { apiClient } from '../api/client'
 
-export type SSEEventType = 'docker-event' | 'metrics' | 'log-line' | 'health-score' | 'keepalive'
+export type SSEEventType = 'docker-event' | 'metrics' | 'log-line' | 'health-score' | 'keepalive' | 'chat'
 
 export interface SSEMessage {
   type: SSEEventType
@@ -72,14 +72,16 @@ class SSEClient {
         this.reconnectAttempts = 0
       }
 
-      const eventTypes: SSEEventType[] = ['docker-event', 'metrics', 'log-line', 'health-score']
+      // chat: the server's room (stores/chatStore), for a signed-in person while the room is on
+      const eventTypes: SSEEventType[] = ['docker-event', 'metrics', 'log-line', 'health-score', 'chat']
       for (const type of eventTypes) {
         this.eventSource.addEventListener(type, (e: MessageEvent) => {
           try {
             const data = JSON.parse(e.data)
             const msg: SSEMessage = { type, data, timestamp: new Date().toISOString() }
             this.emit(type, msg)
-            this.emit('*', msg)
+            // the chat is people talking, not server activity: only its own listeners hear it
+            if (type !== 'chat') this.emit('*', msg)
           } catch {
             // ignore parse errors
           }

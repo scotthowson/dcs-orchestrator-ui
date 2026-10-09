@@ -56,6 +56,7 @@ import Export from './pages/Export'
 import SetupWizard from './pages/SetupWizard'
 import KeyboardShortcutsPanel from './components/common/KeyboardShortcutsPanel'
 import { BackToTop } from './components/common/BackToTop'
+import ChatBubble from './components/chat/ChatBubble'
 import { MobileNav } from './components/layout/MobileNav'
 import { SectionTabs } from './components/layout/SectionTabs'
 import { navSections, visiblePages, sectionTarget, type AliasPageId } from './constants/navSections'
@@ -724,6 +725,8 @@ export default function App() {
             </div>
             <BackToTop scrollRef={mainRef} />
           </main>
+          {/* the server's chat room, bottom right (drawn into document.body) */}
+          <ChatBubble />
         </div>
 
         {/* Status bar (desktop) and the phone's bottom navigation */}
