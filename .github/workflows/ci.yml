@@ -29,3 +29,17 @@ jobs:
 
       - name: Build the dashboard
         run: npm run build:renderer
+
+      # the desktop app's remembered passwords (main vault + renderer bridge) and its guard for links it hands to the system
+      - name: Unit tests
+        run: |
+          node tests/credential-vault.mjs
+          node tests/external-links.mjs
+
+      # The browser tests need the lab (tests/lab/lab.sh: copies of the AIO API, a fake docker, a mock Proxmox, Vite)
+      # and a Chrome, so they run locally before a release, not here (see tests/README.md):
+      #   tests/lab/lab.sh start
+      #   PUPPETEER_DIR=/tmp/dcs-ui-sweep node tests/server-accounts.mjs    # accounts per server; nothing A issued reaches B
+      #   PUPPETEER_DIR=/tmp/dcs-ui-sweep node tests/remember-password.mjs
+      #   PUPPETEER_DIR=/tmp/dcs-ui-sweep WIZARD_API=http://127.0.0.1:41923 node tests/ui-sweep.mjs
+      #   tests/lab/lab.sh stop

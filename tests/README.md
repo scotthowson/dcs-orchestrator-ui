@@ -36,11 +36,17 @@ PUPPETEER_DIR=/tmp/dcs-ui-sweep node tests/signin-plain-password.mjs
 independent server with an admin of its own. Switching to a server without a session shows its sign-in with nothing of
 the previous server in the page, Cancel goes back, a token ended on the server mid-use asks for that server only, a server
 that does not answer gets its own screen, and the app's start shows the dashboard only after the server confirmed the
-session. `tests/credential-vault.mjs` checks the desktop app's remembered passwords (the main process's vault and the
+session. It also checks that nothing server A issued reaches server B: no request to B carries A's session token or A's terminal token
+(the Terminal page's Linux sign-in, answered for A by a stand-in since the lab has no Linux account to check), the terminal session ends on A
+when A is left and on sign-out (with no token or command history left in the browser), and B's `/settings/profile` is never written
+from A's profile. `tests/credential-vault.mjs` checks the desktop app's remembered passwords (the main process's vault and the
 renderer's bridge) against stubs; Electron's safeStorage itself needs a desktop session.
 
 ```bash
 PUPPETEER_DIR=/tmp/dcs-ui-sweep node tests/server-accounts.mjs
 PUPPETEER_DIR=/tmp/dcs-ui-sweep node tests/remember-password.mjs   # the desktop sign-in's remembered password, bridge stubbed
 node tests/credential-vault.mjs
+node tests/external-links.mjs     # the desktop app opens only http(s) links outside the app
 ```
+
+CI (`.github/workflows/ci.yml`) runs the two Node tests; the browser tests need the lab and run locally.
