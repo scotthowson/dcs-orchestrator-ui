@@ -20,7 +20,7 @@ import {
   Info, LayoutGrid, LayoutList, Hammer, LayoutDashboard, ChevronDown, ChevronUp, FolderSync, FolderInput, TerminalSquare, Globe, Moon,
 } from 'lucide-react'
 import { usePolling } from '../hooks/usePolling'
-import { useConnectionStore } from '../stores/connectionStore'
+import { pollKeys } from '../api/pollKeys'
 import { useAuthStore } from '../stores/authStore'
 import { useSettingsStore } from '../stores/settingsStore'
 import { useToast } from '../components/common/Toast'
@@ -1172,27 +1172,26 @@ function MemberMenuSheet({ member, vms, onClose, onEdit, onChanged }: { member: 
 const SHOW_LABEL: Record<Show, string> = { all: 'All', running: 'Running', stopped: 'Stopped', qemu: 'VMs', lxc: 'LXC', dcs: 'DCS' }
 
 export default function Proxmox() {
-  const isConnected = useConnectionStore((s) => s.status === 'connected')
   const isAdmin = useAuthStore((s) => s.userRole === 'admin')
   const setCurrentPage = useSettingsStore((s) => s.setCurrentPage)
   const { addToast } = useToast()
   const confirm = useConfirm()
-  const status = usePolling(fetchProxmoxStatus, STATUS_POLL, { enabled: isConnected })
+  const status = usePolling(fetchProxmoxStatus, STATUS_POLL, { key: pollKeys.proxmoxStatus })
   const configured = !!status.data?.configured
   const reachable = !!status.data?.reachable
-  const nodes = usePolling(fetchProxmoxNodes, LIST_POLL, { enabled: isConnected && configured && reachable })
-  const vms = usePolling(fetchProxmoxVms, LIST_POLL, { enabled: isConnected && configured && reachable })
-  const tasks = usePolling(fetchProxmoxTasks, TASK_POLL, { enabled: isConnected && configured && reachable })
+  const nodes = usePolling(fetchProxmoxNodes, LIST_POLL, { key: pollKeys.proxmoxNodes, enabled: configured && reachable })
+  const vms = usePolling(fetchProxmoxVms, LIST_POLL, { key: pollKeys.proxmoxVms, enabled: configured && reachable })
+  const tasks = usePolling(fetchProxmoxTasks, TASK_POLL, { enabled: configured && reachable })
   // the fleet: what this server is, the members and what they run, the last scan
-  const fleet = usePolling(fetchFleetStatus, STATUS_POLL, { enabled: isConnected })
+  const fleet = usePolling(fetchFleetStatus, STATUS_POLL, { key: pollKeys.fleetStatus })
   const role = fleet.data?.role ?? 'standalone'
   const memberCount = fleet.data?.members ?? 0
   const isHub = role === 'hub' || memberCount > 0
-  const overview = usePolling(fetchFleetOverview, LIST_POLL, { enabled: isConnected && memberCount > 0 })
-  const scan = usePolling(fetchFleetDiscover, 60_000, { enabled: isConnected && isAdmin && configured && reachable && isHub })
-  const localStacks = usePolling(fetchStacks, LIST_POLL, { enabled: isConnected && (isHub || role === 'member') })
+  const overview = usePolling(fetchFleetOverview, LIST_POLL, { key: pollKeys.fleetOverview, enabled: memberCount > 0 })
+  const scan = usePolling(fetchFleetDiscover, 60_000, { enabled: isAdmin && configured && reachable && isHub })
+  const localStacks = usePolling(fetchStacks, LIST_POLL, { key: pollKeys.stacks, enabled: isHub || role === 'member' })
   // the VM this server runs in, and the Proxmox tags it has (dcs, and hub on a hub)
-  const pveSelf = usePolling(fetchProxmoxSelf, 60_000, { enabled: isConnected && configured && reachable && role !== 'member' })
+  const pveSelf = usePolling(fetchProxmoxSelf, 60_000, { enabled: configured && reachable && role !== 'member' })
   const [tagging, setTagging] = useState(false)
   const tagSelf = async () => {
     setTagging(true)
@@ -1205,11 +1204,11 @@ export default function Proxmox() {
   // the hub's own stacks only: GET /stacks also carries the members' stacks (placement "vm")
   const hubOwn = (localStacks.data?.stacks ?? []).filter((s) => s.placement !== 'vm')
   // VMs being built by the hub, and what creating one needs
-  const jobs = usePolling(fetchFleetJobs, 5000, { enabled: isConnected && isAdmin && configured && reachable })
-  const provDefaults = usePolling(fetchFleetProvisionDefaults, 60_000, { enabled: isConnected && isAdmin && configured && reachable })
-  const caps = usePolling(fetchProxmoxCapabilities, 60_000, { enabled: isConnected && isAdmin && configured && reachable })
+  const jobs = usePolling(fetchFleetJobs, 5000, { key: pollKeys.fleetJobs, enabled: isAdmin && configured && reachable })
+  const provDefaults = usePolling(fetchFleetProvisionDefaults, 60_000, { key: pollKeys.fleetProvisionDefaults, enabled: isAdmin && configured && reachable })
+  const caps = usePolling(fetchProxmoxCapabilities, 60_000, { key: pollKeys.proxmoxCapabilities, enabled: isAdmin && configured && reachable })
   // the baked DCS templates: a VM cloned from one builds in about half a minute
-  const templates = usePolling(fetchFleetTemplates, 60_000, { enabled: isConnected && isAdmin && configured && reachable && isHub })
+  const templates = usePolling(fetchFleetTemplates, 60_000, { enabled: isAdmin && configured && reachable && isHub })
   const [removingTemplate, setRemovingTemplate] = useState<number | null>(null)
   const removeTemplate = async (t: FleetTemplate) => {
     if (!(await confirm({ title: 'Remove the template', message: `Remove the DCS template ${t.image_id} (VM ${t.vmid})? The next build from that image installs everything again (a minute and a half) until a new one is baked.`, confirmLabel: 'Remove', danger: true }))) return

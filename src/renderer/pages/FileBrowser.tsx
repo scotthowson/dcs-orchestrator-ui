@@ -5,6 +5,7 @@
 // proxy to that VM); a file's text comes back as JSON, so it can be saved.
 // =============================================================================
 
+import { fetchContainers } from '../api/endpoints'
 import { useState, useCallback, useEffect, useMemo, useRef, useId } from 'react'
 import {
   FolderOpen, FileText, Link, Folder, ChevronRight,
@@ -19,7 +20,6 @@ import { useFleetScope } from '../hooks/useFleetScope'
 import FleetScopeChips from '../components/fleet/FleetScopeChips'
 import VmCapsule from '../components/fleet/VmCapsule'
 import {
-  fetchContainersScoped,
   fetchContainerFilesScoped,
   fetchContainerFileContentScoped,
 } from '../api/fleetScopedOps'
@@ -217,7 +217,7 @@ export default function FileBrowser() {
     setContainers([])
     setContainersError(null)
     try {
-      const data = await fetchContainersScoped(member)
+      const data = await fetchContainers(member)
       if (load !== containersLoadRef.current) return
       // a hub's own list carries its VMs' containers too (tagged member): the Hub view keeps only its own
       setContainers(

@@ -182,14 +182,14 @@ export default function DiskAnalysis() {
     loading,
     error,
     refresh,
-  } = usePolling<DiskAnalysisData>(fetchMaintenanceDisk, 30000, { enabled: isConnected })
+  } = usePolling<DiskAnalysisData>(fetchMaintenanceDisk, 30000)
 
   // Mounted drives from /disks endpoint (same as Dashboard)
-  const { data: disksData } = usePolling<{ total: number; disks: DiskInfo[] }>(fetchDisks, 60000, { enabled: isConnected })
+  const { data: disksData } = usePolling<{ total: number; disks: DiskInfo[] }>(fetchDisks, 60000)
   const mountedDrives = disksData?.disks ?? []
 
   // every machine: the Proxmox nodes (disks, pools) and the VMs' disks; shown when there is more than this server
-  const { data: overview } = usePolling<StorageOverview>(fetchStorageOverview, 60000, { enabled: isConnected })
+  const { data: overview } = usePolling<StorageOverview>(fetchStorageOverview, 60000)
   const everywhere = !!overview && (overview.proxmox.linked || overview.vms.length > 0)
 
   // Rename handler — writes to shared settingsStore (syncs to Dashboard + Settings)

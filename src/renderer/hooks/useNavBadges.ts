@@ -1,7 +1,7 @@
 // =============================================================================
 // useNavBadges — the counts and status marks beside the pages: the sidebar
 // shows them per section, the tab bar over a page per tab. One request for the
-// hub's VM stacks however many places ask (sharedFetch).
+// hub's VM stacks however many places ask (the shared 'stacks' poll).
 // =============================================================================
 
 import type React from 'react'
@@ -11,7 +11,7 @@ import { useFleetRole } from './useFleetRole'
 import { useFleetTotals } from './useFleetTotals'
 import { useApiLink } from './useApiLink'
 import { fetchStacks } from '../api/endpoints'
-import { sharedFetch } from '../lib/sharedFetch'
+import { pollKeys } from '../api/pollKeys'
 import { useSettingsStore } from '../stores/settingsStore'
 import { useSystemStore } from '../stores/systemStore'
 import { useHealthStore } from '../stores/healthStore'
@@ -27,13 +27,10 @@ import { stackIsFine } from '../lib/containerState'
 export interface NavBadge { value: string; color: string; title?: string; second?: { value: string; color: string; title?: string } }
 export interface NavStatusIcon { icon: React.ElementType; color: string; title: string }
 
-const vmStackList = sharedFetch(fetchStacks, 20000)
-
 export function useNavBadges(): { badges: Partial<Record<PageId, NavBadge>>; statusIcons: Partial<Record<PageId, NavStatusIcon>> } {
   // a hub: the badge counts the VMs (the merged stack list), not this server's own stacks
   const { isHub } = useFleetRole()
-  const isConnectedForVms = useConnectionStore((st) => st.status === 'connected')
-  const vmList = usePolling(vmStackList, 30000, { enabled: isConnectedForVms && isHub })
+  const vmList = usePolling(fetchStacks, 30000, { key: pollKeys.stacks, enabled: isHub })
   // a hub counts its VMs in every badge: containers, images, networks and volumes are its own plus theirs
   const { totals: fleet } = useFleetTotals()
   const vmStacks = vmList.data ? { total: vmList.data.stacks.filter((x) => x.placement === 'vm').length, up: vmList.data.stacks.filter((x) => x.placement === 'vm' && stackIsFine(x)).length } : null

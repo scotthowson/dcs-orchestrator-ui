@@ -33,6 +33,7 @@ import FleetScopeChips from '../components/fleet/FleetScopeChips'
 import VmCapsule from '../components/fleet/VmCapsule'
 import { fetchHealthReport, fetchContainers, fetchSystemMetrics, fetchHealthScore, fetchEvents } from '../api/endpoints'
 import { useStackCounts } from '../hooks/useStackCounts'
+import { pollKeys } from '../api/pollKeys'
 import { useHealthStore } from '../stores/healthStore'
 import { useConnectionStore } from '../stores/connectionStore'
 import { useSettingsStore } from '../stores/settingsStore'
@@ -244,56 +245,39 @@ function ScoreFactorBar({ label, value, detail }: { label: string; value: number
 
 export default function Health() {
   const setReport = useHealthStore((s) => s.setReport)
-  const connectionStatus = useConnectionStore((s) => s.status)
-  const isConnected = connectionStatus === 'connected'
 
   // a hub: everywhere (the hub and every VM), the hub alone, or one VM — the choice the Images and Updates pages share
   const { scope, setScope, member: scopeMember, memberName, members: scopeMembers, hasFleet } = useFleetScope()
-  const fetchScopedReport = React.useCallback(() => fetchHealthReport(scope), [scope])
 
-  // Poll health report (the whole fleet is asked a little less often)
-  const { data, loading, error, refresh } = usePolling<HealthReport>(fetchScopedReport, scope === 'all' ? 15000 : 5000, {
-    enabled: isConnected,
-  })
-  const scopeRef = React.useRef(scope)
-  React.useEffect(() => { if (scopeRef.current !== scope) { scopeRef.current = scope; refresh() } }, [scope, refresh])
+  // Poll health report (the whole fleet is asked a little less often); a new scope asks at once. The global poller asks the
+  // same report for the badge: one request serves both
+  const reportKey = pollKeys.health(scope)
+  const { data, dataKey: reportOf, loading, error, refresh } = usePolling<HealthReport>(() => fetchHealthReport(scope), scope === 'all' ? 15000 : 5000, { key: reportKey })
 
-  // Poll full container list for enriched data (image, uptime, restart count); when it answered dates each start time
-  const fetchContainersAt = React.useCallback(async () => ({ at: Date.now() / 1000, res: await fetchContainers() }), [])
-  const { data: containerTagged, refresh: refreshContainers } = usePolling<{ at: number; res: { containers: ContainerInfo[] } }>(fetchContainersAt, 10000, {
-    enabled: isConnected,
-  })
-  const containerData = containerTagged?.res ?? null
+  // Poll full container list for enriched data (image, uptime, restart count); when it answered dates each start time (the
+  // global poller's request)
+  const { data: containerData, updatedAt: containersAt, refresh: refreshContainers } = usePolling<{ containers: ContainerInfo[] }>(fetchContainers, 10000, { key: pollKeys.containers() })
 
   // Docker's events, for the last 30 minutes of every container and the incident log (asked less often for the whole fleet);
   // each answer says the scope it was asked for and when, so a switch never reads the old server's events
   const fetchScopedEvents = React.useCallback(async () => ({ scope, at: Date.now() / 1000, res: await fetchEvents(scope) }), [scope])
-  const { data: eventsTagged, loading: eventsLoading, refresh: refreshEvents } = usePolling<{ scope: string; at: number; res: EventsResponse }>(fetchScopedEvents, scope === 'all' ? 20000 : 15000, {
-    enabled: isConnected,
-  })
+  const { data: eventsTagged, loading: eventsLoading, refresh: refreshEvents } = usePolling<{ scope: string; at: number; res: EventsResponse }>(fetchScopedEvents, scope === 'all' ? 20000 : 15000)
   const eventsScopeRef = React.useRef(scope)
   React.useEffect(() => { if (eventsScopeRef.current !== scope) { eventsScopeRef.current = scope; refreshEvents() } }, [scope, refreshEvents])
   const eventsData = eventsTagged && eventsTagged.scope === scope ? eventsTagged : null
 
   // Poll system metrics for resource overview
-  const { data: metrics } = usePolling<SystemMetricsResponse>(fetchSystemMetrics, 10000, {
-    enabled: isConnected,
-  })
+  const { data: metrics } = usePolling<SystemMetricsResponse>(fetchSystemMetrics, 10000)
 
   // Poll health score for scoring + factor breakdown
-  const fetchScopedScore = React.useCallback(() => fetchHealthScore(scope), [scope])
   // the stacks, so the page can say how many run where — the same numbers the dashboard shows
   const stackCounts = useStackCounts(scope)
-  const { data: healthScoreData, loading: scoreLoading, refresh: refreshScore } = usePolling<HealthScoreResponse>(fetchScopedScore, 15000, {
-    enabled: isConnected,
-  })
-  const scoreScopeRef = React.useRef(scope)
-  React.useEffect(() => { if (scoreScopeRef.current !== scope) { scoreScopeRef.current = scope; refreshScore() } }, [scope, refreshScore])
+  const { data: healthScoreData, loading: scoreLoading } = usePolling<HealthScoreResponse>(() => fetchHealthScore(scope), 15000, { key: pollKeys.healthScore(scope) })
 
   // Sync to store (one VM's report is not this server's: it stays on this page)
   React.useEffect(() => {
-    if (data && !scopeMember) setReport(data)
-  }, [data, setReport, scopeMember])
+    if (data && !scopeMember && reportOf === reportKey) setReport(data)
+  }, [data, setReport, scopeMember, reportOf, reportKey])
 
   // Also use the global store as fallback if the local poll hasn't returned yet
   const storeReport = useHealthStore((s) => s.report)
@@ -368,8 +352,8 @@ export default function Health() {
     for (const c of enrichedContainers) {
       const k = `${ownerKey(c.member)}|${c.name}`
       const evts = byKey.get(k) ?? []
-      const startedAt = c.state.toLowerCase() === 'running' && c.uptime_seconds !== undefined && containerTagged
-        ? containerTagged.at - c.uptime_seconds
+      const startedAt = c.state.toLowerCase() === 'running' && c.uptime_seconds !== undefined && containerData
+        ? containersAt / 1000 - c.uptime_seconds
         : null
       const notable = evts.filter(isNotableEvent)
       map.set(rowKey(c), {
@@ -378,7 +362,7 @@ export default function Health() {
       })
     }
     return map
-  }, [enrichedContainers, eventsData, containerTagged, scopeMember])
+  }, [enrichedContainers, eventsData, containerData, containersAt, scopeMember])
 
   // Search and filter state
   const [searchQuery, setSearchQuery] = useState('')

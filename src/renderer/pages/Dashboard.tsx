@@ -6,7 +6,7 @@ import React, { useRef, useEffect } from 'react'
 import { WifiOff, Wifi, Loader2, Server, RefreshCw, Settings2, BellRing } from 'lucide-react'
 import { Badge } from '@mantine/core'
 import { usePolling } from '../hooks/usePolling'
-import { ApiError, ApiNetworkError } from '../api/client'
+import { pollKeys } from '../api/pollKeys'
 import {
   fetchEvents, fetchVersion,
   fetchDisks, fetchSystemInfo,
@@ -120,8 +120,6 @@ function DisconnectedHero() {
 export default function Dashboard() {
   const connectionStatus = useConnectionStore((s) => s.status)
   const isConnected = connectionStatus === 'connected'
-  const reportPollSuccess = useConnectionStore((s) => s.reportPollSuccess)
-  const reportPollFailure = useConnectionStore((s) => s.reportPollFailure)
   // the backup status is an admin's: the route answers 403 to anyone else, so only an admin asks
   const isAdmin = useAuthStore((s) => s.userRole) === 'admin'
 
@@ -160,18 +158,6 @@ export default function Dashboard() {
 
   // Dashboard layout editor
   const dashLayout = useDashboardLayout()
-
-  // Poll success/error callbacks for connection health monitoring
-  const onPollSuccess = React.useCallback(() => {
-    reportPollSuccess()
-  }, [reportPollSuccess])
-
-  const onPollError = React.useCallback((err: Error) => {
-    // Only a connection-class failure counts towards "unstable": a bad body or
-    // an application error from one endpoint says nothing about the link
-    const gateway = err instanceof ApiError && [0, 502, 503, 504].includes(err.status)
-    if (err instanceof ApiNetworkError || gateway) reportPollFailure()
-  }, [reportPollFailure])
 
   // =========================================================================
   // Data from stores (populated by GlobalPoller)
@@ -265,136 +251,78 @@ export default function Dashboard() {
     prevHealthStatusRef.current = current
   }, [healthReport])
 
-  // --- Poll /events every 3s ---
-  const eventsPoll = usePolling(fetchEvents, 8000, {
-    enabled: isConnected,
-    onError: onPollError,
-  })
+  // Every card's poll watches the link (a failure of the link counts towards "unstable", an answer says it is fine). The
+  // requests other places ask too (the stacks, the version, the system, CrowdSec) are keyed: one request serves them all.
+  const watch = { reportsLink: true } as const
 
+  // --- /events every 8 s ---
+  const eventsPoll = usePolling(fetchEvents, 8000, { ...watch, key: pollKeys.events(null) })
   React.useEffect(() => {
-    if (eventsPoll.data) {
-      setEvents(eventsPoll.data.events)
-      onPollSuccess()
-    }
-  }, [eventsPoll.data, setEvents, onPollSuccess])
+    if (eventsPoll.data) setEvents(eventsPoll.data.events)
+  }, [eventsPoll.data, setEvents])
 
-  // --- Poll /version once (10min interval) ---
-  const versionPoll = usePolling(fetchVersion, 600000, {
-    enabled: isConnected,
-    onError: onPollError,
-  })
-
+  // --- /version every 10 min ---
+  const versionPoll = usePolling(fetchVersion, 600000, { ...watch, key: pollKeys.version })
   React.useEffect(() => {
-    if (versionPoll.data) {
-      setSystemVersion(versionPoll.data)
-      onPollSuccess()
-    }
-  }, [versionPoll.data, setSystemVersion, onPollSuccess])
+    if (versionPoll.data) setSystemVersion(versionPoll.data)
+  }, [versionPoll.data, setSystemVersion])
 
-  // --- Poll /system every 60s (provides cpu_count for CPU gauge) ---
-  const systemInfoPoll = usePolling(fetchSystemInfo, 60000, {
-    enabled: isConnected,
-    onError: onPollError,
-  })
-
+  // --- /system every 60 s (provides cpu_count for CPU gauge) ---
+  const systemInfoPoll = usePolling(fetchSystemInfo, 60000, { ...watch, key: pollKeys.systemInfo() })
   React.useEffect(() => {
-    if (systemInfoPoll.data) {
-      setSystemInfo(systemInfoPoll.data)
-      onPollSuccess()
-    }
-  }, [systemInfoPoll.data, setSystemInfo, onPollSuccess])
+    if (systemInfoPoll.data) setSystemInfo(systemInfoPoll.data)
+  }, [systemInfoPoll.data, setSystemInfo])
 
   // Containers come from the global poller: one request serves every page
   const containers = useContainerStore((s) => s.containers)
 
-  // --- Poll /disks every 30s ---
-  const disksPoll = usePolling(fetchDisks, 30000, {
-    enabled: isConnected,
-    onError: onPollError,
-  })
-
+  // --- /disks every 30 s ---
+  const disksPoll = usePolling(fetchDisks, 30000, { ...watch, key: pollKeys.disks })
   const disks: DiskInfo[] = disksPoll.data?.disks ?? []
 
   // =========================================================================
-  // New widget polls
+  // Widget polls
   // =========================================================================
 
-  // --- Poll /stacks every 15s ---
-  const stacksPoll = usePolling(fetchStacks, 15000, {
-    enabled: isConnected,
-    onError: onPollError,
-  })
-
-  // Sync stacks to store for CommandPalette access
+  // --- /stacks every 15 s (synced to the store for the command palette) ---
+  const stacksPoll = usePolling(fetchStacks, 15000, { ...watch, key: pollKeys.stacks })
   React.useEffect(() => {
-    if (stacksPoll.data?.stacks) {
-      setStacks(stacksPoll.data.stacks)
-    }
+    if (stacksPoll.data?.stacks) setStacks(stacksPoll.data.stacks)
   }, [stacksPoll.data, setStacks])
 
-  // --- Poll /images/check-updates every 120s ---
-  const imageUpdatesPoll = usePolling(fetchImageUpdates, 120000, {
-    enabled: isConnected,
-    onError: onPollError,
-  })
+  // --- /images/check-updates every 2 min ---
+  const imageUpdatesPoll = usePolling(fetchImageUpdates, 120000, watch)
 
-  // --- Poll /backups/status every 30s (admins only) ---
-  const backupStatusPoll = usePolling(fetchBackupStatus, 30000, {
-    enabled: isConnected && isAdmin,
-    onError: onPollError,
-  })
+  // --- /backups/status every 30 s (admins only) ---
+  const backupStatusPoll = usePolling(fetchBackupStatus, 30000, { ...watch, enabled: isAdmin })
 
-  // --- Poll /system/os-updates?fleet=1 every 10 min (admins only): each server looks in the background, the answer is cheap ---
-  const osUpdatesPoll = usePolling(fetchOsUpdates, 600000, {
-    enabled: isConnected && isAdmin,
-    onError: onPollError,
-  })
+  // --- /system/os-updates?fleet=1 every 10 min (admins only): each server looks in the background, the answer is cheap ---
+  const osUpdatesPoll = usePolling(fetchOsUpdates, 600000, { ...watch, enabled: isAdmin })
 
-  // --- Poll /logs/stats every 30s ---
-  const logStatsPoll = usePolling(fetchLogStats, 30000, {
-    enabled: isConnected,
-    onError: onPollError,
-  })
+  // --- /logs/stats every 30 s ---
+  const logStatsPoll = usePolling(fetchLogStats, 30000, watch)
 
-  // --- Poll /maintenance/report every 60s ---
-  const maintenancePoll = usePolling(fetchMaintenanceReport, 60000, {
-    enabled: isConnected,
-    onError: onPollError,
-  })
+  // --- /maintenance/report every 60 s ---
+  const maintenancePoll = usePolling(fetchMaintenanceReport, 60000, watch)
 
-  // --- Poll /notifications/history every 30s ---
-  const notifHistoryPoll = usePolling(fetchNotificationHistory, 30000, {
-    enabled: isConnected,
-    onError: onPollError,
-  })
+  // --- /notifications/history every 30 s ---
+  const notifHistoryPoll = usePolling(fetchNotificationHistory, 30000, watch)
 
-  // --- Poll /automations every 60s ---
-  const automationsPoll = usePolling(fetchAutomations, 60000, {
-    enabled: isConnected,
-    onError: onPollError,
-  })
-  // the timed rules (schedules) are rules of the same Automation page: the card lists both
-  const schedulesPoll = usePolling(() => fetchSchedules(), 60000, {
-    enabled: isConnected,
-    onError: onPollError,
-  })
+  // --- /automations every 60 s; the timed rules (schedules) are rules of the same Automation page: the card lists both ---
+  const automationsPoll = usePolling(fetchAutomations, 60000, watch)
+  const schedulesPoll = usePolling(() => fetchSchedules(), 60000, watch)
 
-  const crowdsecPoll = usePolling(crowdsecStatus, 60000, {
-    enabled: isConnected,
-    onError: onPollError,
-  })
-  // --- Poll /crowdsec/community every 10 min (admins, while CrowdSec runs): "Needs your attention" says when the community has refused
+  // --- /crowdsec/status every 60 s ---
+  const crowdsecPoll = usePolling(() => crowdsecStatus(), 60000, { ...watch, key: pollKeys.crowdsecStatus(null) })
+  // --- /crowdsec/community every 10 min (admins, while CrowdSec runs): "Needs your attention" says when the community has refused
   // the engine for hours. The GET reads what the server already knows and never logs in to the community service ---
   const crowdsecCommunityPoll = usePolling(() => crowdsecCommunity(), 600000, {
-    enabled: isConnected && isAdmin && !!crowdsecPoll.data?.running,
+    key: pollKeys.crowdsecCommunity(null),
+    enabled: isAdmin && !!crowdsecPoll.data?.running,
   })
 
-  // --- Poll /metrics/trends every 60s ---
-  const fetchTrends1h = React.useCallback(() => fetchMetricsTrends('1h'), [])
-  const trendsPoll = usePolling(fetchTrends1h, 60000, {
-    enabled: isConnected,
-    onError: onPollError,
-  })
+  // --- /metrics/trends?range=1h every 60 s ---
+  const trendsPoll = usePolling(() => fetchMetricsTrends('1h'), 60000, watch)
 
   // Show disconnected hero ONLY when not connected AND we've NEVER had data.
   // Once data has loaded, keep showing cards even during brief disconnects

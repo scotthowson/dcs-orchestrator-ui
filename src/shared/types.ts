@@ -2858,6 +2858,10 @@ export interface HealthScoreResponse {
   /** GET /health/score?fleet=1 on a hub: the members were folded in */
   fleet?: boolean
   members?: { id: string | null; name: string; vmid: number | null; reachable: boolean; error: string; score: number | null; grade: string | null }[]
+  /** whether Docker answered when the score was taken */
+  docker?: { reachable: boolean }
+  /** when the score was taken (ISO 8601, UTC) */
+  timestamp?: string
 }
 
 export interface StackHealthScore {
@@ -4234,6 +4238,8 @@ export interface FleetOverview {
   members: FleetMemberLive[]
   /** images, networks and volumes are the VMs' Docker counts added up (hubs before 3.9.10 do not send them) */
   totals: { members: number; reachable: number; stacks: number; containers_running: number; containers_total: number; containers_sleeping?: number; images?: number; networks?: number; volumes?: number }
+  /** when the hub put the overview together (epoch seconds) */
+  at?: number
 }
 
 /** One guest as the scan saw it */
@@ -4726,3 +4732,108 @@ export type ChatLiveEvent =
   | { type: 'clear'; by: string; ts: number }
   | { type: 'typing'; user: string; ts: number }
   | { type: 'state'; enabled: boolean }
+
+// ---------------------------------------------------------------------------
+// Containers list, routes and DNS (were declared in api/endpoints.ts)
+// ---------------------------------------------------------------------------
+
+export interface ContainerListResponse {
+  total: number
+  containers: ContainerInfo[]
+}
+
+export interface RouteEntry {
+  subdomain: string
+  service: string
+  stack: string
+  target: string
+  conflict: boolean
+  /** Traefik's CrowdSec bouncer: checks this route (protected), does not (bypass), or CrowdSec is not set up on the proxy (off) */
+  crowdsec?: 'protected' | 'bypass' | 'off'
+}
+
+export interface RoutesResponse {
+  total: number
+  routes: RouteEntry[]
+  domain: string
+}
+
+export interface RouteCheckResponse {
+  available: boolean
+  subdomain: string
+  fqdn: string
+  existing_service: string
+  existing_stack: string
+}
+
+export type DnsRecordType = 'A' | 'AAAA' | 'CNAME' | 'TXT' | 'MX' | 'NS' | 'SRV' | 'CAA' | 'PTR' | string
+
+export interface DnsRecord {
+  id: string
+  type: DnsRecordType
+  name: string
+  /** Name relative to the zone ("@" for the apex) */
+  subdomain: string
+  content: string
+  /** 1 = automatic */
+  ttl: number
+  proxied: boolean
+  proxiable: boolean
+  priority: number | null
+  comment: string
+  tags: string[]
+  locked: boolean
+  created_on: string
+  modified_on: string
+  /** Comment mentions DCS: created by a deployment, a route change or a sync */
+  managed: boolean
+  /** "stack/service" of the DCS route that uses this name, if any */
+  route: string | null
+  /** CNAME pointing at the DCS domain */
+  points_to_dcs: boolean
+  /** DCS can change or delete it (A, AAAA, CNAME, TXT, MX, NS and not locked) */
+  editable: boolean
+}
+
+export interface DnsZone {
+  id: string
+  name: string
+  status: string
+  name_servers: string[]
+  plan: string
+}
+
+export interface DnsRecordsResponse {
+  total: number
+  all_total?: number
+  records: DnsRecord[]
+  domain: string
+  zone: { id: string; name: string } | null
+  cf_configured: boolean
+  token_source: '' | 'secret' | 'env' | 'stack-env'
+  /** DCS routes under the zone that have no A/AAAA/CNAME record */
+  routes_without_dns: { fqdn: string; route: string }[]
+  error?: string
+  hint?: string
+}
+
+export interface DnsStatusResponse {
+  cf_configured: boolean
+  token_source: '' | 'secret' | 'env' | 'stack-env'
+  token_status: 'active' | 'invalid' | 'unreachable' | 'unknown' | string
+  domain: string
+  zone: DnsZone | null
+  zone_found: boolean
+  hint: string
+}
+
+export interface DnsRecordInput {
+  zone?: string
+  type: DnsRecordType
+  name: string
+  content: string
+  ttl?: number
+  proxied?: boolean
+  priority?: number | null
+  comment?: string
+}

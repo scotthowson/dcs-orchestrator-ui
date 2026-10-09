@@ -12,7 +12,6 @@ import {
   ChevronDown, Eye, EyeOff, Pencil,
 } from 'lucide-react'
 import { usePolling } from '../hooks/usePolling'
-import { useConnectionStore } from '../stores/connectionStore'
 import { useToast } from '../components/common/Toast'
 import { useConfirm } from '../components/common/ConfirmDialog'
 import { DisconnectedBanner } from '../components/common/DisconnectedBanner'
@@ -20,10 +19,9 @@ import PageHeader from '../components/common/PageHeader'
 import Hint from '../components/common/Hint'
 import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_ICON_SM, TONE_OK, TONE_QUIET, TONE_GHOST } from '../lib/ui'
 import VmCapsule from '../components/fleet/VmCapsule'
-import { fetchStacks } from '../api/endpoints'
+import { fetchStacks, fetchStackEnv, saveStackEnv } from '../api/endpoints'
 import {
   fetchRootEnvScoped, saveRootEnvScoped, validateEnvScoped,
-  fetchStackEnvScoped, saveStackEnvScoped,
 } from '../api/fleetScopedOps'
 import { useFleetScope } from '../hooks/useFleetScope'
 import FleetScopeChips from '../components/fleet/FleetScopeChips'
@@ -284,7 +282,6 @@ function ValidationResults({ result }: { result: EnvValidateResponse }) {
 // ---------------------------------------------------------------------------
 
 export default function Environment() {
-  const isConnected = useConnectionStore((s) => s.status) === 'connected'
   const { addToast } = useToast()
   const confirm = useConfirm()
 
@@ -311,7 +308,7 @@ export default function Environment() {
     loading: rootLoading,
     refresh: refreshRoot,
   } = usePolling<RootEnvResponse>(fetchScopedRoot, 60000, {
-    enabled: isConnected && activeTab === 'root',
+    enabled: activeTab === 'root',
   })
 
   useEffect(() => {
@@ -378,7 +375,7 @@ export default function Environment() {
     loading: stacksLoading,
     refresh: refreshStacks,
   } = usePolling<StackListResponse>(fetchScopedStacks, 60000, {
-    enabled: isConnected && activeTab === 'stack',
+    enabled: activeTab === 'stack',
   })
 
   const stacks = (stacksData?.stacks ?? []).filter((s) => member ? true : s.placement !== 'vm')
@@ -408,7 +405,7 @@ export default function Environment() {
     setStackEnvLoading(true)
     setStackEnvEmpty(false)
 
-    fetchStackEnvScoped(member, selectedStack)
+    fetchStackEnv(selectedStack, member)
       .then((data) => {
         if (!mounted) return
         setStackEnvData(data)
@@ -436,7 +433,7 @@ export default function Environment() {
     if (!selectedStack) return
     setStackSaving(true)
     try {
-      const result = await saveStackEnvScoped(member, selectedStack, stackRaw)
+      const result = await saveStackEnv(selectedStack, stackRaw, member)
       if (result.success) {
         setStackOriginal(stackRaw)
         addToast({ type: 'success', message: `${selectedStack} .env saved${whereLabel ? ` on ${whereLabel}` : ''}` })
@@ -469,7 +466,7 @@ export default function Environment() {
   const refreshCurrent = activeTab === 'root' ? refreshRoot : () => {
     if (selectedStack) {
       setStackEnvLoading(true)
-      fetchStackEnvScoped(member, selectedStack)
+      fetchStackEnv(selectedStack, member)
         .then((data) => {
           setStackEnvData(data)
           setStackRaw(data.raw)

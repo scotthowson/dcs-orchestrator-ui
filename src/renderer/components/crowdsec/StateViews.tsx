@@ -11,6 +11,7 @@ import {
   Play, RotateCw, ScrollText, ExternalLink, Container, Network, Boxes, RefreshCw, ArrowRight, ArrowDown, PackageOpen,
 } from 'lucide-react'
 import { usePolling } from '../../hooks/usePolling'
+import { pollKeys } from '../../api/pollKeys'
 import { useToast } from '../common/Toast'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { deployTemplate, fetchStackActivity, crowdsecStatus, crowdsecLogs, crowdsecRunFix } from '../../api/endpoints'
@@ -227,7 +228,7 @@ export function NotDeployed({ s, onRefresh }: { s: CrowdSecStatusResponse; onRef
   const deploying = phase === 'deploying' || phase === 'waiting'
   // while a deployment runs: follow the stack's activity, and look at the status often — the page opens by itself when CrowdSec is healthy
   const act = usePolling(async () => (stack ? fetchStackActivity(stack, member).catch(() => null) : null), 2500, { enabled: deploying && !!stack })
-  const st = usePolling(() => crowdsecStatus(member), 3000, { enabled: deploying })
+  const st = usePolling(() => crowdsecStatus(member), 3000, { key: pollKeys.crowdsecStatus(member), enabled: deploying })
   useEffect(() => { if (act.data) setActivity(act.data) }, [act.data])
   useEffect(() => {
     if (!deploying || !st.data) return

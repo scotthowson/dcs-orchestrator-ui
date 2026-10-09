@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { resetsWithServer } from '../lib/serverScope'
 import * as api from '../api/endpoints'
 import type { SecretEntry } from '../../shared/types'
 
@@ -70,3 +71,5 @@ export const useSecretsStore = create<SecretsState>((set) => ({
     }
   },
 }))
+
+resetsWithServer(useSecretsStore)

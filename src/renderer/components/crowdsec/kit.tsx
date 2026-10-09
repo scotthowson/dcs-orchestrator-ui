@@ -9,7 +9,6 @@
 import { createContext, useContext, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Copy, Check } from 'lucide-react'
-import { ApiError } from '../../api/client'
 import type { CrowdSecStatusResponse } from '../../../shared/types'
 
 // ---------------------------------------------------------------------------
@@ -348,16 +347,8 @@ export interface CsContext {
 export const CsCtx = createContext<CsContext>({ member: null, memberName: '', isAdmin: false, status: null, refreshStatus: () => {}, goTab: () => {} })
 export function useCs(): CsContext { return useContext(CsCtx) }
 
-/** the message of an API error, in words */
-export function errMsg(e: unknown, fallback = 'The request failed'): string {
-  if (e instanceof ApiError) return e.message || fallback
-  if (e instanceof Error) return e.message || fallback
-  return fallback
-}
-/** structured detail of an API error (a `reason`, `rolled_back` …) */
-export function errData(e: unknown): Record<string, unknown> {
-  return e instanceof ApiError && e.data ? e.data : {}
-}
+/** the message of an API error, in words; structured detail of one (a `reason`, `rolled_back` …): api/errors */
+export { apiErrorMessage as errMsg, apiErrorData as errData } from '../../api/errors'
 
 /** an address or network as the API accepts it, checked before the request goes out (the server checks again) */
 export function looksLikeTarget(v: string): boolean {

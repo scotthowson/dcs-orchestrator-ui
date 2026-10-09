@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { resetsWithServer } from '../lib/serverScope'
 import type { Schedule, ScheduleExecution } from '../../shared/types'
 import * as api from '../api/endpoints'
 
@@ -110,3 +111,5 @@ export const useScheduleStore = create<ScheduleState>((set, get) => ({
     } catch { /* ignore */ }
   },
 }))
+
+resetsWithServer(useScheduleStore)

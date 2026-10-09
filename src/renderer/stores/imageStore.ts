@@ -1,19 +1,20 @@
 import { create } from 'zustand'
 import { ImageInfo } from '../../shared/types'
+import { resetsWithServer } from '../lib/serverScope'
 
 interface ImageState {
   images: ImageInfo[]
   loading: boolean
   setImages: (images: ImageInfo[]) => void
   setLoading: (loading: boolean) => void
-  staleCount: () => number
 }
 
-export const useImageStore = create<ImageState>((set, get) => ({
+export const useImageStore = create<ImageState>((set) => ({
   images: [],
   loading: false,
 
   setImages: (images) => set({ images }),
   setLoading: (loading) => set({ loading }),
-  staleCount: () => get().images.filter((img) => img.staleness === 'stale').length,
 }))
+
+resetsWithServer(useImageStore)

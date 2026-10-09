@@ -6,7 +6,7 @@
 import { Server, Cpu, MemoryStick, Satellite } from 'lucide-react'
 import { Badge } from '@mantine/core'
 import { usePolling } from '../../hooks/usePolling'
-import { useConnectionStore } from '../../stores/connectionStore'
+import { pollKeys } from '../../api/pollKeys'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { pageLabel } from '../../constants/pageTitles'
 import { BTN_CARD, TONE_OK } from '../../lib/ui'
@@ -16,15 +16,14 @@ import { Card, CardBody, CardEmpty, CardError, CardLoading, pctTone, TONE_FILL }
 function fmtGb(n: number): string { return n ? `${(n / 1073741824).toFixed(n >= 10737418240 ? 0 : 1)} GB` : '0' }
 
 export default function ProxmoxCard() {
-  const isConnected = useConnectionStore((s) => s.status === 'connected')
   const setCurrentPage = useSettingsStore((s) => s.setCurrentPage)
-  const status = usePolling(fetchProxmoxStatus, 30000, { enabled: isConnected })
+  const status = usePolling(fetchProxmoxStatus, 30000, { key: pollKeys.proxmoxStatus })
   const ready = !!status.data?.configured && !!status.data?.reachable
-  const vms = usePolling(fetchProxmoxVms, 15000, { enabled: isConnected && ready })
-  const nodes = usePolling(fetchProxmoxNodes, 15000, { enabled: isConnected && ready })
+  const vms = usePolling(fetchProxmoxVms, 15000, { key: pollKeys.proxmoxVms, enabled: ready })
+  const nodes = usePolling(fetchProxmoxNodes, 15000, { key: pollKeys.proxmoxNodes, enabled: ready })
   // the fleet (3.9): members and what they run
-  const fleet = usePolling(fetchFleetStatus, 30000, { enabled: isConnected })
-  const overview = usePolling(fetchFleetOverview, 15000, { enabled: isConnected && (fleet.data?.members ?? 0) > 0 })
+  const fleet = usePolling(fetchFleetStatus, 30000, { key: pollKeys.fleetStatus })
+  const overview = usePolling(fetchFleetOverview, 15000, { key: pollKeys.fleetOverview, enabled: (fleet.data?.members ?? 0) > 0 })
   const s = status.data
   const memberByVm = new Map((overview.data?.members ?? []).filter((m) => m.vmid).map((m) => [m.vmid as number, m]))
 

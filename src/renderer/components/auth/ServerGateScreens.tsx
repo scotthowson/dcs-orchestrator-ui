@@ -4,7 +4,8 @@
 // The sign-in itself is pages/Login. ServerAccountList is the list of the other servers they (and the sign-in) offer.
 // =============================================================================
 
-import { useEffect, useState } from 'react'
+import { useState, useCallback } from 'react'
+import { usePolling } from '../../hooks/usePolling'
 import { Layers, Loader2, WifiOff, RotateCw, Globe, Server, Pencil, ShieldOff } from 'lucide-react'
 import { useServerStore } from '../../stores/serverStore'
 import type { ServerProfile } from '../../../shared/types'
@@ -114,13 +115,14 @@ export function ServerUnreachableScreen() {
   const isBlocked = useServerStore((s) => !!s.activeServerId && !!s.blocked[s.activeServerId])
   const [retrying, setRetrying] = useState(false)
 
-  // it tries again by itself every few seconds: a server that comes back is entered without a click
-  useEffect(() => {
-    const t = setInterval(() => {
-      if (!retrying) void useServerStore.getState().enterActiveServer({ quiet: true })
-    }, AUTO_RETRY_MS)
-    return () => clearInterval(t)
-  }, [retrying])
+  // it tries again by itself every few seconds, hidden or not: a server that comes back is entered without a click. The
+  // screen shows right after a failed try, so the first one waits an interval
+  const [shownAt] = useState(() => Date.now())
+  const autoRetry = useCallback(async () => {
+    if (Date.now() - shownAt < AUTO_RETRY_MS / 2) return
+    await useServerStore.getState().enterActiveServer({ quiet: true })
+  }, [shownAt])
+  usePolling(autoRetry, AUTO_RETRY_MS, { enabled: !retrying, requireConnection: false, whenHidden: 'run' })
 
   const retry = async () => {
     setRetrying(true)

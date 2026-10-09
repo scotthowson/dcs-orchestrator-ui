@@ -288,7 +288,7 @@ export default function Trends() {
   const { data, loading, error, refresh } = usePolling<MetricsTrendsResponse>(
     fetchTrends,
     pollIntervalFor(range),
-    { enabled: isConnected && autoRefresh },
+    { enabled: autoRefresh },
   )
 
   // A new range must show new data at once, not at the next poll
@@ -302,7 +302,7 @@ export default function Trends() {
   const { data: alertConfig } = usePolling<AlertConfigResponse>(
     fetchAlertConfig,
     300000,
-    { enabled: isConnected && isAdmin },
+    { enabled: isAdmin },
   )
 
   // Build chart data

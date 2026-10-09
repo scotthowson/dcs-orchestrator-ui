@@ -12,11 +12,11 @@ import type {
   ContainerActionResponse, ContainerDetail, ContainerEnvUpdateResponse, ContainerExecResponse,
   ContainerFileContentResponse, ContainerFilesResponse, ContainerInfo, ContainerLogsResponse,
   ContainerProcessesResponse, ContainerRenameResponse, ContainerResetPreview, ContainerResetResponse,
-  ContainerStats, EventsResponse, HealthReport, LiveLogsResponse, LogArchivesResponse, LogsResponse,
-  LogStatsResponse, SablierToggleResponse, SablierSettingsResponse, TopologyResponse, ContainerHomarrState, ContainerHomarrAddResponse,
+  ContainerStats, LiveLogsResponse, LogArchivesResponse, LogsResponse,
+  SablierToggleResponse, SablierSettingsResponse, TopologyResponse, ContainerHomarrState, ContainerHomarrAddResponse,
   ContainerThemeState, ContainerThemeResponse,
 } from '../../shared/types'
-import type { FleetContainerListResponse, RowMember, ScopeMemberTag } from '../../shared/fleetScoped'
+import type { RowMember, ScopeMemberTag } from '../../shared/fleetScoped'
 
 export type ContainerActionName = 'start' | 'stop' | 'restart' | 'recreate' | 'remove'
 
@@ -32,15 +32,6 @@ const enc = encodeURIComponent
 // ---------------------------------------------------------------------------
 
 /**
- * GET /containers for a scope. A hub's own list already carries every VM's
- * containers (each tagged member, member_name, vmid; the hub's rows untagged), so
- * 'all' and 'hub' ask the same list and a member id asks that VM's own list.
- */
-export function fetchContainersScoped(scope: string): Promise<FleetContainerListResponse> {
-  return apiClient.get<FleetContainerListResponse>(memberPath(scope === 'all' || scope === 'hub' ? null : scope, '/containers'))
-}
-
-/**
  * The rows of a scope, each saying where it lives:
  * - everywhere: the hub's list as is — its own rows untagged, every VM's tagged
  * - hub: only the hub's own rows
@@ -51,18 +42,6 @@ export function scopeContainerRows(scope: string, rows: ContainerInfo[], vm: Sco
   if (scope === 'all') return rows
   if (scope === 'hub') return rows.filter((c) => !c.member)
   return vm ? rows.map((c) => ({ ...c, member: vm.id, member_name: vm.name, vmid: vm.vmid })) : rows
-}
-
-/** GET /health for a scope ('all' merges every VM in, a member id asks that VM) */
-export function fetchHealthScoped(scope: string): Promise<HealthReport> {
-  if (scope === 'all') return apiClient.get<HealthReport>('/health?fleet=1')
-  return apiClient.get<HealthReport>(memberPath(scope === 'hub' ? null : scope, '/health'))
-}
-
-/** GET /events for a scope ('all' merges every VM in, a member id asks that VM) */
-export function fetchEventsScoped(scope: string): Promise<EventsResponse> {
-  if (scope === 'all') return apiClient.get<EventsResponse>('/events?fleet=1')
-  return apiClient.get<EventsResponse>(memberPath(scope === 'hub' ? null : scope, '/events'))
 }
 
 /** GET /topology of the hub or of one VM */
@@ -198,11 +177,6 @@ export function fetchLogsOn(params: { level?: string; search?: string; lines?: n
 /** GET /logs/live?lines=&since= — the framework log since a timestamp, for polling */
 export function fetchAppLogsLiveOn(member: RowMember, lines = 100, since?: string): Promise<LiveLogsResponse> {
   return apiClient.get<LiveLogsResponse>(memberPath(member, `/logs/live?lines=${lines}${since ? `&since=${enc(since)}` : ''}`))
-}
-
-/** GET /logs/stats */
-export function fetchLogStatsOn(member: RowMember): Promise<LogStatsResponse> {
-  return apiClient.get<LogStatsResponse>(memberPath(member, '/logs/stats'))
 }
 
 /** GET /logs/archives */

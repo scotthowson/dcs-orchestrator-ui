@@ -45,6 +45,7 @@ import {
 } from '../lib/ui'
 import { FIELD, INPUT, LABEL, FOCUS_RING as FOCUS, CHOICE, CHOICE_ON, CHOICE_OFF, SUBHEAD } from '../lib/fieldStyles'
 import { usePolling } from '../hooks/usePolling'
+import { pollKeys } from '../api/pollKeys'
 import { FloatingSaveBar } from '../components/common/FloatingSaveBar'
 import { fetchVersion, fetchDisks, fetchAlertConfig, updateAlertConfig, updateConfig, fetchConfig, authVerify, authChangePassword } from '../api/endpoints'
 import { ApiError } from '../api/client'
@@ -445,7 +446,7 @@ function DiskLabelManager() {
   const updateSetting = useSettingsStore((s) => s.updateSetting)
   const isConnected = useConnectionStore((s) => s.status) === 'connected'
 
-  const { data: diskData } = usePolling(fetchDisks, 60000, { enabled: isConnected })
+  const { data: diskData } = usePolling(fetchDisks, 60000)
   const disks: DiskInfo[] = diskData?.disks ?? []
 
   const [editingMount, setEditingMount] = useState<string | null>(null)
@@ -2481,7 +2482,6 @@ function SectionCard({ icon, title, children, fullWidth, defaultCollapsed }: {
 // ---------------------------------------------------------------------------
 
 export default function Settings() {
-  const connectionStatus = useConnectionStore((s) => s.status)
   const serverUrl = useConnectionStore((s) => s.serverUrl)
   const updateSetting = useSettingsStore((s) => s.updateSetting)
   const userRole = useAuthStore((s) => s.userRole)
@@ -2494,10 +2494,7 @@ export default function Settings() {
   const [appVersion, setAppVersion] = useState<string>('--')
 
   // Fetch API version info
-  const isConnected = connectionStatus === 'connected'
-  const { data: versionData } = usePolling<APIVersion>(fetchVersion, 60000, {
-    enabled: isConnected,
-  })
+  const { data: versionData } = usePolling<APIVersion>(fetchVersion, 60000, { key: pollKeys.version })
 
   // Load app version from Electron IPC
   useEffect(() => {

@@ -16,14 +16,11 @@ import { usePolling } from '../hooks/usePolling'
 import {
   fetchNetworks, fetchNetworkDetail,
   createNetwork, deleteNetwork, recreateNetwork,
-  connectToNetwork, disconnectFromNetwork,
+  connectToNetwork, disconnectFromNetwork, fetchContainers,
 } from '../api/endpoints'
-import { fetchContainersScoped } from '../api/fleetScopedOps'
-import { useNetworkStore } from '../stores/networkStore'
 import { useFleetScope } from '../hooks/useFleetScope'
 import FleetScopeChips from '../components/fleet/FleetScopeChips'
 import VmCapsule from '../components/fleet/VmCapsule'
-import { useConnectionStore } from '../stores/connectionStore'
 import { useAuthStore } from '../stores/authStore'
 import type {
   NetworkListResponse,
@@ -360,7 +357,7 @@ function NetworkDetailPanel({ network, onClose, onRefresh, onEdit, isAdmin }: {
   useEffect(() => {
     if (!canEdit) return
     let mounted = true
-    fetchContainersScoped(netMember)
+    fetchContainers(netMember)
       .then((r) => { if (mounted) setAllContainers(r.containers.filter((c) => netMember || !c.member).map((c) => c.name).sort()) })
       .catch(() => { /* the control just stays empty */ })
     return () => { mounted = false }
@@ -764,8 +761,6 @@ export default function Networks() {
   const userRole = useAuthStore((s) => s.userRole)
   const isAdmin = userRole === 'admin'
 
-  const setNetworksStore = useNetworkStore((s) => s.setNetworks)
-  const isConnected = useConnectionStore((s) => s.status) === 'connected'
 
   // a hub: everywhere (the hub and every VM), the hub alone, or one VM — the choice every fleet-aware page shares
   const { scope, setScope, member: scopeMember, memberName, members: scopeMembers, hasFleet } = useFleetScope()
@@ -775,13 +770,9 @@ export default function Networks() {
     loading: networksLoading,
     error: networksError,
     refresh: refreshNetworks,
-  } = usePolling<NetworkListResponse>(fetchScopedNetworks, 30000, { enabled: isConnected })
+  } = usePolling<NetworkListResponse>(fetchScopedNetworks, 30000)
   const scopeRef = useRef(scope)
   useEffect(() => { if (scopeRef.current !== scope) { scopeRef.current = scope; refreshNetworks() } }, [scope, refreshNetworks])
-
-  useEffect(() => {
-    if (networksData) setNetworksStore(networksData.networks)
-  }, [networksData, setNetworksStore])
 
   const networks: NetworkInfo[] = networksData?.networks ?? []
 

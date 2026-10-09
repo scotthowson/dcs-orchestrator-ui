@@ -37,7 +37,6 @@ import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, TONE_OK, TONE_QUIET } from '../lib/ui'
 import { usePolling } from '../hooks/usePolling'
 import { fetchConfig, updateConfig, setSecret } from '../api/endpoints'
 import { useSettingsStore } from '../stores/settingsStore'
-import { useConfigStore } from '../stores/configStore'
 import { useConnectionStore } from '../stores/connectionStore'
 import { DisconnectedBanner } from '../components/common/DisconnectedBanner'
 import type { ServerConfig } from '../../shared/types'
@@ -348,17 +347,10 @@ type EditableConfig = Record<string, string | boolean | number>
 
 export default function Config() {
   const setCurrentPage = useSettingsStore((s) => s.setCurrentPage)
-  const setStoreConfig = useConfigStore((s) => s.setConfig)
   const isConnected = useConnectionStore((s) => s.status) === 'connected'
   const connServerUrl = useConnectionStore((s) => s.serverUrl)
 
-  const { data, loading, error, refresh } = usePolling<ServerConfig>(fetchConfig, 60000, {
-    enabled: isConnected,
-  })
-
-  useEffect(() => {
-    if (data) setStoreConfig(data)
-  }, [data, setStoreConfig])
+  const { data, loading, error, refresh } = usePolling<ServerConfig>(fetchConfig, 60000)
 
   // Local editable copy
   const [edits, setEdits] = useState<EditableConfig>({})

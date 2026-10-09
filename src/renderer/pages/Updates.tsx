@@ -30,6 +30,7 @@ import {
   Container,
 } from 'lucide-react'
 import { usePolling } from '../hooks/usePolling'
+import { pollKeys } from '../api/pollKeys'
 import { useFleetRole } from '../hooks/useFleetRole'
 import { useFleetScope } from '../hooks/useFleetScope'
 import FleetScopeChips from '../components/fleet/FleetScopeChips'
@@ -249,7 +250,10 @@ export default function Updates() {
 
   // ---- The fleet: a hub keeps its VMs on its own DCS version ----
   const { isHub } = useFleetRole()
-  const { data: fvData, refresh: refreshFleetVersions } = usePolling<FleetVersions>(fetchFleetVersions, 60000, { enabled: isConnected && isHub && isAdmin })
+  // every minute, and every 5 s while a round runs (one request for both: the card shows what the round follows)
+  const [followingSince, setFollowingSince] = useState<number | null>(null)
+  const fvPoll = usePolling<FleetVersions>(fetchFleetVersions, 60000, { key: 'fleet-versions', enabled: isHub && isAdmin })
+  const { data: fvData, refresh: refreshFleetVersions } = fvPoll
   // the VMs' versions are an admin's to read (the server refuses them to anyone else)
   const fv = isHub && isAdmin ? fvData : null
   const fleetMembers = useMemo(() => fv?.members ?? [], [fv])
@@ -285,29 +289,26 @@ export default function Updates() {
   // A round runs on its own on the hub (a member's self-update takes minutes): POST /fleet/update answers 202 {running: true}
   // when it did not finish within the API's wait, and GET /fleet/versions last_round carries {status: "running"} meanwhile —
   // the page then asks every 5 s until the status changes (the hub gives a round up after 30 min; so does this)
-  const roundTimer = useRef<number | null>(null)
-  const stopFollowing = useCallback(() => { if (roundTimer.current) { window.clearInterval(roundTimer.current); roundTimer.current = null } }, [])
   const followRound = useCallback(() => {
-    stopFollowing()
     setFleetUpdating(true)
-    const since = Date.now()
-    roundTimer.current = window.setInterval(async () => {
-      try {
-        const v = await fetchFleetVersions()
-        if (!v.last_round || v.last_round.status !== 'running') {
-          stopFollowing(); setFleetUpdating(false)
-          if (v.last_round) finishRound(v.last_round)
-          refreshFleetVersions()
-          return
-        }
-      } catch { /* the hub is busy or restarting under the round: ask again */ }
-      if (Date.now() - since > 30 * 60_000) { stopFollowing(); setFleetUpdating(false) }
-    }, 5000)
-  }, [stopFollowing, finishRound, refreshFleetVersions])
-  useEffect(() => stopFollowing, [stopFollowing])
+    setFollowingSince(Date.now())
+  }, [])
+  // a failed read is the hub busy or restarting under the round: the next one asks again
+  const roundPoll = usePolling<FleetVersions>(fetchFleetVersions, 5000, { key: 'fleet-versions', enabled: followingSince !== null })
+  useEffect(() => {
+    if (followingSince === null) return
+    const v = roundPoll.data
+    // only an answer asked after the round started says it ended
+    if (v && roundPoll.updatedAt > followingSince && (!v.last_round || v.last_round.status !== 'running')) {
+      setFollowingSince(null); setFleetUpdating(false)
+      if (v.last_round) finishRound(v.last_round)
+      return
+    }
+    if (Date.now() - followingSince > 30 * 60_000) { setFollowingSince(null); setFleetUpdating(false) }
+  }, [followingSince, roundPoll.data, roundPoll.updatedAt, roundPoll.error, finishRound])
   // a round already running when the page opens (started before, or from the hub's own update): follow it
   const lastRoundStatus = fv?.last_round?.status
-  useEffect(() => { if (lastRoundStatus === 'running' && !roundTimer.current) followRound() }, [lastRoundStatus, followRound])
+  useEffect(() => { if (lastRoundStatus === 'running' && followingSince === null) followRound() }, [lastRoundStatus, followingSince, followRound])
   const handleUpdateFleet = useCallback(async (members: string[] | 'all' = 'all') => {
     if (fleetUpdating) return
     setFleetUpdating(true)
@@ -517,14 +518,16 @@ export default function Updates() {
     fetchSystemUpdateHistory().then(setUpdHistory).catch(() => {})
   }, [isConnected, isAdmin, sysUpdate])
 
-  // Periodic auto-check
+  // Periodic auto-check: the global poller's (one check for both); the page takes the answers that come while it is open
+  const [openedAt] = useState(() => Date.now())
+  const autoCheck = usePolling(checkSystemUpdate, autoCheckUpdates > 0 ? autoCheckUpdates : 3_600_000, {
+    key: pollKeys.updateCheck,
+    enabled: isAdmin && autoCheckUpdates > 0,
+    onError: (e) => setSysCheckError(e.message || 'The check failed'),
+  })
   useEffect(() => {
-    if (!isConnected || !isAdmin || !autoCheckUpdates || autoCheckUpdates <= 0) return
-    const timer = setInterval(() => {
-      checkSystemUpdate().then(ingestCheck).catch((e) => setSysCheckError(e instanceof Error ? e.message : 'The check failed'))
-    }, autoCheckUpdates)
-    return () => clearInterval(timer)
-  }, [isConnected, isAdmin, autoCheckUpdates, ingestCheck])
+    if (autoCheck.data && autoCheck.updatedAt > openedAt) ingestCheck(autoCheck.data)
+  }, [autoCheck.data, autoCheck.updatedAt, openedAt, ingestCheck])
 
   // ---- Image update state ----
   const [registryChecking, setRegistryChecking] = useState(false)
@@ -543,9 +546,7 @@ export default function Updates() {
     data,
     loading,
     refresh,
-  } = usePolling<ImageCheckResponse>(fetchScopedImages, 30000, {
-    enabled: isConnected,
-  })
+  } = usePolling<ImageCheckResponse>(fetchScopedImages, 30000)
   // a scope switch fetches at once; the rows of the other DCS fade until the answer lands
   const [switching, setSwitching] = useState(false)
   const scopeRef = useRef<string | null>(null)

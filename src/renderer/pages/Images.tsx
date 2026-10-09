@@ -5,7 +5,7 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import { SegmentedControl } from '@mantine/core'
 import { useImageStore } from '../stores/imageStore'
-import { useApi } from '../hooks/useApi'
+import { usePolling } from '../hooks/usePolling'
 import { fetchImages, runImagePrune, deleteImage, deleteImageRef, searchImages, pullImage, checkImageRegistry, checkFleetImageRegistry } from '../api/endpoints'
 import { useFleetScope } from '../hooks/useFleetScope'
 import FleetScopeChips from '../components/fleet/FleetScopeChips'
@@ -91,7 +91,7 @@ const Images: React.FC = () => {
     }
   }, [setImages, setLoading, scope])
 
-  const { refresh, error: fetchError } = useApi(handleFetch, IMAGE_POLL_INTERVAL, { enabled: isConnected })
+  const { refresh, error: fetchError } = usePolling(handleFetch, IMAGE_POLL_INTERVAL)
   const scopeRef = useRef(scope)
   useEffect(() => { if (scopeRef.current !== scope) { scopeRef.current = scope; setSelectedImages(new Set()); refresh() } }, [scope, refresh])
 

@@ -12,6 +12,7 @@ import {
   fetchChatMessages, sendChatMessage, editChatMessage, deleteChatMessage, clearChatRoom, fetchChatPresence,
 } from '../api/chat'
 import { useSettingsStore } from './settingsStore'
+import { onServerReset } from '../lib/serverScope'
 import type { ChatLiveEvent, ChatMessage, ChatPresence, ChatRoom } from '../../shared/types'
 
 /** unknown: not asked yet (or no answer); on: the room exists; off: switched off, a fleet VM, or an API without chat */
@@ -83,8 +84,8 @@ function offReasonOf(err: unknown): string | null {
 export function chatErrorText(err: unknown): string {
   if (err instanceof ApiError) {
     if (err.status === 429) {
-      const wait = Number(err.data?.retry_after)
-      return Number.isFinite(wait) && wait > 0 ? `Slow down a little: you can send again in ${wait} s.` : 'Slow down a little, then send again.'
+      const wait = Math.round(err.retryAfterMs / 1000)
+      return wait > 0 ? `Slow down a little: you can send again in ${wait} s.` : 'Slow down a little, then send again.'
     }
     if (err.status === 0) return 'No answer from the server. Check the connection and try again.'
     if (err.message) return err.message.endsWith('.') ? err.message : `${err.message}.`
@@ -263,3 +264,6 @@ export function useChatBubbleShown(): boolean {
   const wanted = useSettingsStore((s) => s.chatBubble) !== false
   return on && wanted
 }
+
+// the room is the server's: nothing of it stays when the dashboard leaves (ChatBubble opens the next one's)
+onServerReset(() => useChatStore.getState().reset(''))

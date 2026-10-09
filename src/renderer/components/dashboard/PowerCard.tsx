@@ -6,7 +6,6 @@
 import { BatteryCharging, BatteryWarning, BatteryLow, Usb, ExternalLink } from 'lucide-react'
 import { Badge } from '@mantine/core'
 import { usePolling } from '../../hooks/usePolling'
-import { useConnectionStore } from '../../stores/connectionStore'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { pageLabel } from '../../constants/pageTitles'
 import { fetchPower } from '../../api/endpoints'
@@ -45,9 +44,8 @@ function problemOf(d: PowerStatus): { title: string; detail: string } | null {
 }
 
 export default function PowerCard(_props: CardCommonProps) {
-  const isConnected = useConnectionStore((s) => s.status === 'connected')
   const setCurrentPage = useSettingsStore((s) => s.setCurrentPage)
-  const { data, error, refresh } = usePolling(fetchPower, 15000, { enabled: isConnected })
+  const { data, error, refresh } = usePolling(fetchPower, 15000)
 
   if (!data && error) return <Card card="power" tone="attention"><CardError title="Could not read the power status" error={error} onRetry={refresh} /></Card>
   if (!data) return <Card card="power"><CardLoading label="Reading the power status…" rows={3} /></Card>

@@ -23,12 +23,10 @@ import PageHeader from '../components/common/PageHeader'
 import Hint from '../components/common/Hint'
 import { LoadingState } from '../components/common/PageState'
 import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, TONE_QUIET } from '../lib/ui'
-import { fetchStacks, fetchSnapshots } from '../api/endpoints'
+import { fetchStacks, fetchSnapshots, fetchBackupStatus, triggerBackup } from '../api/endpoints'
 import {
   fetchBackupsScoped,
-  fetchBackupStatusScoped,
   fetchBackupConfigScoped,
-  triggerBackupScoped,
   cancelBackupScoped,
   fleetTargets,
   fanOut,
@@ -105,9 +103,9 @@ export default function Backup() {
   const configMember: string | null = scope === 'all' ? null : scopeMember
 
   // ---- Polling ----
-  const fetchScopedStatus = useCallback(() => fetchBackupStatusScoped(statusMember), [statusMember])
+  const fetchScopedStatus = useCallback(() => fetchBackupStatus(statusMember), [statusMember])
   const { data: statusData, loading: statusLoading, refresh: refreshStatus } =
-    usePolling<BackupStatusResponse>(fetchScopedStatus, 5000, { enabled: isConnected })
+    usePolling<BackupStatusResponse>(fetchScopedStatus, 5000)
   const statusRef = useRef(statusMember)
   useEffect(() => { if (statusRef.current !== statusMember) { statusRef.current = statusMember; refreshStatus() } }, [statusMember, refreshStatus])
   // a restore runs in the background: when it ends with a stack it could not stop (left as it was), that is said at once,
@@ -126,18 +124,18 @@ export default function Backup() {
 
   const fetchScopedBackups = useCallback(() => fetchBackupsScoped(scope), [scope])
   const { data: backupsData, loading: backupsLoading, refresh: refreshBackups } =
-    usePolling<FleetBackupListResponse>(fetchScopedBackups, 15000, { enabled: isConnected })
+    usePolling<FleetBackupListResponse>(fetchScopedBackups, 15000)
 
   const fetchScopedConfig = useCallback(() => fetchBackupConfigScoped(configMember), [configMember])
   const { data: configData, refresh: refreshConfig } =
-    usePolling<BackupConfigResponse>(fetchScopedConfig, 30000, { enabled: isConnected })
+    usePolling<BackupConfigResponse>(fetchScopedConfig, 30000)
   const configRef = useRef(configMember)
   useEffect(() => { if (configRef.current !== configMember) { configRef.current = configMember; refreshConfig() } }, [configMember, refreshConfig])
 
   // the snapshot list is polled only while it shows; otherwise it is read once (for its count) and after a change
   const fetchScopedSnapshots = useCallback(() => fetchSnapshots(scope), [scope])
   const { data: snapshotsData, loading: snapshotsLoading, refresh: refreshSnapshots } =
-    usePolling<SnapshotListResponse>(fetchScopedSnapshots, 15000, { enabled: isConnected && view === 'snapshots' })
+    usePolling<SnapshotListResponse>(fetchScopedSnapshots, 15000, { enabled: view === 'snapshots' })
   const snapCounted = useRef(view === 'snapshots')
   useEffect(() => {
     if (isConnected && view === 'backups' && !snapCounted.current) { snapCounted.current = true; refreshSnapshots() }
@@ -185,7 +183,7 @@ export default function Backup() {
     const where = member ? ` on ${scopeMembers.find((m) => m.id === member)?.name ?? member}` : hasFleet ? ' on the hub' : ''
     addToast({ type: 'info', message: stack ? `Starting the backup of "${stack}"${where}…` : `Starting a full backup${where}…`, duration: 2500 })
     try {
-      const result = await triggerBackupScoped(member, stack || undefined)
+      const result = await triggerBackup(stack || undefined, member)
       if (result.success) {
         addToast({ type: 'success', message: result.message || `Backup "${result.filename}" started${where}` })
         // the status card follows the server the backup runs on
@@ -216,7 +214,7 @@ export default function Backup() {
     setTriggerLoading(true)
     setFleetRun(null)
     try {
-      const outcomes = await fanOut(targets, (m) => triggerBackupScoped(m))
+      const outcomes = await fanOut(targets, (m) => triggerBackup(undefined, m))
       // a server that answered but refused (not configured) counts as a failure too
       const graded = outcomes.map((o) => (o.ok && o.value && o.value.success === false ? { ...o, ok: false, error: o.value.message || 'refused' } : o))
       setFleetRun(graded)

@@ -15,7 +15,6 @@ import {
 import { createPortal } from 'react-dom'
 import { usePolling } from '../../hooks/usePolling'
 import { fetchCrontab, fetchSystemCrontab, updateCrontab } from '../../api/endpoints'
-import { useConnectionStore } from '../../stores/connectionStore'
 import { useToast } from '../common/Toast'
 import { useConfirm } from '../common/ConfirmDialog'
 import Hint from '../common/Hint'
@@ -84,7 +83,6 @@ export default function ServerCrontab({ refreshKey, serverName }: {
   /** this server's name, for the line that says whose crontab this is */
   serverName?: string
 }) {
-  const isConnected = useConnectionStore((s) => s.status === 'connected')
   const { addToast } = useToast()
   const confirm = useConfirm()
   const uid = useId()
@@ -102,11 +100,9 @@ export default function ServerCrontab({ refreshKey, serverName }: {
 
   // Polling
   const { data: userData, loading: userLoading, refresh: refreshUser } = usePolling<CrontabResponse>(
-    fetchCrontab, 30000, { enabled: isConnected }
-  )
+    fetchCrontab, 30000)
   const { data: systemData, loading: systemLoading, refresh: refreshSystem } = usePolling<CrontabResponse>(
-    fetchSystemCrontab, 60000, { enabled: isConnected }
-  )
+    fetchSystemCrontab, 60000)
 
   const data = activeTab === 'user' ? userData : systemData
   const loading = activeTab === 'user' ? userLoading : systemLoading

@@ -5,31 +5,22 @@
 // =============================================================================
 
 import { apiClient } from './client'
-import { memberPath, type ContainerListResponse } from './endpoints'
+import { memberPath, fetchMaintenanceReport, fetchMaintenanceOrphans, fetchMaintenanceDisk } from './endpoints'
 import type { ScopeMember } from '../hooks/useFleetScope'
 import type {
-  BackupStatusResponse,
   BackupConfigResponse,
-  BackupTriggerResponse,
   BackupRestoreResponse,
   ContainerFilesResponse,
   ContainerFileContentResponse,
   RootEnvResponse,
   EnvValidateResponse,
-  StackEnvResponse,
-  StackEnvSaveResponse,
-  SystemInfo,
   DockerEngineInfo,
-  TerminalAuthResponse,
   OsUpdateCheckResponse,
   OsUpdateApplyResponse,
   OsUpdateStatusResponse,
   OsUpdatesInfo,
   MaintenanceResponse,
   MaintenanceReport,
-  OrphanReport,
-  DiskAnalysis,
-  LogRotateResponse,
   MemberTerminalStatus,
   MemberTerminalExecResponse,
   BackupVerifyResponse,
@@ -147,17 +138,8 @@ export function fetchBackupsScoped(scope: string): Promise<FleetBackupListRespon
   return apiClient.get<FleetBackupListResponse>(memberPath(memberOf(scope), '/backups'))
 }
 
-export function fetchBackupStatusScoped(member: string | null): Promise<BackupStatusResponse> {
-  return apiClient.get<BackupStatusResponse>(memberPath(member, '/backups/status'))
-}
-
 export function fetchBackupConfigScoped(member: string | null): Promise<BackupConfigResponse> {
   return apiClient.get<BackupConfigResponse>(memberPath(member, '/backups/config'))
-}
-
-/** a backup runs where the stack lives */
-export function triggerBackupScoped(member: string | null, stack?: string): Promise<BackupTriggerResponse> {
-  return apiClient.post<BackupTriggerResponse>(memberPath(member, '/backups/trigger'), stack ? { stack } : {}, member ? 60000 : undefined)
 }
 
 export function cancelBackupScoped(member: string | null): Promise<{ success: boolean; message: string }> {
@@ -272,10 +254,6 @@ export function uploadRecoveryBundleFile(file: File, onProgress?: (sent: number,
 // Container files (the File Browser)
 // ---------------------------------------------------------------------------
 
-export function fetchContainersScoped(member: string | null): Promise<ContainerListResponse> {
-  return apiClient.get<ContainerListResponse>(memberPath(member, '/containers'))
-}
-
 export function fetchContainerFilesScoped(member: string | null, name: string, path = '/'): Promise<ContainerFilesResponse> {
   return apiClient.get<ContainerFilesResponse>(memberPath(member, `/containers/${encodeURIComponent(name)}/files?path=${encodeURIComponent(path)}`))
 }
@@ -300,30 +278,14 @@ export function validateEnvScoped(member: string | null, content: string): Promi
   return apiClient.post<EnvValidateResponse>(memberPath(member, '/env/validate'), { content })
 }
 
-export function fetchStackEnvScoped(member: string | null, name: string): Promise<StackEnvResponse> {
-  return apiClient.get<StackEnvResponse>(memberPath(member, `/stacks/${encodeURIComponent(name)}/env`))
-}
-
-export function saveStackEnvScoped(member: string | null, name: string, content: string): Promise<StackEnvSaveResponse> {
-  return apiClient.post<StackEnvSaveResponse>(memberPath(member, `/stacks/${encodeURIComponent(name)}/env`), { content })
-}
-
 // ---------------------------------------------------------------------------
 // System
 // ---------------------------------------------------------------------------
-
-export function fetchSystemInfoScoped(member: string | null): Promise<SystemInfo> {
-  return apiClient.get<SystemInfo>(memberPath(member, '/system'))
-}
 
 /** may this server update packages unattended (root or passwordless sudo, as on a VM the hub built)? */
 export async function fetchSudoReadyScoped(member: string | null): Promise<boolean> {
   const info = await apiClient.get<DockerEngineInfo>(memberPath(member, '/system/docker-engine'))
   return info.sudo_ready === true
-}
-
-export function terminalAuthScoped(member: string | null, username: string, password: string): Promise<TerminalAuthResponse> {
-  return apiClient.post<TerminalAuthResponse>(memberPath(member, '/terminal/auth'), { username, password })
 }
 
 /** no terminal token where sudo_ready: the server answers unattended */
@@ -360,30 +322,6 @@ export function runDockerPruneScoped(member: string | null): Promise<Maintenance
   return apiClient.post<MaintenanceResponse>(memberPath(member, '/maintenance/prune'), undefined, 120000)
 }
 
-export function runImagePruneScoped(member: string | null): Promise<MaintenanceResponse> {
-  return apiClient.post<MaintenanceResponse>(memberPath(member, '/maintenance/image-prune'), undefined, 120000)
-}
-
-export function triggerDeepPruneScoped(member: string | null): Promise<MaintenanceResponse> {
-  return apiClient.post<MaintenanceResponse>(memberPath(member, '/maintenance/deep-prune'), { confirm: 'CONFIRM' }, 180000)
-}
-
-export function triggerLogRotateScoped(member: string | null): Promise<LogRotateResponse> {
-  return apiClient.post<LogRotateResponse>(memberPath(member, '/maintenance/log-rotate'))
-}
-
-export function fetchMaintenanceReportScoped(member: string | null): Promise<MaintenanceReport> {
-  return apiClient.get<MaintenanceReport>(memberPath(member, '/maintenance/report'))
-}
-
-export function fetchMaintenanceOrphansScoped(member: string | null): Promise<OrphanReport> {
-  return apiClient.get<OrphanReport>(memberPath(member, '/maintenance/orphans'))
-}
-
-export function fetchMaintenanceDiskScoped(member: string | null): Promise<DiskAnalysis> {
-  return apiClient.get<DiskAnalysis>(memberPath(member, '/maintenance/disk'))
-}
-
 /** the hub and at least one VM: what a hub answers in one call with ?fleet=1 (3.9.3) */
 function wantsFleetAnswer(targets: FleetTarget[]): boolean {
   return targets.some((t) => t.id === null) && targets.some((t) => t.id !== null)
@@ -409,7 +347,7 @@ export async function fetchFleetMaintenanceReport(targets: FleetTarget[]): Promi
     const hub = await fleetAnswer<FleetMaintenanceReport>('/maintenance/report?fleet=1')
     if (hub) return hub
   }
-  const members = await fanOut(targets, fetchMaintenanceReportScoped)
+  const members = await fanOut(targets, fetchMaintenanceReport)
   const totals: MaintenanceReport = {
     containers: { total: 0, running: 0, stopped: 0 },
     images: { total: 0, dangling: 0 },
@@ -443,7 +381,7 @@ export async function fetchFleetOrphans(targets: FleetTarget[]): Promise<FleetOr
     const hub = await fleetAnswer<FleetOrphanReport>('/maintenance/orphans?fleet=1')
     if (hub) return hub
   }
-  const members = await fanOut(targets, fetchMaintenanceOrphansScoped)
+  const members = await fanOut(targets, fetchMaintenanceOrphans)
   const out: FleetOrphanReport = { containers: [], images: [], volumes: [], members }
   for (const m of members) {
     if (!m.ok || !m.value) continue
@@ -460,7 +398,7 @@ export async function fetchFleetDisk(targets: FleetTarget[]): Promise<FleetDiskA
     const hub = await fleetAnswer<FleetDiskAnalysis>('/maintenance/disk?fleet=1')
     if (hub) return hub
   }
-  const members = await fanOut(targets, fetchMaintenanceDiskScoped)
+  const members = await fanOut(targets, fetchMaintenanceDisk)
   const stack_sizes: FleetDiskAnalysis['stack_sizes'] = []
   const byType = new Map<string, { total: number; active: number; size: number; sizeAny: boolean; reclaimable: string[] }>()
   const totals: string[] = []

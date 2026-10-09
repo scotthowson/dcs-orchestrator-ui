@@ -18,6 +18,7 @@ import { useToast } from '../common/Toast'
 import { useConfirm } from '../common/ConfirmDialog'
 import { crowdsecCommunityCheck, crowdsecCommunityRegister, crowdsecConsoleEnroll } from '../../api/endpoints'
 import { ApiError } from '../../api/client'
+import { apiOutcome } from '../../api/errors'
 import { useSystemStore } from '../../stores/systemStore'
 import { serverLabel } from '../../hooks/useBrand'
 import type { CrowdSecCapiState, CrowdSecCommunityResponse, CrowdSecConsoleEnrollResponse } from '../../../shared/types'
@@ -141,9 +142,9 @@ export function CheckNowButton({ onDone, availableAt }: { onDone: () => void; av
       addToast({ type: st === 'refused' ? 'warning' : st === 'ok' ? 'success' : 'info', message, duration: 7000 })
       onDone()
     } catch (e) {
-      if (e instanceof ApiError && e.status === 429) {
-        const after = Number(errData(e).retry_after)
-        const min = Number.isFinite(after) && after > 0 ? Math.max(1, Math.ceil(after / 60)) : 10
+      const outcome = apiOutcome(e)
+      if (outcome.kind === 'rate-limited') {
+        const min = outcome.retryAfterMs > 0 ? Math.max(1, Math.ceil(outcome.retryAfterMs / 60000)) : 10
         addToast({ type: 'info', message: `Checked less than 10 minutes ago; try again in ${min} min.`, duration: 7000 })
       } else {
         addToast({ type: 'error', message: errMsg(e, 'Could not check the community service'), duration: 8000 })

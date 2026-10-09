@@ -5,6 +5,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { AlertCircle, RefreshCw } from 'lucide-react'
 import { apiClient } from '../../api/client'
+import { fetchPluginCard } from '../../api/endpoints'
+import { usePolling } from '../../hooks/usePolling'
 import { BTN_CARD_QUIET } from '../../lib/ui'
 
 // Injected ahead of every plugin card. The card runs sandboxed at a null
@@ -45,35 +47,33 @@ function useThemeKey(): number {
   return key
 }
 
+/** a card that declares no refresh is read once (and on Try again) */
+const NO_REFRESH_MS = 24 * 3600 * 1000
+
 /** Plugin card iframe — fetches HTML from API and renders it from a blob URL */
 export function PluginCardFrame({ pluginName, cardName, title, refreshInterval = 0 }: { pluginName: string; cardName: string; title: string; refreshInterval?: number }) {
   const [src, setSrc] = useState<string>('')
-  const [error, setError] = useState(false)
-  const [tick, setTick] = useState(0)
   const themeKey = useThemeKey()
   const iframeRef = useRef<HTMLIFrameElement>(null)
 
+  // the card's HTML: once, and again on the cadence a card declares (10 s at the least)
+  const cardKey = `plugin-card:${pluginName}/${cardName}`
+  const refreshes = refreshInterval > 0
+  const card = usePolling(() => fetchPluginCard(pluginName, cardName), refreshes ? Math.max(10, refreshInterval) * 1000 : NO_REFRESH_MS, {
+    key: cardKey,
+    // a card without a cadence is not read again when the tab shows either
+    whenHidden: refreshes ? 'pause' : 'run',
+  })
+  const html = card.dataKey === cardKey ? card.data?.html ?? null : null
+  const error = !!card.error && !card.fetching
+  // drawn again with every answer and whenever the look changes (dark ↔ light, another theme)
   useEffect(() => {
-    let cancelled = false
-    apiClient.get<{ html: string }>(`/plugins/${pluginName}/cards/${cardName}`)
-      .then((res) => {
-        if (cancelled) return
-        // Blob URL has null origin — CSP of parent page does NOT apply
-        // Scripts execute freely inside blob URL iframes
-        const blob = new Blob([PLUGIN_BRIDGE + themeStyle() + BASE_STYLE + res.html], { type: 'text/html' })
-        setSrc((prev) => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(blob) })
-        setError(false)
-      })
-      .catch(() => { if (!cancelled) setError(true) })
-    return () => { cancelled = true }
-  }, [pluginName, cardName, tick, themeKey])
-
-  // Cards that declare a refresh interval are reloaded on that cadence
-  useEffect(() => {
-    if (!refreshInterval || refreshInterval <= 0) return
-    const timer = setInterval(() => setTick((n) => n + 1), Math.max(10, refreshInterval) * 1000)
-    return () => clearInterval(timer)
-  }, [refreshInterval])
+    if (html === null) return
+    // Blob URL has null origin — CSP of parent page does NOT apply
+    // Scripts execute freely inside blob URL iframes
+    const blob = new Blob([PLUGIN_BRIDGE + themeStyle() + BASE_STYLE + html], { type: 'text/html' })
+    setSrc((prev) => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(blob) })
+  }, [html, card.updatedAt, themeKey])
 
   // Answer the card's data requests with the dashboard's own session (GET only)
   useEffect(() => {
@@ -104,7 +104,7 @@ export function PluginCardFrame({ pluginName, cardName, title, refreshInterval =
       <div className="h-full flex flex-col items-center justify-center gap-2 p-4 text-center" role="alert">
         <AlertCircle size={18} className="text-rose-400" aria-hidden />
         <p className="text-sm text-slate-400">This card did not load</p>
-        <button type="button" onClick={() => { setError(false); setTick((n) => n + 1) }} className={BTN_CARD_QUIET}><RefreshCw size={12} /> Try again</button>
+        <button type="button" onClick={() => { void card.refresh() }} className={BTN_CARD_QUIET}><RefreshCw size={12} /> Try again</button>
       </div>
     )
   }

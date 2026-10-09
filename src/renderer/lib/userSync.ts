@@ -27,6 +27,7 @@ import { fetchProfile, saveProfileToServer, fetchDashboardLayout } from '../api/
 import { apiClient } from '../api/client'
 import { pageMeta } from '../constants/pageTitles'
 import type { PageId } from '../../shared/types'
+import { onServerReset } from './serverScope'
 
 /** the fields of the profile the Settings page edits */
 export const PROFILE_KEYS = ['displayName', 'email', 'icon', 'bio', 'statusEmoji', 'statusText', 'timezone', 'accentColor', 'backgroundImage'] as const
@@ -303,6 +304,9 @@ export function resetUserSync(): void {
     pushTimer = null
   }
 }
+
+// leaving a server: the next sign-in (any server) reads everything again
+onServerReset(resetUserSync)
 
 /**
  * Dress this dashboard for the person who just signed in. Safe to call as often

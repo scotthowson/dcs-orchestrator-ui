@@ -13,7 +13,7 @@ import { useState } from 'react'
 import { CheckNowButton, EnrolBox, PAUSED_TEXT, enrolRequested, REFUSED_TEXT, RegisterAgainButton, capiState, lastContact } from './CommunityActions'
 import { AlertTriangle, Check, CircleAlert, CircleCheck, Clock, Copy, Info, KeyRound, Loader2, Plug, Plus, RefreshCw, Server, ShieldCheck, Trash2, Users } from 'lucide-react'
 import { usePolling, type UsePollingResult } from '../../hooks/usePolling'
-import { useConnectionStore } from '../../stores/connectionStore'
+import { pollKeys } from '../../api/pollKeys'
 import { useToast } from '../common/Toast'
 import { useConfirm } from '../common/ConfirmDialog'
 import { crowdsecAddBouncer, crowdsecBouncers, crowdsecCommunity, crowdsecDeleteBouncer, crowdsecMachines, crowdsecRegisterTraefikBouncer } from '../../api/endpoints'
@@ -673,12 +673,11 @@ function CommunitySection({ poll }: { poll: UsePollingResult<CrowdSecCommunityRe
 
 export default function BouncersTab() {
   const { member, isAdmin, refreshStatus } = useCs()
-  const isConnected = useConnectionStore((s) => s.status === 'connected')
   const { addToast } = useToast()
   const confirm = useConfirm()
-  const bp = usePolling<CrowdSecBouncersResponse>(() => crowdsecBouncers(member), 15000, { enabled: isConnected })
-  const mp = usePolling<CrowdSecMachinesResponse>(() => crowdsecMachines(member), 30000, { enabled: isConnected })
-  const cp = usePolling<CrowdSecCommunityResponse>(() => crowdsecCommunity(member), 60000, { enabled: isConnected })
+  const bp = usePolling<CrowdSecBouncersResponse>(() => crowdsecBouncers(member), 15000)
+  const mp = usePolling<CrowdSecMachinesResponse>(() => crowdsecMachines(member), 30000)
+  const cp = usePolling<CrowdSecCommunityResponse>(() => crowdsecCommunity(member), 60000, { key: pollKeys.crowdsecCommunity(member) })
   const [busy, setBusy] = useState('')
   const [adding, setAdding] = useState(false)
 

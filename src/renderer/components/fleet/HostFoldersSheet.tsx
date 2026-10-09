@@ -11,6 +11,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { FolderInput, FolderPlus, Loader2, Check, X, Minus, AlertTriangle, HardDrive, Trash2, Container, RefreshCw, Circle } from 'lucide-react'
 import { useToast } from '../common/Toast'
 import { fetchMemberFolders, fetchMemberFolderOperation, shareMemberFolder, removeMemberFolder, mountMemberFolder, attachMemberFolder } from '../../api/endpoints'
+import { apiErrorMessage } from '../../api/errors'
+import { usePolling } from '../../hooks/usePolling'
 import type { FleetMemberBase, MemberFolders, HostFolder, HostFolderOperation } from '../../../shared/types'
 import { Sheet, CopyChip, TONE_ATTN, inputCls, labelCls } from './fleetShared'
 import { BTN_SHEET, BTN_SHEET_PRIMARY, BTN_SHEET_DANGER, BTN_CARD, BTN_CARD_QUIET, TONE_QUIET, TONE_OK, TONE_DANGER } from '../../lib/ui'
@@ -19,7 +21,6 @@ const NAME_RE = /^[A-Za-z][A-Za-z0-9_-]{0,35}$/
 const MOUNT_RE = /^\/(mnt|srv|media|data)(\/[A-Za-z0-9_-]+)+$/
 const HOST_PATH_RE = /^\/[A-Za-z0-9/._@+-]+$/
 const TARGET_RE = /^\/[A-Za-z0-9/._-]+$/
-const errText = (e: unknown, fallback: string) => (e instanceof Error && e.message ? e.message : fallback)
 const checkCls = 'h-4 w-4 rounded border-white/20 bg-slate-800 accent-emerald-500 shrink-0'
 
 function StepIcon({ state }: { state: string }) {
@@ -87,7 +88,7 @@ function UseForm({ member, folder, data, onDone, onCancel }: { member: FleetMemb
     try {
       const r = await attachMemberFolder(member.id, folder.id, { stack, service, target, subfolder: sub.trim() || undefined, readonly: ro })
       onDone(r.message)
-    } catch (e) { setErr(errText(e, 'The container could not be given the folder')) } finally { setBusy(false) }
+    } catch (e) { setErr(apiErrorMessage(e, 'The container could not be given the folder')) } finally { setBusy(false) }
   }
   if (stacks.length === 0) return <p className="text-xs text-slate-400">The hub has no compose file of this VM’s stacks yet: deploy a stack into the VM first (or press “Sync stack files from the VM” in its menu).</p>
   return (
@@ -153,28 +154,25 @@ export default function HostFoldersSheet({ member, onClose }: { member: FleetMem
       setData(d); setOp(d.operation); setLoadErr('')
       // steps that ended before the sheet was opened are old news
       if (first.current) { first.current = false; if (d.operation && d.operation.state !== 'running') setOpHidden(d.operation.id) }
-    } catch (e) { if (alive.current) setLoadErr(errText(e, 'Could not read the folders of this VM')) } finally { if (alive.current) setLoading(false) }
+    } catch (e) { if (alive.current) setLoadErr(apiErrorMessage(e, 'Could not read the folders of this VM')) } finally { if (alive.current) setLoading(false) }
   }, [member.id])
   useEffect(() => { void load() }, [load])
 
-  // while steps are under way: follow them, then read everything again
+  // while steps are under way: follow them every 2 s, then read everything again (a failed read is the hub's API restarting
+  // with the VM when the hub is the VM's neighbour: the next one asks again)
   const running = op?.state === 'running'
+  const [runningSince, setRunningSince] = useState(0)
+  useEffect(() => { if (running) setRunningSince(Date.now()) }, [running])
+  const opPoll = usePolling(() => fetchMemberFolderOperation(member.id), 2000, { enabled: running })
   useEffect(() => {
-    if (!running) return
-    const t = setInterval(async () => {
-      try {
-        const r = await fetchMemberFolderOperation(member.id)
-        if (!alive.current) return
-        setOp(r.operation)
-        if (r.operation?.state !== 'running') {
-          if (r.operation?.state === 'done') addToast({ type: 'success', message: `${member.name}: ${r.operation.action === 'add' ? 'shared' : 'removed'} ${r.operation.folder}` })
-          else if (r.operation?.state === 'failed') addToast({ type: 'error', message: `${member.name}: ${r.operation.error || 'the steps stopped'}`, duration: 9000 })
-          void load()
-        }
-      } catch { /* the hub's API restarts with the VM when the hub is the VM's neighbour: keep asking */ }
-    }, 2000)
-    return () => clearInterval(t)
-  }, [running, member.id, member.name, addToast, load])
+    const r = opPoll.data
+    if (!running || !r || opPoll.updatedAt < runningSince) return
+    setOp(r.operation)
+    if (r.operation?.state === 'running') return
+    if (r.operation?.state === 'done') addToast({ type: 'success', message: `${member.name}: ${r.operation.action === 'add' ? 'shared' : 'removed'} ${r.operation.folder}` })
+    else if (r.operation?.state === 'failed') addToast({ type: 'error', message: `${member.name}: ${r.operation.error || 'the steps stopped'}`, duration: 9000 })
+    void load()
+  }, [opPoll.data, opPoll.updatedAt, running, runningSince, member.name, addToast, load])
 
   const vmRunning = data?.vm_status === 'running'
   const attached = new Set((data?.folders ?? []).map((f) => f.id))
@@ -190,19 +188,19 @@ export default function HostFoldersSheet({ member, onClose }: { member: FleetMem
     try {
       const r = await shareMemberFolder(member.id, { name: effName, path: pick ? undefined : path.trim().replace(/\/+$/, ''), mount: effMount, readonly: ro, restart: vmRunning ? restart : false })
       setOp(r.operation); setOpHidden(''); setAdding(false)
-    } catch (e) { setErr(errText(e, 'The folder could not be shared')) } finally { setBusy('') }
+    } catch (e) { setErr(apiErrorMessage(e, 'The folder could not be shared')) } finally { setBusy('') }
   }
   const doMount = async (f: HostFolder) => {
     setBusy(`mount:${f.id}`); setErr('')
     try { const r = await mountMemberFolder(member.id, f.id); addToast({ type: 'success', message: `${member.name}: ${r.message}` }); await load() }
-    catch (e) { setErr(errText(e, 'The folder could not be mounted')) } finally { setBusy('') }
+    catch (e) { setErr(apiErrorMessage(e, 'The folder could not be mounted')) } finally { setBusy('') }
   }
   const doRemove = async (f: HostFolder) => {
     setBusy(`remove:${f.id}`); setErr('')
     try {
       const r = await removeMemberFolder(member.id, f.id, { restart: vmRunning ? rmRestart : false, mapping: rmMapping })
       setOp(r.operation); setOpHidden(''); setRemoving('')
-    } catch (e) { setErr(errText(e, 'The folder could not be removed')) } finally { setBusy('') }
+    } catch (e) { setErr(apiErrorMessage(e, 'The folder could not be removed')) } finally { setBusy('') }
   }
   const pveum = data?.hint ? /pveum .*$/.exec(data.hint)?.[0] ?? '' : ''
   const locked = running || !!busy

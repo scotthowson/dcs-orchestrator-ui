@@ -5,14 +5,13 @@
 import { Globe, ExternalLink, AlertTriangle, ShieldCheck, ShieldOff, Layers } from 'lucide-react'
 import { Badge } from '@mantine/core'
 import { usePolling } from '../../hooks/usePolling'
-import { useConnectionStore } from '../../stores/connectionStore'
+import { pollKeys } from '../../api/pollKeys'
 import { fetchRoutes, fetchDnsStatus } from '../../api/endpoints'
 import { Card, CardBody, CardEmpty, CardError, CardLoading } from './cardShared'
 
 export default function RoutesDns() {
-  const isConnected = useConnectionStore((s) => s.status === 'connected')
-  const routes = usePolling(fetchRoutes, 60000, { enabled: isConnected })
-  const dns = usePolling(fetchDnsStatus, 120000, { enabled: isConnected })
+  const routes = usePolling(fetchRoutes, 60000, { key: pollKeys.routes })
+  const dns = usePolling(fetchDnsStatus, 120000)
 
   const domain = routes.data?.domain || dns.data?.domain || ''
   const list = routes.data?.routes ?? []

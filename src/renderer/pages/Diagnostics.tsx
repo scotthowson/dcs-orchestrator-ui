@@ -14,6 +14,7 @@ import {
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import { Switch, Badge } from '@mantine/core'
 import { usePolling } from '../hooks/usePolling'
+import { pollKeys } from '../api/pollKeys'
 import { useFleetScope } from '../hooks/useFleetScope'
 import {
   fetchServerStatus, fetchHealthReport, fetchContainers,
@@ -37,16 +38,12 @@ import { containerState, isAsleep, STATE_META } from '../lib/containerState'
 import type {
   ServerStatus, HealthReport, ContainerInfo, ImageInfo,
   NetworkInfo, EventEntry, SystemInfo, HealthScoreResponse,
+  ContainerListResponse, ImageListResponse, NetworkListResponse, EventsResponse,
 } from '../../shared/types'
 
 // =============================================================================
 // Types
 // =============================================================================
-
-interface ContainerListResponse { total: number; containers: ContainerInfo[] }
-interface ImageListResponse { total: number; images: ImageInfo[] }
-interface NetworkListResponse { total: number; networks: NetworkInfo[] }
-interface EventsResponse { total: number; events: EventEntry[] }
 
 // =============================================================================
 // Helpers
@@ -1249,57 +1246,22 @@ function DisconnectedHero() {
 export default function Diagnostics() {
   const connectionStatus = useConnectionStore((s) => s.status)
   const isConnected = connectionStatus === 'connected'
-  const reportPollSuccess = useConnectionStore((s) => s.reportPollSuccess)
-  const reportPollFailure = useConnectionStore((s) => s.reportPollFailure)
   const userRole = useAuthStore((s) => s.userRole)
   const isAdmin = userRole === 'admin'
 
-  const onPollSuccess = useCallback(() => { reportPollSuccess() }, [reportPollSuccess])
-  const onPollError = useCallback(() => { reportPollFailure() }, [reportPollFailure])
+  // --- Data polling: every poll watches the link; the requests other places ask too are keyed (one request serves them) ---
+  const watch = { reportsLink: true } as const
 
-  // --- Data polling ---
-
-  const statusPoll = usePolling<ServerStatus>(fetchServerStatus, 5000, {
-    enabled: isConnected, onError: onPollError,
-  })
-  React.useEffect(() => { if (statusPoll.data) onPollSuccess() }, [statusPoll.data, onPollSuccess])
-
-  const healthPoll = usePolling<HealthReport>(fetchHealthReport, 5000, {
-    enabled: isConnected, onError: onPollError,
-  })
-  React.useEffect(() => { if (healthPoll.data) onPollSuccess() }, [healthPoll.data, onPollSuccess])
-
-  const containersPoll = usePolling<ContainerListResponse>(fetchContainers, 10000, {
-    enabled: isConnected, onError: onPollError,
-  })
-  React.useEffect(() => { if (containersPoll.data) onPollSuccess() }, [containersPoll.data, onPollSuccess])
-
-  const imagesPoll = usePolling<ImageListResponse>(fetchImages, 30000, {
-    enabled: isConnected, onError: onPollError,
-  })
-  React.useEffect(() => { if (imagesPoll.data) onPollSuccess() }, [imagesPoll.data, onPollSuccess])
-
-  const networksPoll = usePolling<NetworkListResponse>(fetchNetworks, 30000, {
-    enabled: isConnected, onError: onPollError,
-  })
-  React.useEffect(() => { if (networksPoll.data) onPollSuccess() }, [networksPoll.data, onPollSuccess])
-
-  const eventsPoll = usePolling<EventsResponse>(fetchEvents, 5000, {
-    enabled: isConnected, onError: onPollError,
-  })
-  React.useEffect(() => { if (eventsPoll.data) onPollSuccess() }, [eventsPoll.data, onPollSuccess])
-
-  const systemInfoPoll = usePolling<SystemInfo>(fetchSystemInfo, 60000, {
-    enabled: isConnected, onError: onPollError,
-  })
-  React.useEffect(() => { if (systemInfoPoll.data) onPollSuccess() }, [systemInfoPoll.data, onPollSuccess])
+  const statusPoll = usePolling<ServerStatus>(fetchServerStatus, 5000, { ...watch, key: pollKeys.status })
+  const healthPoll = usePolling<HealthReport>(fetchHealthReport, 5000, { ...watch, key: pollKeys.health(null) })
+  const containersPoll = usePolling<ContainerListResponse>(fetchContainers, 10000, { ...watch, key: pollKeys.containers() })
+  const imagesPoll = usePolling<ImageListResponse>(fetchImages, 30000, watch)
+  const networksPoll = usePolling<NetworkListResponse>(fetchNetworks, 30000, watch)
+  const eventsPoll = usePolling<EventsResponse>(fetchEvents, 5000, { ...watch, key: pollKeys.events(null) })
+  const systemInfoPoll = usePolling<SystemInfo>(fetchSystemInfo, 60000, { ...watch, key: pollKeys.systemInfo() })
 
   const { scope: fleetScope } = useFleetScope()
-  const fetchScopedScore = React.useCallback(() => fetchHealthScore(fleetScope), [fleetScope])
-  const healthScorePoll = usePolling<HealthScoreResponse>(fetchScopedScore, 15000, {
-    enabled: isConnected, onError: onPollError,
-  })
-  React.useEffect(() => { if (healthScorePoll.data) onPollSuccess() }, [healthScorePoll.data, onPollSuccess])
+  const healthScorePoll = usePolling<HealthScoreResponse>(() => fetchHealthScore(fleetScope), 15000, { ...watch, key: pollKeys.healthScore(fleetScope) })
 
   // --- Extracted data ---
 

@@ -11,6 +11,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { RefreshCw, X } from 'lucide-react'
 import { BUILD_ID } from '../../constants/buildInfo'
 import { isWebMode } from '../../lib/env'
+import { usePolling } from '../../hooks/usePolling'
 
 const CHECK_INTERVAL = 60_000
 
@@ -22,7 +23,6 @@ export default function UpdateBanner() {
   const [reloading, setReloading] = useState(false)
 
   const check = useCallback(async () => {
-    if (document.visibilityState === 'hidden') return
     try {
       const base = import.meta.env.BASE_URL || './'
       const res = await fetch(`${base}build.json?t=${Date.now()}`, { cache: 'no-store', credentials: 'same-origin' })
@@ -34,18 +34,16 @@ export default function UpdateBanner() {
     }
   }, [])
 
+  // every minute while the tab shows (the dashboard's own file, not the API: also before a server answers), at once when
+  // it shows again, and when the window gets the focus
+  const enabled = isWebMode() && !!BUILD_ID
+  const { refresh } = usePolling(check, CHECK_INTERVAL, { enabled, requireConnection: false })
   useEffect(() => {
-    if (!isWebMode() || !BUILD_ID) return
-    const timer = setInterval(check, CHECK_INTERVAL)
-    const onVisible = () => { if (document.visibilityState === 'visible') void check() }
-    document.addEventListener('visibilitychange', onVisible)
-    window.addEventListener('focus', onVisible)
-    return () => {
-      clearInterval(timer)
-      document.removeEventListener('visibilitychange', onVisible)
-      window.removeEventListener('focus', onVisible)
-    }
-  }, [check])
+    if (!enabled) return
+    const onFocus = () => { void refresh() }
+    window.addEventListener('focus', onFocus)
+    return () => window.removeEventListener('focus', onFocus)
+  }, [enabled, refresh])
 
   if (!next || !next.build || dismissed === next.build) return null
 

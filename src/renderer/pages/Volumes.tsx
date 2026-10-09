@@ -212,9 +212,7 @@ export default function Volumes() {
     loading,
     error,
     refresh,
-  } = usePolling<VolumeListResponse>(fetchScopedVolumes, VOLUME_POLL_INTERVAL, {
-    enabled: isConnected,
-  })
+  } = usePolling<VolumeListResponse>(fetchScopedVolumes, VOLUME_POLL_INTERVAL)
   const scopeRef = useRef(scope)
   useEffect(() => { if (scopeRef.current !== scope) { scopeRef.current = scope; refresh() } }, [scope, refresh])
 

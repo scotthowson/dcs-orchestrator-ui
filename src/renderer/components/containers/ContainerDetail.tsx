@@ -17,6 +17,7 @@ import {
   renameContainerOn,
   updateContainerEnvOn,
 } from '../../api/fleetScoped'
+import { usePolling } from '../../hooks/usePolling'
 import type { RowMember } from '../../../shared/fleetScoped'
 import VmCapsule from '../fleet/VmCapsule'
 import { serverHostname } from '../../lib/hosts'
@@ -456,6 +457,9 @@ interface ContainerDetailProps {
   isAdmin?: boolean
 }
 
+/** the stats sample each container's history got last (statsKey → when it arrived) */
+const historySampleAt = new Map<string, number>()
+
 const ContainerDetail: React.FC<ContainerDetailProps> = ({
   containerName,
   containerInfo,
@@ -478,7 +482,6 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
   const [detailError, setDetailError] = useState<string | null>(null)
   const [detailLoading, setDetailLoading] = useState(true)
   const [stats, setLocalStats] = useState<ContainerStats | null>(storedStats ?? null)
-  const [statsLoading, setStatsLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [containerLogs, setContainerLogs] = useState<string>('')
   const [showLogs, setShowLogs] = useState(false)
@@ -489,7 +492,6 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
   const [showProcesses, setShowProcesses] = useState(false)
   const [processes, setProcesses] = useState<ContainerProcess[]>([])
   const [processesLoading, setProcessesLoading] = useState(false)
-  const processIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // Command runner state
   const [showExec, setShowExec] = useState(false)
@@ -523,7 +525,10 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
   const setCurrentPage = useSettingsStore((s) => s.setCurrentPage)
 
   const mountedRef = useRef(true)
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  useEffect(() => {
+    mountedRef.current = true
+    return () => { mountedRef.current = false }
+  }, [])
 
   // leaving the rename field without renaming puts the keyboard back on the pencil that opened it
   const cancelRename = useCallback(() => {
@@ -570,38 +575,26 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
     fetchDetail()
   }, [fetchDetail])
 
-  // Fetch stats on mount and every 10s
-  const fetchStats = useCallback(async () => {
-    try {
-      const s = await fetchContainerStatsOn(containerName, member)
-      if (mountedRef.current) {
-        setLocalStats(s)
-        setStats(containerName, s)
-        setStatsLoading(false)
-
-        // Push to stats history for charts
-        const cpuNum = parseCpuPercent(s.cpu_percent)
-        const memNum = parseMemoryToMB(s.memory_usage)
-        pushStatsHistory(containerName, cpuNum, memNum)
-      }
-    } catch {
-      if (mountedRef.current) setStatsLoading(false)
-    }
-  }, [containerName, member, setStats, pushStatsHistory])
-
+  // Stats now and every 10 s (another container asks at once)
+  const statsKey = `container-stats:${member ?? 'hub'}:${containerName}`
+  const statsPoll = usePolling(() => fetchContainerStatsOn(containerName, member), 10000, { key: statsKey })
+  const statsLoading = statsPoll.loading
+  const refreshStats = statsPoll.refresh
   useEffect(() => {
-    mountedRef.current = true
-    fetchStats()
-    // a second sample soon after the first: the history chart has its two points in seconds, not after the first 10 s tick
-    const quick = setTimeout(fetchStats, 2000)
-    intervalRef.current = setInterval(fetchStats, 10000)
-
-    return () => {
-      mountedRef.current = false
-      clearTimeout(quick)
-      if (intervalRef.current) clearInterval(intervalRef.current)
-    }
-  }, [fetchStats])
+    const s = statsPoll.data
+    if (!s || statsPoll.dataKey !== statsKey) return
+    setLocalStats(s)
+    setStats(containerName, s)
+    // each sample goes into the chart's history once (a detail opened again within the interval shows the last one)
+    if (historySampleAt.get(statsKey) === statsPoll.updatedAt) return
+    historySampleAt.set(statsKey, statsPoll.updatedAt)
+    pushStatsHistory(containerName, parseCpuPercent(s.cpu_percent), parseMemoryToMB(s.memory_usage))
+  }, [statsPoll.data, statsPoll.dataKey, statsPoll.updatedAt, statsKey, containerName, setStats, pushStatsHistory])
+  // a second sample soon after the first: the history chart has its two points in seconds, not after the first 10 s tick
+  useEffect(() => {
+    const quick = setTimeout(() => { void refreshStats() }, 2000)
+    return () => clearTimeout(quick)
+  }, [statsKey, refreshStats])
 
   // Container action handler
   // Sablier: on-demand start through the Traefik middleware, written by the API — the dialog
@@ -636,7 +629,7 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
       // Refresh stats and container list after action
       onRefreshList?.()
       setTimeout(() => {
-        fetchStats()
+        refreshStats()
         onRefreshList?.()
       }, 500)
     } catch (err) {
@@ -645,7 +638,7 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
     } finally {
       setActionLoading(null)
     }
-  }, [containerName, member, memberName, fetchStats, addToast, onRefreshList, onBack, confirm])
+  }, [containerName, member, memberName, refreshStats, addToast, onRefreshList, onBack, confirm])
 
   // ---- Environment editing (Compose-managed containers only) ----
   const composeService = detail?.compose_service || ''
@@ -696,13 +689,13 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
       addToast({ type: res.success ? 'success' : 'warning', message: `${res.stack} / ${res.service}: ${parts.join('; ')}${tail}`, duration: 9000 })
       discardEnv()
       onRefreshList?.()
-      setTimeout(() => { fetchDetail(); fetchStats() }, res.recreated ? 1500 : 300)
+      setTimeout(() => { fetchDetail(); refreshStats() }, res.recreated ? 1500 : 300)
     } catch (err) {
       addToast({ type: 'error', message: err instanceof Error ? err.message : 'Could not save the environment', duration: 9000 })
     } finally {
       setEnvSaving(false)
     }
-  }, [detail, envSaving, envDrafts, envRemovals, envAdditions, currentEnv, containerName, member, envRecreate, addToast, discardEnv, onRefreshList, fetchDetail, fetchStats])
+  }, [detail, envSaving, envDrafts, envRemovals, envAdditions, currentEnv, containerName, member, envRecreate, addToast, discardEnv, onRefreshList, fetchDetail, refreshStats])
   const openComposeEditor = useCallback(() => {
     if (!composeProject) return
     setCurrentPage('stacks', { highlight: composeProject, editCompose: true, focusService: composeService })
@@ -786,34 +779,14 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
     }
   }, [containerName, member])
 
-  // Toggle process viewer — auto-refresh every 10s while visible
+  // Toggle process viewer — read at once, then every 10 s while it shows
   const handleToggleProcesses = useCallback(() => {
     setShowProcesses((prev) => {
-      const next = !prev
-      if (next) {
-        // Fetch immediately and start interval
-        handleFetchProcesses()
-        processIntervalRef.current = setInterval(handleFetchProcesses, 10000)
-      } else {
-        // Clear interval when hiding
-        if (processIntervalRef.current) {
-          clearInterval(processIntervalRef.current)
-          processIntervalRef.current = null
-        }
-      }
-      return next
+      if (!prev) void handleFetchProcesses()
+      return !prev
     })
   }, [handleFetchProcesses])
-
-  // Clean up process interval on unmount
-  useEffect(() => {
-    return () => {
-      if (processIntervalRef.current) {
-        clearInterval(processIntervalRef.current)
-        processIntervalRef.current = null
-      }
-    }
-  }, [])
+  usePolling(handleFetchProcesses, 10000, { enabled: showProcesses })
 
   // Command runner
   const handleExecCommand = useCallback(async () => {
@@ -1066,7 +1039,7 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
                 memberName={memberName}
                 open={nukeOpen}
                 onClose={() => setNukeOpen(false)}
-                onDone={() => { onRefreshList?.(); void fetchDetail(); setTimeout(() => fetchStats(), 1500) }}
+                onDone={() => { onRefreshList?.(); void fetchDetail(); setTimeout(() => refreshStats(), 1500) }}
               />
             </>
           )}

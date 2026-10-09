@@ -5,22 +5,22 @@
 // "Show the chat bubble" on (Settings → Chat). It also runs the room:
 //   · the store belongs to the active server and account; a switch empties it
 //   · new messages come over the live stream (event "chat"); while the stream
-//     is down the newest page is fetched every 5 s instead, and once more when
-//     it comes back (what was missed meanwhile)
+//     is down the newest page is fetched every 5 s instead (usePolling), and once
+//     more when it comes back (what was missed meanwhile)
 //   · who is online every 30 s; a room that is off is asked again each minute
 //   · a browser notification for a message while the dashboard is hidden, only
 //     when the person turned that on in the panel
 // =============================================================================
 
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { MessageCircle, X } from 'lucide-react'
 import { useChatStore, selectUnread } from '../../stores/chatStore'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { useServerStore } from '../../stores/serverStore'
 import { useAuthStore } from '../../stores/authStore'
-import { sseClient } from '../../lib/sse'
-import type { ChatLiveEvent } from '../../../shared/types'
+import { useLiveEvent, useLiveConnected } from '../../hooks/useLiveStream'
+import { usePolling } from '../../hooks/usePolling'
 import ChatPanel from './ChatPanel'
 
 function useChatRoom() {
@@ -36,30 +36,25 @@ function useChatRoom() {
   }, [key])
 
   // live events
-  useEffect(() => sseClient.on('chat', (msg) => {
-    const ev = msg.data as ChatLiveEvent | null
+  useLiveEvent('chat', (msg) => {
+    const ev = msg.data
     if (ev && typeof ev === 'object' && 'type' in ev) useChatStore.getState().applyEvent(ev)
-  }), [])
+  })
 
   // the stream down: poll; back up: catch up once. A room with no answer yet is asked again, one that is off each minute.
+  // (the room keeps going while the window is hidden: a message then is a notification)
+  const status = useChatStore((s) => s.status)
+  const live = useLiveConnected()
+  const room = { requireConnection: false, whenHidden: 'run' } as const
+  const refreshRoom = useCallback(() => useChatStore.getState().refresh(), [])
+  usePolling(refreshRoom, 5000, { ...room, enabled: !!key && status === 'on' && !live })
+  usePolling(refreshRoom, status === 'unknown' ? 15000 : 60000, { ...room, enabled: !!key && status !== 'on' })
+  usePolling(useCallback(() => useChatStore.getState().refreshPresence(), []), 30000, { ...room, enabled: !!key && status === 'on' })
+  const wasLive = useRef(live)
   useEffect(() => {
-    if (!key) return
-    let wasLive = sseClient.isConnected()
-    let ticks = 0
-    const t = setInterval(() => {
-      ticks++
-      const { status, refresh, refreshPresence } = useChatStore.getState()
-      const live = sseClient.isConnected()
-      if (status === 'on') {
-        if (!live || !wasLive) void refresh()
-        if (ticks % 6 === 0) void refreshPresence()
-      } else if (status === 'unknown' ? ticks % 3 === 0 : ticks % 12 === 0) {
-        void refresh()
-      }
-      wasLive = live
-    }, 5000)
-    return () => clearInterval(t)
-  }, [key])
+    if (live && !wasLive.current && key && useChatStore.getState().status === 'on') void useChatStore.getState().refresh()
+    wasLive.current = live
+  }, [live, key])
 
   // a typing note fades on its own
   const typing = useChatStore((s) => s.typing)

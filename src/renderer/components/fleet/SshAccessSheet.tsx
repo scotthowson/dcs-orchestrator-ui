@@ -12,6 +12,7 @@ import { useToast } from '../common/Toast'
 import { useConfirm } from '../common/ConfirmDialog'
 import { useAuthStore } from '../../stores/authStore'
 import { fetchSshAccess, createSshKey, deleteSshKey, fetchSshKeyConfig, addSshKeyVms } from '../../api/endpoints'
+import { apiErrorMessage } from '../../api/errors'
 import type { SshAccess, SshKeyCreated, SshKeyInfo } from '../../../shared/types'
 import { Sheet, inputCls, labelCls } from './fleetShared'
 import { BTN_SHEET_PRIMARY, BTN_CARD, BTN_CARD_QUIET, TONE_OK, TONE_GHOST_DANGER } from '../../lib/ui'
@@ -19,7 +20,6 @@ import { BTN_SHEET_PRIMARY, BTN_CARD, BTN_CARD_QUIET, TONE_OK, TONE_GHOST_DANGER
 const NAME_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,31}$/
 const HOST_RE = /^[A-Za-z0-9._:-]{1,253}$/
 const checkCls = 'h-4 w-4 rounded border-white/20 bg-slate-800 accent-emerald-500 shrink-0'
-const errText = (e: unknown, fallback: string) => (e instanceof Error && e.message ? e.message : fallback)
 
 /** a file to the person's Downloads folder */
 function saveText(name: string, text: string) {
@@ -64,7 +64,7 @@ export default function SshAccessSheet({ focus, onClose }: { focus?: string; onC
       setHubHost((h) => h || d.hub.host)
       setPicked((p) => (p.size ? p : new Set(focus ? [focus] : d.vms.filter((v) => v.reachable).map((v) => v.id))))
       setName((n) => n || `${(me || 'me').replace(/[^A-Za-z0-9._-]/g, '-')}-key`.slice(0, 32))
-    }).catch((e) => setLoadErr(errText(e, 'Could not read the VMs')))
+    }).catch((e) => setLoadErr(apiErrorMessage(e, 'Could not read the VMs')))
   }, [focus, me])
   useEffect(() => { load() }, [load])
 
@@ -79,18 +79,18 @@ export default function SshAccessSheet({ focus, onClose }: { focus?: string; onC
     try {
       const r = await createSshKey({ name, members: [...picked], password, hub_access: hubAccess, via: direct ? 'direct' : 'hub', hub_host: hubHost })
       setMade(r); setPassword(''); load()
-    } catch (ex) { setErr(errText(ex, 'Could not make the key')); setPassword('') } finally { setBusy('') }
+    } catch (ex) { setErr(apiErrorMessage(ex, 'Could not make the key')); setPassword('') } finally { setBusy('') }
   }
   const removeKey = async (k: SshKeyInfo) => {
     if (!(await confirm({ title: `Remove the key "${k.name}"`, message: `It is taken off ${k.members.length} VM${k.members.length === 1 ? '' : 's'}${k.hub ? ' and the hub' : ''} at once: whoever holds it can no longer sign in.`, confirmLabel: 'Remove', danger: true }))) return
     setBusy(k.id)
     try { await deleteSshKey(k.id); addToast({ type: 'success', message: `The key "${k.name}" no longer opens anything` }); load() }
-    catch (ex) { addToast({ type: 'error', message: errText(ex, 'Could not remove the key') }) } finally { setBusy('') }
+    catch (ex) { addToast({ type: 'error', message: apiErrorMessage(ex, 'Could not remove the key') }) } finally { setBusy('') }
   }
   const downloadConfig = async (k: SshKeyInfo) => {
     setBusy(`cfg-${k.id}`)
     try { const r = await fetchSshKeyConfig(k.id, direct ? 'direct' : 'hub', hubHost || data?.hub.host || ''); saveText(r.config_file, r.config) }
-    catch (ex) { addToast({ type: 'error', message: errText(ex, 'Could not get the config') }) } finally { setBusy('') }
+    catch (ex) { addToast({ type: 'error', message: apiErrorMessage(ex, 'Could not get the config') }) } finally { setBusy('') }
   }
   const addMore = async (k: SshKeyInfo) => {
     const missing = (data?.vms ?? []).filter((v) => v.reachable && !k.members.includes(v.id)).map((v) => v.id)
@@ -101,7 +101,7 @@ export default function SshAccessSheet({ focus, onClose }: { focus?: string; onC
       const bad = r.results.filter((x) => !x.ok)
       addToast({ type: bad.length ? 'error' : 'success', message: bad.length ? `Not on ${bad.map((b) => b.name).join(', ')}` : `The key "${k.name}" is on ${missing.length} more VM${missing.length === 1 ? '' : 's'}: download the config again` })
       load()
-    } catch (ex) { addToast({ type: 'error', message: errText(ex, 'Could not put the key on the VMs') }) } finally { setBusy('') }
+    } catch (ex) { addToast({ type: 'error', message: apiErrorMessage(ex, 'Could not put the key on the VMs') }) } finally { setBusy('') }
   }
 
   const setup = useMemo(() => made ? [

@@ -7,9 +7,9 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Search, RefreshCw, Copy, Download, ArrowDown, WrapText, AlertTriangle, ScrollText, X, Info, Loader2 } from 'lucide-react'
-import { useConnectionStore } from '../../stores/connectionStore'
 import { useToast } from '../common/Toast'
 import { crowdsecLogs } from '../../api/endpoints'
+import { usePolling } from '../../hooks/usePolling'
 import { copyText } from '../../lib/clipboard'
 import type { CrowdSecLogLine, CrowdSecLogsResponse } from '../../../shared/types'
 import { BTN_QUIET, CARD, INPUT, Segmented, Skel, Switch, downloadText, errMsg, fmtNum, useCs, useDebounced } from './kit'
@@ -83,7 +83,6 @@ function Toggle({ id, label, help, on, onChange }: { id: string; label: string; 
 
 export default function LogsTab() {
   const { member } = useCs()
-  const isConnected = useConnectionStore((s) => s.status === 'connected')
   const { addToast } = useToast()
   const [level, setLevel] = useState<Level>('all')
   const [q, setQ] = useState('')
@@ -98,14 +97,12 @@ export default function LogsTab() {
   const [loading, setLoading] = useState(true)
   const [at, setAt] = useState(0)
   const seq = useRef(0)
-  const inflight = useRef(false)
   const opts = useRef({ level, q: dq, count, lapi })
   opts.current = { level, q: dq, count, lapi }
 
   const load = useCallback(async () => {
     const mine = ++seq.current
     const o = opts.current
-    inflight.current = true
     setLoading(true)
     try {
       const r = await crowdsecLogs({ lines: o.count, level: o.level, q: o.q || undefined, lapi: o.lapi }, member)
@@ -114,21 +111,14 @@ export default function LogsTab() {
     } catch (e) {
       if (mine === seq.current) setErr(errMsg(e, 'Could not read the log'))
     } finally {
-      if (mine === seq.current) { setLoading(false); inflight.current = false }
+      if (mine === seq.current) setLoading(false)
     }
   }, [member])
 
   // a change of any control asks again at once
   useEffect(() => { void load() }, [level, dq, count, lapi, load])
   // and every few seconds while the page is in front
-  useEffect(() => {
-    if (!auto || !isConnected) return
-    const tick = () => { if (!document.hidden && !inflight.current) void load() }
-    const onVisible = () => { if (!document.hidden) void load() }
-    const t = setInterval(tick, REFRESH_MS)
-    document.addEventListener('visibilitychange', onVisible)
-    return () => { clearInterval(t); document.removeEventListener('visibilitychange', onVisible) }
-  }, [auto, isConnected, load])
+  usePolling(load, REFRESH_MS, { enabled: auto })
 
   // ---- the panel: stays at the newest line until the reader scrolls up ----
   const box = useRef<HTMLDivElement>(null)
