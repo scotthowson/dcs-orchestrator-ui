@@ -8,14 +8,13 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Palette, Loader2, X, AlertTriangle, ExternalLink, Trash2 } from 'lucide-react'
+import { Palette, Loader2, AlertTriangle, ExternalLink, Trash2 } from 'lucide-react'
 import { setContainerTheme } from '../../api/fleetScoped'
 import type { RowMember } from '../../../shared/fleetScoped'
 import type { ContainerThemeState, ContainerThemeResponse } from '../../../shared/types'
 import ModalOverlay from '../common/ModalOverlay'
 import Hint from '../common/Hint'
-import { BTN_ICON_SM, BTN_SHEET, BTN_SHEET_QUIET, BTN_SHEET_PRIMARY, TONE_DANGER, TONE_GHOST } from '../../lib/ui'
-
+import { BTN_SHEET, BTN_SHEET_QUIET, BTN_SHEET_PRIMARY, TONE_DANGER } from '../../lib/ui'
 import CloseButton from '../common/CloseButton'
 interface Props {
   containerName: string

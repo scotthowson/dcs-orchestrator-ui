@@ -10,22 +10,8 @@ import type { RowMember } from '../../../shared/fleetScoped'
 import { useModalA11y } from '../../hooks/useModalA11y'
 import Hint from '../common/Hint'
 import { EmptyState } from '../common/PageState'
-import { BTN_TOOLBAR_QUIET, BTN_CARD, BTN_CARD_QUIET, BTN_ICON, BTN_ICON_SM, TONE_QUIET, TONE_DANGER } from '../../lib/ui'
-import {
-  Folder,
-  File,
-  FileText,
-  ChevronRight,
-  ArrowLeft,
-  Download,
-  X,
-  RefreshCw,
-  AlertCircle,
-  FolderOpen,
-  FileCode,
-  FileJson,
-} from 'lucide-react'
-
+import { BTN_TOOLBAR_QUIET, BTN_CARD, BTN_CARD_QUIET, BTN_ICON_SM, TONE_QUIET, TONE_DANGER } from '../../lib/ui'
+import { Folder, File, FileText, ChevronRight, ArrowLeft, Download, RefreshCw, AlertCircle, FolderOpen, FileCode, FileJson } from 'lucide-react'
 import CloseButton from '../common/CloseButton'
 // ---------------------------------------------------------------------------
 // Props
@@ -535,7 +521,7 @@ const ContainerFileBrowser: React.FC<Props> = ({ containerName, member = null })
                   </div>
                   <button onClick={handleRefresh} className={`${BTN_CARD} ${TONE_DANGER}`}>
                     <RefreshCw size={12} />
-                    Retry
+                    Try again
                   </button>
                 </div>
               )}

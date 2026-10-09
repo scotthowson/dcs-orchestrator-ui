@@ -11,7 +11,7 @@ import React, {
   useRef,
   useEffect,
 } from 'react'
-import { CheckCircle2, XCircle, AlertTriangle, Info, X } from 'lucide-react'
+import { CheckCircle2, XCircle, AlertTriangle, Info } from 'lucide-react'
 import { useNotificationStore } from '../../stores/notificationStore'
 
 import CloseButton from './CloseButton'

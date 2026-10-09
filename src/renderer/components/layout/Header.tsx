@@ -4,12 +4,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import {
-  Sun, Moon, LogOut, ChevronDown, Settings, Shield,
-  UserCircle, Mail, Clock, Bell, Sparkles, X,
-  Zap, Palette, Download, Network, Lock, RefreshCw, Package, Layout,
-  Store, Cpu, HardDrive, BarChart3, KeyRound,
-} from 'lucide-react'
+import { Sun, Moon, LogOut, ChevronDown, Settings, Shield, UserCircle, Mail, Clock, Bell, Sparkles, Zap, Palette, Download, Network, Lock, RefreshCw, Package, Layout, Store, Cpu, HardDrive, BarChart3, KeyRound } from 'lucide-react'
 import { BUILD_VERSION, BUILD_DATE } from '../../constants/buildInfo'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { toggleMode, useResolvedMode } from '../../lib/colorMode'
@@ -29,6 +24,7 @@ import ModalOverlay from '../common/ModalOverlay'
 import { Count } from '../common/Pill'
 import CloseButton from '../common/CloseButton'
 import { BTN_TOOLBAR_OK } from '../../lib/ui'
+import Kbd from '../common/Kbd'
 const statusConfig: Record<ConnectionStatus, { color: string; ringColor: string; pulse: boolean; label: string }> = {
   connected: {
     color: 'bg-emerald-400',
@@ -61,7 +57,7 @@ const statusConfig: Record<ConnectionStatus, { color: string; ringColor: string;
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
-// What's New Changelog
+// What's new Changelog
 // ---------------------------------------------------------------------------
 
 const CHANGELOG = [
@@ -128,7 +124,7 @@ function WhatsNewModal({ onClose }: { onClose: () => void }) {
               <Sparkles size={20} className="text-amber-400" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white">What's New</h2>
+              <h2 className="text-lg font-bold text-white">What's new</h2>
               <p className="text-xs text-slate-400">Latest features and improvements</p>
             </div>
           </div>
@@ -320,7 +316,7 @@ function UserProfileDropdown({ onClose, onWhatsNew, hasUnseen }: { onClose: () =
         ))}
       </div>
 
-      {/* What's New */}
+      {/* What's new */}
       <div className="border-t border-white/5 py-1.5">
         <button
           onClick={() => { onClose(); onWhatsNew?.() }}
@@ -331,7 +327,7 @@ function UserProfileDropdown({ onClose, onWhatsNew, hasUnseen }: { onClose: () =
             {hasUnseen && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-amber-400" />}
           </div>
           <div className="text-left">
-            <p className="text-xs font-medium text-slate-200">What's New</p>
+            <p className="text-xs font-medium text-slate-200">What's new</p>
             <p className="text-[10px] text-slate-500">Latest features & changes</p>
           </div>
         </button>
@@ -377,7 +373,7 @@ export function Header() {
   const [showWhatsNew, setShowWhatsNew] = useState(false)
   const [profileVersion, setProfileVersion] = useState(0)
 
-  // Show What's New badge if user hasn't seen this version
+  // Show What's new badge if user hasn't seen this version
   const whatsNewSeen = localStorage.getItem('whats-new-seen')
   const hasNewChangelog = whatsNewSeen !== BUILD_VERSION
 
@@ -459,7 +455,7 @@ export function Header() {
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
           <span className="flex-1 text-left truncate">Search anything…</span>
-          <kbd className="rounded border border-white/5 bg-white/[0.03] px-1.5 py-0.5 font-mono text-[9px]">Ctrl+K</kbd>
+          <Kbd>Ctrl+K</Kbd>
         </button>
       </div>
 

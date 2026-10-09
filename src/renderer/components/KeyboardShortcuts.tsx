@@ -10,6 +10,7 @@ import { useAuthStore } from '../stores/authStore'
 import { useSettingsStore } from '../stores/settingsStore'
 import ModalOverlay from './common/ModalOverlay'
 
+import Kbd from './common/Kbd'
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -40,7 +41,7 @@ const sections: ShortcutSection[] = [
     ],
   },
   {
-    title: 'UI Controls',
+    title: 'Interface',
     shortcuts: [
       { keys: ['Ctrl', 'B'], label: 'Toggle sidebar' },
       { keys: ['Ctrl', 'D'], label: 'Toggle dark/light theme' },
@@ -63,9 +64,9 @@ const sections: ShortcutSection[] = [
 
 function KeyBadge({ children }: { children: string }) {
   return (
-    <kbd className="rounded-md border border-white/10 bg-white/[0.05] px-2 py-1 font-mono text-xs text-slate-300">
+    <Kbd size="md">
       {children}
-    </kbd>
+    </Kbd>
   )
 }
 
@@ -104,6 +105,7 @@ export function KeyboardShortcuts() {
         const isEditable =
           tag === 'input' ||
           tag === 'textarea' ||
+          tag === 'select' ||
           (e.target as HTMLElement)?.isContentEditable
         if (!isEditable) {
           e.preventDefault()
@@ -154,7 +156,7 @@ export function KeyboardShortcuts() {
               <Keyboard size={16} className="text-slate-400" />
             </div>
             <h2 className="text-sm font-semibold text-slate-200">
-              Keyboard Shortcuts
+              Keyboard shortcuts
             </h2>
           </div>
 
@@ -208,8 +210,8 @@ export function KeyboardShortcuts() {
         {/* Footer */}
         <div className="px-6 py-3 border-t border-white/5">
           <p className="text-[11px] text-slate-500 text-center">
-            Press <kbd className="rounded border border-white/5 bg-white/[0.03] px-1.5 py-0.5 font-mono text-[10px]">?</kbd> or{' '}
-            <kbd className="rounded border border-white/5 bg-white/[0.03] px-1.5 py-0.5 font-mono text-[10px]">Ctrl+/</kbd> to toggle
+            Press <Kbd>?</Kbd> or{' '}
+            <Kbd>Ctrl+/</Kbd> to toggle
           </p>
         </div>
       </div>

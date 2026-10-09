@@ -488,7 +488,7 @@ export default function AllowlistTab() {
                 <p className="mt-3 text-sm text-slate-300">{qNet && !source ? `${qq} is not covered by the allowlist.` : 'No entry matches.'}</p>
                 <p className="mt-1 text-xs text-slate-500">{qNet && !source ? 'CrowdSec can ban it like any other address.' : 'Loosen the search, or clear the filters.'}</p>
                 <div className="mt-4 flex items-center justify-center gap-2 flex-wrap">
-                  <button type="button" onClick={clearFilters} className={BTN_TOOLBAR_QUIET}><X size={14} /> Clear filters</button>
+                  <button type="button" onClick={clearFilters} className={BTN_TOOLBAR_QUIET}><X size={14} /> Clear the filters</button>
                   {canAdd && qNet && !source && <button type="button" onClick={() => setSheet({ value: q.trim() })} className={BTN_TOOLBAR_OK}><Plus size={14} /> Allow {q.trim().length > 22 ? `${q.trim().slice(0, 20)}…` : q.trim()}</button>}
                 </div>
               </div>

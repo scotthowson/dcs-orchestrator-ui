@@ -1,9 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
-import {
-  KeyRound, Plus, Trash2, Search, Shield, Eye, EyeOff, AlertTriangle, X, Loader2, RefreshCw,
-  BookOpen, Lock, FileKey, Terminal, ChevronDown, ChevronRight, Wand2, Copy, Check, Link2, Layers,
-} from 'lucide-react'
+import { KeyRound, Plus, Trash2, Shield, Eye, EyeOff, AlertTriangle, Loader2, RefreshCw, BookOpen, Lock, FileKey, Terminal, ChevronDown, ChevronRight, Wand2, Copy, Check, Link2, Layers } from 'lucide-react'
 import { useSecretsStore } from '../stores/secretsStore'
 import { useFleetScope } from '../hooks/useFleetScope'
 import FleetScopeChips from '../components/fleet/FleetScopeChips'

@@ -249,7 +249,7 @@ export default function OnboardingOverlay() {
             >
               {isLast ? (
                 <>
-                  Get Started
+                  Get started
                   <Sparkles size={14} />
                 </>
               ) : (

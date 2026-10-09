@@ -5,23 +5,7 @@
 
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { SegmentedControl } from '@mantine/core'
-import {
-  Clock,
-  Cpu,
-  HardDrive,
-  MemoryStick,
-  RefreshCw,
-  Loader2,
-  Database,
-  WifiOff,
-  Camera,
-  BarChart3,
-  Timer,
-  Settings2,
-  X,
-  Save,
-  ImageDown,
-} from 'lucide-react'
+import { Clock, Cpu, HardDrive, MemoryStick, RefreshCw, Loader2, Database, WifiOff, Camera, BarChart3, Timer, Settings2, Save, ImageDown } from 'lucide-react'
 import { toPng } from 'html-to-image'
 import { createPortal } from 'react-dom'
 import { usePolling } from '../hooks/usePolling'
@@ -45,8 +29,7 @@ import ModalOverlay from '../components/common/ModalOverlay'
 import PageHeader from '../components/common/PageHeader'
 import Hint from '../components/common/Hint'
 import { Panel, METRIC_HEX } from '../components/dashboard/cardShared'
-import { BTN_ICON_SM, BTN_SHEET_PRIMARY, BTN_SHEET_QUIET, BTN_TOOLBAR, BTN_TOOLBAR_QUIET, TONE_GHOST, TONE_OK, TONE_QUIET } from '../lib/ui'
-
+import { BTN_SHEET_PRIMARY, BTN_SHEET_QUIET, BTN_TOOLBAR, BTN_TOOLBAR_QUIET, TONE_OK, TONE_QUIET } from '../lib/ui'
 import { pctTone, quiet } from '../lib/tone'
 import StatTile from '../components/common/StatTile'
 import CloseButton from '../components/common/CloseButton'

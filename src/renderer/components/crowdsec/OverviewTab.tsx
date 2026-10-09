@@ -5,7 +5,7 @@
 // =============================================================================
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Activity, Globe2, Crosshair, Radar, Network, ShieldCheck, Users, Cpu, Ban, RotateCw, RefreshCw, ArrowRight, Plug, UserCheck, Loader2, CircleAlert, CircleCheck, Info, Clock, TriangleAlert, ShieldOff, KeyRound } from 'lucide-react'
+import { Activity, Globe2, Crosshair, Radar, Network, ShieldCheck, Users, Cpu, Ban, RotateCw, RefreshCw, ArrowRight, Plug, UserCheck, Loader2, Info, Clock, ShieldOff, KeyRound } from 'lucide-react'
 import { usePolling } from '../../hooks/usePolling'
 import { useConnectionStore } from '../../stores/connectionStore'
 import { useToast } from '../common/Toast'
@@ -22,9 +22,7 @@ import { CheckNowButton, PAUSED_TEXT, REFUSED_TEXT, RegisterAgainButton, capiSta
 
 import { BTN_TOOLBAR_DANGER, BTN_TOOLBAR_OK, BTN_TOOLBAR_QUIET } from '../../lib/ui'
 import { CARD } from '../../lib/pageKit'
-import { type Tone } from '../../lib/tone'
 import { Pill, Dot } from '../common/Pill'
-import SectionHeader from '../common/SectionHeader'
 import { SkeletonBlock, EmptyState } from '../common/PageState'
 import Segmented from '../common/Segmented'
 import StatusLine from '../common/StatusLine'

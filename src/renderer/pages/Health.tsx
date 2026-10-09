@@ -4,28 +4,7 @@
 // =============================================================================
 
 import React, { useState, useMemo } from 'react'
-import {
-  HeartPulse,
-  Activity,
-  AlertTriangle,
-  XCircle,
-  RefreshCw,
-  WifiOff,
-  Search,
-  Download,
-  Clock,
-  RotateCcw,
-  Box,
-  Cpu,
-  MemoryStick,
-  HardDrive,
-  ChevronDown,
-  ChevronUp,
-  Layers,
-  Gauge,
-  ArrowUp,
-  Moon,
-} from 'lucide-react'
+import { HeartPulse, Activity, AlertTriangle, XCircle, RefreshCw, WifiOff, Download, Clock, RotateCcw, Box, Cpu, MemoryStick, HardDrive, ChevronDown, ChevronUp, Layers, Gauge, ArrowUp, Moon } from 'lucide-react'
 import { SegmentedControl, Tooltip } from '@mantine/core'
 import { usePolling } from '../hooks/usePolling'
 import { useFleetScope } from '../hooks/useFleetScope'
@@ -587,7 +566,7 @@ export default function Health() {
                 </p>
                 {link.state === 'offline' && (
                   <button type="button" onClick={() => { void reconnect() }} className={`${BTN_TOOLBAR_QUIET} mt-3 mx-auto`}>
-                    <RefreshCw size={14} /> Retry
+                    <RefreshCw size={14} /> Try again
                   </button>
                 )}
               </>

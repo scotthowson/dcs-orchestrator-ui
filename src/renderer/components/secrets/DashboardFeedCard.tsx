@@ -6,13 +6,12 @@
 // =============================================================================
 
 import { useCallback, useEffect, useState } from 'react'
-import { Radio, Copy, Check, Loader2, Power, RefreshCw } from 'lucide-react'
+import { Radio, Loader2, Power, RefreshCw } from 'lucide-react'
 import { useToast } from '../common/Toast'
 import { useConfirm } from '../common/ConfirmDialog'
 import { fetchDashboardFeedStatus, createDashboardFeedToken, deleteDashboardFeedToken } from '../../api/endpoints'
 import type { DashboardFeedStatus } from '../../../shared/types'
-import { BTN_CARD, BTN_CARD_QUIET, TONE_OK, TONE_DANGER } from '../../lib/ui'
-
+import { BTN_CARD, TONE_OK, TONE_DANGER } from '../../lib/ui'
 import { CopyButton } from '../common/CopyButton'
 function CopyLine({ label, value }: { label: string; value: string }) {
   return (

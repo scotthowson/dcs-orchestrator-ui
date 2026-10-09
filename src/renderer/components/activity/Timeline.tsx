@@ -7,22 +7,14 @@
 
 import React, { useState, useMemo, useCallback, useEffect } from 'react'
 import { SegmentedControl } from '@mantine/core'
-import {
-  Play, Square, Plus, Trash2, RefreshCw, Download,
-  Box, Network, HardDrive, Database,
-  Clock, Filter, Search, Activity as ActivityIcon,
-  Zap, WifiOff, Server, X, ChevronDown, AlertTriangle,
-  Moon,
-} from 'lucide-react'
+import { Play, Square, Plus, Trash2, RefreshCw, Download, Box, Network, HardDrive, Database, Clock, Filter, Activity as ActivityIcon, Zap, WifiOff, Server, X, ChevronDown, AlertTriangle, Moon } from 'lucide-react'
 import { useConnectionStore } from '../../stores/connectionStore'
 import { EmptyState } from '../common/PageState'
-import Hint from '../common/Hint'
-import { BTN_TOOLBAR_QUIET, BTN_TOOLBAR, BTN_ICON_SM, TONE_OK, TONE_GHOST, FOCUS_RING } from '../../lib/ui'
+import { BTN_TOOLBAR_QUIET, BTN_TOOLBAR, TONE_OK, FOCUS_RING } from '../../lib/ui'
 import { CARD_HOVER } from '../../lib/pageKit'
 import type { EventEntry } from '../../../shared/types'
 import { onDemandEventWord } from '../../lib/containerState'
 
-import { SEARCH_FIELD } from '../../lib/fieldStyles'
 import { Pill } from '../common/Pill'
 import SearchInput from '../common/SearchInput'
 // ---------------------------------------------------------------------------

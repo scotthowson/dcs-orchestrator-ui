@@ -5,7 +5,7 @@
 // =============================================================================
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Search, Plus, Upload, Download, Unlock, Loader2, X, ChevronDown, Info, FlaskConical, Infinity as InfinityIcon, ShieldOff } from 'lucide-react'
+import { Plus, Upload, Download, Unlock, Loader2, X, Info, FlaskConical, Infinity as InfinityIcon, ShieldOff } from 'lucide-react'
 import { usePolling } from '../../hooks/usePolling'
 import { useConnectionStore } from '../../stores/connectionStore'
 import { useToast } from '../common/Toast'
@@ -17,8 +17,7 @@ import BanSheet from './BanSheet'
 import ImportSheet from './ImportSheet'
 import { AlertSheet } from './AlertsTab'
 
-import { BTN_ICON_QUIET, BTN_TOOLBAR_DANGER, BTN_TOOLBAR_OK, BTN_TOOLBAR_QUIET } from '../../lib/ui'
-import { INPUT } from '../../lib/fieldStyles'
+import { BTN_ICON_QUIET, BTN_TOOLBAR_DANGER, BTN_TOOLBAR_OK, BTN_TOOLBAR_QUIET, BTN_CARD, TONE_GHOST } from '../../lib/ui'
 import { CARD } from '../../lib/pageKit'
 import { Pill } from '../common/Pill'
 import { SkeletonBlock } from '../common/PageState'
@@ -189,7 +188,7 @@ export default function BansTab({ seedSearch }: { seedSearch?: string }) {
         <label className="inline-flex items-center gap-2 text-xs text-slate-500 cursor-pointer select-none h-9 px-1 col-span-2 sm:col-span-1">
           <input type="checkbox" checked={hideSim} onChange={(e) => setHideSim(e.target.checked)} className="accent-emerald-500" /> Hide simulated
         </label>
-        {filtered && <button type="button" onClick={clearFilters} className="text-xs text-cyan-400 hover:text-cyan-300 inline-flex items-center gap-1 h-9"><X size={12} /> Clear filters</button>}
+        {filtered && <button type="button" onClick={clearFilters} className={`${BTN_CARD} ${TONE_GHOST}`}><X size={12} /> Clear the filters</button>}
       </div>
 
       {/* bulk bar */}
@@ -197,7 +196,7 @@ export default function BansTab({ seedSearch }: { seedSearch?: string }) {
         <div className="sticky top-2 z-20 rounded-xl glass border border-emerald-500/20 px-3 py-2 flex items-center gap-3 flex-wrap animate-scale-in" role="region" aria-label="Selected bans">
           <span className="text-sm text-slate-100 tabular-nums">{selected.size} selected</span>
           <button type="button" onClick={unbanSelected} disabled={busy === 'bulk'} className={BTN_TOOLBAR_DANGER}>{busy === 'bulk' ? <Loader2 size={14} className="animate-spin" /> : <Unlock size={14} />} {busy === 'bulk' && progress ? `Lifting ${progress.done} of ${progress.total}…` : <>Lift {selected.size === 1 ? 'this ban' : `these ${selected.size} bans`}</>}</button>
-          <button type="button" onClick={() => setSelected(new Set())} className="text-xs text-slate-500 hover:text-slate-200 ml-auto">Clear selection</button>
+          <button type="button" onClick={() => setSelected(new Set())} className={`${BTN_CARD} ${TONE_GHOST} ml-auto`}>Clear the selection</button>
         </div>
       )}
 
@@ -210,7 +209,7 @@ export default function BansTab({ seedSearch }: { seedSearch?: string }) {
           <p className="mt-3 text-sm text-slate-300">{filtered ? 'No ban matches these filters.' : 'Nothing is banned right now.'}</p>
           <p className="mt-1 text-xs text-slate-500 max-w-md mx-auto">{filtered ? 'Loosen a filter, or clear them all.' : 'When CrowdSec catches a scanner or a brute-forcer, it shows up here with its country, the reason and a live countdown.'}</p>
           <div className="mt-4 flex items-center justify-center gap-2 flex-wrap">
-            {filtered && <button type="button" onClick={clearFilters} className={BTN_TOOLBAR_QUIET}><X size={14} /> Clear filters</button>}
+            {filtered && <button type="button" onClick={clearFilters} className={BTN_TOOLBAR_QUIET}><X size={14} /> Clear the filters</button>}
             {isAdmin && !filtered && <button type="button" onClick={() => setBanning({})} className={BTN_TOOLBAR_OK}><Plus size={14} /> Ban an address</button>}
           </div>
         </div>

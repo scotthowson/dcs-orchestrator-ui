@@ -46,8 +46,8 @@ import { FloatingSaveBar } from '../components/common/FloatingSaveBar'
 import { fetchVersion, fetchDisks, fetchAlertConfig, updateAlertConfig, updateConfig, fetchConfig, authVerify, authChangePassword } from '../api/endpoints'
 import { ApiError } from '../api/client'
 import { patchServerProfile, syncProfileFromServer, readLocalProfile, mergeServerProfile, cleanPrefs, PROFILE_KEYS, SYNCED_PREFS } from '../lib/userSync'
-import type { APIVersion, DiskInfo, CustomDiskEntry, AppSettings, AlertThresholds, PageId } from '../../shared/types'
-
+import type { APIVersion, DiskInfo, CustomDiskEntry, AppSettings, AlertThresholds } from '../../shared/types'
+import Kbd from '../components/common/Kbd'
 // ---------------------------------------------------------------------------
 // Settings Dirty Context — single FloatingSaveBar for all sections
 // ---------------------------------------------------------------------------
@@ -1080,9 +1080,9 @@ function KeyboardShortcuts() {
                 className="flex items-center justify-between py-1.5 px-2 -mx-2 rounded-lg hover:bg-white/[0.03] transition-colors"
               >
                 <span className="text-xs text-slate-400">{s.description}</span>
-                <kbd className="shrink-0 rounded-md border border-white/10 bg-white/[0.03] px-2 py-0.5 text-[10px] font-mono text-slate-500">
+                <Kbd className="shrink-0">
                   {s.keys}
-                </kbd>
+                </Kbd>
               </div>
             ))}
           </div>

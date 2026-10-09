@@ -4,9 +4,8 @@
 // =============================================================================
 
 import { useState } from 'react'
-import { BookOpen, X, ChevronDown, ChevronRight, Signpost, CalendarClock, Radar, Zap, Server, Clock, Terminal } from 'lucide-react'
+import { BookOpen, ChevronDown, ChevronRight, Signpost, CalendarClock, Radar, Zap, Server, Clock, Terminal } from 'lucide-react'
 import Hint from '../common/Hint'
-import { BTN_ICON_SM, TONE_GHOST } from '../../lib/ui'
 import { pageLabel } from '../../constants/pageTitles'
 
 import CloseButton from '../common/CloseButton'

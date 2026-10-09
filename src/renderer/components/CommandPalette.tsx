@@ -31,6 +31,7 @@ import ModalOverlay from './common/ModalOverlay'
 import { navPages, sectionOf } from '../constants/navSections'
 import { containerState, isAsleep, stackLine, STATE_META } from '../lib/containerState'
 
+import Kbd from './common/Kbd'
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -327,7 +328,7 @@ export function CommandPalette() {
 
     items.push({
       id: 'action-refresh',
-      label: 'Refresh All Data',
+      label: 'Refresh all data',
       description: 'Re-fetch all data from server (Ctrl+R)',
       icon: <RefreshCw size={16} className="text-emerald-400" />,
       type: 'action',
@@ -340,7 +341,7 @@ export function CommandPalette() {
 
     items.push({
       id: 'action-profile',
-      label: 'Edit Profile',
+      label: 'Edit profile',
       description: 'Update your display name, avatar, and email',
       icon: <UserCircle size={16} className="text-emerald-400" />,
       type: 'action',
@@ -353,7 +354,7 @@ export function CommandPalette() {
 
     items.push({
       id: 'action-security',
-      label: 'Security & Password',
+      label: 'Security and password',
       description: 'Change password, view security settings',
       icon: <Shield size={16} className="text-rose-400" />,
       type: 'action',
@@ -366,7 +367,7 @@ export function CommandPalette() {
 
     items.push({
       id: 'action-export',
-      label: 'Export Settings',
+      label: 'Export settings',
       description: 'Download settings as JSON backup',
       icon: <Download size={16} className="text-cyan-400" />,
       type: 'action',
@@ -379,7 +380,7 @@ export function CommandPalette() {
 
     items.push({
       id: 'action-logout',
-      label: 'Sign Out',
+      label: 'Sign out',
       description: 'Log out of your account',
       icon: <LogOut size={16} className="text-rose-400" />,
       type: 'action',
@@ -394,7 +395,7 @@ export function CommandPalette() {
     if (isConnected && isAdmin) {
       items.push({
         id: 'action-prune',
-        label: 'Prune Docker Images',
+        label: 'Prune Docker images',
         description: 'Remove dangling and unused images',
         icon: <Trash2 size={16} className="text-orange-400" />,
         type: 'action',
@@ -410,7 +411,7 @@ export function CommandPalette() {
 
       items.push({
         id: 'action-rotate-logs',
-        label: 'Rotate Server Logs',
+        label: 'Rotate the server logs',
         description: 'Archive and rotate the server log file',
         icon: <Archive size={16} className="text-pink-400" />,
         type: 'action',
@@ -431,7 +432,7 @@ export function CommandPalette() {
 
       items.push({
         id: 'action-backup',
-        label: 'Run Backup Now',
+        label: 'Back up now',
         description: 'Trigger a full server backup',
         icon: <Download size={16} className="text-cyan-400" />,
         type: 'action',
@@ -450,7 +451,7 @@ export function CommandPalette() {
 
       items.push({
         id: 'lint-all',
-        label: 'Lint All Compose Files',
+        label: 'Lint every compose file',
         description: 'Validate all compose files for errors and warnings',
         icon: <ListChecks size={16} className="text-cyan-400" />,
         type: 'action',
@@ -463,7 +464,7 @@ export function CommandPalette() {
 
       items.push({
         id: 'check-updates',
-        label: 'Check for System Updates',
+        label: 'Check for updates',
         description: 'Check for available image and system updates',
         icon: <ArrowUpCircle size={16} className="text-emerald-400" />,
         type: 'action',
@@ -476,7 +477,7 @@ export function CommandPalette() {
 
       items.push({
         id: 'view-plugins',
-        label: 'Manage Plugins',
+        label: 'Manage plugins',
         description: 'Install, configure, and scaffold plugins',
         icon: <Puzzle size={16} className="text-violet-400" />,
         type: 'action',
@@ -489,7 +490,7 @@ export function CommandPalette() {
 
       items.push({
         id: 'view-audit',
-        label: 'View Audit Log',
+        label: 'Open the audit log',
         description: 'Review security audit trail and change history',
         icon: <ScrollText size={16} className="text-amber-400" />,
         type: 'action',
@@ -505,7 +506,7 @@ export function CommandPalette() {
     if (isConnected) {
       items.push({
         id: 'action-check-health',
-        label: 'Run Health Check',
+        label: 'Run a health check',
         description: 'Fetch a fresh health report from the server',
         icon: <HeartPulse size={16} className="text-emerald-400" />,
         type: 'action',
@@ -839,9 +840,9 @@ export function CommandPalette() {
               focus:outline-none
             "
           />
-          <kbd className="shrink-0 rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] text-slate-500 font-mono">
+          <Kbd className="shrink-0">
             ESC
-          </kbd>
+          </Kbd>
         </div>
 
         {/* Results */}
@@ -916,12 +917,12 @@ export function CommandPalette() {
         <div className="flex items-center justify-between px-4 py-2.5 border-t border-white/5 text-[11px] text-slate-500">
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1">
-              <kbd className="rounded border border-white/5 bg-white/[0.03] px-1.5 py-0.5 font-mono text-[10px]">&uarr;</kbd>
-              <kbd className="rounded border border-white/5 bg-white/[0.03] px-1.5 py-0.5 font-mono text-[10px]">&darr;</kbd>
+              <Kbd>&uarr;</Kbd>
+              <Kbd>&darr;</Kbd>
               Navigate
             </span>
             <span className="flex items-center gap-1">
-              <kbd className="rounded border border-white/5 bg-white/[0.03] px-1.5 py-0.5 font-mono text-[10px]">&crarr;</kbd>
+              <Kbd>&crarr;</Kbd>
               Select
             </span>
           </div>

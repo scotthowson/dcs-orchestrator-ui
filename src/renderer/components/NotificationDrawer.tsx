@@ -369,7 +369,7 @@ export function NotificationDrawer() {
           {showPrefs && (
             <div className="px-4 py-3 border-b border-white/5 bg-white/[0.01] shrink-0 animate-fade-in">
               <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold mb-2">
-                Alert Preferences
+                Alert preferences
               </p>
               <div className="space-y-0.5">
                 <Toggle

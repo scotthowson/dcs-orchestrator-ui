@@ -5,12 +5,7 @@
 
 import React, { useState, useCallback, useId } from 'react'
 import { SegmentedControl } from '@mantine/core'
-import {
-  Bookmark, Plus, Trash2, Star, Layers,
-  Box, HardDrive, Network, HeartPulse, Monitor, Settings2,
-  ScrollText, Cog, LayoutDashboard,
-  Tag, Clock, Search, X, FolderHeart,
-} from 'lucide-react'
+import { Bookmark, Plus, Trash2, Star, Layers, Box, HardDrive, Network, HeartPulse, Monitor, Settings2, ScrollText, Cog, LayoutDashboard, Tag, Clock, X, FolderHeart } from 'lucide-react'
 import { useSettingsStore } from '../stores/settingsStore'
 import { pageLabel } from '../constants/pageTitles'
 import PageHeader from '../components/common/PageHeader'
@@ -18,11 +13,11 @@ import Hint from '../components/common/Hint'
 import { DisconnectedBanner } from '../components/common/DisconnectedBanner'
 import { EmptyState } from '../components/common/PageState'
 import { useConfirm } from '../components/common/ConfirmDialog'
-import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_ICON_SM, TONE_OK, TONE_QUIET, TONE_GHOST, FOCUS_RING } from '../lib/ui'
+import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_ICON_SM, TONE_OK, TONE_QUIET, FOCUS_RING } from '../lib/ui'
 import { CARD, CARD_HOVER, REVEAL } from '../lib/pageKit'
 import type { PageId } from '../../shared/types'
 
-import { SEARCH_FIELD, INPUT } from '../lib/fieldStyles'
+import { INPUT } from '../lib/fieldStyles'
 import { Pill } from '../components/common/Pill'
 import SearchInput from '../components/common/SearchInput'
 // ---------------------------------------------------------------------------

@@ -369,7 +369,7 @@ function DiscordPresenceSettings() {
       </div>
 
       <div className="py-2">
-        <label htmlFor="presence-app-id" className="block text-sm font-medium text-slate-300 mb-1">Discord Application ID</label>
+        <label htmlFor="presence-app-id" className="block text-sm font-medium text-slate-300 mb-1">Discord application ID</label>
         <div className="flex gap-2">
           <input
             id="presence-app-id"

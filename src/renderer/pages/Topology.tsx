@@ -7,19 +7,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
-import {
-  Network,
-  RefreshCw,
-  ZoomIn,
-  ZoomOut,
-  Maximize2,
-  Box,
-  X,
-  Layers,
-  Server,
-  WifiOff,
-  ExternalLink, Download, Copy, Expand, Shrink, Link2,
-} from 'lucide-react'
+import { Network, RefreshCw, ZoomIn, ZoomOut, Maximize2, Box, Layers, Server, WifiOff, ExternalLink, Download, Copy, Expand, Shrink, Link2 } from 'lucide-react'
 import { usePolling } from '../hooks/usePolling'
 import { useFleetScope, type ScopeMember } from '../hooks/useFleetScope'
 import { useConnectionStore } from '../stores/connectionStore'
@@ -37,7 +25,7 @@ import { LoadingState, ErrorState, EmptyState } from '../components/common/PageS
 import ModalOverlay from '../components/common/ModalOverlay'
 import PageHeader from '../components/common/PageHeader'
 import Hint from '../components/common/Hint'
-import { BTN_TOOLBAR_QUIET, BTN_ICON, BTN_ICON_SM, TONE_GHOST, FOCUS_RING } from '../lib/ui'
+import { BTN_TOOLBAR_QUIET, BTN_ICON_SM, TONE_GHOST, FOCUS_RING } from '../lib/ui'
 import { CARD } from '../lib/pageKit'
 import { STATE_META } from '../lib/containerState'
 

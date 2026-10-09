@@ -6,22 +6,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { SegmentedControl } from '@mantine/core'
-import {
-  X,
-  Copy,
-  Check,
-  Search,
-  FileCode2,
-  Pencil,
-  Save,
-  CheckCircle,
-  AlertTriangle,
-  GitCompare,
-  FileText,
-  Loader2,
-  ChevronUp,
-  ChevronDown,
-} from 'lucide-react'
+import { Copy, Check, Search, FileCode2, Pencil, Save, CheckCircle, AlertTriangle, GitCompare, FileText, Loader2, ChevronUp, ChevronDown } from 'lucide-react'
 import {
   validateStackCompose,
   saveStackCompose,
@@ -39,6 +24,7 @@ import { useModalA11y } from '../../hooks/useModalA11y'
 import { DiagNumber, EditorDiagnostics, CountBadge } from './LintParts'
 import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_ICON, BTN_ICON_SM, TONE_QUIET, TONE_OK, TONE_GHOST, TONE_PRESSED } from '../../lib/ui'
 import CloseButton from '../common/CloseButton'
+import Kbd from '../common/Kbd'
 interface ComposeViewerProps {
   stackName: string
   /** the docker-compose.yml as read from the API (the caller does not open the viewer when the read failed) */
@@ -1386,7 +1372,7 @@ export function ComposeViewer({ stackName, content, onClose, isAdmin = false }: 
               {activeTab === 'compose' ? 'YAML' : 'ENV'}
             </span>
             <span className="hidden sm:inline text-[10px] text-slate-500">
-              Press <kbd className="px-1 py-0.5 rounded bg-white/[0.06] border border-white/10 text-slate-400 font-mono text-[9px]">Esc</kbd> to close
+              Press <Kbd>Esc</Kbd> to close
             </span>
           </div>
         </div>

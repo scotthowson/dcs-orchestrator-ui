@@ -10,7 +10,7 @@
 
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Switch } from '@mantine/core'
-import { Check, Loader2, Pencil, Send, Settings2, Trash2, X, Eraser } from 'lucide-react'
+import { Check, Loader2, Pencil, Send, Settings2, Trash2, Eraser } from 'lucide-react'
 import { useChatStore, chatErrorText } from '../../stores/chatStore'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { useModalA11y } from '../../hooks/useModalA11y'

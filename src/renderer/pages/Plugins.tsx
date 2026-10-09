@@ -5,43 +5,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import type { PluginCatalogEntry } from '../../shared/types'
 import { createPortal } from 'react-dom'
-import {
-  Puzzle,
-  Trash2,
-  GitBranch,
-  LayoutTemplate,
-  Zap,
-  Package,
-  X,
-  Loader2,
-  AlertCircle,
-  CheckCircle,
-  RefreshCw,
-  Download,
-  Shield,
-  Activity,
-  Code,
-  ChevronDown,
-  ChevronRight,
-  FileJson,
-  FolderTree,
-  Terminal,
-  BookOpen,
-  Sparkles,
-  Bell,
-  FileCheck,
-  Gauge,
-  Archive,
-  Lock,
-  FileSearch,
-  Wrench,
-  HardDrive,
-  RotateCcw,
-  Timer,
-  Network,
-  Database,
-  Info,
-} from 'lucide-react'
+import { Puzzle, Trash2, GitBranch, LayoutTemplate, Zap, Package, Loader2, AlertCircle, CheckCircle, RefreshCw, Download, Shield, Activity, Code, ChevronDown, ChevronRight, FileJson, FolderTree, Terminal, BookOpen, Sparkles, Bell, FileCheck, Gauge, Archive, Lock, FileSearch, Wrench, HardDrive, RotateCcw, Timer, Network, Database, Info } from 'lucide-react'
 import { Switch } from '@mantine/core'
 import { usePluginStore } from '../stores/pluginStore'
 import { useConnectionStore } from '../stores/connectionStore'

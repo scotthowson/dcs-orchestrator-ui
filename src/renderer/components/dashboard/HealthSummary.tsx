@@ -6,7 +6,6 @@ import React, { useState, useEffect } from 'react'
 import {
   ShieldCheck, ShieldAlert, ShieldX, ShieldQuestion, HeartPulse, Cpu, MemoryStick, HardDrive, Timer,
 } from 'lucide-react'
-import { Badge } from '@mantine/core'
 import { useHealthStore } from '../../stores/healthStore'
 import { useConnectionStore } from '../../stores/connectionStore'
 import { useApiLink } from '../../hooks/useApiLink'

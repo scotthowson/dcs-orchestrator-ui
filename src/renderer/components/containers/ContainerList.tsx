@@ -21,24 +21,7 @@ import PageHeader from '../common/PageHeader'
 import SortableTh from '../common/SortableTh'
 import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, TONE_QUIET, BTN_CARD, TONE_GHOST, BTN_TOOLBAR_OK, BTN_TOOLBAR_DANGER, BTN_TOOLBAR_ATTN } from '../../lib/ui'
 import type { FleetScope, ScopeMember } from '../../hooks/useFleetScope'
-import {
-  Search,
-  Box,
-  CircleCheck,
-  CircleX,
-  CirclePause,
-  Moon,
-  Loader2,
-  CheckSquare,
-  Square as SquareIcon,
-  Play,
-  RefreshCw,
-  RotateCw,
-  X,
-  Minus,
-  Trash2,
-} from 'lucide-react'
-
+import { Box, CircleCheck, CircleX, CirclePause, Moon, Loader2, CheckSquare, Square as SquareIcon, Play, RefreshCw, RotateCw, Minus, Trash2 } from 'lucide-react'
 import SearchInput from '../common/SearchInput'
 import CloseButton from '../common/CloseButton'
 // ---------------------------------------------------------------------------
@@ -372,11 +355,11 @@ const ContainerList: React.FC<ContainerListProps> = ({
         </div>
       )}
 
-      {/* ---- Batch Results ---- */}
+      {/* ---- Batch results ---- */}
       {batchResults && (
         <div className="rounded-xl border border-white/5 bg-white/[0.03] p-4 animate-fade-in">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Batch Results</p>
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Batch results</p>
             <CloseButton size="sm" onClick={() => setBatchResults(null)} />
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">

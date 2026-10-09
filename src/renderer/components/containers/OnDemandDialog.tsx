@@ -7,15 +7,14 @@
 
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Moon, Loader2, X, AlertTriangle, Sun } from 'lucide-react'
+import { Moon, Loader2, AlertTriangle, Sun } from 'lucide-react'
 import { fetchContainerSablier, setContainerSablierOn } from '../../api/fleetScoped'
 import type { RowMember } from '../../../shared/fleetScoped'
 import type { SablierSettingsResponse, SablierToggleResponse } from '../../../shared/types'
 import { SABLIER_DEFAULTS, SABLIER_SESSIONS, SABLIER_THEMES, SABLIER_THEME_NOTES, describeSession } from '../../lib/sablier'
 import ModalOverlay from '../common/ModalOverlay'
 import Hint from '../common/Hint'
-import { BTN_ICON_SM, BTN_SHEET, BTN_SHEET_QUIET, BTN_SHEET_PRIMARY, TONE_GHOST, TONE_QUIET } from '../../lib/ui'
-
+import { BTN_SHEET, BTN_SHEET_QUIET, BTN_SHEET_PRIMARY, TONE_QUIET } from '../../lib/ui'
 import CloseButton from '../common/CloseButton'
 interface Props {
   containerName: string

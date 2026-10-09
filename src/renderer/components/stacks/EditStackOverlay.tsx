@@ -5,26 +5,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo, useId } from 'react'
 import { createPortal } from 'react-dom'
 import { SegmentedControl } from '@mantine/core'
-import {
-  X,
-  Save,
-  Loader2,
-  AlertTriangle,
-  CheckCircle,
-  FileCode2,
-  FileText,
-  GitCompare,
-  Copy,
-  Check,
-  Search,
-  Pencil,
-  Tag,
-  Shield,
-  History,
-  RotateCcw,
-  ChevronUp,
-  ChevronDown,
-} from 'lucide-react'
+import { Save, Loader2, AlertTriangle, CheckCircle, FileCode2, FileText, GitCompare, Copy, Check, Search, Pencil, Tag, Shield, History, RotateCcw, ChevronUp, ChevronDown } from 'lucide-react'
 import {
   fetchStackCompose,
   fetchStackEnv,
@@ -46,6 +27,7 @@ import { useModalA11y } from '../../hooks/useModalA11y'
 import { EditorDiagnostics, DiagNumber, CountBadge } from './LintParts'
 import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD, BTN_ICON, BTN_ICON_SM, BTN_SHEET_PRIMARY, TONE_QUIET, TONE_OK, TONE_GHOST, TONE_PRESSED } from '../../lib/ui'
 import CloseButton from '../common/CloseButton'
+import Kbd from '../common/Kbd'
 interface Props {
   stack: StackInfo
   onClose: () => void
@@ -1580,7 +1562,7 @@ export default function EditStackOverlay({ stack, onClose, onSaved, initialServi
               {activeTab === 'compose' ? 'YAML' : activeTab === 'env' ? 'ENV' : activeTab === 'annotations' ? 'Labels' : 'History'}
             </span>
             <span className="hidden sm:inline text-[10px] text-slate-500">
-              Press <kbd className="px-1 py-0.5 rounded bg-white/[0.06] border border-white/10 text-slate-400 font-mono text-[9px]">Esc</kbd> to close
+              Press <Kbd>Esc</Kbd> to close
             </span>
           </div>
         </div>

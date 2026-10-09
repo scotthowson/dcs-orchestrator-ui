@@ -105,7 +105,7 @@ function DisconnectedHero() {
         {(isError || connectionStatus === 'disconnected') && (
           <button type="button" onClick={() => connect()} className={`${BTN_SHEET_PRIMARY} mx-auto`}>
             <RefreshCw size={16} />
-            Retry connection
+            Try again
           </button>
         )}
       </div>

@@ -7,7 +7,7 @@
 // =============================================================================
 
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
-import { ArrowDown, ArrowUp, Braces, ChevronDown, Plus, Search, Trash2, X, RotateCcw } from 'lucide-react'
+import { ArrowDown, ArrowUp, Braces, ChevronDown, Plus, Trash2, X, RotateCcw } from 'lucide-react'
 import type { CrowdSecPlaceholder } from '../../../shared/types'
 import { useOutside } from './kit'
 import { AUTO_COLORS, COLOR_PRESETS, LIM, cpLen, patternProblem, newFieldKey, type ColorMode, type Errors, type FormField } from './NotifyModel'

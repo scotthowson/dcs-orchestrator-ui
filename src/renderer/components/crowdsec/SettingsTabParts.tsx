@@ -9,11 +9,9 @@
 // =============================================================================
 
 import { useId, useMemo, useRef, useState, type ReactNode } from 'react'
-import { ChevronDown, X, type LucideIcon } from 'lucide-react'
+import { ChevronDown } from 'lucide-react'
 import { useOutside, parseDuration } from './kit'
 import { HINT, INPUT } from '../../lib/fieldStyles'
-import { CARD } from '../../lib/pageKit'
-import { type Tone } from '../../lib/tone'
 // ---------------------------------------------------------------------------
 // Lengths
 // ---------------------------------------------------------------------------

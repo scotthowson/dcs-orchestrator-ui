@@ -32,6 +32,7 @@ import Hint from '../components/common/Hint'
 import { BTN_CARD, BTN_ICON_SM, BTN_TOOLBAR_QUIET, TONE_DANGER, TONE_GHOST, TONE_OK, TONE_QUIET, BTN_TOOLBAR } from '../lib/ui'
 
 import { Pill } from '../components/common/Pill'
+import Kbd from '../components/common/Kbd'
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -567,9 +568,9 @@ export default function Terminal() {
             <TerminalSquare size={32} strokeWidth={1.2} aria-hidden />
             <p className="text-xs">Ready. Type a command below, or use a quick command above.</p>
             <p className="text-[11px] text-slate-500">
-              <kbd className="px-1.5 py-0.5 rounded border border-white/10 bg-white/[0.03] text-[10px]">↑</kbd> / <kbd className="px-1.5 py-0.5 rounded border border-white/10 bg-white/[0.03] text-[10px]">↓</kbd> walk the history
+              <Kbd>↑</Kbd> / <Kbd>↓</Kbd> walk the history
               &nbsp;&middot;&nbsp;
-              <kbd className="px-1.5 py-0.5 rounded border border-white/10 bg-white/[0.03] text-[10px]">Ctrl+L</kbd> clears the screen
+              <Kbd>Ctrl+L</Kbd> clears the screen
             </p>
           </div>
         )}

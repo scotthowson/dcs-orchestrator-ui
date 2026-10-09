@@ -7,11 +7,9 @@
 // =============================================================================
 
 import { useState } from 'react'
-import { Archive, ArrowDownUp, BookOpen, Boxes, Camera, ChevronDown, ChevronRight, Compass, LifeBuoy, RotateCcw, RotateCw, SlidersHorizontal, X } from 'lucide-react'
+import { Archive, ArrowDownUp, BookOpen, Boxes, Camera, ChevronDown, ChevronRight, Compass, LifeBuoy, RotateCcw, RotateCw, SlidersHorizontal } from 'lucide-react'
 import Hint from '../common/Hint'
 import { pageLabel } from '../../constants/pageTitles'
-import { BTN_ICON_SM, TONE_GHOST } from '../../lib/ui'
-
 import CloseButton from '../common/CloseButton'
 const SECTIONS = [
   {

@@ -9,9 +9,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import * as Icons from 'lucide-react'
-import {
-  Rocket, Zap, Settings2, X, Plus, ArrowUp, ArrowDown, Trash2, Loader2, RotateCcw,
-} from 'lucide-react'
+import { Rocket, Zap, Settings2, Plus, ArrowUp, ArrowDown, Trash2, Loader2, RotateCcw } from 'lucide-react'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { useConnectionStore } from '../../stores/connectionStore'
 import { useAuthStore } from '../../stores/authStore'

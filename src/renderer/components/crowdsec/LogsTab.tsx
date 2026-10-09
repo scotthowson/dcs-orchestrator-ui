@@ -6,7 +6,7 @@
 // =============================================================================
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { Search, RefreshCw, Copy, Download, ArrowDown, WrapText, AlertTriangle, ScrollText, X, Info, Loader2 } from 'lucide-react'
+import { RefreshCw, Copy, Download, ArrowDown, WrapText, AlertTriangle, ScrollText, X, Info, Loader2 } from 'lucide-react'
 import { useConnectionStore } from '../../stores/connectionStore'
 import { useToast } from '../common/Toast'
 import { crowdsecLogs } from '../../api/endpoints'
@@ -14,7 +14,6 @@ import { copyText } from '../../lib/clipboard'
 import type { CrowdSecLogLine, CrowdSecLogsResponse } from '../../../shared/types'
 import { downloadText, errMsg, fmtNum, useCs, useDebounced } from './kit'
 import { BTN_TOOLBAR_QUIET } from '../../lib/ui'
-import { INPUT } from '../../lib/fieldStyles'
 import { CARD } from '../../lib/pageKit'
 import { SkeletonBlock } from '../common/PageState'
 import Segmented from '../common/Segmented'

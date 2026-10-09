@@ -3,24 +3,9 @@
 // several at once in batch mode. On a hub: the hub's volumes, a VM's, or both.
 // =============================================================================
 
-import { useState, useMemo, useCallback, useEffect, useRef, useId, type ReactNode } from 'react'
+import { useState, useMemo, useCallback, useEffect, useRef, useId } from 'react'
 import { createPortal } from 'react-dom'
-import {
-  HardDrive,
-  Search,
-  Trash2,
-  Loader2,
-  AlertTriangle,
-  Database,
-  RefreshCw,
-  X,
-  FolderOpen,
-  Check,
-  CheckCircle2,
-  XCircle,
-  ListChecks,
-  Weight,
-} from 'lucide-react'
+import { HardDrive, Trash2, Loader2, AlertTriangle, Database, RefreshCw, X, FolderOpen, Check, CheckCircle2, XCircle, ListChecks, Weight } from 'lucide-react'
 import { usePolling } from '../hooks/usePolling'
 import { useConnectionStore } from '../stores/connectionStore'
 import { useAuthStore } from '../stores/authStore'
@@ -37,9 +22,9 @@ import ModalOverlay from '../components/common/ModalOverlay'
 import PageHeader from '../components/common/PageHeader'
 import Hint from '../components/common/Hint'
 import SortableTh from '../components/common/SortableTh'
-import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_ICON_SM, BTN_SHEET_QUIET, BTN_SHEET_DANGER, TONE_DANGER, TONE_GHOST, TONE_GHOST_DANGER, TONE_QUIET, FOCUS_RING } from '../lib/ui'
+import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_ICON_SM, BTN_SHEET_QUIET, BTN_SHEET_DANGER, TONE_DANGER, TONE_GHOST_DANGER, TONE_QUIET, FOCUS_RING } from '../lib/ui'
 import { CARD, REVEAL } from '../lib/pageKit'
-import { SEARCH_FIELD, INPUT } from '../lib/fieldStyles'
+import { INPUT } from '../lib/fieldStyles'
 import StatTile from '../components/common/StatTile'
 import { Pill } from '../components/common/Pill'
 import SearchInput from '../components/common/SearchInput'

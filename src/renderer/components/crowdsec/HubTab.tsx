@@ -7,7 +7,7 @@
 // =============================================================================
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Package, Sparkles, Search, Plus, Trash2, RefreshCw, CircleArrowUp, Loader2, X, AlertTriangle, ChevronDown, Info } from 'lucide-react'
+import { Package, Sparkles, Plus, Trash2, RefreshCw, CircleArrowUp, Loader2, X, AlertTriangle, ChevronDown, Info } from 'lucide-react'
 import { useConnectionStore } from '../../stores/connectionStore'
 import { useToast } from '../common/Toast'
 import { useConfirm } from '../common/ConfirmDialog'
@@ -16,7 +16,6 @@ import { crowdsecHub, crowdsecHubAvailable, crowdsecHubInstall, crowdsecHubRemov
 import type { CrowdSecHubAvailableResponse, CrowdSecHubItem, CrowdSecHubResponse } from '../../../shared/types'
 import { errMsg, fmtNum, useCs, useDebounced, useNow } from './kit'
 import { BTN_TOOLBAR_OK, BTN_TOOLBAR_QUIET } from '../../lib/ui'
-import { INPUT } from '../../lib/fieldStyles'
 import { CARD } from '../../lib/pageKit'
 import { Pill } from '../common/Pill'
 import SectionHeader from '../common/SectionHeader'

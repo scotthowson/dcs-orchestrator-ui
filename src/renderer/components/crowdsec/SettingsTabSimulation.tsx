@@ -9,7 +9,7 @@
 // =============================================================================
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowRight, CircleAlert, FlaskConical, Info, Loader2, Package, RefreshCw, Search, TriangleAlert, X } from 'lucide-react'
+import { ArrowRight, CircleAlert, FlaskConical, Info, Loader2, Package, RefreshCw, TriangleAlert, X } from 'lucide-react'
 import { usePolling } from '../../hooks/usePolling'
 import { useConnectionStore } from '../../stores/connectionStore'
 import { useToast } from '../common/Toast'
@@ -18,7 +18,7 @@ import { crowdsecSimulation, crowdsecSetSimulation } from '../../api/endpoints'
 import { errMsg, useCs } from './kit'
 import { type ScenarioInfo } from './SettingsTabParts'
 import { BTN_TOOLBAR_QUIET } from '../../lib/ui'
-import { HINT, INPUT } from '../../lib/fieldStyles'
+import { HINT } from '../../lib/fieldStyles'
 import { Pill } from '../common/Pill'
 import { SkeletonBlock } from '../common/PageState'
 import Segmented from '../common/Segmented'

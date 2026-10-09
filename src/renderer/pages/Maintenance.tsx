@@ -7,12 +7,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { Badge } from '@mantine/core'
-import {
-  Wrench, RefreshCw, Loader2, Trash2, RotateCcw, AlertTriangle,
-  CheckCircle2, Box, Image, HardDrive, Network, FileText, Scissors,
-  BookOpen, ChevronRight, ChevronDown, X, Search, Boxes,
-  Moon,
-} from 'lucide-react'
+import { Wrench, RefreshCw, Loader2, Trash2, RotateCcw, AlertTriangle, CheckCircle2, Box, Image, HardDrive, Network, FileText, Scissors, BookOpen, ChevronRight, ChevronDown, Search, Boxes, Moon } from 'lucide-react'
 import { usePolling } from '../hooks/usePolling'
 import {
   fetchFleetMaintenanceReport,
@@ -37,7 +32,7 @@ import { DisconnectedBanner } from '../components/common/DisconnectedBanner'
 import PageHeader from '../components/common/PageHeader'
 import Hint from '../components/common/Hint'
 import { pageLabel } from '../constants/pageTitles'
-import { BTN_TOOLBAR, BTN_ICON_SM, BTN_SHEET, BTN_SHEET_QUIET, BTN_SHEET_DANGER, TONE_OK, TONE_QUIET, TONE_DANGER, TONE_GHOST } from '../lib/ui'
+import { BTN_TOOLBAR, BTN_SHEET, BTN_SHEET_QUIET, BTN_SHEET_DANGER, TONE_OK, TONE_QUIET, TONE_DANGER } from '../lib/ui'
 import type { FleetTarget, MemberOutcome, FleetMaintenanceReport, FleetOrphanReport, FleetDiskAnalysis } from '../../shared/fleetScopedOps'
 import { EmptyState } from '../components/common/PageState'
 import ModalOverlay from '../components/common/ModalOverlay'

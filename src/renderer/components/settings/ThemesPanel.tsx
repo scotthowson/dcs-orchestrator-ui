@@ -7,11 +7,7 @@
 // =============================================================================
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
-import {
-  AlertTriangle, Check, Copy, Download, FileJson, Globe, Link, Loader2, Moon, Palette, Pencil, Plus,
-  Server, Smartphone, Sparkles, Sun, Trash2, Upload, X, Eye, EyeOff, RefreshCw, Wand2,
-} from 'lucide-react'
+import { AlertTriangle, Check, Copy, Download, FileJson, Globe, Link, Loader2, Moon, Palette, Pencil, Plus, Server, Smartphone, Sparkles, Sun, Trash2, Upload, Eye, EyeOff, RefreshCw, Wand2 } from 'lucide-react'
 import { useToast } from '../common/Toast'
 import { useConfirm } from '../common/ConfirmDialog'
 import { useSettingsStore } from '../../stores/settingsStore'
@@ -22,7 +18,6 @@ import { applyTheme, setThemePreviewing } from '../../lib/themeEngine'
 import { useResolvedMode } from '../../lib/colorMode'
 import { CSS_SANITIZE_NOTE, sanitizeCss } from '../../lib/cssSanitize'
 import { ApiError } from '../../api/client'
-import { useModalA11y } from '../../hooks/useModalA11y'
 import Hint from '../common/Hint'
 import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD, BTN_CARD_QUIET, BTN_ICON, BTN_ICON_SM, BTN_SHEET_QUIET, BTN_SHEET_PRIMARY, TONE_OK, TONE_GHOST, TONE_GHOST_DANGER, FOCUS_RING } from '../../lib/ui'
 import { INPUT, LABEL } from '../../lib/fieldStyles'

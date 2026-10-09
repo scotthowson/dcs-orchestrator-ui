@@ -17,10 +17,9 @@
 
 import { useId, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { AlertTriangle, Loader2, RotateCcw, X } from 'lucide-react'
+import { AlertTriangle, Loader2, RotateCcw } from 'lucide-react'
 import ModalOverlay from '../common/ModalOverlay'
-import { BTN_ICON_SM, BTN_SHEET_DANGER, BTN_SHEET_QUIET, TONE_GHOST } from '../../lib/ui'
-
+import { BTN_SHEET_DANGER, BTN_SHEET_QUIET } from '../../lib/ui'
 import CloseButton from '../common/CloseButton'
 export default function TypedConfirmDialog({ title, word, confirmLabel, warning, detail, subjectLabel, subject, busy = false, onConfirm, onClose }: {
   title: string

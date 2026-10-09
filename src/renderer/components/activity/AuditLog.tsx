@@ -5,16 +5,11 @@
 // =============================================================================
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react'
-import {
-  Play, Trash2, RefreshCw, Search, X, ChevronDown, FileText, Shield,
-  Rocket, Power, HeartPulse, Archive, ListFilter, WifiOff,
-} from 'lucide-react'
+import { Play, Trash2, RefreshCw, ChevronDown, FileText, Shield, Rocket, Power, HeartPulse, Archive, ListFilter, WifiOff } from 'lucide-react'
 import { fetchAuditLog } from '../../api/endpoints'
 import { useToast } from '../common/Toast'
 import { LoadingState, EmptyState } from '../common/PageState'
-import Hint from '../common/Hint'
 import VmCapsule from '../fleet/VmCapsule'
-import { BTN_ICON_SM, TONE_GHOST, FOCUS_RING } from '../../lib/ui'
 import { CARD, CARD_HOVER } from '../../lib/pageKit'
 import type { AuditEntry } from '../../../shared/types'
 

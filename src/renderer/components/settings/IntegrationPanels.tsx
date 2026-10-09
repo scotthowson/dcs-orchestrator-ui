@@ -9,7 +9,7 @@
 // =============================================================================
 
 import { useState } from 'react'
-import { CheckCircle2, XCircle, Loader2, PlugZap, RefreshCw, Copy, Check, Radio, Store, KeyRound, Eye, EyeOff, Trash2 } from 'lucide-react'
+import { CheckCircle2, XCircle, Loader2, PlugZap, RefreshCw, Radio, Store, KeyRound, Eye, EyeOff, Trash2 } from 'lucide-react'
 import { usePolling } from '../../hooks/usePolling'
 import { useConnectionStore } from '../../stores/connectionStore'
 import { proxmoxTest, fetchTraefikFeedStatus, rotateTraefikFeedToken } from '../../api/endpoints'

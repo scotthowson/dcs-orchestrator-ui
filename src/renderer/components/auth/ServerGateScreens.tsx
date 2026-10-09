@@ -143,7 +143,7 @@ export function ServerUnreachableScreen() {
         <div className="flex flex-wrap gap-2">
           <button type="button" onClick={retry} disabled={retrying} className={`${BTN_SHEET_PRIMARY} flex-1`}>
             {retrying ? <Loader2 size={16} className="animate-spin" /> : <RotateCw size={16} />}
-            {retrying ? 'Trying…' : 'Retry'}
+            {retrying ? 'Trying…' : 'Try again'}
           </button>
           <button
             type="button"

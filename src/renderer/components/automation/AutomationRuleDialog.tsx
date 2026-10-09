@@ -7,10 +7,10 @@
 import { useState, useId } from 'react'
 import { createPortal } from 'react-dom'
 import { SegmentedControl } from '@mantine/core'
-import { Zap, X, Loader2, Pencil, Plus, CalendarClock, AlertTriangle } from 'lucide-react'
+import { Zap, Loader2, Pencil, Plus, CalendarClock, AlertTriangle } from 'lucide-react'
 import ModalOverlay from '../common/ModalOverlay'
 import { useToast } from '../common/Toast'
-import { BTN_ICON_SM, BTN_SHEET_QUIET, BTN_SHEET_PRIMARY, TONE_GHOST } from '../../lib/ui'
+import { BTN_SHEET_QUIET, BTN_SHEET_PRIMARY } from '../../lib/ui'
 import { createAutomation, updateAutomation } from '../../api/endpoints'
 import type { AutomationRule } from '../../../shared/types'
 import {
@@ -20,6 +20,7 @@ import {
 
 import { INPUT, CAPTION, CHOICE_SM, CHOICE_ON, CHOICE_OFF } from '../../lib/fieldStyles'
 import CloseButton from '../common/CloseButton'
+import Kbd from '../common/Kbd'
 type Trigger = 'schedule' | 'condition'
 
 export default function AutomationRuleDialog({ editing, startTrigger, member, onSaved, onClose }: {
@@ -198,7 +199,7 @@ export default function AutomationRuleDialog({ editing, startTrigger, member, on
 
         <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-t border-white/5 shrink-0">
           <span className="text-[10px] text-slate-500 hidden sm:inline">
-            Press <kbd className="px-1.5 py-0.5 rounded border border-white/10 bg-white/[0.03] text-[9px] font-mono text-slate-400">Esc</kbd> to close
+            Press <Kbd>Esc</Kbd> to close
           </span>
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <button type="button" onClick={onClose} className={`${BTN_SHEET_QUIET} flex-1 sm:flex-none sm:px-6`}>Cancel</button>

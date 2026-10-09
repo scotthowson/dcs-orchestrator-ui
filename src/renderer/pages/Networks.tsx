@@ -6,11 +6,7 @@
 
 import { useState, useEffect, useMemo, type ReactNode, useCallback, useRef, useId } from 'react'
 import { createPortal } from 'react-dom'
-import {
-  Network, RefreshCw, Plus, Trash2, X, Check,
-  Globe, Lock, AlertCircle, Loader2, Unplug, Plug, Eye,
-  Search, ChevronDown, ChevronUp, Pencil, Tag, Link2,
-} from 'lucide-react'
+import { Network, RefreshCw, Plus, Trash2, X, Check, Globe, Lock, AlertCircle, Loader2, Unplug, Plug, Eye, ChevronDown, ChevronUp, Pencil, Tag, Link2 } from 'lucide-react'
 import { usePolling } from '../hooks/usePolling'
 import {
   fetchNetworks, fetchNetworkDetail,
@@ -38,7 +34,7 @@ import PageHeader from '../components/common/PageHeader'
 import Hint from '../components/common/Hint'
 import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD, BTN_CARD_QUIET, BTN_ICON, BTN_ICON_SM, BTN_SHEET_QUIET, BTN_SHEET_PRIMARY, TONE_QUIET, TONE_OK, TONE_DANGER, TONE_GHOST, TONE_GHOST_DANGER, FOCUS_RING } from '../lib/ui'
 import { CARD, REVEAL } from '../lib/pageKit'
-import { SEARCH_FIELD, INPUT } from '../lib/fieldStyles'
+import { INPUT } from '../lib/fieldStyles'
 import StatTile from '../components/common/StatTile'
 import { Pill } from '../components/common/Pill'
 import SearchInput from '../components/common/SearchInput'
@@ -58,9 +54,6 @@ const CIDR_RE = /^(?:\d{1,3}\.){3}\d{1,3}\/\d{1,2}$|^[0-9a-fA-F:]+\/\d{1,3}$/
 const IP_RE = /^(?:\d{1,3}\.){3}\d{1,3}$|^[0-9a-fA-F:]+$/
 const LABEL_KEY_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/
 const isComposeLabel = (key: string) => key.startsWith('com.docker.compose.')
-/** the round X that closes a dialog */
-const CLOSE_BTN = `${BTN_ICON} text-slate-400 hover:text-slate-200 hover:bg-white/5 ${FOCUS_RING}`
-
 function OptionToggle({ on, onToggle, icon, label, hint }: {
   on: boolean
   onToggle: () => void

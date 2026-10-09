@@ -7,15 +7,14 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Bomb, Loader2, FolderX, Database, ShieldCheck, X, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { Bomb, Loader2, FolderX, Database, ShieldCheck, AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { fetchContainerResetPreviewOn, resetContainerOn } from '../../api/fleetScoped'
 import type { ContainerResetPreview, ContainerResetResponse } from '../../../shared/types'
 import type { RowMember } from '../../../shared/fleetScoped'
 import { useToast } from '../common/Toast'
 import ModalOverlay from '../common/ModalOverlay'
 import Hint from '../common/Hint'
-import { BTN_ICON_SM, BTN_SHEET_DANGER, BTN_SHEET_QUIET, TONE_GHOST } from '../../lib/ui'
-
+import { BTN_SHEET_DANGER, BTN_SHEET_QUIET } from '../../lib/ui'
 import CloseButton from '../common/CloseButton'
 // a folder is named from its stack on (Stacks/<stack>/App-Data/…): the row cuts a long path at its end, which is
 // the part that tells the folders apart; the whole path is the row's title

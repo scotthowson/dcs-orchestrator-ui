@@ -5,9 +5,9 @@
 
 import { useId } from 'react'
 import { createPortal } from 'react-dom'
-import { Plus, Pencil, X, Loader2, CheckCircle } from 'lucide-react'
+import { Plus, Pencil, Loader2, CheckCircle } from 'lucide-react'
 import ModalOverlay from '../common/ModalOverlay'
-import { BTN_ICON_SM, BTN_SHEET_QUIET, BTN_SHEET_PRIMARY, TONE_GHOST } from '../../lib/ui'
+import { BTN_SHEET_QUIET, BTN_SHEET_PRIMARY } from '../../lib/ui'
 import { SCHEDULE_PRESETS, SCHEDULE_ACTIONS, SCHEDULE_ACTION_LABELS, SCHEDULE_TARGET_HINTS, SCHEDULE_STACK_ACTIONS, cronInWords } from './model'
 import { INPUT } from '../../lib/fieldStyles'
 import CloseButton from '../common/CloseButton'

@@ -32,7 +32,6 @@ import { DisconnectedBanner } from '../components/common/DisconnectedBanner'
 import { useToast } from '../components/common/Toast'
 import PageHeader from '../components/common/PageHeader'
 import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD, TONE_OK, TONE_QUIET, TONE_GHOST, TONE_GHOST_DANGER } from '../lib/ui'
-
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -555,7 +554,7 @@ export default function Export() {
             </div>
             <button type="button" onClick={clearHistory} className={`${BTN_CARD} ${TONE_GHOST_DANGER}`}>
               <Trash2 size={12} />
-              Clear history
+              Clear the history
             </button>
           </div>
           <ul className="divide-y divide-white/[0.03]">

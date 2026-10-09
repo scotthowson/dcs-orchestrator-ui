@@ -8,7 +8,7 @@ import { createPortal } from 'react-dom'
 import type { DashboardCard } from '../../../shared/types'
 import { getCardEntry, clampCardSize, CARD_ICONS, H_UNIT, GRID_COLS } from './cardRegistry'
 import Hint from '../common/Hint'
-import { BTN_ICON_SM, BTN_TOOLBAR, BTN_TOOLBAR_QUIET, TONE_DANGER, TONE_GHOST } from '../../lib/ui'
+import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, TONE_DANGER } from '../../lib/ui'
 import { pageLabel } from '../../constants/pageTitles'
 
 // The CSS grid gap (px); the real row pitch is H_UNIT + GRID_GAP

@@ -7,7 +7,7 @@
 // =============================================================================
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { TerminalSquare, Loader2, Check, X, Download, Copy, Trash2, KeyRound, Plus, AlertTriangle } from 'lucide-react'
+import { TerminalSquare, Loader2, Check, X, Download, Trash2, KeyRound, Plus, AlertTriangle } from 'lucide-react'
 import { useToast } from '../common/Toast'
 import { useConfirm } from '../common/ConfirmDialog'
 import { useAuthStore } from '../../stores/authStore'

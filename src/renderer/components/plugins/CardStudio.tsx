@@ -9,7 +9,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import * as Icons from 'lucide-react'
-import { X, LayoutTemplate, Code, Database, Loader2, Play, Save, Trash2, FolderOpen, RefreshCw, Sparkles } from 'lucide-react'
+import { LayoutTemplate, Code, Database, Loader2, Play, Save, Trash2, FolderOpen, RefreshCw, Sparkles } from 'lucide-react'
 import { SegmentedControl } from '@mantine/core'
 import { apiClient } from '../../api/client'
 import { fetchApiCatalogue, fetchPluginCards, fetchCardSource, saveCard, deleteCard } from '../../api/endpoints'
@@ -18,8 +18,7 @@ import { useConfirm } from '../common/ConfirmDialog'
 import { HtmlCardFrame } from '../dashboard/PluginFrame'
 import ModalOverlay from '../common/ModalOverlay'
 import Hint from '../common/Hint'
-import { BTN_CARD, BTN_CARD_QUIET, BTN_ICON_SM, BTN_SHEET_PRIMARY, BTN_SHEET_QUIET, TONE_DANGER, TONE_GHOST } from '../../lib/ui'
-
+import { BTN_CARD, BTN_CARD_QUIET, BTN_SHEET_PRIMARY, BTN_SHEET_QUIET, TONE_DANGER } from '../../lib/ui'
 import CloseButton from '../common/CloseButton'
 type Widget = 'number' | 'gauge' | 'list' | 'badge' | 'text'
 interface DataSpec {

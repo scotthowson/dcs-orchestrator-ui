@@ -11,7 +11,7 @@
 
 import { useState } from 'react'
 import { CheckNowButton, EnrolBox, PAUSED_TEXT, enrolRequested, REFUSED_TEXT, RegisterAgainButton, capiState, lastContact } from './CommunityActions'
-import { AlertTriangle, Check, CircleAlert, CircleCheck, Clock, Copy, Info, KeyRound, Loader2, Plug, Plus, RefreshCw, Server, ShieldCheck, Trash2, Users } from 'lucide-react'
+import { AlertTriangle, Check, Clock, Copy, KeyRound, Loader2, Plug, Plus, RefreshCw, Server, ShieldCheck, Trash2, Users } from 'lucide-react'
 import { usePolling, type UsePollingResult } from '../../hooks/usePolling'
 import { useConnectionStore } from '../../stores/connectionStore'
 import { useToast } from '../common/Toast'

@@ -36,8 +36,7 @@ import { fetchFleetJobs, fetchFleetProvisionDefaults, fetchProxmoxCapabilities }
 import NewVmSheet from '../components/fleet/NewVmSheet'
 import ModalOverlay from '../components/common/ModalOverlay'
 import Hint from '../components/common/Hint'
-import { BTN_TOOLBAR, BTN_CARD_QUIET, BTN_ICON_SM, BTN_SHEET_PRIMARY, TONE_QUIET, TONE_OK, TONE_DANGER, TONE_GHOST } from '../lib/ui'
-
+import { BTN_TOOLBAR, BTN_CARD_QUIET, BTN_SHEET_PRIMARY, TONE_QUIET, TONE_OK, TONE_DANGER } from '../lib/ui'
 import CloseButton from '../components/common/CloseButton'
 // -----------------------------------------------------------------------------
 // Stacks Page

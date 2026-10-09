@@ -6,11 +6,7 @@
 
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { SegmentedControl } from '@mantine/core'
-import {
-  ScrollText, Search, ArrowDownToLine, RefreshCw, FileText,
-  Download, Copy, Check, Filter, X, BarChart3, Archive, ChevronDown,
-  Radio,
-} from 'lucide-react'
+import { ScrollText, ArrowDownToLine, RefreshCw, FileText, Download, Copy, Check, Filter, X, BarChart3, Archive, ChevronDown, Radio } from 'lucide-react'
 import { usePolling } from '../hooks/usePolling'
 import { useFleetScope } from '../hooks/useFleetScope'
 import { fetchLogsOn, fetchLogStatsOn, fetchLogArchivesOn } from '../api/fleetScoped'
@@ -23,11 +19,9 @@ import type { LogsResponse, LogStatsResponse, LogArchivesResponse } from '../../
 import { DisconnectedBanner } from '../components/common/DisconnectedBanner'
 import { ErrorState, EmptyState, LoadingState } from '../components/common/PageState'
 import PageHeader from '../components/common/PageHeader'
-import Hint from '../components/common/Hint'
 import { pageLabel } from '../constants/pageTitles'
-import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD_QUIET, BTN_ICON_SM, TONE_QUIET, TONE_GHOST, FOCUS_RING } from '../lib/ui'
+import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD_QUIET, TONE_QUIET, FOCUS_RING } from '../lib/ui'
 import { CARD } from '../lib/pageKit'
-import { SEARCH_FIELD } from '../lib/fieldStyles'
 import SearchInput from '../components/common/SearchInput'
 // ---------------------------------------------------------------------------
 // Log level config

@@ -49,47 +49,9 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from 'recharts'
-import {
-  ArrowLeft,
-  ArrowRight,
-  Cpu,
-  MemoryStick,
-  Network,
-  HardDrive,
-  Users,
-  Box,
-  Clock,
-  Globe,
-  Variable,
-  Info,
-  Activity,
-  Layers,
-  Play,
-  Square,
-  RotateCw,
-  ScrollText,
-  RefreshCw,
-  Eye,
-  EyeOff,
-  ChevronDown,
-  Search,
-  Lock,
-  Download,
-  Terminal,
-  Loader2,
-  AlertCircle,
-  Pencil,
-  Check,
-  X,
-  Trash2,
-  ExternalLink,
-  FileCode,
-  Plus,
-  Undo2,
-  Moon,
-} from 'lucide-react'
-
+import { ArrowLeft, ArrowRight, Cpu, MemoryStick, Network, HardDrive, Users, Box, Clock, Globe, Variable, Info, Activity, Layers, Play, Square, RotateCw, ScrollText, RefreshCw, Eye, EyeOff, ChevronDown, Lock, Download, Terminal, Loader2, AlertCircle, Pencil, Check, X, Trash2, ExternalLink, FileCode, Plus, Undo2, Moon } from 'lucide-react'
 import SearchInput from '../common/SearchInput'
+import Kbd from '../common/Kbd'
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -890,7 +852,7 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
             <button onClick={onBack} aria-label="Back" className={`${BTN_TOOLBAR_QUIET} flex-shrink-0`}>
               <ArrowLeft size={14} />
               <span className="hidden sm:inline">Back</span>
-              <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono text-slate-500 bg-white/5 border border-white/5 ml-1">Esc</kbd>
+              <Kbd className="hidden sm:inline-flex ml-1">Esc</Kbd>
             </button>
           </Hint>
 
@@ -1107,7 +1069,7 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
           </div>
           <button onClick={retryDetail} className={`${BTN_CARD} ${TONE_DANGER}`}>
             <RefreshCw size={12} />
-            Retry
+            Try again
           </button>
         </div>
       )}

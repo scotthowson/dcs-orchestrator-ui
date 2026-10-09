@@ -5,14 +5,7 @@
 import { useState, useMemo, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { Switch } from '@mantine/core'
-import {
-  Bell, Plus, Trash2, Send, CheckCircle, XCircle,
-  Loader2, AlertTriangle, BookOpen, X,
-  Clock, Shield, Cpu, HardDrive, Box, Layers, Package,
-  Webhook, ExternalLink, Zap, ChevronDown, Play, Power,
-  HeartPulse, Archive, Rocket, RefreshCw,
-  MessageCircle,
-} from 'lucide-react'
+import { Bell, Plus, Trash2, Send, CheckCircle, XCircle, Loader2, AlertTriangle, BookOpen, Clock, Shield, Cpu, HardDrive, Box, Layers, Package, Webhook, ExternalLink, Zap, ChevronDown, Play, Power, HeartPulse, Archive, Rocket, RefreshCw, MessageCircle } from 'lucide-react'
 import { usePolling } from '../hooks/usePolling'
 import { useConnectionStore } from '../stores/connectionStore'
 import { useSettingsStore } from '../stores/settingsStore'
@@ -23,7 +16,7 @@ import { DisconnectedBanner } from '../components/common/DisconnectedBanner'
 import PageHeader from '../components/common/PageHeader'
 import Hint from '../components/common/Hint'
 import { pageLabel } from '../constants/pageTitles'
-import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD_QUIET, BTN_ICON, BTN_ICON_SM, BTN_SHEET_QUIET, BTN_SHEET_PRIMARY, TONE_OK, TONE_GHOST, TONE_GHOST_DANGER, FOCUS_RING } from '../lib/ui'
+import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD_QUIET, BTN_ICON, BTN_SHEET_QUIET, BTN_SHEET_PRIMARY, TONE_OK, TONE_GHOST_DANGER, FOCUS_RING } from '../lib/ui'
 import { INPUT, CAPTION as LABEL } from '../lib/fieldStyles'
 import {
   fetchNotificationRules,

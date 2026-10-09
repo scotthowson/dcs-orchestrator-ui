@@ -3,11 +3,7 @@
 // =============================================================================
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import {
-  Pause, Search, Download, Trash2, X,
-  ArrowDown, Filter, RefreshCw,
-  AlertTriangle, AlertCircle, Info, Bug,
-} from 'lucide-react'
+import { Pause, Download, Trash2, ArrowDown, Filter, RefreshCw, AlertTriangle, AlertCircle, Info, Bug } from 'lucide-react'
 import { fetchContainerLogsLiveOn, fetchAppLogsLiveOn } from '../../api/fleetScoped'
 import { useConnectionStore } from '../../stores/connectionStore'
 import { LoadingState, EmptyState } from '../common/PageState'

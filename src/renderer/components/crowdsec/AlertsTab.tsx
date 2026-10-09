@@ -6,7 +6,7 @@
 // =============================================================================
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Search, X, ChevronDown, ChevronRight, RefreshCw, Info, BellOff, FlaskConical, Loader2, AlertTriangle } from 'lucide-react'
+import { X, ChevronRight, RefreshCw, Info, BellOff, FlaskConical, Loader2, AlertTriangle } from 'lucide-react'
 import { usePolling } from '../../hooks/usePolling'
 import { useConnectionStore } from '../../stores/connectionStore'
 import { crowdsecAlerts } from '../../api/endpoints'
@@ -14,8 +14,7 @@ import type { CrowdSecAlert, CrowdSecFacet } from '../../../shared/types'
 import { Country, countryName, fmtAgo, fmtNum, fmtTime, looksLikeTarget, useCs, useDebounced, useNow, Ago, FilterSelect } from './kit'
 import { AlertSheet, outcomeOf, plural, sourceOf } from './AlertSheet'
 
-import { BTN_ICON_QUIET, BTN_TOOLBAR_QUIET } from '../../lib/ui'
-import { INPUT } from '../../lib/fieldStyles'
+import { BTN_ICON_QUIET, BTN_TOOLBAR_QUIET, BTN_CARD, TONE_GHOST } from '../../lib/ui'
 import { CARD } from '../../lib/pageKit'
 import { Pill } from '../common/Pill'
 import { SkeletonBlock } from '../common/PageState'
@@ -198,7 +197,7 @@ export default function AlertsTab({ seedSearch }: { seedSearch?: string }) {
         <label className="inline-flex items-center gap-2 text-xs text-slate-500 cursor-pointer select-none h-9 px-1 col-span-2 sm:col-span-1" title="Simulated detections only raise an alert: nothing is banned">
           <input type="checkbox" checked={f.hideSim} onChange={(e) => patch({ hideSim: e.target.checked })} className="accent-emerald-500" /> Hide simulated
         </label>
-        {filtered && <button type="button" onClick={clearFilters} className="text-xs text-cyan-400 hover:text-cyan-300 inline-flex items-center gap-1 h-9"><X size={12} /> Clear filters</button>}
+        {filtered && <button type="button" onClick={clearFilters} className={`${BTN_CARD} ${TONE_GHOST}`}><X size={12} /> Clear the filters</button>}
       </div>
       {(f.scenario || f.country) && (
         <div className="flex items-center gap-2 flex-wrap" aria-label="Active filters">
@@ -241,7 +240,7 @@ export default function AlertsTab({ seedSearch }: { seedSearch?: string }) {
               : 'That is the normal state of a well-behaved server, not a fault. When CrowdSec catches a scanner or a brute-forcer it is listed here, with what it did and whether the address is banned.'}
           </p>
           <div className="mt-4 flex items-center justify-center gap-2 flex-wrap">
-            {filtered && <button type="button" onClick={clearFilters} className={BTN_TOOLBAR_QUIET}><X size={14} /> Clear filters</button>}
+            {filtered && <button type="button" onClick={clearFilters} className={BTN_TOOLBAR_QUIET}><X size={14} /> Clear the filters</button>}
             {win !== '30d' && <button type="button" onClick={() => setWin(win === '7d' ? '30d' : '7d')} className={BTN_TOOLBAR_QUIET}>Look at {win === '7d' ? 'the last 30 days' : 'the last 7 days'}</button>}
           </div>
         </div>

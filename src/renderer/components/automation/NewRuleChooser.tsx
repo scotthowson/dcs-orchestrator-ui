@@ -5,10 +5,8 @@
 // =============================================================================
 
 import { createPortal } from 'react-dom'
-import { CalendarClock, Radar, X, ChevronRight, Code2 } from 'lucide-react'
+import { CalendarClock, Radar, ChevronRight, Code2 } from 'lucide-react'
 import ModalOverlay from '../common/ModalOverlay'
-import { BTN_ICON_SM, TONE_GHOST } from '../../lib/ui'
-
 import CloseButton from '../common/CloseButton'
 export type NewRuleChoice = 'timed' | 'condition' | 'cron'
 

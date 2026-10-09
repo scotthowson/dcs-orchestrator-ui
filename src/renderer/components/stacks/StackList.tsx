@@ -6,11 +6,7 @@
 import { useState, useMemo, useCallback, useEffect, useLayoutEffect, useRef, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { SegmentedControl } from '@mantine/core'
-import {
-  Search, Layers, Filter, Plus, Play, Square,
-  ArrowUpDown, X, Loader2, AlertTriangle, Sparkles,
-  Trash2, ListChecks, Server, Home, ChevronDown,
-} from 'lucide-react'
+import { Layers, Filter, Plus, Play, Square, ArrowUpDown, X, Loader2, AlertTriangle, Sparkles, Trash2, ListChecks, Server, Home, ChevronDown } from 'lucide-react'
 import { useStackStore } from '../../stores/stackStore'
 import { useContainerStore } from '../../stores/containerStore'
 import { useSettingsStore } from '../../stores/settingsStore'
@@ -25,8 +21,7 @@ import PageHeader from '../common/PageHeader'
 import Hint from '../common/Hint'
 import { useConfirm } from '../common/ConfirmDialog'
 import { pageLabel } from '../../constants/pageTitles'
-import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_SHEET_QUIET, BTN_SHEET_DANGER, BTN_ICON_SM, TONE_QUIET, TONE_OK, TONE_DANGER, TONE_GHOST } from '../../lib/ui'
-
+import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_SHEET_QUIET, BTN_SHEET_DANGER, TONE_QUIET, TONE_OK, TONE_DANGER } from '../../lib/ui'
 import SearchInput from '../common/SearchInput'
 import CloseButton from '../common/CloseButton'
 interface Props {

@@ -4,7 +4,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Crosshair, Settings2, X, Check, Search } from 'lucide-react'
+import { Crosshair, Settings2, Check } from 'lucide-react'
 import { useContainerStore } from '../../stores/containerStore'
 import { useSettingsStore } from '../../stores/settingsStore'
 import Hint from '../common/Hint'

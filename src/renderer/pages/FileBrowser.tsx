@@ -6,11 +6,7 @@
 // =============================================================================
 
 import { useState, useCallback, useEffect, useMemo, useRef, useId } from 'react'
-import {
-  FolderOpen, FileText, Link, Folder, ChevronRight,
-  Loader2, WifiOff, AlertTriangle, X, ArrowUp,
-  RefreshCw, Search, Box, Download, Info,
-} from 'lucide-react'
+import { FolderOpen, FileText, Link, Folder, ChevronRight, Loader2, WifiOff, AlertTriangle, ArrowUp, RefreshCw, Search, Box, Download, Info } from 'lucide-react'
 import { createPortal } from 'react-dom'
 import { useConnectionStore } from '../stores/connectionStore'
 import { DisconnectedBanner } from '../components/common/DisconnectedBanner'
@@ -31,7 +27,7 @@ import type {
 import { LoadingState, ErrorState, EmptyState } from '../components/common/PageState'
 import ModalOverlay from '../components/common/ModalOverlay'
 import PageHeader from '../components/common/PageHeader'
-import { BTN_TOOLBAR_QUIET, BTN_CARD_QUIET, BTN_ICON, FOCUS_RING } from '../lib/ui'
+import { BTN_TOOLBAR_QUIET, BTN_CARD_QUIET, FOCUS_RING } from '../lib/ui'
 import { CARD } from '../lib/pageKit'
 import { INPUT } from '../lib/fieldStyles'
 import CloseButton from '../components/common/CloseButton'
@@ -436,7 +432,7 @@ export default function FileBrowser() {
         {containersError && (
           <div role="alert" className="mt-2 flex items-center justify-between gap-2 text-xs text-rose-300">
             <span className="flex items-center gap-1.5 min-w-0"><AlertTriangle size={12} className="shrink-0" aria-hidden /><span className="truncate">Could not list the containers{whereLabel ? ` on ${whereLabel}` : ''}: {containersError}</span></span>
-            <button type="button" onClick={loadContainers} className={`${BTN_CARD_QUIET} ${FOCUS_RING}`}>Retry</button>
+            <button type="button" onClick={loadContainers} className={`${BTN_CARD_QUIET} ${FOCUS_RING}`}>Try again</button>
           </div>
         )}
       </div>

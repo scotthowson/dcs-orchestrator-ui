@@ -8,10 +8,7 @@
 
 import { Fragment, useState, useMemo, useCallback, useEffect, useId, useRef } from 'react'
 import { SegmentedControl } from '@mantine/core'
-import {
-  CalendarClock, Clock, Terminal, User, Server, Plus, Trash2, Edit3, Save, X, Search, FileText,
-  AlertTriangle, Loader2, ChevronDown, ChevronRight, Copy, Check,
-} from 'lucide-react'
+import { CalendarClock, Clock, Terminal, User, Server, Plus, Trash2, Edit3, Save, FileText, AlertTriangle, Loader2, ChevronDown, ChevronRight, Copy, Check } from 'lucide-react'
 import { createPortal } from 'react-dom'
 import { usePolling } from '../../hooks/usePolling'
 import { fetchCrontab, fetchSystemCrontab, updateCrontab } from '../../api/endpoints'
@@ -29,6 +26,7 @@ import { Pill } from '../common/Pill'
 import { type Tone } from '../../lib/tone'
 import SearchInput from '../common/SearchInput'
 import CloseButton from '../common/CloseButton'
+import Kbd from '../common/Kbd'
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
@@ -544,7 +542,7 @@ export default function ServerCrontab({ refreshKey, serverName }: {
             {/* Footer */}
             <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-t border-white/5">
               <span className="text-[10px] text-slate-500 hidden sm:inline">
-                Press <kbd className="px-1.5 py-0.5 rounded border border-white/10 bg-white/[0.03] text-[9px] font-mono text-slate-400">Esc</kbd> to close
+                Press <Kbd>Esc</Kbd> to close
               </span>
               <div className="flex items-center gap-2 w-full sm:w-auto">
                 <button type="button" onClick={() => setShowRawEditor(false)} className={`${BTN_SHEET_QUIET} flex-1 sm:flex-none`}>
