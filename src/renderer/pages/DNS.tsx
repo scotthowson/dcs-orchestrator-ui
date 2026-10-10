@@ -32,6 +32,8 @@ import {
   Lock,
   Route,
   ShieldOff,
+  Construction,
+  MessageSquareText,
 } from 'lucide-react'
 import { createPortal } from 'react-dom'
 import { usePolling } from '../hooks/usePolling'
@@ -55,7 +57,12 @@ import { LoadingState, EmptyState, ErrorState } from '../components/common/PageS
 import {
   fetchRoutes, fetchDnsRecords, fetchDnsStatus, fetchDnsZones, checkSubdomain, updateRoute, deleteRoute, fetchRouteCertificates,
   fetchTraefikStatus, createDnsRecord, updateDnsRecord, deleteDnsRecord, syncDnsRecords, fetchDomains,
+  fetchRoutesMaintenance, setRouteMaintenance,
 } from '../api/endpoints'
+import { Toggle } from '../components/common/Toggle'
+import Sheet from '../components/common/Sheet'
+import { useConfirm } from '../components/common/ConfirmDialog'
+import { LABEL, INPUT, HINT } from '../lib/fieldStyles'
 import type { RouteEntry, DnsRecord, DnsRecordInput, DnsZone } from '../../shared/types'
 import ModalOverlay from '../components/common/ModalOverlay'
 import DomainsPanel from '../components/dns/DomainsPanel'
@@ -462,6 +469,9 @@ export default function DNS() {
   const [busyRecord, setBusyRecord] = useState<string | null>(null)
   const [syncing, setSyncing] = useState(false)
   const [creatingFor, setCreatingFor] = useState<string | null>(null)
+  const [maintBusy, setMaintBusy] = useState<string | null>(null)
+  const [maintSheet, setMaintSheet] = useState<RouteEntry | null>(null)
+  const confirm = useConfirm()
 
   // ---- Derived ----
   const filteredRoutes = useMemo(() => {
@@ -539,6 +549,27 @@ export default function DNS() {
       setSaving(false)
     }
   }, [editValue, domain, addToast, refreshAll])
+
+  // the hub writes the maintenance router for a VM's route too (its Traefik fronts every route): always the hub's endpoint
+  const handleMaintenance = useCallback(async (route: RouteEntry, on: boolean, message?: string) => {
+    if (on && !route.maintenance && !(await confirm({
+      title: `Put ${route.subdomain} in maintenance?`,
+      message: 'Visitors see a "back soon" page (HTTP 503) instead of the app until you turn it off. The app itself keeps running.',
+      confirmLabel: 'Turn on maintenance',
+    }))) return
+    setMaintBusy(route.subdomain)
+    try {
+      await setRouteMaintenance(route.subdomain, on, message)
+      addToast({ type: 'success', message: message !== undefined ? `Maintenance message saved for ${route.subdomain}` : on ? `${route.subdomain} shows the maintenance page` : `${route.subdomain} is back to its app` })
+      await refreshRoutes()
+      return true
+    } catch (err) {
+      addToast({ type: 'error', message: err instanceof Error ? err.message : 'Failed to change maintenance mode' })
+      return false
+    } finally {
+      setMaintBusy(null)
+    }
+  }, [addToast, confirm, refreshRoutes])
 
   const handleDeleteRoute = useCallback(async (route: RouteEntry) => {
     setDeleting(true)
@@ -735,6 +766,7 @@ export default function DNS() {
           onRenameStart={handleRenameStart} onRenameSave={handleRenameSave} onRenameCancel={() => setEditingRoute(null)} onCheckSubdomain={handleCheckSubdomain}
           onDelete={setDeletingRoute} recordByName={recordByName} missingByFqdn={missingByFqdn} creatingFor={creatingFor} onCreateRecord={handleCreateForRoute}
           setSubdomainAvailable={setSubdomainAvailable}
+          maintBusy={maintBusy} onMaintenance={(r, on) => { void handleMaintenance(r, on) }} onMaintenanceMessage={setMaintSheet}
         />
       ) : (
         <RecordsPanel
@@ -744,6 +776,10 @@ export default function DNS() {
           onSync={handleSync} onAdd={() => setRecordModal({ open: true, record: null })} onEdit={(r) => setRecordModal({ open: true, record: r })}
           onDelete={setDeletingRecord} onToggleProxy={handleToggleProxy} searchQuery={searchQuery}
         />
+      )}
+      {maintSheet && (
+        <MaintenanceSheet route={maintSheet} busy={maintBusy === maintSheet.subdomain} onClose={() => setMaintSheet(null)}
+          onSave={async (message) => { if (await handleMaintenance(maintSheet, !!maintSheet.maintenance, message)) setMaintSheet(null) }} />
       )}
     </div>
   )
@@ -846,9 +882,11 @@ function RoutesPanel(props: {
   checkingSubdomain: boolean; subdomainAvailable: boolean | null; setSubdomainAvailable: (v: boolean | null) => void
   onRenameStart: (r: RouteEntry) => void; onRenameSave: (r: RouteEntry) => void; onRenameCancel: () => void; onCheckSubdomain: (s: string) => void
   onDelete: (r: RouteEntry) => void; recordByName: Map<string, DnsRecord>; missingByFqdn: Set<string>; creatingFor: string | null; onCreateRecord: (fqdn: string) => void
+  maintBusy: string | null; onMaintenance: (r: RouteEntry, on: boolean) => void; onMaintenanceMessage: (r: RouteEntry) => void
 }) {
   const { domain, routes, filteredRoutes, routesByStack, loading, error, onRetry, searchQuery, isAdmin, cfConfigured, editingRoute, editValue, setEditValue, saving,
-    checkingSubdomain, subdomainAvailable, setSubdomainAvailable, onRenameStart, onRenameSave, onRenameCancel, onCheckSubdomain, onDelete, recordByName, missingByFqdn, creatingFor, onCreateRecord } = props
+    checkingSubdomain, subdomainAvailable, setSubdomainAvailable, onRenameStart, onRenameSave, onRenameCancel, onCheckSubdomain, onDelete, recordByName, missingByFqdn, creatingFor, onCreateRecord,
+    maintBusy, onMaintenance, onMaintenanceMessage } = props
   const setCurrentPage = useSettingsStore.getState().setCurrentPage
 
   return (
@@ -915,6 +953,7 @@ function RoutesPanel(props: {
                           <span className="text-sm font-mono text-cyan-400 truncate max-w-full" title={route.subdomain}>{under ? route.subdomain.slice(0, -(domain.length + 1)) : route.subdomain}</span>
                           {under && <span className="text-[10px] text-slate-600 font-mono shrink-0">.{domain}</span>}
                           {(route as FleetRoute).member && <VmCapsule member={(route as FleetRoute).member} name={(route as FleetRoute).member_name} vmid={(route as FleetRoute).vmid} size="xs" />}
+                          {route.maintenance && <Pill tone="attention" icon={<Construction size={10} />} title="Visitors see the maintenance page (HTTP 503) instead of the app">Maintenance</Pill>}
                           {route.conflict && <Pill tone="problem" icon={<AlertTriangle size={10} />} title="Two routes claim this subdomain">conflict</Pill>}
                           {route.crowdsec === 'bypass' && <Pill tone="attention" icon={<ShieldOff size={10} />} title="CrowdSec's bouncer never checks this route: it does not use Traefik's traefik-chain, so an address CrowdSec has banned can still reach it.">unprotected</Pill>}
                           {cfConfigured && rec && (
@@ -928,7 +967,16 @@ function RoutesPanel(props: {
                     <ArrowRight size={12} className="text-slate-700 shrink-0" aria-hidden />
                     <span className="text-xs text-slate-300 font-medium truncate min-w-0 sm:w-24 sm:shrink-0" title={route.service}>{route.service}</span>
                     <span className="text-[10px] text-slate-500 font-mono truncate hidden lg:block w-[180px] shrink-0" title={route.target}>{route.target}</span>
-                    <div className="ml-auto flex items-center gap-1 shrink-0 opacity-100 sm:opacity-0 sm:group-hover/row:opacity-100 focus-within:opacity-100 transition-opacity">
+                    {isAdmin && (
+                      <Hint label={route.maintenance ? 'Maintenance is on: turn it off to show the app again' : 'Maintenance: show a "back soon" page instead of the app'}>
+                        <span className="ml-auto flex items-center shrink-0">
+                          {maintBusy === route.subdomain
+                            ? <Loader2 size={14} className="animate-spin text-slate-500 mx-4" aria-label="Saving" />
+                            : <Toggle checked={!!route.maintenance} onChange={(on) => onMaintenance(route, on)} label={`Maintenance for ${route.subdomain}`} disabled={!!maintBusy} />}
+                        </span>
+                      </Hint>
+                    )}
+                    <div className={`${isAdmin ? '' : 'ml-auto '}flex items-center gap-1 shrink-0 opacity-100 sm:opacity-0 sm:group-hover/row:opacity-100 focus-within:opacity-100 transition-opacity`}>
                       {isAdmin && missing && !isEditing && (
                         <Hint label="Create a proxied CNAME pointing at the domain">
                           <button type="button" onClick={() => onCreateRecord(route.subdomain)} disabled={creatingFor === route.subdomain} className={`${BTN_CARD} ${TONE_OK}`}>
@@ -938,6 +986,7 @@ function RoutesPanel(props: {
                       )}
                       {isAdmin && !isEditing && (
                         <>
+                          <Hint label="Maintenance message"><button type="button" aria-label={`Edit the maintenance message of ${route.subdomain}`} onClick={() => onMaintenanceMessage(route)} className={`${BTN_ICON_SM} text-slate-500 hover:text-slate-200 hover:bg-white/10`}><MessageSquareText size={12} /></button></Hint>
                           <Hint label="Rename the subdomain"><button type="button" aria-label={`Rename the subdomain of ${route.service}`} onClick={() => onRenameStart(route)} className={`${BTN_ICON_SM} text-slate-500 hover:text-slate-200 hover:bg-white/10`}><Pencil size={12} /></button></Hint>
                           <Hint label="Delete the route"><button type="button" aria-label={`Delete the route of ${route.service}`} onClick={() => onDelete(route)} className={`${BTN_ICON_SM} text-slate-500 hover:text-rose-300 hover:bg-rose-500/10`}><Trash2 size={12} /></button></Hint>
                         </>
@@ -1103,5 +1152,32 @@ function RecordsPanel(props: {
         </div>
       )}
     </div>
+  )
+}
+
+/** The maintenance page's message for one route: what the visitors read under "<name> is back soon" */
+function MaintenanceSheet({ route, busy, onClose, onSave }: { route: RouteEntry; busy: boolean; onClose: () => void; onSave: (message: string) => void }) {
+  const [message, setMessage] = useState<string | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const id = useId()
+  useEffect(() => {
+    fetchRoutesMaintenance()
+      .then((r) => setMessage(r.routes?.[route.subdomain]?.message ?? ''))
+      .catch((err) => { setLoadError(err instanceof Error ? err.message : 'The message could not be read'); setMessage('') })
+  }, [route.subdomain])
+  return (
+    <Sheet
+      title="Maintenance message" tone="attention" icon={<Construction size={18} />} onClose={onClose}
+      subtitle={<>{route.subdomain} · maintenance is {route.maintenance ? 'on' : 'off'}</>}
+      footer={<div className="flex justify-end gap-2">
+        <button type="button" onClick={onClose} className={BTN_SHEET_QUIET}>Cancel</button>
+        <button type="button" onClick={() => onSave(message ?? '')} disabled={busy || message === null} className={BTN_SHEET_PRIMARY}>{busy ? <Loader2 size={16} className="animate-spin" /> : null} Save</button>
+      </div>}
+    >
+      <label htmlFor={id} className={LABEL}>Message</label>
+      <textarea id={id} rows={4} maxLength={500} value={message ?? ''} disabled={message === null} onChange={(e) => setMessage(e.target.value)}
+        placeholder="We are doing some work on it. Please try again in a few minutes." className={`${INPUT} resize-y`} />
+      <p className={HINT}>{loadError ? `${loadError}. ` : ''}Shown under "{route.service} is back soon" while maintenance is on. Leave it empty for the default line.</p>
+    </Sheet>
   )
 }
