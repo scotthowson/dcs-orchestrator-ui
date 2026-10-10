@@ -13,7 +13,7 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { SegmentedControl, Tooltip } from '@mantine/core'
-import { RotateCcw, Server, Cpu, MemoryStick, HardDrive, Clock, Play, Power, Square, RotateCw, Zap, Pause, PlayCircle, RefreshCw, AlertTriangle, Settings2, ShieldCheck, Boxes, Box, Tag, ListChecks, X, Loader2, Satellite, Link2, KeyRound, Radar, Rocket, MoreHorizontal, PlugZap, Pencil, Trash2, Layers, ExternalLink, Home, Info, LayoutGrid, LayoutList, Hammer, LayoutDashboard, ChevronDown, ChevronUp, FolderSync, FolderInput, TerminalSquare, Globe, Moon } from 'lucide-react'
+import { RotateCcw, Server, Cpu, MemoryStick, HardDrive, Clock, Play, Power, Square, RotateCw, Zap, Pause, PlayCircle, RefreshCw, AlertTriangle, Settings2, ShieldCheck, Boxes, Box, Tag, ListChecks, X, Loader2, Satellite, Link2, KeyRound, Radar, Rocket, MoreHorizontal, PlugZap, Pencil, Trash2, Layers, ExternalLink, Home, Info, LayoutGrid, LayoutList, Hammer, LayoutDashboard, ChevronDown, ChevronUp, FolderSync, FolderInput, TerminalSquare, Globe, Moon, Camera } from 'lucide-react'
 import { usePolling } from '../hooks/usePolling'
 import { pollKeys } from '../api/pollKeys'
 import { useAuthStore } from '../stores/authStore'
@@ -40,6 +40,7 @@ import NewVmSheet, { CapabilityNote, settingsFromDefaults, loadVmSettings, osLab
 import VmCapsule from '../components/fleet/VmCapsule'
 import HostFoldersSheet from '../components/fleet/HostFoldersSheet'
 import SshAccessSheet from '../components/fleet/SshAccessSheet'
+import { SnapshotsPanel, TakeSnapshotSheet } from '../components/fleet/VmSnapshots'
 import PageHeader from '../components/common/PageHeader'
 import { pageLabel } from '../constants/pageTitles'
 import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, BTN_CARD, BTN_CARD_QUIET, BTN_ICON, BTN_ICON_SM, BTN_ICON_QUIET, BTN_ICON_SM_QUIET, BTN_SHEET, BTN_SHEET_QUIET, BTN_SHEET_PRIMARY, BTN_SHEET_DANGER, TONE_QUIET, TONE_OK, TONE_DANGER, TONE_GHOST, TONE_GHOST_OK, TONE_GHOST_DANGER, TONE_ATTN } from '../lib/ui'
@@ -613,6 +614,8 @@ interface VmRowProps {
   onLink: (p: MemberSheetPrefill) => void
   onMemberMenu: (m: FleetMemberBase) => void
   onDetails: (vm: ProxmoxVm) => void
+  /** take a snapshot of this guest (the sheet that asks for its name) */
+  onSnapshot: (vm: ProxmoxVm) => void
   /** open the stack on the Stacks page (edit: straight into its compose) */
   onOpen: (stack: string, edit: boolean) => void
   /** the table shows its Node column only where there is more than one node to tell apart */
@@ -701,7 +704,7 @@ function ContainersBlock({ vm, member, live, isAdmin, busyKey, expanded, onToggl
 // (e) the containers (a member only; folded to one line), (f) the actions on the bottom edge. The grid stretches
 // the cards of a row to the tallest, so the actions line up.
 function VmCard(p: VmRowProps) {
-  const { vm, isAdmin, isHub, member, live, scan, busyKey, pveUrl, expanded, onToggleExpand, onAction, onStackAction, onDeploy, onFolders, onSsh, onLink, onMemberMenu, onDetails, onOpen } = p
+  const { vm, isAdmin, isHub, member, live, scan, busyKey, pveUrl, expanded, onToggleExpand, onAction, onStackAction, onDeploy, onFolders, onSsh, onLink, onMemberMenu, onDetails, onSnapshot, onOpen } = p
   const acts = actionsFor(vm)
   const running = vm.status === 'running'
   return (
@@ -752,6 +755,7 @@ function VmCard(p: VmRowProps) {
         {member && isAdmin && <Hint label="Deploy a template into this VM"><button type="button" onClick={() => onDeploy(member)} aria-label="Deploy a template into this VM" className={`${BTN_ICON} ${TONE_OK}`}><Rocket size={14} /></button></Hint>}
         {member && isAdmin && isHub && vm.type === 'qemu' && <Hint label="Host folders: give this VM a folder of the Proxmox host (media for Jellyfin, Sonarr, Radarr)"><button type="button" onClick={() => onFolders(member)} aria-label={`Host folders of ${member.name}`} className={BTN_ICON_QUIET}><FolderInput size={14} /></button></Hint>}
         {member && isAdmin && isHub && vm.type === 'qemu' && <Hint label="SSH: a key of your own for this VM"><button type="button" onClick={() => onSsh(member)} aria-label={`SSH into ${member.name}`} className={BTN_ICON_QUIET}><TerminalSquare size={14} /></button></Hint>}
+        {isAdmin && <Hint label="Take a snapshot (the list is in the details)"><button type="button" onClick={() => onSnapshot(vm)} aria-label={`Snapshot ${vm.name}`} className={BTN_ICON_QUIET}><Camera size={14} /></button></Hint>}
         {/* the two outbound links stay in the details sheet on a phone, where the row would wrap */}
         {member && member.identity?.dashboard !== false && <Hint label="Its own dashboard (port 3000)"><a aria-label="Its own dashboard (port 3000)" href={member.url.replace(/:\d+$/, ':3000')} target="_blank" rel="noreferrer" className={`${BTN_ICON_QUIET} hidden sm:flex`}><LayoutDashboard size={14} /></a></Hint>}
         {pveUrl && <Hint label="Open in Proxmox"><a aria-label="Open in Proxmox" href={proxmoxLink(pveUrl, vm)} target="_blank" rel="noreferrer" className={`${BTN_ICON_QUIET} hidden sm:flex`}><ExternalLink size={14} /></a></Hint>}
@@ -798,7 +802,7 @@ function MiniMeter({ pct, text, note, hostView, onHostView }: { pct: number; tex
 }
 
 function VmTableRow(p: VmRowProps) {
-  const { vm, isAdmin, isHub, member, live, scan, pveUrl, onAction, onDeploy, onFolders, onSsh, onLink, onMemberMenu, onDetails, showNode = true } = p
+  const { vm, isAdmin, isHub, member, live, scan, pveUrl, onAction, onDeploy, onFolders, onSsh, onLink, onMemberMenu, onDetails, onSnapshot, showNode = true } = p
   const acts = actionsFor(vm)
   const running = vm.status === 'running'
   const th = 'px-3 py-2 align-middle'
@@ -835,6 +839,7 @@ function VmTableRow(p: VmRowProps) {
           {member && isAdmin && <Hint label="Deploy a template into this VM"><button aria-label="Deploy a template into this VM" type="button" onClick={() => onDeploy(member)} className={`${BTN_ICON_SM} ${TONE_OK}`}><Rocket size={12} /></button></Hint>}
           {member && isAdmin && isHub && vm.type === 'qemu' && <Hint label="Host folders: give this VM a folder of the Proxmox host"><button aria-label={`Host folders of ${member.name}`} type="button" onClick={() => onFolders(member)} className={BTN_ICON_SM_QUIET}><FolderInput size={12} /></button></Hint>}
           {member && isAdmin && isHub && vm.type === 'qemu' && <Hint label="SSH: a key of your own for this VM"><button aria-label={`SSH into ${member.name}`} type="button" onClick={() => onSsh(member)} className={BTN_ICON_SM_QUIET}><TerminalSquare size={12} /></button></Hint>}
+          {isAdmin && <Hint label="Take a snapshot (the list is in the details)"><button aria-label={`Snapshot ${vm.name}`} type="button" onClick={() => onSnapshot(vm)} className={BTN_ICON_SM_QUIET}><Camera size={12} /></button></Hint>}
           {pveUrl && <Hint label="Open in Proxmox"><a aria-label="Open in Proxmox" href={proxmoxLink(pveUrl, vm)} target="_blank" rel="noreferrer" className={BTN_ICON_SM_QUIET}><ExternalLink size={12} /></a></Hint>}
           <Hint label="Details, memory and ballooning"><button aria-label="Details" type="button" onClick={() => onDetails(vm)} className={BTN_ICON_SM_QUIET}><Info size={12} /></button></Hint>
           {member && isAdmin && <Hint label={`Manage ${member.name}`}><button aria-label={`Manage ${member.name}`} type="button" onClick={() => onMemberMenu(member)} className={BTN_ICON_SM_QUIET}><MoreHorizontal size={12} /></button></Hint>}
@@ -872,10 +877,13 @@ function Tile({ label, value, note }: { label: string; value: ReactNode; note?: 
 }
 
 /** A guest's details: live load, memory with its balloon state, the configuration, the DCS inside, the power actions */
-function VmSheet({ vm, member, live, isAdmin, busyKey, pveUrl, refreshTick = 0, onClose, onAction, onStackAction, onOpen, onChanged, onPaused }: {
+function VmSheet({ vm, member, live, isAdmin, busyKey, pveUrl, refreshTick = 0, snapTick = 0, onClose, onAction, onStackAction, onOpen, onChanged, onPaused, onSnapshot }: {
   vm: ProxmoxVm; member?: FleetMemberBase; live?: FleetMemberLive; isAdmin: boolean; busyKey: string; pveUrl: string
   /** bumped by the page after a power action went through: the sheet reads the guest again right away instead of at its next poll */
   refreshTick?: number
+  /** bumped by the page after a snapshot was taken: the Snapshots section reads its list again */
+  snapTick?: number
+  onSnapshot: (vm: ProxmoxVm) => void
   onClose: () => void; onAction: (vm: ProxmoxVm, a: ProxmoxVmAction) => void; onStackAction: (m: FleetMemberBase, stack: string, a: StackAct) => void; onOpen: (stack: string, edit: boolean) => void; onChanged: () => void
   /** Proxmox's list keeps "running" for a paused VM; the sheet reads the QEMU state and tells the page, so the card shows it while the sheet is open */
   onPaused: (key: string, paused: boolean) => void
@@ -973,6 +981,7 @@ function VmSheet({ vm, member, live, isAdmin, busyKey, pveUrl, refreshTick = 0, 
 
         {isAdmin && vm.type === 'qemu' && <VmDomainPanel vmid={vm.vmid} onDone={onChanged} />}
         {isAdmin && d && <ResizePanel vm={vm} running={running} cores={d.config.cores ?? d.cpus ?? 1} memoryMb={Number(String(d.config.memory ?? Math.round(maxmem / 1048576)).split(',')[0]) || 0} diskBytes={d.maxdisk ?? vm.maxdisk} onDone={() => { detail.refresh(); onChanged() }} />}
+        <SnapshotsPanel key={snapTick} vm={shown} member={member} isAdmin={isAdmin} onTake={() => onSnapshot(shown)} onChanged={() => { detail.refresh(); onChanged() }} />
         {detail.error && !d && <p className="text-xs text-rose-300">{detail.error.message}</p>}
         {facts.length > 0 && (
           <dl className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 text-[11px]">
@@ -1082,7 +1091,7 @@ function ResizePanel({ vm, running, cores, memoryMb, diskBytes, onDone }: { vm: 
   )
 }
 
-function MemberMenuSheet({ member, vms, onClose, onEdit, onChanged }: { member: FleetMemberBase; vms: ProxmoxVm[]; onClose: () => void; onEdit: () => void; onChanged: () => void }) {
+function MemberMenuSheet({ member, vms, onClose, onEdit, onChanged, onSnapshot }: { member: FleetMemberBase; vms: ProxmoxVm[]; onClose: () => void; onEdit: () => void; onChanged: () => void; onSnapshot: (vm: ProxmoxVm) => void }) {
   const { addToast } = useToast()
   const confirm = useConfirm()
   const [busy, setBusy] = useState<'test' | 'sync' | 'relink' | 'remove' | ''>('')
@@ -1144,6 +1153,7 @@ function MemberMenuSheet({ member, vms, onClose, onEdit, onChanged }: { member: 
         <button type="button" onClick={sync} disabled={!!busy} className={`${BTN_SHEET} ${TONE_QUIET} w-full`}>{busy === 'sync' ? <Loader2 size={16} className="animate-spin" /> : <FolderSync size={16} />} Sync stack files from the VM</button>
         <button type="button" onClick={() => void relink()} disabled={!!busy} className={`${BTN_SHEET} ${TONE_QUIET} w-full`}>{busy === 'relink' ? <Loader2 size={16} className="animate-spin" /> : <Link2 size={16} />} Relink to the hub (password lost, or "rate limiting login")</button>
         <button type="button" onClick={onEdit} disabled={!!busy} className={`${BTN_SHEET} ${TONE_QUIET} w-full`}><Pencil size={16} /> Edit name, address, account or guest</button>
+        {guest && <button type="button" onClick={() => onSnapshot(guest)} disabled={!!busy} className={`${BTN_SHEET} ${TONE_QUIET} w-full`}><Camera size={16} /> Take a snapshot of the {guest.type === 'qemu' ? 'VM' : 'container'}</button>}
         <button type="button" onClick={remove} disabled={!!busy} className={`${BTN_SHEET} ${TONE_DANGER} w-full`}>{busy === 'remove' ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />} Remove from the fleet</button>
         {canDestroy && <button ref={destroyRef} type="button" onClick={() => setDestroying(true)} disabled={!!busy || destroying} aria-expanded={destroying} className={`${BTN_SHEET} ${TONE_DANGER} w-full`}><Trash2 size={16} /> Stop and destroy the VM on Proxmox</button>}
         {canDestroy && destroying && (
@@ -1234,6 +1244,9 @@ export default function Proxmox() {
   const [menu, setMenu] = useState<FleetMemberBase | null>(null)
   const [foldersOf, setFoldersOf] = useState<FleetMemberBase | null>(null)
   const [sshFor, setSshFor] = useState<string | null>(null)   // the ssh sheet: '' = all VMs, an id = that VM ticked
+  // the sheet that takes a snapshot (from a row, the member menu or the details), and a tick the open details read again on
+  const [snapFor, setSnapFor] = useState<ProxmoxVm | null>(null)
+  const [snapTick, setSnapTick] = useState(0)
   const [details, setDetails] = useState<{ node: string; type: ProxmoxVm['type']; vmid: number } | null>(null)
   // a paused VM: Proxmox's list keeps saying "running" — the open details sheet reads the QEMU state and reports it here,
   // so that guest's card shows "paused" (and offers Resume) while the sheet knows it
@@ -1317,7 +1330,7 @@ export default function Proxmox() {
       vm, isAdmin, isHub: isHub || role === 'standalone', member: m, live: m ? liveById.get(m.id) : undefined, scan: scanByVm.get(vm.vmid), isSelf: !!pveSelf.data?.guest && pveSelf.data.guest.vmid === vm.vmid && pveSelf.data.guest.node === vm.node, busyKey, pveUrl,
       expanded: !!openCards[vm.vmid], onToggleExpand: () => toggleCard(vm.vmid),
       onAction: (v, a) => setPending({ vm: v, action: a }), onStackAction: stackAction, onDeploy: deployTo, onLink: (p) => setAdding(p), onMemberMenu: (mm) => setMenu(mm), onFolders: (mm) => setFoldersOf(mm), onSsh: (mm) => setSshFor(mm.id),
-      onDetails: (v) => setDetails({ node: v.node, type: v.type, vmid: v.vmid }), onOpen: openStack, showNode: multiNode,
+      onDetails: (v) => setDetails({ node: v.node, type: v.type, vmid: v.vmid }), onSnapshot: (v) => setSnapFor(v), onOpen: openStack, showNode: multiNode,
     }
   }
 
@@ -1538,7 +1551,7 @@ export default function Proxmox() {
 
       {detailsVm && (() => {
         const m = memberByVm.get(detailsVm.vmid)
-        return <VmSheet key={guestKey(detailsVm)} vm={detailsVm} member={m} live={m ? liveById.get(m.id) : undefined} isAdmin={isAdmin} busyKey={busyKey} pveUrl={pveUrl} refreshTick={refreshTick} onClose={() => setDetails(null)} onAction={(v, a) => setPending({ vm: v, action: a })} onStackAction={stackAction} onOpen={openStack} onChanged={() => { vms.refresh(); tasks.refresh() }} onPaused={reportPaused} />
+        return <VmSheet key={guestKey(detailsVm)} vm={detailsVm} member={m} live={m ? liveById.get(m.id) : undefined} isAdmin={isAdmin} busyKey={busyKey} pveUrl={pveUrl} refreshTick={refreshTick} snapTick={snapTick} onSnapshot={(v) => setSnapFor(v)} onClose={() => setDetails(null)} onAction={(v, a) => setPending({ vm: v, action: a })} onStackAction={stackAction} onOpen={openStack} onChanged={() => { vms.refresh(); tasks.refresh(); if (m) overview.refresh() }} onPaused={reportPaused} />
       })()}
       {pending && <ConfirmSheet vm={pending.vm} action={pending.action} onClose={() => setPending(null)} onDone={() => { setTimeout(() => { vms.refresh(); tasks.refresh(); status.refresh(); setRefreshTick((t) => t + 1) }, 1500) }} />}
       {sheet === 'link' && (
@@ -1555,7 +1568,8 @@ export default function Proxmox() {
       {editing && <MemberSheet member={editing} vms={vms.data?.vms ?? []} onClose={() => setEditing(null)} onSaved={(m) => { setEditing(null); addToast({ type: 'success', message: `${m.name} saved` }); refreshFleet() }} />}
       {foldersOf && <HostFoldersSheet member={foldersOf} onClose={() => { setFoldersOf(null); refreshFleet() }} />}
       {sshFor !== null && <SshAccessSheet focus={sshFor || undefined} onClose={() => setSshFor(null)} />}
-      {menu && <MemberMenuSheet member={menu} vms={vms.data?.vms ?? []} onClose={() => setMenu(null)} onEdit={() => { setEditing(menu); setMenu(null) }} onChanged={refreshFleet} />}
+      {menu && <MemberMenuSheet member={menu} vms={vms.data?.vms ?? []} onClose={() => setMenu(null)} onEdit={() => { setEditing(menu); setMenu(null) }} onChanged={refreshFleet} onSnapshot={(v) => { setMenu(null); setSnapFor(v) }} />}
+      {snapFor && <TakeSnapshotSheet vm={snapFor} onClose={() => setSnapFor(null)} onTaken={() => { setSnapTick((t) => t + 1); tasks.refresh() }} />}
       {newVm !== null && <NewVmSheet defaults={provDefaults.data ?? null} caps={caps.data ?? null} initialStack={newVm} onClose={() => setNewVm(null)} onQueued={() => { addToast({ type: 'success', message: 'The VM is being built — follow it on the card' }); refreshFleet() }} onBaked={(image) => { addToast({ type: 'success', message: `Baking a DCS template from ${image} — follow it on the card` }); refreshFleet(); templates.refresh() }} />}
     </div>
   )
