@@ -3,7 +3,7 @@
 // =============================================================================
 
 import { apiClient } from './client'
-import type { TechnitiumStatus, TechnitiumStats, TechnitiumRange, TechnitiumActivity, TechnitiumLists, TechnitiumGroups, TechnitiumGroup, TechnitiumGroupInput, TechnitiumHouse, TechnitiumSyncResult, TechnitiumConnectResult, TechnitiumBootstrapResult, TechnitiumRole, TechnitiumDevices, TechnitiumScan, TechnitiumNetDevice, TechnitiumDeviceChange, TechnitiumDhcp, TechnitiumScopeInput } from '../../shared/types'
+import type { TechnitiumStatus, TechnitiumStats, TechnitiumRange, TechnitiumActivity, TechnitiumLists, TechnitiumGroups, TechnitiumGroup, TechnitiumGroupInput, TechnitiumHouse, TechnitiumSyncResult, TechnitiumConnectResult, TechnitiumBootstrapResult, TechnitiumRole, TechnitiumDevices, TechnitiumScan, TechnitiumNetDevice, TechnitiumDeviceChange, TechnitiumDhcp, TechnitiumScopeInput, TechnitiumLocal } from '../../shared/types'
 import type {
   FleetVersions,
   FleetUpdateResponse,
@@ -2178,6 +2178,14 @@ export function switchTechnitiumDhcp(on: boolean, name?: string): Promise<{ scop
 /** DELETE /dns/technitium/dhcp/leases/{mac} */
 export function endTechnitiumLease(mac: string): Promise<{ success: boolean }> {
   return apiClient.delete(`/dns/technitium/dhcp/leases/${encodeURIComponent(mac)}`)
+}
+/** GET /dns/technitium/local — the routes resolved to this server inside the house, the devices' names (viewer) */
+export function fetchTechnitiumLocal(): Promise<TechnitiumLocal> {
+  return apiClient.get<TechnitiumLocal>('/dns/technitium/local')
+}
+/** POST /dns/technitium/local — Resolve my routes locally: a zone per route host on both servers, or exactly those zones gone */
+export function setTechnitiumLocal(routes: boolean): Promise<{ routes: boolean; zones: number; warning: string | null; message: string }> {
+  return apiClient.post('/dns/technitium/local', { routes }, 120000)
 }
 /** POST /dns/technitium/bootstrap — the house's baseline (installs two apps: it can take a minute) */
 export function bootstrapTechnitium(role: TechnitiumRole | 'both' = 'both'): Promise<TechnitiumBootstrapResult> {

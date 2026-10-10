@@ -16,6 +16,7 @@ import SearchInput from '../common/SearchInput'
 import Notice from '../common/Notice'
 import Hint from '../common/Hint'
 import { ToggleRow } from '../common/Toggle'
+import { CopyButton } from '../common/CopyButton'
 import { Pill } from '../common/Pill'
 import { EmptyState, ErrorState, Skeleton } from '../common/PageState'
 import { useConfirm } from '../common/ConfirmDialog'
@@ -184,6 +185,7 @@ export default function DevicesTab({ isAdmin }: { isAdmin: boolean }) {
                     <td className="py-2 pr-3 min-w-0 max-w-[16rem]">
                       <Nickname device={d} canEdit={isAdmin} onSave={(nickname) => change(d, { nickname }, nickname ? `${nickname} is named` : 'The nickname is cleared')} onOpen={() => setOpen(d.id)} />
                       <div className="text-xs text-slate-500 truncate" title={d.hostname ?? undefined}>{subline(d)}</div>
+                      <HomeName d={d} />
                     </td>
                     <td className="py-2 pr-3 whitespace-nowrap">
                       <span className="font-mono text-xs text-slate-300">{d.ip ?? '—'}</span>
@@ -214,6 +216,7 @@ export default function DevicesTab({ isAdmin }: { isAdmin: boolean }) {
                 <div className="min-w-0 flex-1">
                   <Nickname device={d} canEdit={isAdmin} onSave={(nickname) => change(d, { nickname })} onOpen={() => setOpen(d.id)} />
                   <div className="text-xs text-slate-500 truncate">{subline(d)}</div>
+                  <HomeName d={d} />
                   <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
                     <span className="font-mono text-xs text-slate-300">{d.ip ?? '—'}</span>
                     <span className="text-xs text-slate-500" title={exact(d.last_seen)}>{ago(d.last_seen, now)}</span>
@@ -240,6 +243,21 @@ function subline(d: TechnitiumNetDevice): string {
   if (d.nickname) return d.hostname ?? d.vendor ?? (d.hub ? 'this server' : '')
   return d.hub ? 'this server · no nickname yet' : 'no nickname yet'
 }
+
+/** the name it answers to at home ("reach it as toms-tablet.home"), with a copy button */
+function HomeName({ d }: { d: TechnitiumNetDevice }) {
+  if (!d.home_name) return null
+  return (
+    <div className="flex items-center gap-1 min-w-0 text-xs">
+      <span className="text-slate-500 shrink-0">reach it as</span>
+      <span className="font-mono text-cyan-300 truncate" title={d.home_name}>{d.home_name}</span>
+      <CopyButton text={d.home_name} label={`Copy ${d.home_name}`} />
+    </div>
+  )
+}
+
+/** the name a nickname gives (the server's rule: lower case, a dash for anything else, 63 at most) */
+const slug = (v: string) => v.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 63).replace(/-+$/, '')
 
 /** queries in the last 24 hours as a number and a small bar, the blocked share of it in rose */
 function Activity({ d, max }: { d: TechnitiumNetDevice; max: number }) {
@@ -342,6 +360,7 @@ function DeviceSheet({ device: d, isAdmin, now, groups, onClose, onChange, onFor
   const [groupId, setGroupId] = useState(d.group_id ?? '')
   const [stat, setStat] = useState(!!d.static)
   const [block, setBlock] = useState<number | null>(d.blocked ? d.blocked_until ?? null : null)
+  const [answer, setAnswer] = useState(d.home_answer !== false)
   const [busy, setBusy] = useState(false)
   const name = deviceName(d)
   const diff: TechnitiumDeviceChange = {}
@@ -351,6 +370,10 @@ function DeviceSheet({ device: d, isAdmin, now, groups, onClose, onChange, onFor
   if (groupId !== (d.group_id ?? '')) diff.group_id = groupId || null
   if (stat !== !!d.static) diff.static = stat
   if ((block ?? null) !== (d.blocked ? d.blocked_until ?? null : null)) diff.blocked_until = block
+  if (answer !== (d.home_answer !== false)) diff.home_answer = answer
+  // the zone of the house's names: the one its current name is in (home unless the scope says otherwise)
+  const zone = d.home_name?.split('.').slice(1).join('.') || 'home'
+  const asName = slug(nickname.trim()) ? `${slug(nickname.trim())}.${zone}` : ''
   const dirty = Object.keys(diff).length > 0
   const save = async () => { setBusy(true); if (await onChange(d, diff)) onClose(); setBusy(false) }
   const choices = blockChoices(now)
@@ -397,6 +420,8 @@ function DeviceSheet({ device: d, isAdmin, now, groups, onClose, onChange, onFor
           </select>
           <p className={HINT}>A group follows the device when its address changes.</p>
         </div>
+        <ToggleRow label={asName ? `Also answer ${asName}` : 'Also answer its nickname as a name'} checked={answer && !!asName} disabled={!isAdmin || !asName || !d.ip} onChange={setAnswer}
+          help={asName ? `Devices at home reach it by this name (${d.ip ?? 'its address'}), on both resolvers.` : 'Give it a nickname first: Tom’s tablet answers tom-s-tablet.home.'} />
         <ToggleRow label="Pin its address" help={d.mac ? `Reserves ${d.ip ?? 'its address'} for it in Technitium's DHCP, so the groups and the logs keep following it. Needs Technitium to hand out addresses (the DHCP tab).` : 'DCS does not know its MAC address yet: scan while it is on.'}
           checked={stat} disabled={!isAdmin || !d.mac || !d.ip} onChange={setStat} />
         <div className="space-y-2">

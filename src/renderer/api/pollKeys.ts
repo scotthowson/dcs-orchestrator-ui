@@ -29,6 +29,8 @@ export const pollKeys = {
   routes: 'routes',
   technitiumStatus: 'technitium-status',
   technitiumDevices: 'technitium-devices',
+  /** GET /dns/technitium/local: DNS & routes and the Technitium page's DHCP tab */
+  technitiumLocal: 'technitium-local',
   /** GET /config: the Config page, and the switches the navigation follows (Technitium) */
   config: 'config',
   /** a hub's own list carries every VM's containers: everywhere and the hub are this one request; a member id is that VM's */

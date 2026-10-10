@@ -23,6 +23,7 @@ import type { TechnitiumDhcp, TechnitiumScopeInput } from '../../../shared/types
 import { BTN_TOOLBAR_QUIET, BTN_TOOLBAR_PRIMARY, BTN_TOOLBAR_OK, BTN_ICON_SM, TONE_GHOST_DANGER, TEXT_META } from '../../lib/ui'
 import { INPUT, LABEL, HINT } from '../../lib/fieldStyles'
 import { DeviceIcon, ago, useDeviceDirectory } from './deviceKit'
+import LocalNamesPanel from './LocalNames'
 
 const ROUTER_OFF_KEY = 'dcs-tt-router-dhcp-off'
 const ip4 = /^(25[0-5]|2[0-4]\d|1?\d?\d)(\.(25[0-5]|2[0-4]\d|1?\d?\d)){3}$/
@@ -44,6 +45,7 @@ export default function DhcpTab({ isAdmin }: { isAdmin: boolean }) {
         <StatTile icon={Pin} label="Reserved" value={reserved.toLocaleString()} tone="neutral" />
         <StatTile icon={Radar} label="Ask Technitium" value={`${data.devices.asking} of ${data.devices.seen}`} sub="devices seen in the last 24 h" tone={data.devices.seen && data.devices.asking < data.devices.seen ? 'attention' : 'ok'} />
       </div>
+      <LocalNamesPanel isAdmin={isAdmin} names={data.names} />
       <MoveFlow data={data} isAdmin={isAdmin} devices={dir.data?.devices.length ?? 0} lastScan={dir.data?.last_scan?.at ?? null} onChanged={onDirectory} />
       {data.scopes.map((s) => <ScopePanel key={s.name} scope={s} isAdmin={isAdmin} onChanged={refresh} />)}
       <LeasesPanel data={data} isAdmin={isAdmin} onChanged={refresh} />

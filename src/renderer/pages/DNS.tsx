@@ -34,6 +34,7 @@ import {
   ShieldOff,
   Construction,
   MessageSquareText,
+  House,
 } from 'lucide-react'
 import { createPortal } from 'react-dom'
 import { usePolling } from '../hooks/usePolling'
@@ -67,6 +68,7 @@ import type { RouteEntry, DnsRecord, DnsRecordInput, DnsZone } from '../../share
 import ModalOverlay from '../components/common/ModalOverlay'
 import DomainsPanel from '../components/dns/DomainsPanel'
 import TechnitiumCard from '../components/technitium/TechnitiumCard'
+import LocalNamesPanel from '../components/technitium/LocalNames'
 
 import { Pill } from '../components/common/Pill'
 import SearchInput from '../components/common/SearchInput'
@@ -741,6 +743,7 @@ export default function DNS() {
       {domainsData && domainsData.primary && <DomainsPanel data={domainsData} isAdmin={isAdmin} onChanged={() => { void refreshDomains(); refreshCerts() }} />}
 
       <TechnitiumCard />
+      <LocalNamesPanel isAdmin={isAdmin} onChanged={() => void refreshRoutes()} />
 
       {/* ---- Tabs + search ---- */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
@@ -957,6 +960,7 @@ function RoutesPanel(props: {
                           {under && <span className="text-[10px] text-slate-600 font-mono shrink-0">.{domain}</span>}
                           {(route as FleetRoute).member && <VmCapsule member={(route as FleetRoute).member} name={(route as FleetRoute).member_name} vmid={(route as FleetRoute).vmid} size="xs" />}
                           {route.maintenance && <Pill tone="attention" icon={<Construction size={10} />} title="Visitors see the maintenance page (HTTP 503) instead of the app">Maintenance</Pill>}
+                          {route.lan && <Pill tone="info" icon={<House size={10} />} title={`Inside the house this name answers ${route.lan} (Technitium), not Cloudflare`}>LAN {route.lan}</Pill>}
                           {route.conflict && <Pill tone="problem" icon={<AlertTriangle size={10} />} title="Two routes claim this subdomain">conflict</Pill>}
                           {route.crowdsec === 'bypass' && <Pill tone="attention" icon={<ShieldOff size={10} />} title="CrowdSec's bouncer never checks this route: it does not use Traefik's traefik-chain, so an address CrowdSec has banned can still reach it.">unprotected</Pill>}
                           {cfConfigured && rec && (

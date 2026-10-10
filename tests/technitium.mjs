@@ -3,7 +3,9 @@
 // technitium — the Technitium page against the lab (tests/lab/lab.sh), with every /dns/technitium/* answer
 // intercepted and served from a fake kept here (no Technitium needed): the overview, Allow on a blocked name,
 // the pause and its countdown, a kids' group added, put in bedtime, paused, edited and deleted, SafeSearch, a
-// device's queries and their filter, the connect sheet (also when nothing is connected), the device directory (scan an
+// device's queries and their filter, the local names (Resolve my routes locally on the DHCP tab and on DNS & routes, the
+// LAN pill on a route, a device's .home name and its copy button, the drawer's "Also answer" switch), the connect sheet
+// (also when nothing is connected), the device directory (scan an
 // empty one, the icon picker, a nickname edited in place, search and filters, the drawer with a block until a time and
 // a group, pin an address), the DHCP move (the scope made off with every known device kept, the router's DHCP off,
 // on here, a renewed device's DNS), Config → Integrations turning it off (the tab and the card go, the page says so),
@@ -41,6 +43,7 @@ const NOW = () => Math.round(Date.now() / 1000)
 const dev = (id, ip, mac, o = {}) => ({ id, ip, mac, mac_random: false, vendor: null, hostname: null, nickname: null, icon: 'unknown', icon_guessed: true, notes: null, static: false,
   reserved_ip: null, blocked_until: null, blocked: false, hub: false, first_seen: NOW() - 10 * 86400, last_seen: NOW() - 60, queries_today: 0, blocked_today: 0,
   sources: { arp: NOW() - 60 }, group_id: null, group_name: null, ...o })
+const slug = (v) => v.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 63)
 const SEED = () => [
   dev('daa119000050', '192.168.2.50', 'da:a1:19:00:00:50', { mac_random: true, vendor: 'Private address', hostname: 'tablet-9.home', icon: 'tablet', queries_today: 600, blocked_today: 40, sources: { arp: NOW(), querylog: NOW(), rdns: NOW() } }),
   dev('0009bf000060', '192.168.2.60', '00:09:bf:00:00:60', { vendor: 'Nintendo', icon: 'console', queries_today: 300, blocked_today: 2 }),
@@ -51,7 +54,18 @@ const SEED = () => [
 ]
 const fake = {
   configured: true, paused: 0, house: { safe_search: false, youtube: 'off' }, groups: [], inBedtime: false, pausedBed: null, calls: [],
-  enabled: true, devices: [], scope: null, leases: [],
+  enabled: true, devices: [], scope: null, leases: [], local: { routes: false },
+  localAnswer() {
+    const hosts = this.local.routes ? ['jellyfin.example.org', 'vmapp.example.org'].map((host) => ({ host, ip: '192.168.2.233', instances: ['primary', 'secondary'] })) : []
+    const nick = this.devices.filter((d) => d.nickname && d.home_answer !== false)
+    return { available: true, routes: this.local.routes, address: '192.168.2.233', ttl: 60, hosts,
+      names: { zone: 'home', dhcp: !!this.scope?.enabled, nicknames: nick.map((d) => ({ name: `${slug(d.nickname)}.home`, ip: d.ip })), secondary: true }, last: { at: NOW(), ok: true, message: null } }
+  },
+  routesAnswer() {
+    const r = (subdomain, service, stack, o = {}) => ({ subdomain, service, stack, target: `http://${service}:8080`, conflict: false, crowdsec: 'off', maintenance: false, lan: this.local.routes ? '192.168.2.233' : null, ...o })
+    return { total: 3, domain: 'example.org', local: { available: true, on: this.local.routes, address: '192.168.2.233', last: null },
+      routes: [r('jellyfin.example.org', 'jellyfin', 'media'), r('vmapp.example.org', 'vmapp', 'media', { member: 'm1', member_name: 'media-vm', vmid: 101, fleet: true }), r('app.other.test', 'other', 'web', { lan: null })] }
+  },
   status() {
     if (!this.configured) return { configured: false, primary: { role: 'primary', url: null, configured: false, reachable: false }, secondary: null, in_sync: null, last_sync: null, house: this.house, groups: 0, bedtime_active: [] }
     const p = inst('primary', 'http://192.168.2.53:5380', 'dns1'), s = inst('secondary', 'http://192.168.2.207:5380', 'dns2')
@@ -80,7 +94,7 @@ const fake = {
   },
   withGroups(d) {
     const g = this.groups.find((x) => x.devices.some((y) => y.id === d.id || y.ip === d.ip))
-    return { ...d, group_id: g?.id ?? null, group_name: g?.name ?? null, blocked: (d.blocked_until ?? 0) > NOW() }
+    return { ...d, group_id: g?.id ?? null, group_name: g?.name ?? null, blocked: (d.blocked_until ?? 0) > NOW(), home_name: d.nickname && d.home_answer !== false ? `${slug(d.nickname)}.home` : null }
   },
   dhcpAnswer() {
     const sc = this.scope ? [{ name: 'LAN', enabled: this.scope.enabled, start: this.scope.start, end: this.scope.end, mask: '255.255.255.0', network: '192.168.2.0', broadcast: '192.168.2.255',
@@ -88,7 +102,9 @@ const fake = {
       reservations: this.scope.reserved.map((d) => ({ mac: d.mac, ip: d.ip, hostname: null, comments: 'DCS', device_id: d.id, nickname: d.nickname })) }]
       : [{ name: 'Default', enabled: false, start: '192.168.1.1', end: '192.168.1.254', mask: '255.255.255.0', network: '192.168.1.0', broadcast: '192.168.1.255', router: '192.168.1.1', dns: ['this server'], domain: 'home', lease_hours: 24, exclusions: [], ping_check: false, reservations: [] }]
     const seen = this.devices.filter((d) => NOW() - d.last_seen < 86400)
+    const nicknames = this.devices.filter((d) => d.nickname && d.home_answer !== false).length
     return { enabled: !!this.scope?.enabled, scopes: sc, leases: this.leases,
+      names: { on: !!this.scope?.enabled, zone: 'home', leases: this.leases.length, nicknames, secondary: true, count: this.leases.length + nicknames },
       hub: { ip: '192.168.2.233', prefix: 24, gateway: '192.168.2.1', interface: 'enp5s0' },
       suggested: { name: 'LAN', start: '192.168.2.100', end: '192.168.2.199', mask: '255.255.255.0', router: '192.168.2.1', dns: ['192.168.2.53', '192.168.2.207'], domain: 'home', lease_hours: 24, exclusions: [], ping_check: true, reserve_known: true },
       resolvers: { primary: '192.168.2.53', secondary: '192.168.2.207' },
@@ -109,6 +125,7 @@ const fake = {
       if ('notes' in body) d.notes = body.notes
       if ('static' in body) { if (!this.scope) return { status: 409, body: { error: true, code: 409, reason: 'no_dhcp_scope', message: `Technitium has no DHCP scope for ${d.ip}: the router still hands out addresses. Move DHCP here first (the DHCP tab), then pin it.` } }; d.static = body.static; d.reserved_ip = body.static ? d.ip : null }
       if ('blocked_until' in body) d.blocked_until = body.blocked_until
+      if ('home_answer' in body) d.home_answer = body.home_answer
       if ('group_id' in body) {
         for (const g of this.groups) g.devices = g.devices.filter((y) => y.id !== d.id && y.ip !== d.ip)
         const g = this.groups.find((x) => x.id === body.group_id); if (g) g.devices.push({ ip: d.ip, label: d.nickname ?? '', mac: d.mac, id: d.id })
@@ -124,6 +141,8 @@ const fake = {
       return { success: true, scope: 'LAN', enabled: this.scope.enabled, message: this.scope.enabled ? 'Technitium hands out addresses now: devices move over as their leases renew' : 'Technitium no longer hands out addresses' }
     }
     if (method === 'DELETE' && p.startsWith('/dhcp/leases/')) { this.leases = []; return { success: true } }
+    if (method === 'GET' && p === '/local') return this.localAnswer()
+    if (method === 'POST' && p === '/local') { this.local.routes = body.routes; return { success: true, routes: body.routes, zones: body.routes ? 2 : 0, warning: null, message: body.routes ? 'Your routes resolve to this server inside the house: 2 names' : 'Your routes resolve through the internet again' } }
     if (method === 'GET' && p === '/status') return this.status()
     if (method === 'GET' && p === '/stats') return this.stats()
     if (method === 'GET' && p === '/groups') return this.groupsAnswer()
@@ -152,6 +171,8 @@ async function intercept(page, log) {
     const url = req.url()
     const cors = { 'Access-Control-Allow-Origin': UI }
     const isConfig = new URL(url).pathname.endsWith('/config') && url.startsWith(API)
+    // GET /routes: the routes of the fake (a VM's among them), each with its LAN address while the switch is on
+    if (url.startsWith(API) && new URL(url).pathname.endsWith('/routes') && req.method() === 'GET') return req.respond({ status: 200, contentType: 'application/json', headers: cors, body: JSON.stringify(fake.routesAnswer()) })
     if (!url.includes('/dns/technitium/') && !isConfig) return req.continue()
     if (req.method() === 'OPTIONS') return req.respond({ status: 204, headers: { ...cors, 'Access-Control-Allow-Headers': 'Authorization, Content-Type', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS' } })
     let body = {}
@@ -176,14 +197,14 @@ async function intercept(page, log) {
   })
 }
 
-async function signIn(page, who) {
+async function signIn(page, who, lastPage = 'technitium') {
   await page.goto(UI, { waitUntil: 'domcontentloaded' })
-  await page.evaluate((api, user) => {
+  await page.evaluate((api, user, lastPage) => {
     localStorage.clear()
-    localStorage.setItem('app-settings', JSON.stringify({ serverUrl: api, theme: 'dark', lastPage: 'technitium' }))
+    localStorage.setItem('app-settings', JSON.stringify({ serverUrl: api, theme: 'dark', lastPage }))
     localStorage.setItem('onboarding_complete', 'true')
     localStorage.setItem('dcs-prefs-at-' + user, String(Date.now() + 86400000))
-  }, API, who.user)
+  }, API, who.user, lastPage)
   await page.goto(UI, { waitUntil: 'domcontentloaded' })
   await page.waitForSelector('main, input[placeholder="Enter password"]', { timeout: 30000 })
   if (await page.$('input[placeholder="Enter password"]')) {
@@ -194,6 +215,14 @@ async function signIn(page, who) {
   }
 }
 
+// open a page the way a person left it: the settings (page, look) and the device's own choices kept over the account's
+async function openPage(page, who, patch) {
+  await page.evaluate((p, user) => {
+    const s = JSON.parse(localStorage.getItem('app-settings') || '{}'); Object.assign(s, p); localStorage.setItem('app-settings', JSON.stringify(s))
+    localStorage.setItem('dcs-prefs-at-' + user, String(Date.now() + 86400000))
+  }, patch, who.user)
+  await page.goto(UI, { waitUntil: 'domcontentloaded' })
+}
 const text = (page) => page.evaluate(() => document.querySelector('main')?.innerText ?? '')
 const bodyText = (page) => page.evaluate(() => document.body.innerText)
 async function clickText(page, label, scope = 'body') {
@@ -294,6 +323,14 @@ try {
   check('devices: blocked for 30 minutes, with a note', blk && Math.abs(blk.body.blocked_until - (NOW() + 1800)) < 120 && blk.body.notes === 'The blue case', JSON.stringify(blk?.body))
   check('devices: …the row says blocked', await until(page, () => /blocked/.test(document.querySelector('main tbody')?.innerText ?? '')))
   check('overview: the top clients carry the nickname and icon', (fake.stats().top_clients[0].name === "Tom's tablet"))
+  check('devices: the row says how to reach it, with a copy button', await until(page, () => /reach it as\s*tom-s-tablet\.home/.test(document.querySelector('main tbody')?.innerText ?? '')) && !!(await page.$('[aria-label="Copy tom-s-tablet.home"]')))
+  await clickText(page, "Tom's tablet", 'main tbody')
+  check('devices: the drawer\'s "Also answer tom-s-tablet.home" switch, on', await until(page, () => [...document.querySelectorAll('[role="dialog"] [role="switch"]')].some((e) => /Also answer tom-s-tablet\.home/.test(document.querySelector(`label[for="${e.id}"]`)?.innerText ?? '') && e.checked)))
+  await clickText(page, 'Also answer tom-s-tablet.home', '[role="dialog"]')
+  await shot(page, 'device-drawer-name')
+  await clickText(page, 'Save', '[role="dialog"]')
+  check('devices: …off: saved as home_answer false, the row has no name', await waitFor(() => fake.calls.some((c) => c.method === 'PUT' && c.body.home_answer === false)) && await until(page, () => !/reach it as/.test(document.querySelector('main tbody')?.innerText ?? '')))
+  fake.devices.find((d) => d.id === 'daa119000050').home_answer = true
 
   // DHCP: the move, step by step
   await clickText(page, 'DHCP')
@@ -312,6 +349,10 @@ try {
   check('dhcp: on', await waitFor(() => fake.calls.some((c) => c.p === '/dhcp/enable')))
   check('dhcp: step 5: the renewed device got Technitium as its DNS (green)', await until(page, () => /uses Technitium/.test(document.querySelector('main')?.innerText ?? '') && /DNS 192\.168\.2\.53, 192\.168\.2\.207/.test(document.querySelector('main')?.innerText ?? '')))
   await shot(page, 'dhcp-on')
+  check('dhcp: inside the house: names on, zone home, the count', await until(page, () => /Inside the house/.test(document.querySelector('main')?.innerText ?? '') && /Names: on, zone home, 2 names/.test(document.querySelector('main')?.innerText ?? '')))
+  await clickText(page, 'Resolve my routes locally', 'main')
+  check('dhcp: Resolve my routes locally: on', await waitFor(() => fake.calls.some((c) => c.method === 'POST' && c.p === '/local' && c.body.routes === true)) && await until(page, () => /Routes resolve here/.test(document.querySelector('main')?.innerText ?? '')))
+  await shot(page, 'dhcp-local')
 
   // kids: add, bedtime, pause, edit, delete
   await clickText(page, 'Kids')
@@ -388,6 +429,27 @@ try {
   check('not connected: the result shows', await until(page, () => /Connected to Technitium 15\.6/.test(document.body.innerText)))
   check('no token in any address the page asked', !log.some((l) => /f{64}/.test(l)))
 
+  // DNS & routes: the same switch, the LAN pill on each route the house resolves itself
+  await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('app-settings') || '{}'); s.lastPage = 'dns'; localStorage.setItem('app-settings', JSON.stringify(s)) })
+  await page.reload({ waitUntil: 'domcontentloaded' })
+  check('dns: inside the house, on, this server\'s address', await until(page, () => /Inside the house/.test(document.querySelector('main')?.innerText ?? '') && /192\.168\.2\.233/.test(document.querySelector('main')?.innerText ?? ''), 20000)
+    && await page.evaluate(() => [...document.querySelectorAll('main [role="switch"]')].some((e) => /Resolve my routes locally/.test(document.querySelector(`label[for="${e.id}"]`)?.innerText ?? '') && e.checked)))
+  check('dns: a LAN pill on the routes the house resolves (a VM\'s too), none on another domain\'s', await until(page, () => (document.querySelector('main')?.innerText.match(/LAN 192\.168\.2\.233/g) || []).length === 2))
+  check('dns: …the caveat: Cloudflare\'s firewall and bans', /Cloudflare's firewall and bans do not apply/.test(await text(page)))
+  await shot(page, 'dns-local-dark')
+  // DNS & routes is an admin's page (a viewer never opens it): the admin's phone
+  // (isMobile reloads the page)
+  await page.setViewport({ width: 390, height: 844, isMobile: true })
+  check('dns: on a phone, the pills wrap, no sideways scroll', await until(page, () => (document.querySelector('main')?.innerText.match(/LAN 192\.168\.2\.233/g) || []).length === 2, 20000)
+    && await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1))
+  await shot(page, 'dns-local-phone')
+  await page.setViewport({ width: 1440, height: 1000 })
+  await until(page, () => /Inside the house/.test(document.querySelector('main')?.innerText ?? ''), 20000)
+  await clickText(page, 'Resolve my routes locally', 'main')
+  check('dns: off: the pills go', await waitFor(() => fake.calls.some((c) => c.method === 'POST' && c.p === '/local' && c.body.routes === false)) && await until(page, () => !/LAN 192\.168\.2\.233/.test(document.querySelector('main')?.innerText ?? '')))
+  await clickText(page, 'Resolve my routes locally', 'main')
+  await until(page, () => /LAN 192\.168\.2\.233/.test(document.querySelector('main')?.innerText ?? ''))
+
   // Config → Integrations: off hides the tab and the DNS & routes card; the page says so
   fake.configured = true
   await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('app-settings') || '{}'); s.lastPage = 'config'; localStorage.setItem('app-settings', JSON.stringify(s)) })
@@ -421,11 +483,19 @@ try {
   await clickText(page, 'DHCP')
   await until(page, () => /Leases/.test(document.querySelector('main')?.innerText ?? ''))
   await shot(page, 'dhcp-light')
+  await openPage(page, ADMIN, { lastPage: 'dns' })
+  await until(page, () => /LAN 192\.168\.2\.233/.test(document.querySelector('main')?.innerText ?? '') && /Inside the house/.test(document.querySelector('main')?.innerText ?? ''), 20000); await sleep(1500)
+  // the account's look may have come back with the sign-in: Ctrl+D again until it is light
+  if (!await page.evaluate(() => document.documentElement.classList.contains('light'))) { await page.keyboard.down('Control'); await page.keyboard.press('d'); await page.keyboard.up('Control') }
+  check('dns: the light look', await until(page, () => document.documentElement.classList.contains('light')))
+  await sleep(600)
+  await shot(page, 'dns-local-light')
   await page.close()
 
   // ---------------- viewer ----------------
   if (VIEWER.user) {
     console.log('Viewer')
+    fake.local.routes = true
     fake.calls = []; fake.groups = [{ id: 'g9', name: 'Girls', devices: [{ ip: '192.168.2.70', label: 'Tablet' }], lists: ['adult'], bedtime: { enabled: true, from: '20:00', to: '07:00', days: [1, 2, 3, 4, 5, 6, 7] } }]
     page = await browser.newPage()
     await page.setViewport({ width: 390, height: 844, isMobile: true })
@@ -451,6 +521,7 @@ try {
     await shot(page, 'devices-viewer-phone')
     await clickText(page, 'DHCP')
     check('viewer: DHCP read-only', await until(page, () => /Move DHCP here/.test(document.querySelector('main')?.innerText ?? '')) && !/Turn DHCP on here|Create the scope/.test((await page.$$eval('main button', (b) => b.map((x) => x.innerText).join(' ')))))
+    check('viewer: Resolve my routes locally, read-only', await until(page, () => [...document.querySelectorAll('main [role="switch"]')].some((e) => /Resolve my routes locally/.test(document.querySelector(`label[for="${e.id}"]`)?.innerText ?? '') && e.disabled)))
     await shot(page, 'dhcp-viewer-phone')
     check('viewer: never asked for a device\'s queries', !fake.calls.some((c) => c.p === '/activity'))
     check('viewer: no 403 from the API', !statuses.includes(403), statuses.filter((s) => s >= 400).join(','))

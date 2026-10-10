@@ -4945,6 +4945,8 @@ export interface RouteEntry {
   crowdsec?: 'protected' | 'bypass' | 'off'
   /** Traefik answers this host with DCS's 503 "back soon" page (PUT /routes/{host}/maintenance) */
   maintenance?: boolean
+  /** inside the house (Technitium's "Resolve my routes locally") this name answers this address; null when it goes out to Cloudflare */
+  lan?: string | null
 }
 
 /** a route's maintenance mode, by its host (GET /routes/maintenance, PUT /routes/{host}/maintenance) */
@@ -4959,6 +4961,8 @@ export interface RoutesResponse {
   total: number
   routes: RouteEntry[]
   domain: string
+  /** Technitium's local names (null while Technitium is off in Config) */
+  local?: { available: boolean; on: boolean; address: string | null; last: TechnitiumLocal['last'] } | null
 }
 
 export interface RouteCheckResponse {
@@ -5170,6 +5174,10 @@ export interface TechnitiumNetDevice {
   sources: Partial<Record<TechnitiumSource, number>>
   group_id: string | null
   group_name: string | null
+  /** the name it answers to at home: its nickname's (<slug>.home) or the one its Technitium lease registered */
+  home_name?: string | null
+  /** false: its nickname is not a name (the drawer's "Also answer" switch); on by default */
+  home_answer?: boolean
 }
 export interface TechnitiumScan {
   at: number; found: number; new: number; devices: number; swept: boolean; named_by_dhcp: number
@@ -5184,7 +5192,7 @@ export interface TechnitiumDevices {
   icons: TechnitiumIcon[]
   now: number
 }
-export interface TechnitiumDeviceChange { nickname?: string | null; icon?: TechnitiumIcon; notes?: string | null; group_id?: string | null; static?: boolean; blocked_until?: number | null }
+export interface TechnitiumDeviceChange { nickname?: string | null; icon?: TechnitiumIcon; notes?: string | null; group_id?: string | null; static?: boolean; blocked_until?: number | null; home_answer?: boolean }
 export interface TechnitiumDhcpScope {
   name: string; enabled: boolean; start: string; end: string; mask: string; network: string; broadcast: string; router: string | null
   dns: string[]; domain: string; lease_hours: number; exclusions: { startingAddress: string; endingAddress: string }[]; ping_check: boolean
@@ -5209,6 +5217,19 @@ export interface TechnitiumDhcp {
   suggested: (TechnitiumScopeInput & { name: string; mask: string }) | null
   resolvers: { primary: string | null; secondary: string | null }
   devices: { seen: number; asking: number; silent: { id: string; ip: string | null; nickname: string | null; hostname: string | null; icon: TechnitiumIcon }[] }
+  /** the devices' names: leases registered by the scope that hands out addresses (on), the nicknames DCS adds, the zone */
+  names?: { on: boolean; zone: string; leases: number; nicknames: number; secondary: boolean; count: number }
+}
+/** GET /dns/technitium/local: the routes resolved to this server inside the house, the devices' names */
+export interface TechnitiumLocal {
+  available: boolean
+  routes: boolean
+  /** this server's LAN address (its default route's) */
+  address: string | null
+  ttl: number
+  hosts: { host: string; ip: string; instances: TechnitiumRole[] }[]
+  names: { zone: string; dhcp: boolean; nicknames: { name: string; ip: string }[]; secondary: boolean }
+  last: { at: number; ok: boolean; message: string | null } | null
 }
 /** POST /dns/technitium/connect */
 export interface TechnitiumConnectResult { success: boolean; role: TechnitiumRole; url?: string; connected: boolean; reachable?: boolean; version?: string; domain?: string; error?: string; message?: string }
