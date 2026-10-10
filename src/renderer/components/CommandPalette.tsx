@@ -210,6 +210,7 @@ export function CommandPalette() {
       'file-browser': ['file', 'browse', 'directory', 'folder', 'filesystem', 'explore'],
       templates: ['template', 'scaffold', 'preset', 'compose template'],
       dns: ['dns', 'routes', 'cloudflare', 'domain', 'traefik', 'subdomain', 'certificate'],
+      technitium: ['technitium', 'dns', 'resolver', 'block', 'ads', 'kids', 'parental', 'bedtime', 'safesearch', 'dhcp'],
       proxmox: ['proxmox', 'pve', 'vm', 'virtual machine', 'lxc', 'hypervisor', 'node'],
       crowdsec: ['crowdsec', 'ban', 'unban', 'block', 'blocklist', 'allowlist', 'whitelist', 'attack', 'intrusion', 'fail2ban', 'bouncer', 'security', 'country', 'ip', 'brute force'],
       updates: ['update', 'upgrade', 'new version', 'outdated'],

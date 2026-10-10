@@ -59,6 +59,7 @@ import {
 import type { RouteEntry, DnsRecord, DnsRecordInput, DnsZone } from '../../shared/types'
 import ModalOverlay from '../components/common/ModalOverlay'
 import DomainsPanel from '../components/dns/DomainsPanel'
+import TechnitiumCard from '../components/technitium/TechnitiumCard'
 
 import { Pill } from '../components/common/Pill'
 import SearchInput from '../components/common/SearchInput'
@@ -707,6 +708,8 @@ export default function DNS() {
 
       {/* the domains this server answers for (hidden when the API predates them) */}
       {domainsData && domainsData.primary && <DomainsPanel data={domainsData} isAdmin={isAdmin} onChanged={() => { void refreshDomains(); refreshCerts() }} />}
+
+      <TechnitiumCard />
 
       {/* ---- Tabs + search ---- */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
