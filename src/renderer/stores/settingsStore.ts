@@ -50,6 +50,7 @@ export const DEFAULT_SETTINGS: PersistedSettings = {
   reduceMotion: false,
   chatBubble: true,
   chatNotify: false,
+  chatAcross: true,
   themeName: '',
   serverThemeActive: '',
   themeModeMigrated: false,

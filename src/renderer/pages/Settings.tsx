@@ -249,7 +249,8 @@ function ProfileSettings() {
         <div className="flex-1">
           <h3 className="text-sm font-semibold text-slate-200 mb-1">Profile picture</h3>
           <p className="text-[11px] text-slate-500 mb-2">
-            Choose a preset, upload an image, or paste a URL. Max 2MB for uploads.
+            Choose a preset, upload an image, or paste a URL. Max 2MB for uploads. An uploaded picture or a preset shows
+            beside your chat messages; a picture at an address shows only to you.
           </p>
           {/* Preset avatar icons */}
           <div className="flex flex-wrap gap-1.5 mb-2">
@@ -322,6 +323,8 @@ function ProfileSettings() {
           onChange={(e) => handleChange('bio', e.target.value)}
           placeholder="A short description about yourself..."
           rows={3}
+          maxLength={280}
+          aria-describedby="profile-card-hint"
           className={`${INPUT} resize-none`}
         />
       </div>
@@ -352,9 +355,15 @@ function ProfileSettings() {
             value={profile.statusText}
             onChange={(e) => handleChange('statusText', e.target.value)}
             placeholder="What are you working on?"
+            maxLength={80}
+            aria-describedby="profile-card-hint"
             className={INPUT}
           />
         </div>
+        <p id="profile-card-hint" className="text-[11px] text-slate-500 mt-1.5">
+          Your picture, display name, status (80 characters) and bio (280) show to everyone in the chat on this server, as
+          plain text. Your e-mail and time zone stay private.
+        </p>
       </div>
 
       {/* Timezone */}
