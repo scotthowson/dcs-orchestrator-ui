@@ -191,6 +191,8 @@ export function collectNeeds(input: {
 /** Push bans to Cloudflare: on, and no good sync for CLOUDFLARE_STALE_S (or failing for that long) */
 export function cloudflareNeeds(cf: CloudflareBouncerBrief | null, now = Date.now()): NeedItem[] {
   if (!cf?.enabled) return []
+  // Cloudflare asked DCS to slow down: it tries again by itself after the wait, and the list it holds stays in force
+  if (cf.error?.code === 'rate_limited') return []
   const nowS = now / 1000
   const failingFor = cf.error ? nowS - (cf.error.since || cf.error.at) : 0
   const staleFor = cf.last_sync ? nowS - cf.last_sync : 0

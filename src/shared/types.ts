@@ -3611,8 +3611,9 @@ export interface CrowdSecBouncersResponse {
 /** off · starting (turned on, no sync yet) · ok · stale (no good sync for 10 minutes) · error (the last sync failed) */
 export type CloudflareBouncerHealth = 'off' | 'starting' | 'ok' | 'stale' | 'error'
 export type CloudflareBouncerErrorCode = 'token_missing' | 'token_invalid' | 'token_rejected' | 'zone_not_found' | 'no_domain' | 'missing_permissions'
-  | 'list_quota' | 'list_full' | 'list_gone' | 'rule_quota' | 'cloudflare_error' | 'cloudflare_unreachable' | 'cloudflare_slow' | 'lapi_down' | 'lapi_key' | 'lapi_error' | 'internal'
-export interface CloudflareBouncerError { code: CloudflareBouncerErrorCode | string; message: string; at: number; since: number }
+  | 'list_quota' | 'list_full' | 'list_gone' | 'rule_quota' | 'cloudflare_error' | 'cloudflare_unreachable' | 'cloudflare_slow' | 'rate_limited' | 'lapi_down' | 'lapi_key' | 'lapi_error' | 'internal'
+/** rate_limited is no failure: Cloudflare asked DCS to slow down, and it tries again at retry_at by itself */
+export interface CloudflareBouncerError { code: CloudflareBouncerErrorCode | string; message: string; at: number; since: number; retry_at?: number }
 /** a right the token needs, as Cloudflare's token page names it */
 export interface CloudflarePermission { group: string; item: string; level: string; why: string }
 /** what /crowdsec/status carries (from DCS's own files, no call to Cloudflare) */
@@ -3639,6 +3640,9 @@ export interface CloudflareBouncerStatus {
     running: { since: number; rows: number } | null
     /** the last sync the loop had to stop (it held the lock for 10 minutes) */
     stuck: { at: number; minutes: number; pid: string; kind: string } | null
+    /** a change of the list waiting for Cloudflare's one change a minute */
+    push_waiting?: { until: number } | null
+    backoff?: { step: number; until: number } | null
   }
   cloudflare: {
     /** the addresses on Cloudflare's list, read back from Cloudflare (null: not read yet, or the read failed) */
@@ -3651,6 +3655,8 @@ export interface CloudflareBouncerStatus {
   left_at_cloudflare: boolean
   permissions: CloudflarePermission[]
   limits: { free: { lists: number; items: number; rules: number } }
+  /** a sentence for the action that answered with this status (a Settings save, Sync now) */
+  message?: string
 }
 export interface CloudflareBouncerZone { domain: string; domains?: string[]; name: string; id: string; account: string; account_name: string; plan: string; rule?: boolean; rules?: number }
 export interface CloudflareBouncerVerifyResponse { ok: boolean; success: boolean; message: string; zones: CloudflareBouncerZone[]; token: { kind: 'user' | 'account'; status: string }; warnings: string[]; permissions: CloudflarePermission[] }

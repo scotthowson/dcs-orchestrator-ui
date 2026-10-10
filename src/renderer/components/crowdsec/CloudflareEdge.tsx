@@ -267,7 +267,7 @@ function SettingsSheet({ st, onClose, onDone }: { st: CloudflareBouncerStatus; o
     setBusy(true); setError('')
     try {
       const r = await crowdsecCloudflareSettings({ capacity: cap, community }, member)
-      addToast({ type: r.error ? 'warning' : 'success', message: r.error ? r.error.message : `Saved: ${plural(r.sync.items, 'address', 'addresses')} on Cloudflare’s list`, duration: 7000 })
+      addToast({ type: 'success', message: r.message || 'Saved. The next sync applies it.', duration: 7000 })
       onDone(); onClose()
     } catch (e) { setError(errMsg(e, 'The settings were not saved')) } finally { setBusy(false) }
   }
@@ -328,11 +328,14 @@ export default function CloudflareEdge({ onChanged }: { onChanged?: () => void }
   if (!st) return <SkeletonBlock className="h-40" />
 
   const on = st.enabled
-  const head = HEAD[st.health] ?? HEAD.off
+  // Cloudflare asked DCS to slow down: a note (it tries again by itself), never the failure it may look like
+  const slowed = on && st.error?.code === 'rate_limited'
+  const head = slowed ? { tone: 'info' as Tone, title: 'Cloudflare asked DCS to slow down' } : HEAD[st.health] ?? HEAD.off
   const zones = st.cloudflare.zones
   const cfItems = st.cloudflare.items
   let text: string
   if (!on) text = 'Cloudflare forwards a scanner CrowdSec banned, and Traefik answers it 403: one more request at your server, one more detection for CrowdSec. Turn this on to have Cloudflare refuse banned addresses at its edge.'
+  else if (slowed) text = `DCS tries again ${st.error?.retry_at && st.error.retry_at * 1000 > now ? `in ${Math.max(1, Math.ceil((st.error.retry_at * 1000 - now) / 60000))} min` : 'now'}. Cloudflare keeps refusing the ${plural(cfItems ?? st.sync.items, 'address', 'addresses')} it holds meanwhile.`
   else if (st.health === 'error' && st.error) text = st.error.message
   else if (st.health === 'stale') text = `${st.sync.last_sync ? 'The last good sync with Cloudflare was more than 10 minutes ago.' : 'No sync with Cloudflare has succeeded yet.'} Cloudflare keeps refusing the addresses it holds; new bans reach it once the sync works again.`
   else if (st.health === 'starting') text = st.sync.running ? `DCS is working through ${plural(st.sync.running.rows, 'address', 'addresses')} and pushing them to Cloudflare. This takes a few seconds.` : 'DCS is pushing the bans to Cloudflare. This takes a few seconds.'
@@ -342,7 +345,8 @@ export default function CloudflareEdge({ onChanged }: { onChanged?: () => void }
     setBusy('sync')
     try {
       const r = await crowdsecCloudflareSync(member)
-      addToast({ type: r.error ? 'warning' : 'success', message: r.error ? r.error.message : `In step: ${plural(r.cloudflare.items ?? r.sync.items, 'address', 'addresses')} on Cloudflare’s list`, duration: 7000 })
+      const slowed = r.error?.code === 'rate_limited'
+      addToast({ type: r.error && !slowed ? 'warning' : slowed ? 'info' : 'success', message: r.message || (r.error ? r.error.message : `In step: ${plural(r.cloudflare.items ?? r.sync.items, 'address', 'addresses')} on Cloudflare’s list`), duration: 7000 })
       after()
     } catch (e) { addToast({ type: 'error', message: errMsg(e, 'The sync did not run'), duration: 8000 }) } finally { setBusy('') }
   }
@@ -424,6 +428,11 @@ export default function CloudflareEdge({ onChanged }: { onChanged?: () => void }
             {st.sync.dropped ? <> · <span className="text-amber-300">{plural(st.sync.dropped, 'address', 'addresses')} left out over the capacity</span></> : null}
             {st.sync.skipped ? <> · {plural(st.sync.skipped, 'address', 'addresses')} never pushed (private, this server, your home or the allowlist)</> : null}
           </StatusLine>
+          {!!st.sync.push_waiting && st.sync.push_waiting.until * 1000 > now && (
+            <StatusLine as="li" tone="info" title="A change is waiting">
+              It goes to Cloudflare in {Math.ceil((st.sync.push_waiting.until * 1000 - now) / 1000)} s: Cloudflare takes one change of the list a minute.
+            </StatusLine>
+          )}
           {repairedRecently && st.sync.repaired && (
             <StatusLine as="li" tone="info" title="Repaired">
               {st.sync.repaired.what.join(', ')} · <Ago at={iso(st.sync.repaired.at)} />
