@@ -311,6 +311,10 @@ export interface ContainerInfo {
   sablier_up?: boolean | null
   /** Compose project (the stack) this container belongs to, "" for containers Compose does not manage */
   stack?: string
+  /** who made it (servers after 4.0.47): a game-server panel (Pelican or Pterodactyl Wings, outside compose), DCS itself, a compose project, or nobody known */
+  owner?: ContainerOwner | null
+  /** a panel's container, whose name is a UUID: its image's short name and tag ("steamcmd:proton") */
+  owner_hint?: string | null
   name: string
   state: string
   health: string
@@ -329,6 +333,8 @@ export interface ContainerInfo {
   member_name?: string
   vmid?: number | null
 }
+
+export type ContainerOwner = 'pelican' | 'pterodactyl' | 'compose' | 'dcs'
 
 // GET /containers/:name
 export interface ContainerDetail extends ContainerInfo {
@@ -352,6 +358,8 @@ export interface ContainerActionResponse {
   action: string
   success: boolean
   output: string
+  /** done, but a game-server panel manages the container: "managed by Pelican Wings; use the panel" */
+  warning?: string
 }
 
 // GET /containers/:name/logs
@@ -2510,6 +2518,8 @@ export interface TopologyNode {
   on_demand?: boolean
   image: string
   stack: string
+  /** a game-server panel made it (outside compose): grouped under the panel, not "Standalone" */
+  owner?: 'pelican' | 'pterodactyl' | null
   networks: string[]
   ports: string
   ip_addresses?: TopologyNodeIP[]

@@ -15,6 +15,7 @@ import Hint from '../common/Hint'
 import VmCapsule from '../fleet/VmCapsule'
 import { BTN_ICON_SM, TONE_GHOST, TONE_GHOST_OK, TONE_GHOST_DANGER } from '../../lib/ui'
 import { StateChip, StateDot } from '../common/StateChip'
+import { Pill } from '../common/Pill'
 import { containerState, isAsleep, STATE_META } from '../../lib/containerState'
 
 import { REVEAL } from '../../lib/pageKit'
@@ -26,6 +27,23 @@ const ON_DEMAND_TAG = 'text-[10px] font-normal text-indigo-300/80'
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+/** the game-server panel that made a container (Pelican or Pterodactyl Wings, outside compose), or null */
+export function panelOf(c: Pick<ContainerInfo, 'owner'>): 'Pelican' | 'Pterodactyl' | null {
+  return c.owner === 'pelican' ? 'Pelican' : c.owner === 'pterodactyl' ? 'Pterodactyl' : null
+}
+
+/** "Pelican" in a pill, and what the UUID-named server runs (its image) */
+function PanelTag({ container }: { container: ContainerInfo }) {
+  const panel = panelOf(container)
+  if (!panel) return null
+  return (
+    <span className="inline-flex items-center gap-1.5 min-w-0">
+      <Pill tone="fleet" size="xs" title={`Created by ${panel} Wings. Manage it in the ${panel} panel.`}>{panel}</Pill>
+      {container.owner_hint && <span className="truncate text-[11px] text-slate-500 font-mono">{container.owner_hint}</span>}
+    </span>
+  )
+}
 
 function formatUptime(seconds: number): string {
   if (seconds <= 0) return '--'
@@ -203,6 +221,7 @@ const ContainerRow: React.FC<ContainerRowProps> = ({
           <Box className="h-4 w-4 text-slate-500 group-hover:text-emerald-400 transition-colors flex-shrink-0" />
           <div className="flex flex-col items-start gap-1 min-w-0">
             <ContainerNameWithPopover container={container} formatUptime={formatUptime} onOpen={() => onClick(container)} />
+            <PanelTag container={container} />
             {showCapsule && <VmCapsule member={container.member} name={container.member_name} vmid={container.vmid} size="xs" />}
           </div>
         </div>
@@ -379,6 +398,7 @@ export const ContainerCard: React.FC<ContainerRowProps> = ({
 
       {/* Middle: badges */}
       <div className="flex items-center gap-2 mt-2.5 flex-wrap">
+        <PanelTag container={container} />
         {showCapsule && <VmCapsule member={container.member} name={container.member_name} vmid={container.vmid} size="xs" />}
         {isAsleep(container) ? (
           <StateChip state={containerState(container)} size="xs" onClick={onOnDemand ? () => onOnDemand(container) : undefined} />
