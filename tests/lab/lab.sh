@@ -47,6 +47,7 @@ make_install() {
     cp -r "$AIO/.scripts/." "$dir/.scripts/"
     cp -r "$AIO/.lib/." "$dir/.lib/"
     cp "$AIO/.config/schema.json" "$AIO/.config/template-gallery.json" "$AIO/.config/palette.sh" "$dir/.config/" 2>/dev/null || true
+    cp "$AIO/.config/compose-policy.json" "$dir/.config/" 2>/dev/null || true   # the compose policy's shipped exceptions (server 4.0.48+)
     cp -r "$AIO/.templates/." "$dir/.templates/"
     cp -r "$AIO/.plugins-catalog/." "$dir/.plugins-catalog/"
     mkdir -p "$dir/vm-images"; cp "$AIO/vm-images/images.json" "$dir/vm-images/" 2>/dev/null || true   # the list of DCS images the New VM sheet offers

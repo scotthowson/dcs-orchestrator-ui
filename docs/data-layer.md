@@ -145,6 +145,7 @@ were merged, every poll gets the answers of the fastest one.
 | every page | `/fleet/status`, `/fleet/members`, `/fleet/overview` | 30 s per hook instance (a 10 s shared answer) | one 30 s stream each (15 s while the dashboard's Proxmox card shows the overview) |
 | every page | `/stacks` (sidebar badge, hub) | 30 s (a 20 s shared answer) | shared `stacks` stream |
 | every page | chat presence / room | 30 s / 5 s while the stream is down | same |
+| every page | the chat rooms of the other servers the dashboard is signed in to (4.0.42) | — | a 10 s tick per room: nothing while its `GET /stream?only=chat` is live (presence every 30 s), else its room; a room that is off or unknown is asked again after 60 s |
 | Dashboard | `/stacks` | 15 s + 30 s (counts) + 30 s (fleet card) + 30 s (badge) | one stream at 15 s |
 | Dashboard | `/events`, `/disks`, `/logs/stats`, `/notifications/history`, `/backups/status` | 8 / 30 / 30 / 30 / 30 s | same |
 | Dashboard | `/system`, `/maintenance/report`, `/automations`, `/schedules`, `/crowdsec/status`, `/metrics/trends` | 60 s | same |
@@ -153,6 +154,8 @@ were merged, every poll gets the answers of the fastest one.
 | Stacks | `/stacks` | 5 s (+ the shell's) | 5 s, the one stream |
 | Stacks | `/fleet/jobs`, provision defaults, Proxmox capabilities (hub, admin) | 5 / 60 / 60 s | same, shared with the Proxmox page |
 | Stacks | a stack's detail / its App-Data on the hub | 5 / 30 s (kept running in a hidden tab) | 5 / 30 s, paused in a hidden tab |
+| Proxmox | a guest's snapshots, while its details or its *Take snapshot* sheet are open (4.0.42) | — | 30 s |
+| DNS & routes | `/routes/maintenance`, once when a route's maintenance sheet opens (4.0.42) | — | no poll |
 | Containers | the list (everywhere / hub) | 10 s + the global 15 s | one stream at 10 s |
 | Containers | a container's stats / processes | 10 s (+ a second sample after 2 s) / 10 s | same |
 | Health | report / containers / events / metrics / score | 5 (15 everywhere) / 10 / 15 (20) / 10 / 15 s | same; report and containers shared with the global poller |
