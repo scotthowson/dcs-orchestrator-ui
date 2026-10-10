@@ -4705,8 +4705,14 @@ export interface FleetJobStep { id: string; label: string; hint: string; state: 
 export interface FleetJob {
   id: string
   stack: string
-  /** build: a VM for a stack; bake: a DCS template other VMs clone */
-  kind?: 'build' | 'bake'
+  /** build: a VM for a stack; bake: a DCS template other VMs clone; move_to_hub: a VM's stack moving back to the hub */
+  kind?: 'build' | 'bake' | 'move_to_hub'
+  /** a move to the hub: the VM it comes from, what the hub checked first, and how it ended */
+  member_name?: string
+  member_vmid?: number | null
+  start?: boolean
+  preflight?: MoveToHubPreflight
+  result?: MoveToHubResult | null
   template_for?: string
   cloned_from?: number
   /** cloud: built and joined unattended; iso: the VM boots an installer, you install by hand and join */
@@ -4746,6 +4752,47 @@ export interface FleetJob {
   steps: FleetJobStep[]
 }
 export interface FleetJobsResponse { total: number; running: number; jobs: FleetJob[] }
+
+/** One row of the preflight of a move to the hub: green, amber or red, and why */
+export interface MoveToHubCheck { id: string; label: string; state: 'ok' | 'warn' | 'fail'; detail: string }
+/** POST /fleet/members/{id}/stacks/{stack}/move-to-hub/preflight — what the hub checked before it takes a VM's stack */
+export interface MoveToHubPreflight {
+  stack: string
+  member: string
+  member_name: string
+  vmid: number | null
+  ip: string
+  movable: boolean
+  checks: MoveToHubCheck[]
+  containers_up: number
+  listed_in_vm: boolean
+  vm_dir: string | null
+  data_kb: number
+  files: number
+  folders: { name: string; kb: number; files: number; path?: string }[]
+  volumes: { name: string; volume: string; kb: number; files: number }[]
+  routes: string[]
+  images: { image: string; present: boolean; build: boolean }[]
+  ports: { service: string; port: string; protocol: string }[]
+  /** how long the VM keeps its copy */
+  backup_days: number
+  settle_seconds: number
+  /** the sentence that says what stops while the stack moves */
+  downtime: string
+}
+/** POST …/move-to-hub — the job that moves it (202); a refusal is a 409 whose body carries the preflight */
+export interface MoveToHubResponse { success: boolean; job: string; stack: string; member: string; preflight: MoveToHubPreflight; message: string }
+/** how a move to the hub ended (GET /fleet/jobs/{id} .result) */
+export interface MoveToHubResult {
+  placement: 'hub'
+  started: boolean
+  containers_up: number
+  /** the VM's copy, kept aside in the VM for some days with its named volumes */
+  vm_backup: { path: string; volumes: string[]; days: number; expires_at: number } | null
+  /** what the hub had of the stack before (its copy from before the move into the VM), set aside */
+  hub_set_aside: string | null
+  warning: string | null
+}
 export interface FleetJoinOutcome { joined: boolean; member?: FleetMember; hub?: { name: string; version: string; url: string }; hub_url?: string; error?: string }
 
 // ---------------------------------------------------------------------------

@@ -36,7 +36,7 @@ import type {
   FleetStatus, FleetMembersResponse, FleetMemberResponse, FleetOverview, FleetDiscoverResponse,
   FleetJoinTokensResponse, FleetJoinTokenResponse, FleetMemberTestResponse, FleetJoinHubResponse, FleetLeaveResponse,
   FleetMemberSyncResponse, StackPushResponse, StackPullResponse, StackAppDataStatus, MemberFolders, HostFolderOperation, DashboardFeedStatus, WebTerminalStatus, AutheliaSecondStep, AutheliaSecondStepResult, AutheliaSecondStepRepair, AutheliaVerificationCode, ApiKeyInfo, ApiKeyCreated, SshAccess, SshKeyCreated,
-  ProxmoxCapabilities, FleetProvisionDefaults, FleetProvisionRequest, FleetMoveCheck, FleetProvisionResponse, FleetJob, FleetJobsResponse,
+  ProxmoxCapabilities, FleetProvisionDefaults, FleetProvisionRequest, FleetMoveCheck, FleetProvisionResponse, FleetJob, FleetJobsResponse, MoveToHubPreflight, MoveToHubResponse,
   SystemInfo,
   NetworkListResponse,
   NetworkDetail,
@@ -1888,6 +1888,14 @@ export function fetchFleetProvisionDefaults(pve?: { url: string; token_id: strin
 /** GET /fleet/provision/move-check — what a move of this hub stack into a VM would take with it */
 export function fetchFleetMoveCheck(stack: string): Promise<FleetMoveCheck> {
   return apiClient.get<FleetMoveCheck>(`/fleet/provision/move-check?stack=${encodeURIComponent(stack)}`)
+}
+/** POST /fleet/members/:id/stacks/:stack/move-to-hub/preflight — what moving a VM's stack back to the hub would take, checked on both sides (nothing changes) */
+export function fetchMoveToHubPreflight(member: string, stack: string): Promise<MoveToHubPreflight> {
+  return apiClient.post<MoveToHubPreflight>(`/fleet/members/${encodeURIComponent(member)}/stacks/${encodeURIComponent(stack)}/move-to-hub/preflight`, {}, 90000)
+}
+/** POST /fleet/members/:id/stacks/:stack/move-to-hub — move a VM's stack back to the hub with its data: a job (GET /fleet/jobs/:id); a 409 carries the preflight */
+export function moveStackToHub(member: string, stack: string, start = true): Promise<MoveToHubResponse> {
+  return apiClient.post<MoveToHubResponse>(`/fleet/members/${encodeURIComponent(member)}/stacks/${encodeURIComponent(stack)}/move-to-hub`, { confirm: true, start }, 90000)
 }
 /** POST /fleet/provision — create one VM per stack; the jobs run in the background */
 export function provisionFleet(body: FleetProvisionRequest): Promise<FleetProvisionResponse> {

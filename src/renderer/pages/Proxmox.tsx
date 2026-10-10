@@ -13,7 +13,7 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { SegmentedControl, Tooltip } from '@mantine/core'
-import { RotateCcw, Server, Cpu, MemoryStick, HardDrive, Clock, Play, Power, Square, RotateCw, Zap, Pause, PlayCircle, RefreshCw, AlertTriangle, Settings2, ShieldCheck, Boxes, Box, Tag, ListChecks, X, Loader2, Satellite, Link2, KeyRound, Radar, Rocket, MoreHorizontal, PlugZap, Pencil, Trash2, Layers, ExternalLink, Home, Info, LayoutGrid, LayoutList, Hammer, LayoutDashboard, ChevronDown, ChevronUp, FolderSync, FolderInput, TerminalSquare, Globe, Moon } from 'lucide-react'
+import { RotateCcw, Server, Cpu, MemoryStick, HardDrive, Clock, Play, Power, Square, RotateCw, Zap, Pause, PlayCircle, RefreshCw, AlertTriangle, Settings2, ShieldCheck, Boxes, Box, Tag, ListChecks, X, Loader2, Satellite, Link2, KeyRound, Radar, Rocket, MoreHorizontal, PlugZap, Pencil, Trash2, Layers, ExternalLink, Home, Info, LayoutGrid, LayoutList, Hammer, LayoutDashboard, ChevronDown, ChevronUp, FolderSync, FolderInput, TerminalSquare, Globe, Moon, ArrowDownToLine } from 'lucide-react'
 import { usePolling } from '../hooks/usePolling'
 import { pollKeys } from '../api/pollKeys'
 import { useAuthStore } from '../stores/authStore'
@@ -36,6 +36,7 @@ import MemberSheet, { type MemberSheetPrefill } from '../components/fleet/Member
 import { MATCH_LABEL, hostOf } from '../components/fleet/fleetShared'
 import { proxmoxVmResize } from '../api/endpoints'
 import { FleetJobCard, JobsSummary, orderJobs } from '../components/fleet/FleetJobsPanel'
+import MoveToHubSheet from '../components/fleet/MoveToHubSheet'
 import NewVmSheet, { CapabilityNote, settingsFromDefaults, loadVmSettings, osLabel } from '../components/fleet/NewVmSheet'
 import VmCapsule from '../components/fleet/VmCapsule'
 import HostFoldersSheet from '../components/fleet/HostFoldersSheet'
@@ -1082,8 +1083,10 @@ function ResizePanel({ vm, running, cores, memoryMb, diskBytes, onDone }: { vm: 
   )
 }
 
-function MemberMenuSheet({ member, vms, onClose, onEdit, onChanged }: { member: FleetMemberBase; vms: ProxmoxVm[]; onClose: () => void; onEdit: () => void; onChanged: () => void }) {
+function MemberMenuSheet({ member, vms, stacks = [], onClose, onEdit, onChanged }: { member: FleetMemberBase; vms: ProxmoxVm[]; stacks?: string[]; onClose: () => void; onEdit: () => void; onChanged: () => void }) {
   const { addToast } = useToast()
+  // a stack of this VM moving back to the hub (its own sheet, over this one)
+  const [moving, setMoving] = useState<string | null>(null)
   const confirm = useConfirm()
   const [busy, setBusy] = useState<'test' | 'sync' | 'relink' | 'remove' | ''>('')
   const [note, setNote] = useState('')
@@ -1143,6 +1146,9 @@ function MemberMenuSheet({ member, vms, onClose, onEdit, onChanged }: { member: 
         <button type="button" onClick={test} disabled={!!busy} className={`${BTN_SHEET} ${TONE_QUIET} w-full`}>{busy === 'test' ? <Loader2 size={16} className="animate-spin" /> : <PlugZap size={16} />} Test the link and re-match the guest</button>
         <button type="button" onClick={sync} disabled={!!busy} className={`${BTN_SHEET} ${TONE_QUIET} w-full`}>{busy === 'sync' ? <Loader2 size={16} className="animate-spin" /> : <FolderSync size={16} />} Sync stack files from the VM</button>
         <button type="button" onClick={() => void relink()} disabled={!!busy} className={`${BTN_SHEET} ${TONE_QUIET} w-full`}>{busy === 'relink' ? <Loader2 size={16} className="animate-spin" /> : <Link2 size={16} />} Relink to the hub (password lost, or "rate limiting login")</button>
+        {stacks.map((st) => (
+          <button key={st} type="button" onClick={() => setMoving(st)} disabled={!!busy} className={`${BTN_SHEET} ${TONE_QUIET} w-full`}><ArrowDownToLine size={16} /> <span className="min-w-0 truncate">Move <span className="font-mono">{st}</span> to the hub</span></button>
+        ))}
         <button type="button" onClick={onEdit} disabled={!!busy} className={`${BTN_SHEET} ${TONE_QUIET} w-full`}><Pencil size={16} /> Edit name, address, account or guest</button>
         <button type="button" onClick={remove} disabled={!!busy} className={`${BTN_SHEET} ${TONE_DANGER} w-full`}>{busy === 'remove' ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />} Remove from the fleet</button>
         {canDestroy && <button ref={destroyRef} type="button" onClick={() => setDestroying(true)} disabled={!!busy || destroying} aria-expanded={destroying} className={`${BTN_SHEET} ${TONE_DANGER} w-full`}><Trash2 size={16} /> Stop and destroy the VM on Proxmox</button>}
@@ -1160,6 +1166,7 @@ function MemberMenuSheet({ member, vms, onClose, onEdit, onChanged }: { member: 
           </div>
         )}
       </div>
+      {moving && <MoveToHubSheet member={member.id} memberName={member.name} stack={moving} onClose={() => setMoving(null)} onDone={onChanged} />}
     </Sheet>
   )
 }
@@ -1555,7 +1562,7 @@ export default function Proxmox() {
       {editing && <MemberSheet member={editing} vms={vms.data?.vms ?? []} onClose={() => setEditing(null)} onSaved={(m) => { setEditing(null); addToast({ type: 'success', message: `${m.name} saved` }); refreshFleet() }} />}
       {foldersOf && <HostFoldersSheet member={foldersOf} onClose={() => { setFoldersOf(null); refreshFleet() }} />}
       {sshFor !== null && <SshAccessSheet focus={sshFor || undefined} onClose={() => setSshFor(null)} />}
-      {menu && <MemberMenuSheet member={menu} vms={vms.data?.vms ?? []} onClose={() => setMenu(null)} onEdit={() => { setEditing(menu); setMenu(null) }} onChanged={refreshFleet} />}
+      {menu && <MemberMenuSheet member={menu} vms={vms.data?.vms ?? []} stacks={(localStacks.data?.stacks ?? []).filter((s) => s.placement === 'vm' && s.member === menu.id).map((s) => s.name)} onClose={() => setMenu(null)} onEdit={() => { setEditing(menu); setMenu(null) }} onChanged={refreshFleet} />}
       {newVm !== null && <NewVmSheet defaults={provDefaults.data ?? null} caps={caps.data ?? null} initialStack={newVm} onClose={() => setNewVm(null)} onQueued={() => { addToast({ type: 'success', message: 'The VM is being built — follow it on the card' }); refreshFleet() }} onBaked={(image) => { addToast({ type: 'success', message: `Baking a DCS template from ${image} — follow it on the card` }); refreshFleet(); templates.refresh() }} />}
     </div>
   )

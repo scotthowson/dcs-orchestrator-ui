@@ -31,8 +31,12 @@ function jobCurrent(j: FleetJob): number {
   return Math.min(j.steps.length - 1, lastDone + 1)
 }
 function jobStatus(j: FleetJob): string {
-  if (j.status === 'queued') return 'Waiting for its turn — VMs are built one at a time'
+  if (j.status === 'queued') return j.kind === 'move_to_hub' ? 'Waiting for its turn — the hub runs one job at a time' : 'Waiting for its turn — VMs are built one at a time'
   if (j.status === 'failed') return j.error || 'Failed'
+  if (j.kind === 'move_to_hub' && j.status === 'done') {
+    const b = j.result?.vm_backup
+    return `${j.stack} runs on the hub${b ? `; ${j.member_name || 'the VM'} keeps its copy until ${new Date(b.expires_at * 1000).toLocaleDateString()}` : ''}`
+  }
   if (j.kind === 'bake' && j.status === 'done') return `DCS template VM ${j.vmid} for ${j.template_for ?? j.image_id} is baked — a VM cloned from it builds in about half a minute`
   if (j.status === 'done' && j.manual && !j.member_id) return `VM ${j.vmid} boots the installer — install the system in its Proxmox console, then join with the code below`
   if (j.status === 'done' && j.manual) return `VM ${j.vmid} at ${j.ip} was installed by hand and joined as ${j.stack}`
@@ -47,7 +51,8 @@ function look(j: FleetJob): JobLook {
   if (j.kind === 'bake' && j.status === 'done') return { text: 'template ready', cls: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/25', tone: 'ok' }
   if (j.kind === 'bake' && j.status === 'running') return { text: 'baking', cls: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/25', tone: 'info' }
   if (j.status === 'queued') return { text: 'waiting', cls: 'bg-white/5 text-slate-400 border-white/10', tone: 'neutral' }
-  if (j.status === 'running') return { text: 'building', cls: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/25', tone: 'info' }
+  if (j.status === 'running') return { text: j.kind === 'move_to_hub' ? 'moving' : 'building', cls: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/25', tone: 'info' }
+  if (j.kind === 'move_to_hub' && j.status === 'done') return { text: 'on the hub', cls: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/25', tone: 'ok' }
   if (j.status === 'failed') return { text: 'failed', cls: 'bg-rose-500/10 text-rose-300 border-rose-500/25', tone: 'problem' }
   if (j.manual && !j.member_id) return { text: 'install by hand', cls: 'bg-amber-500/10 text-amber-300 border-amber-500/25', tone: 'attention' }
   return { text: 'ready', cls: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/25', tone: 'ok' }
@@ -58,6 +63,10 @@ function took(j: FleetJob): string {
   return ''
 }
 function sizeText(j: FleetJob): string {
+  if (j.kind === 'move_to_hub') {
+    const kb = j.preflight?.data_kb ?? 0
+    return `back to the hub with ${kb >= 1048576 ? `${Math.round((kb / 1048576) * 10) / 10} GB` : `${Math.max(1, Math.round(kb / 1024))} MB`} of data`
+  }
   const ram = j.memory_mb >= 1024 ? `${Math.round((j.memory_mb / 1024) * 10) / 10} GB` : `${j.memory_mb} MB`
   return `${j.cores} ${j.cores === 1 ? 'core' : 'cores'} · ${ram} RAM · ${j.disk_gb} GB disk`
 }
@@ -163,7 +172,8 @@ export function FleetJobCard({ job, onChanged, compact = false }: { job: FleetJo
     try { await deleteFleetJob(job.id, destroy); onChanged() } finally { setBusy('') }
   }
   const statusIcon = job.status === 'done' ? <CheckCircle2 size={20} /> : job.status === 'failed' ? <XCircle size={20} /> : job.status === 'queued' ? <Clock size={20} /> : <Loader2 size={20} className="animate-spin" />
-  const title = job.kind === 'bake' ? `DCS template for ${job.template_for ?? job.image_id}` : job.stack
+  const moving = job.kind === 'move_to_hub'
+  const title = job.kind === 'bake' ? `DCS template for ${job.template_for ?? job.image_id}` : moving ? `${job.stack} → the hub` : job.stack
   const os = job.image_kind === 'iso' ? `installer ${(job.iso ?? '').split('/').pop()}` : (job.image_id && job.image_id !== 'url' && job.image_id !== 'proxmox' ? job.image_id : job.image_file)
   return (
     <div className={`${compact ? 'surface p-3.5' : 'glass-card rounded-2xl p-4'} ${job.status === 'running' ? 'ring-1 ring-cyan-400/20' : ''}`}>
@@ -172,12 +182,12 @@ export function FleetJobCard({ job, onChanged, compact = false }: { job: FleetJo
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
             <p className="text-sm font-semibold text-slate-100 truncate max-w-full">{title}</p>
-            {job.kind !== 'bake' && <span className="text-[11px] text-violet-300/90 inline-flex items-center gap-1"><Server size={11} />VM{job.vmid ? ` #${job.vmid}` : ''}</span>}
+            {job.kind !== 'bake' && <span className="text-[11px] text-violet-300/90 inline-flex items-center gap-1"><Server size={11} />{moving ? `from ${job.member_name || 'the VM'}${job.member_vmid ? ` #${job.member_vmid}` : ''}` : `VM${job.vmid ? ` #${job.vmid}` : ''}`}</span>}
             {job.cloned_from ? <span className="text-[11px] text-violet-300/90">cloned from template {job.cloned_from}</span> : null}
             <Pill tone={t.tone}>{t.text}</Pill>
           </div>
           <p className="text-[11px] text-slate-500 mt-0.5 break-words">
-            <span className="text-slate-300">{os}</span> · {sizeText(job)} · <span className="font-mono">{job.ip}</span>{took(job) ? ` · ${took(job)}` : ''}
+            {moving ? <>{sizeText(job)}{took(job) ? ` · ${took(job)}` : ''}</> : <><span className="text-slate-300">{os}</span> · {sizeText(job)} · <span className="font-mono">{job.ip}</span>{took(job) ? ` · ${took(job)}` : ''}</>}
           </p>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
@@ -231,7 +241,7 @@ export function JobsSummary({ jobs, onChanged, compact = false, title = 'VMs bei
   const done = jobs.filter((j) => j.status === 'done'), failed = jobs.filter((j) => j.status === 'failed')
   const running = jobs.filter((j) => j.status === 'running'), queued = jobs.filter((j) => j.status === 'queued')
   const active = running.length + queued.length
-  const vmJobs = jobs.filter((j) => j.kind !== 'bake'), templateJobs = jobs.filter((j) => j.kind === 'bake')
+  const vmJobs = jobs.filter((j) => j.kind !== 'bake' && j.kind !== 'move_to_hub'), templateJobs = jobs.filter((j) => j.kind === 'bake'), moveJobs = jobs.filter((j) => j.kind === 'move_to_hub')
   // a build takes about as long as the ones that finished (or a minute and a half until one has)
   const durations = done.filter((j) => j.started_at && j.finished_at).map((j) => (j.finished_at as number) - (j.started_at as number))
   const avg = durations.length ? durations.reduce((a, b) => a + b, 0) / durations.length : 90
@@ -243,14 +253,19 @@ export function JobsSummary({ jobs, onChanged, compact = false, title = 'VMs bei
   // dismissed on its own card, which asks about the VM it left behind)
   const clearable = done.filter((j) => !(j.manual && !j.member_id))
   const clearFinished = async () => { setClearing(true); try { for (const j of clearable) await deleteFleetJob(j.id); onChanged() } finally { setClearing(false) } }
-  const what = `${vmJobs.length} VM${vmJobs.length === 1 ? '' : 's'}${templateJobs.length ? ` and ${templateJobs.length === 1 ? 'a template' : `${templateJobs.length} templates`}` : ''}`
+  const what = [
+    vmJobs.length || !moveJobs.length ? `${vmJobs.length} VM${vmJobs.length === 1 ? '' : 's'}` : '',
+    templateJobs.length ? (templateJobs.length === 1 ? 'a template' : `${templateJobs.length} templates`) : '',
+    moveJobs.length ? `${moveJobs.length} stack${moveJobs.length === 1 ? '' : 's'} to the hub` : '',
+  ].filter(Boolean).join(' and ')
+  const verb = running.concat(queued).every((j) => j.kind === 'move_to_hub') ? 'Moving' : 'Building'
   const ringColor = failed.length && active === 0 ? C.failed : active === 0 ? C.done : C.running
   return (
     <div className={`${compact ? 'surface' : 'glass-card rounded-2xl'} px-4 py-3.5 flex items-center gap-4 flex-wrap`}>
       <RingProgress size={compact ? 58 : 64} thickness={6} roundCaps sections={[{ value: Math.max(pct, active > 0 ? 2 : 0), color: ringColor }]}
         label={<Text ta="center" fw={700} size="xs" c="dimmed" style={{ lineHeight: 1 }}>{pct}%</Text>} />
       <div className="min-w-0 flex-1 basis-56">
-        <p className="text-sm font-semibold text-slate-100 flex items-center gap-2"><Layers size={14} className="text-violet-300 shrink-0" />{active > 0 ? `Building ${what}` : failed.length ? `${what}: ${failed.length} failed` : `${what} ready`}</p>
+        <p className="text-sm font-semibold text-slate-100 flex items-center gap-2"><Layers size={14} className="text-violet-300 shrink-0" />{active > 0 ? `${verb} ${what}` : failed.length ? `${what}: ${failed.length} failed` : `${what} ready`}</p>
         <p className="text-[11px] text-slate-500 mt-0.5">{title}{eta > 0 && active > 0 ? ` · about ${eta} min left` : ''}</p>
         <div className="flex items-center gap-1.5 flex-wrap mt-2">
           {([

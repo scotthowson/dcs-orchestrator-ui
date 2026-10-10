@@ -29,6 +29,7 @@ import {
   CloudUpload,
   CloudDownload,
   Moon,
+  ArrowDownToLine,
 } from 'lucide-react'
 import type { StackDetail as StackDetailType, ContainerInfo, StackInfo, ProxmoxVmAction, StackAppDataStatus } from '../../../shared/types'
 import AppDataLabel from './AppDataLabel'
@@ -41,6 +42,9 @@ import { EmptyState, ErrorState, LoadingState } from '../common/PageState'
 import Hint from '../common/Hint'
 import ModalOverlay from '../common/ModalOverlay'
 import { ComposeViewer } from './ComposeViewer'
+import MoveToHubSheet from '../fleet/MoveToHubSheet'
+import { refreshPoll } from '../../lib/poll'
+import { pollKeys } from '../../api/pollKeys'
 import { pageLabel } from '../../constants/pageTitles'
 import { StateChip, AsleepCount } from '../common/StateChip'
 import { containerState, countStates, isAsleep, stackState, STACK_META } from '../../lib/containerState'
@@ -152,6 +156,8 @@ export default function StackDetail({ stackName, onBack, onAction, isActionLoadi
   const [composeLoading, setComposeLoading] = useState(false)
   // a VM stack's files: the hub's copy into the VM, or the VM's copy onto the hub
   const [filesBusy, setFilesBusy] = useState<'push' | 'pull' | ''>('')
+  // a VM stack moving back to the hub: the sheet checks, confirms and follows the job
+  const [moveToHub, setMoveToHub] = useState(false)
   // a VM stack's App-Data, shown on the hub through Stacks/<name>/VM-App-Data: whether it is mounted, and why not
   // (null: a hub that does not know the call yet, or a viewer — the plain sentence is shown)
   const [appData, setAppData] = useState<StackAppDataStatus | null>(null)
@@ -619,11 +625,24 @@ export default function StackDetail({ stackName, onBack, onAction, isActionLoadi
                     Pull files from the VM
                   </button>
                 </Hint>
+                {stack?.member && (
+                  <Hint label="Move this stack from its VM back to the hub, with its App-Data and volumes (the hub checks first)">
+                    <button onClick={() => setMoveToHub(true)} className={`${BTN_TOOLBAR} ${TONE_QUIET}`}>
+                      <ArrowDownToLine size={14} />
+                      Move to the hub
+                    </button>
+                  </Hint>
+                )}
               </>
             )}
           </div>
         </div>
       </div>
+
+      {moveToHub && stack?.member && (
+        <MoveToHubSheet member={stack.member} memberName={stack.member_name} stack={stackName}
+          onClose={() => setMoveToHub(false)} onDone={() => { void refreshPoll(pollKeys.stacks); void detailPoll.refresh() }} />
+      )}
 
       {/* Compose file viewer overlay */}
       {showCompose && (
