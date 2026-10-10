@@ -50,6 +50,7 @@ import DiskAnalysis from './pages/DiskAnalysis'
 import Secrets from './pages/Secrets'
 import Plugins from './pages/Plugins'
 import DNS from './pages/DNS'
+import Technitium from './pages/Technitium'
 import Proxmox from './pages/Proxmox'
 import CrowdSec from './pages/CrowdSec'
 import Export from './pages/Export'
@@ -102,6 +103,7 @@ const pageComponents: Record<Exclude<PageId, AliasPageId>, React.ComponentType> 
   secrets: Secrets,
   plugins: Plugins,
   dns: DNS,
+  technitium: Technitium,
   proxmox: Proxmox,
   crowdsec: CrowdSec,
   export: Export,

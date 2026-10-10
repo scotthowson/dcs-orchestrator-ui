@@ -3,6 +3,7 @@
 // =============================================================================
 
 import { apiClient } from './client'
+import type { TechnitiumStatus, TechnitiumStats, TechnitiumRange, TechnitiumActivity, TechnitiumLists, TechnitiumGroups, TechnitiumGroup, TechnitiumGroupInput, TechnitiumHouse, TechnitiumSyncResult, TechnitiumConnectResult, TechnitiumBootstrapResult, TechnitiumRole } from '../../shared/types'
 import type {
   FleetVersions,
   FleetUpdateResponse,
@@ -2069,4 +2070,76 @@ export function fetchTraefikFeedStatus(): Promise<TraefikFeedStatus> {
 /** POST /traefik/feed/token — mint a new feed token */
 export function rotateTraefikFeedToken(): Promise<TraefikFeedTokenResponse> {
   return apiClient.post<TraefikFeedTokenResponse>('/traefik/feed/token', {})
+}
+
+// ---- Technitium DNS (/dns/technitium/*): the home's resolver ----
+type TtSync = { sync: TechnitiumSyncResult | null }
+/** GET /dns/technitium/status — both servers, in sync, the house's SafeSearch (viewer) */
+export function fetchTechnitiumStatus(): Promise<TechnitiumStatus> {
+  return apiClient.get<TechnitiumStatus>('/dns/technitium/status')
+}
+/** GET /dns/technitium/stats — both servers added up over the range (viewer) */
+export function fetchTechnitiumStats(range: TechnitiumRange): Promise<TechnitiumStats> {
+  return apiClient.get<TechnitiumStats>(`/dns/technitium/stats?range=${range}`)
+}
+/** GET /dns/technitium/activity — a device's recent queries (admin) */
+export function fetchTechnitiumActivity(q: { client?: string; q?: string; blocked?: boolean; limit?: number }): Promise<TechnitiumActivity> {
+  const p = new URLSearchParams()
+  if (q.client) p.set('client', q.client)
+  if (q.q) p.set('q', q.q)
+  if (q.blocked) p.set('blocked', '1')
+  p.set('limit', String(q.limit ?? 200))
+  return apiClient.get<TechnitiumActivity>(`/dns/technitium/activity?${p}`)
+}
+/** GET /dns/technitium/lists (viewer) */
+export function fetchTechnitiumLists(): Promise<TechnitiumLists> {
+  return apiClient.get<TechnitiumLists>('/dns/technitium/lists')
+}
+/** GET /dns/technitium/groups (viewer) */
+export function fetchTechnitiumGroups(): Promise<TechnitiumGroups> {
+  return apiClient.get<TechnitiumGroups>('/dns/technitium/groups')
+}
+/** POST /dns/technitium/block or /allow — a name for everyone; remove takes it off */
+export function technitiumListName(list: 'block' | 'allow', domain: string, remove = false): Promise<TtSync & { message: string }> {
+  return apiClient.post(`/dns/technitium/${list}`, { domain, remove }, 60000)
+}
+/** POST /dns/technitium/blocklists */
+export function technitiumBlocklist(url: string, remove = false): Promise<TtSync & { blocklists: string[] }> {
+  return apiClient.post('/dns/technitium/blocklists', { url, remove }, 60000)
+}
+/** POST /dns/technitium/pause — 5, 15 or 60 minutes on every server */
+export function technitiumPause(minutes: 5 | 15 | 60): Promise<{ paused_until: string; warning: string | null }> {
+  return apiClient.post('/dns/technitium/pause', { minutes })
+}
+/** POST /dns/technitium/resume */
+export function technitiumResume(): Promise<{ blocking: boolean; warning: string | null }> {
+  return apiClient.post('/dns/technitium/resume', {})
+}
+/** POST /dns/technitium/sync — the secondary made equal to the primary */
+export function technitiumSync(): Promise<{ message: string }> {
+  return apiClient.post('/dns/technitium/sync', {}, 120000)
+}
+/** POST /dns/technitium/safesearch — the whole house */
+export function technitiumSafeSearch(house: Partial<TechnitiumHouse>): Promise<TtSync & { house: TechnitiumHouse }> {
+  return apiClient.post('/dns/technitium/safesearch', house, 120000)
+}
+/** POST /dns/technitium/groups — add one, or change it (with its id) */
+export function saveTechnitiumGroup(group: TechnitiumGroupInput): Promise<TtSync & { group: TechnitiumGroup; warning: string | null }> {
+  return apiClient.post('/dns/technitium/groups', group, 120000)
+}
+/** DELETE /dns/technitium/groups/{id} */
+export function deleteTechnitiumGroup(id: string): Promise<TtSync> {
+  return apiClient.delete(`/dns/technitium/groups/${encodeURIComponent(id)}`)
+}
+/** POST /dns/technitium/groups/{id}/pause-bedtime — 30 minutes by default, 0 ends the pause */
+export function pauseTechnitiumBedtime(id: string, minutes = 30): Promise<TtSync & { paused_until: string | null }> {
+  return apiClient.post(`/dns/technitium/groups/${encodeURIComponent(id)}/pause-bedtime`, { minutes }, 60000)
+}
+/** POST /dns/technitium/connect — saves, then tests; url "" disconnects; no token keeps the stored one */
+export function connectTechnitium(role: TechnitiumRole, url: string, token?: string): Promise<TechnitiumConnectResult> {
+  return apiClient.post<TechnitiumConnectResult>('/dns/technitium/connect', token ? { role, url, token } : { role, url }, 30000)
+}
+/** POST /dns/technitium/bootstrap — the house's baseline (installs two apps: it can take a minute) */
+export function bootstrapTechnitium(role: TechnitiumRole | 'both' = 'both'): Promise<TechnitiumBootstrapResult> {
+  return apiClient.post<TechnitiumBootstrapResult>('/dns/technitium/bootstrap', { role }, 300000)
 }

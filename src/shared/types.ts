@@ -1829,6 +1829,7 @@ export type PageId =
   | 'event-feed'
   | 'export'
   | 'dns'
+  | 'technitium'
   | 'proxmox'
   | 'crowdsec'
   | 'setup'
@@ -5037,3 +5038,106 @@ export interface DnsRecordInput {
   priority?: number | null
   comment?: string
 }
+
+// ---------------------------------------------------------------------------
+// Technitium DNS (the Technitium page; the API lives in .lib/technitium.sh, GET/POST /dns/technitium/*)
+// ---------------------------------------------------------------------------
+
+export type TechnitiumRole = 'primary' | 'secondary'
+export type TechnitiumYoutube = 'off' | 'moderate' | 'strict'
+/** one server as GET /dns/technitium/status sees it (the details only when it answered) */
+export interface TechnitiumInstance {
+  role: TechnitiumRole
+  url: string | null
+  configured: boolean
+  reachable: boolean
+  error?: string | null
+  version?: string
+  domain?: string
+  up_since?: string
+  blocking?: boolean
+  /** blocking is paused until then (ISO), null when it is not */
+  paused_until?: string | null
+  forwarders?: string[]
+  forwarder_protocol?: string
+  dnssec?: boolean
+  block_lists?: number
+  list_update_hours?: number
+  lists_last_update?: string | null
+  zones?: number
+  allowed?: number
+  blocked?: number
+  apps?: { advanced_blocking: boolean; query_logs: boolean }
+  hash?: string
+}
+export interface TechnitiumHouse { safe_search: boolean; youtube: TechnitiumYoutube }
+export interface TechnitiumSyncResult { ok: boolean; message: string }
+/** GET /dns/technitium/status */
+export interface TechnitiumStatus {
+  configured: boolean
+  primary: TechnitiumInstance
+  secondary: TechnitiumInstance | null
+  /** null without a secondary */
+  in_sync: boolean | null
+  last_sync: (TechnitiumSyncResult & { at: number }) | null
+  house: TechnitiumHouse
+  groups: number
+  bedtime_active: string[]
+}
+export type TechnitiumRange = 'lastHour' | 'lastDay' | 'lastWeek'
+/** GET /dns/technitium/stats (both servers added up) */
+export interface TechnitiumStats {
+  range: TechnitiumRange
+  instances: TechnitiumRole[]
+  unreachable: { role: TechnitiumRole; error: string }[]
+  totals: { queries: number; blocked: number; clients: number; cached: number; nxdomain: number }
+  series: { labels: string[]; queries: number[]; blocked: number[] }
+  /** name: the device's label in a group, else Technitium's name for it (DHCP), else null */
+  top_clients: { ip: string; count: number; name: string | null }[]
+  top_domains: { domain: string; count: number }[]
+  top_blocked: { domain: string; count: number }[]
+  query_types: { type: string; count: number }[]
+}
+export interface TechnitiumQuery {
+  time: string
+  client: string
+  name: string
+  type: string
+  response: string
+  rcode: string
+  answer: string
+  blocked: boolean
+  instance: TechnitiumRole
+}
+/** GET /dns/technitium/activity (admin) */
+export interface TechnitiumActivity { entries: TechnitiumQuery[]; unavailable: { role: TechnitiumRole; error: string }[] }
+export interface TechnitiumCategory { id: string; name: string; url?: string }
+/** GET /dns/technitium/lists */
+export interface TechnitiumLists { blocklists: string[]; allowed: string[]; blocked: string[]; categories: TechnitiumCategory[]; baseline_lists: string[] }
+export interface TechnitiumDevice { ip: string; label: string; mac?: string | null }
+/** days: 1 is Monday … 7 Sunday; from/to "HH:MM" in the server's time */
+export interface TechnitiumBedtime { enabled: boolean; from: string; to: string; days: number[] }
+export interface TechnitiumGroup {
+  id: string
+  name: string
+  devices: TechnitiumDevice[]
+  lists: string[]
+  bedtime: TechnitiumBedtime
+  in_bedtime?: boolean
+  bedtime_paused_until?: string | null
+}
+export type TechnitiumGroupInput = Pick<TechnitiumGroup, 'name' | 'devices' | 'lists' | 'bedtime'> & { id?: string }
+/** GET /dns/technitium/groups */
+export interface TechnitiumGroups {
+  house: TechnitiumHouse
+  groups: TechnitiumGroup[]
+  categories: TechnitiumCategory[]
+  forced_names: { safe_search: string[]; youtube: string[] }
+  /** SafeSearch is the whole house's: Technitium cannot do it per group */
+  safe_search_scope: 'house'
+  now: string
+}
+/** POST /dns/technitium/connect */
+export interface TechnitiumConnectResult { success: boolean; role: TechnitiumRole; url?: string; connected: boolean; reachable?: boolean; version?: string; domain?: string; error?: string; message?: string }
+/** POST /dns/technitium/bootstrap */
+export interface TechnitiumBootstrapResult { success: boolean; roles: Partial<Record<TechnitiumRole, { changed: string[]; installed: string[] }>>; unchanged: boolean }

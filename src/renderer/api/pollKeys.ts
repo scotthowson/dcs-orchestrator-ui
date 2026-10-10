@@ -27,6 +27,7 @@ export const pollKeys = {
   proxmoxVms: 'proxmox-vms',
   proxmoxNodes: 'proxmox-nodes',
   routes: 'routes',
+  technitiumStatus: 'technitium-status',
   /** a hub's own list carries every VM's containers: everywhere and the hub are this one request; a member id is that VM's */
   containers: (member?: string | null) => (member ? `containers:${member}` : 'containers'),
   systemInfo: (member?: string | null) => `system-info:${s(member)}`,

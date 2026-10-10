@@ -18,7 +18,7 @@ import {
   LayoutDashboard, Layers, Box, HardDrive, HeartPulse, Clock, Network, Database, Bookmark, Zap, FileCode,
   Archive, ScrollText, Monitor, Shield, Users, Settings2, Cog, TerminalSquare, CalendarClock, TrendingUp,
   ArrowUpCircle, Bell, Camera, LayoutTemplate, Bot, Share2, FolderOpen, PieChart, KeyRound, Timer, Puzzle, Radio,
-  Download, Globe, Server, ShieldCheck, Sparkles, Eraser,
+  Download, Globe, Server, ShieldCheck, ShieldHalf, Sparkles, Eraser,
 } from 'lucide-react'
 import type { PageId } from '../../shared/types'
 
@@ -70,6 +70,7 @@ export const pageMeta: Record<PageId, PageMeta> = {
   'event-feed': { label: 'Live Events', subtitle: 'Server events as they happen', icon: Radio, aliases: ['Live Event Feed'] },
   export: { label: 'Export', subtitle: 'Download server data, reports and configurations', icon: Download, aliases: ['Export Center'] },
   dns: { label: 'DNS & Routes', subtitle: 'Traefik routes and Cloudflare DNS records', icon: Globe },
+  technitium: { label: 'Technitium', subtitle: "The home's DNS: what is asked and blocked, the kids' groups and their bedtime, both servers in step", icon: ShieldHalf, aliases: ['Technitium DNS', 'Parental controls', 'Kids'] },
   proxmox: { label: 'Proxmox', subtitle: 'VMs and containers on your Proxmox host', icon: Server },
   crowdsec: { label: 'CrowdSec', subtitle: 'Bans, alerts, the allowlist, countries and Discord alerts for the intrusion prevention on your servers', icon: ShieldCheck },
   setup: { label: 'Setup Wizard', subtitle: 'Guided first-run configuration', icon: Sparkles },

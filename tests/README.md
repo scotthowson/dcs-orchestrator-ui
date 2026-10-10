@@ -76,4 +76,13 @@ PUPPETEER_DIR=/tmp/dcs-ui-sweep MEMBER_API=http://127.0.0.1:41922 EMPTY_API=http
 The viewer is an account of role `user` on the hub and on the member API (create it with `POST /auth/users`); the hub
 also needs `austin` (role `user`) for the chat journey.
 
+`tests/technitium.mjs` drives the Technitium page with every `/dns/technitium/*` answer served from a fake inside the
+test (no Technitium needed; the lab signs in): the overview, Allow on a blocked name, the pause's countdown and Resume,
+a kids' group added, put in bedtime, paused, edited and deleted, SafeSearch, a device's queries and their filter, the
+connect sheet (also with nothing connected) and a viewer on a phone (read-only, never asking for a device's queries).
+
+```bash
+PUPPETEER_DIR=/tmp/dcs-ui-sweep VIEWER_USER=viewer VIEWER_PASS=… node tests/technitium.mjs   # screenshots in docs/ui-polish/technitium/
+```
+
 CI (`.github/workflows/ci.yml`) runs the two Node tests; the browser tests need the lab and run locally.
