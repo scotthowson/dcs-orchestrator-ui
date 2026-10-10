@@ -31,6 +31,8 @@ import type {
   ProxmoxBalloonResponse,
   ProxmoxGuestType,
   ProxmoxVmAction,
+  ProxmoxSnapshotsResponse,
+  ProxmoxSnapshotResult,
   TraefikFeedStatus,
   TraefikFeedTokenResponse,
   FleetStatus, FleetMembersResponse, FleetMemberResponse, FleetOverview, FleetDiscoverResponse,
@@ -1745,6 +1747,26 @@ export function proxmoxVmResize(node: string, type: 'qemu' | 'lxc', vmid: number
 /** POST /proxmox/vms/:node/qemu/:vmid/balloon — give a VM a memory balloon (floor: its memory minus a quarter, at most 512 MB — three quarters or more stay with the guest) so Proxmox reports the guest's real use and can reclaim idle memory; takes effect at the next boot */
 export function proxmoxVmBalloon(node: string, vmid: number): Promise<ProxmoxBalloonResponse> {
   return apiClient.post<ProxmoxBalloonResponse>(`/proxmox/vms/${encodeURIComponent(node)}/qemu/${vmid}/balloon`, {}, 60000)
+}
+
+/** GET /proxmox/vms/:vmid/snapshots — a guest's snapshots, the one it runs from and whether its RAM can be saved */
+export function fetchProxmoxSnapshots(vmid: number): Promise<ProxmoxSnapshotsResponse> {
+  return apiClient.get<ProxmoxSnapshotsResponse>(`/proxmox/vms/${vmid}/snapshots`)
+}
+
+/** POST /proxmox/vms/:vmid/snapshots — take one ({name, description?, vmstate?}); the server waits for Proxmox (RAM takes a while) */
+export function takeProxmoxSnapshot(vmid: number, body: { name: string; description?: string; vmstate?: boolean }): Promise<ProxmoxSnapshotResult> {
+  return apiClient.post<ProxmoxSnapshotResult>(`/proxmox/vms/${vmid}/snapshots`, body, 620000)
+}
+
+/** POST /proxmox/vms/:vmid/snapshots/:name/rollback — everything since is lost; a VM that was running starts again unless start is false */
+export function rollbackProxmoxSnapshot(vmid: number, name: string, start = true): Promise<ProxmoxSnapshotResult> {
+  return apiClient.post<ProxmoxSnapshotResult>(`/proxmox/vms/${vmid}/snapshots/${encodeURIComponent(name)}/rollback`, { confirm: true, start }, 620000)
+}
+
+/** DELETE /proxmox/vms/:vmid/snapshots/:name — the guest stays as it is now */
+export function deleteProxmoxSnapshot(vmid: number, name: string): Promise<ProxmoxSnapshotResult> {
+  return apiClient.delete<ProxmoxSnapshotResult>(`/proxmox/vms/${vmid}/snapshots/${encodeURIComponent(name)}`)
 }
 
 /** POST /proxmox/test — try a connection with the given values without saving them */

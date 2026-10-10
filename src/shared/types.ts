@@ -4155,6 +4155,50 @@ export interface ProxmoxActionResponse {
   message: string
 }
 
+/** one snapshot of a guest (GET /proxmox/vms/:vmid/snapshots) */
+export interface ProxmoxSnapshot {
+  name: string
+  description: string
+  /** epoch seconds; null when Proxmox did not say */
+  created_at: number | null
+  /** a running VM's RAM was saved with it: a rollback brings the VM back running, where it was */
+  vmstate: boolean
+  parent: string | null
+  /** the snapshot the guest runs from now */
+  current: boolean
+}
+
+/** GET /proxmox/vms/:vmid/snapshots */
+export interface ProxmoxSnapshotsResponse {
+  vmid: number
+  node: string
+  type: ProxmoxGuestType
+  name: string
+  status: string
+  /** a running VM: a snapshot can include its RAM */
+  can_save_ram: boolean
+  total: number
+  current: string | null
+  snapshots: ProxmoxSnapshot[]
+}
+
+/** POST /proxmox/vms/:vmid/snapshots, …/:name/rollback, DELETE …/:name */
+export interface ProxmoxSnapshotResult {
+  success: boolean
+  action: 'snapshot' | 'rollback' | 'delete'
+  vmid: number
+  name: string
+  upid: string
+  message: string
+  vmstate?: boolean
+  snapshot?: ProxmoxSnapshot | null
+  /** after a rollback: the guest's state now */
+  status?: string
+  /** after a rollback: the guest is a member of this hub (its DCS went back too) */
+  member?: boolean
+  note?: string
+}
+
 /** POST /proxmox/vms/:node/qemu/:vmid/balloon — the balloon floor and the VM's memory, both in MB; it takes effect at the next boot */
 export interface ProxmoxBalloonResponse {
   success: boolean
