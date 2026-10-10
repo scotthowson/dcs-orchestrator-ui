@@ -4826,6 +4826,16 @@ export interface RouteEntry {
   conflict: boolean
   /** Traefik's CrowdSec bouncer: checks this route (protected), does not (bypass), or CrowdSec is not set up on the proxy (off) */
   crowdsec?: 'protected' | 'bypass' | 'off'
+  /** Traefik answers this host with DCS's 503 "back soon" page (PUT /routes/{host}/maintenance) */
+  maintenance?: boolean
+}
+
+/** a route's maintenance mode, by its host (GET /routes/maintenance, PUT /routes/{host}/maintenance) */
+export interface RouteMaintenance {
+  on: boolean
+  /** the line under "<name> is back soon" ("" = the default one) */
+  message: string
+  since: string | null
 }
 
 export interface RoutesResponse {

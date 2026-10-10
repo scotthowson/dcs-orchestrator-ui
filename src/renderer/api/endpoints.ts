@@ -169,7 +169,7 @@ import type {
   RouteCertificatesResponse,
   DockerEngineInfo, DockerEngineFleet, DockerEngineStatus, DockerEngineUpdateResponse, FleetDockerEngineUpdateResponse,
   ProxmoxSelf, StorageOverview, DomainsResponse, DomainChangeResponse,
-  ContainerListResponse, RoutesResponse, RouteCheckResponse, DnsRecord, DnsZone, DnsRecordsResponse, DnsStatusResponse, DnsRecordInput
+  ContainerListResponse, RoutesResponse, RouteMaintenance, RouteCheckResponse, DnsRecord, DnsZone, DnsRecordsResponse, DnsStatusResponse, DnsRecordInput
 } from '../../shared/types'
 
 // ---------------------------------------------------------------------------
@@ -949,6 +949,16 @@ export function fetchRouteCertificates(): Promise<RouteCertificatesResponse> {
 /** GET /routes — List all Traefik routes */
 export function fetchRoutes(): Promise<RoutesResponse> {
   return apiClient.get<RoutesResponse>('/routes')
+}
+
+/** GET /routes/maintenance — The routes in maintenance mode (or that keep a message for it), by host */
+export function fetchRoutesMaintenance(): Promise<{ routes: Record<string, RouteMaintenance> }> {
+  return apiClient.get<{ routes: Record<string, RouteMaintenance> }>('/routes/maintenance')
+}
+
+/** PUT /routes/{host}/maintenance — Turn a route's maintenance page on or off (on the hub for a VM's route too: its Traefik fronts it) */
+export function setRouteMaintenance(host: string, on: boolean, message?: string): Promise<RouteMaintenance & { success: boolean; id: string }> {
+  return apiClient.put<RouteMaintenance & { success: boolean; id: string }>(`/routes/${encodeURIComponent(host)}/maintenance`, message === undefined ? { on } : { on, message })
 }
 
 /** GET /routes/check?subdomain=xyz — Check subdomain availability */
