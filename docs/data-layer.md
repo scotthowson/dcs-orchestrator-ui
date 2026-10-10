@@ -156,6 +156,7 @@ were merged, every poll gets the answers of the fastest one.
 | Stacks | a stack's detail / its App-Data on the hub | 5 / 30 s (kept running in a hidden tab) | 5 / 30 s, paused in a hidden tab |
 | Proxmox | a guest's snapshots, while its details or its *Take snapshot* sheet are open (4.0.42) | — | 30 s |
 | DNS & routes | `/routes/maintenance`, once when a route's maintenance sheet opens (4.0.42) | — | no poll |
+| Technitium (4.0.42) | `/dns/technitium/status` (shared with its card on DNS & routes, 60 s there), the numbers, the kids' groups, the lists, a device's queries | — | 15 / 30 / 30 / 60 / 15 s (the queries only while a device is chosen) |
 | Containers | the list (everywhere / hub) | 10 s + the global 15 s | one stream at 10 s |
 | Containers | a container's stats / processes | 10 s (+ a second sample after 2 s) / 10 s | same |
 | Health | report / containers / events / metrics / score | 5 (15 everywhere) / 10 / 15 (20) / 10 / 15 s | same; report and containers shared with the global poller |
