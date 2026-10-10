@@ -1,6 +1,6 @@
 {
   "name": "docker-compose-skeleton-ui",
-  "version": "4.0.42",
+  "version": "4.0.43",
   "description": "The dashboard of DCS Orchestrator: desktop, browser and Android",
   "type": "module",
   "main": "dist/main/index.cjs",
