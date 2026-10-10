@@ -20,6 +20,8 @@ import {
 import { usePolling } from '../../hooks/usePolling'
 import type { RowMember } from '../../../shared/fleetScoped'
 import VmCapsule from '../fleet/VmCapsule'
+import { Pill } from '../common/Pill'
+import { panelOf } from './ContainerRow'
 import { serverHostname } from '../../lib/hosts'
 import ContainerFileBrowser from './ContainerFileBrowser'
 import { CopyButton } from '../common/CopyButton'
@@ -585,6 +587,7 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
 
       if (result.success) {
         addToast({ type: 'success', message: `"${containerName}" ${pastTense[action]} successfully!` })
+        if (result.warning) addToast({ type: 'warning', message: result.warning, duration: 6000 })
         if (action === 'remove') {
           onRefreshList?.()
           onBack()
@@ -878,6 +881,7 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
           )}
           <div className="flex flex-wrap items-center gap-2 flex-shrink-0 ml-auto w-full sm:w-auto">
             {showCapsule && <VmCapsule member={member} name={memberName || containerInfo.member_name} vmid={containerInfo.vmid} />}
+            {panelOf(containerInfo) && <Pill tone="fleet" title={`Created by ${panelOf(containerInfo)} Wings. Manage it in the ${panelOf(containerInfo)} panel.`}>{panelOf(containerInfo)}{containerInfo.owner_hint ? ` · ${containerInfo.owner_hint}` : ''}</Pill>}
             {/* asleep on demand: its own calm state, and its last health check is history */}
             {isAsleep(containerInfo)
               ? <StateChip state={containerState(containerInfo)} />

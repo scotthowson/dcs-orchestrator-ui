@@ -161,7 +161,8 @@ function computeLayout(data: TopologyResponse, netNames: string[]): Layout {
   // Group containers by (server, stack)
   const groups = new Map<string, { server: string; stack: string; nodes: TopologyNode[] }>()
   for (const n of data.nodes) {
-    const stack = n.stack || 'Standalone'
+    // a game-server panel's containers (Pelican, Pterodactyl Wings) are the panel's, not standalone
+    const stack = n.stack || (n.owner === 'pelican' ? 'Pelican' : n.owner === 'pterodactyl' ? 'Pterodactyl' : 'Standalone')
     const server = serverOf(n)
     const key = `${server}\u0001${stack}`
     if (!groups.has(key)) groups.set(key, { server, stack, nodes: [] })

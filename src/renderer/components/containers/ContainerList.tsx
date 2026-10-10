@@ -8,7 +8,7 @@ import React, { useState, useMemo, useCallback } from 'react'
 import { ContainerInfo } from '../../../shared/types'
 import { useContainerStore } from '../../stores/containerStore'
 import { containerActionOn, rowKey, type ContainerActionName } from '../../api/fleetScoped'
-import ContainerRow, { ContainerCard } from './ContainerRow'
+import ContainerRow, { ContainerCard, panelOf } from './ContainerRow'
 import OnDemandDialog from './OnDemandDialog'
 import { useConfirm } from '../common/ConfirmDialog'
 import { useToast } from '../common/Toast'
@@ -21,6 +21,7 @@ import PageHeader from '../common/PageHeader'
 import SortableTh from '../common/SortableTh'
 import StatTile from '../common/StatTile'
 import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, TONE_QUIET, BTN_CARD, TONE_GHOST, BTN_TOOLBAR_OK, BTN_TOOLBAR_DANGER, BTN_TOOLBAR_ATTN } from '../../lib/ui'
+import { TONE_DOT, TONE_TEXT, TONE_TILE } from '../../lib/tone'
 import type { FleetScope, ScopeMember } from '../../hooks/useFleetScope'
 import { Box, CircleCheck, CircleX, CirclePause, Moon, Loader2, CheckSquare, Square as SquareIcon, Play, RefreshCw, RotateCw, Minus, Trash2 } from 'lucide-react'
 import SearchInput from '../common/SearchInput'
@@ -90,6 +91,9 @@ interface ContainerListProps {
   busy?: boolean
 }
 
+/** stopped for real: not asleep on demand, not a game server its panel turned off */
+const isStopped = (c: ContainerInfo): boolean => { const k = containerState(c); return !panelOf(c) && (k === 'stopped' || k === 'stuck' || k === 'created') }
+
 const ContainerList: React.FC<ContainerListProps> = ({
   containers, loading, error, selectedKey, onSelect, isAdmin = false, onRefresh,
   scope, setScope, scopeMember, memberName, members, hasFleet, busy = false,
@@ -104,7 +108,7 @@ const ContainerList: React.FC<ContainerListProps> = ({
   const [onDemandFor, setOnDemandFor] = useState<ContainerInfo | null>(null)
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState<SortConfig>({ key: 'name', direction: 'asc' })
-  const [filter, setFilter] = useState<'all' | 'running' | 'asleep' | 'stopped' | 'paused'>('all')
+  const [filter, setFilter] = useState<'all' | 'running' | 'asleep' | 'stopped' | 'paused' | 'panel'>('all')
 
   // Batch selection state (rows by key: two servers may each run a container of the same name)
   const [batchMode, setBatchMode] = useState(false)
@@ -144,10 +148,12 @@ const ContainerList: React.FC<ContainerListProps> = ({
     setBatchLoading(true)
     setBatchResults(null)
     const results: { key: string; name: string; where: string; action: string; success: boolean }[] = []
+    const warned: string[] = []
     // one call per row, each on its own server
     for (const c of rows) {
       try {
         const r = await containerActionOn(c.name, action, targetOf(c))
+        if (r.warning) warned.push(c.owner_hint || c.name)
         results.push({ key: rowKey(c), name: c.name, where: whereOf(c), action, success: r.success !== false })
       } catch {
         results.push({ key: rowKey(c), name: c.name, where: whereOf(c), action, success: false })
@@ -155,6 +161,7 @@ const ContainerList: React.FC<ContainerListProps> = ({
     }
     setBatchResults(results)
     setBatchLoading(false)
+    if (warned.length) addToast({ type: 'warning', message: `${warned.join(', ')}: ${warned.length === 1 ? 'a game-server panel manages it' : 'a game-server panel manages them'} — use the panel`, duration: 6000 })
     onRefresh?.()
     // After remove, clear successfully removed containers from selection
     if (action === 'remove') {
@@ -167,7 +174,7 @@ const ContainerList: React.FC<ContainerListProps> = ({
         })
       }
     }
-  }, [selectedContainers, containers, confirm, targetOf, whereOf, onRefresh])
+  }, [selectedContainers, containers, confirm, targetOf, whereOf, onRefresh, addToast])
 
   const exitBatchMode = useCallback(() => {
     setBatchMode(false)
@@ -183,6 +190,7 @@ const ContainerList: React.FC<ContainerListProps> = ({
     try {
       const r = await containerActionOn(c.name, action as ContainerActionName, targetOf(c))
       if (r.success === false) addToast({ type: 'error', message: `Could not ${action} ${c.name}${c.member ? ` on VM ${c.member_name || c.member}` : ''}: ${r.output || 'unknown error'}`, duration: 6000 })
+      else if (r.warning) addToast({ type: 'warning', message: `${c.owner_hint || c.name}: ${r.warning}`, duration: 6000 })
       onRefresh?.()
     } catch (err) {
       addToast({ type: 'error', message: `Could not ${action} ${c.name}${c.member ? ` on VM ${c.member_name || c.member}` : ''}: ${err instanceof Error ? err.message : String(err)}`, duration: 6000 })
@@ -198,10 +206,12 @@ const ContainerList: React.FC<ContainerListProps> = ({
       // on demand, asleep on purpose: Sablier wakes them on the first request
       result = result.filter((c) => containerState(c) === 'asleep')
     } else if (filter === 'stopped') {
-      // stopped for real (an on-demand one that cannot wake, Sablier not running, too); asleep is not stopped
-      result = result.filter((c) => { const k = containerState(c); return k === 'stopped' || k === 'stuck' || k === 'created' })
+      // stopped for real (an on-demand one that cannot wake, Sablier not running, too); asleep is not stopped, nor a game server its panel turned off
+      result = result.filter(isStopped)
     } else if (filter === 'paused') {
       result = result.filter((c) => c.state.toLowerCase() === 'paused')
+    } else if (filter === 'panel') {
+      result = result.filter((c) => panelOf(c))
     }
     if (search.trim()) {
       const q = search.toLowerCase()
@@ -212,6 +222,8 @@ const ContainerList: React.FC<ContainerListProps> = ({
           c.state.toLowerCase().includes(q) ||
           c.health.toLowerCase().includes(q) ||
           (c.member_name ?? '').toLowerCase().includes(q) ||
+          (c.owner_hint ?? '').toLowerCase().includes(q) ||
+          (panelOf(c) ?? '').toLowerCase().includes(q) ||
           (c.stack ?? '').toLowerCase().includes(q),
       )
     }
@@ -235,16 +247,27 @@ const ContainerList: React.FC<ContainerListProps> = ({
     setSelectedContainers(new Set(sorted.map(rowKey)))
   }, [sorted])
 
-  // Everywhere: the VMs are the stacks — containers sit under their VM, the hub's own last
+  // Everywhere: the VMs are the stacks — containers sit under their VM, the hub's own last. A game-server panel's
+  // containers (Pelican, Pterodactyl Wings) are a group of their own at the end, wherever they run (each row says where)
   const groups = useMemo(() => {
-    if (scope !== 'all' || !sorted.some((c) => c.member)) return [{ key: 'all', header: '', rows: sorted }]
-    const byVm = new Map<string, ContainerInfo[]>()
-    for (const c of sorted) { const k = c.member ?? 'hub'; if (!byVm.has(k)) byVm.set(k, []); byVm.get(k)!.push(c) }
-    const vms = [...byVm.entries()].filter(([k]) => k !== 'hub').sort(([a], [b]) => a.localeCompare(b))
-      .map(([k, rows]) => ({ key: k, header: `VM${rows[0].vmid ? ` #${rows[0].vmid}` : ''} · ${rows[0].member_name || k}`, rows }))
-    const hub = byVm.get('hub')
-    return hub ? [...vms, { key: 'hub', header: 'On the hub — this server', rows: hub }] : vms
+    const own = sorted.filter((c) => !panelOf(c))
+    const panels = (['Pelican', 'Pterodactyl'] as const)
+      .map((p) => ({ key: `panel-${p}`, header: `Game servers (${p})`, rows: sorted.filter((c) => panelOf(c) === p) }))
+      .filter((g) => g.rows.length > 0)
+    let base: { key: string; header: string; rows: ContainerInfo[] }[]
+    if (scope !== 'all' || !own.some((c) => c.member)) base = own.length ? [{ key: 'all', header: panels.length ? 'Stacks and other containers' : '', rows: own }] : []
+    else {
+      const byVm = new Map<string, ContainerInfo[]>()
+      for (const c of own) { const k = c.member ?? 'hub'; if (!byVm.has(k)) byVm.set(k, []); byVm.get(k)!.push(c) }
+      const vms = [...byVm.entries()].filter(([k]) => k !== 'hub').sort(([a], [b]) => a.localeCompare(b))
+        .map(([k, rows]) => ({ key: k, header: `VM${rows[0].vmid ? ` #${rows[0].vmid}` : ''} · ${rows[0].member_name || k}`, rows }))
+      const hub = byVm.get('hub')
+      base = hub ? [...vms, { key: 'hub', header: 'On the hub — this server', rows: hub }] : vms
+    }
+    return [...base, ...panels]
   }, [scope, sorted])
+  /** a group header's dot: the hub emerald, a VM amber, a game-server panel violet */
+  const groupDot = (key: string) => (key === 'hub' ? 'bg-emerald-400' : key.startsWith('panel-') ? TONE_DOT.fleet : 'bg-amber-300')
 
   const handleSort = (key: SortKey) => {
     setSort((prev) =>
@@ -258,8 +281,11 @@ const ContainerList: React.FC<ContainerListProps> = ({
   const runningCount = containers.filter((c) => c.state.toLowerCase() === 'running').length
   const stateCounts = countStates(containers)
   const asleepCount = stateCounts.asleep
-  const stoppedCount = containers.filter((c) => { const k = containerState(c); return k === 'stopped' || k === 'stuck' || k === 'created' }).length
+  const stoppedCount = containers.filter(isStopped).length
   const pausedCount = containers.filter((c) => c.state.toLowerCase() === 'paused').length
+  // a game-server panel's containers: counted in the total, their own filter, never "stopped" when the panel turned them off
+  const panelCount = containers.filter((c) => panelOf(c)).length
+  const panelLabel = containers.some((c) => panelOf(c) === 'Pelican') ? 'Pelican' : 'Pterodactyl'
 
   const favSet = new Set(favorites)
   /** the list could not be read and there is nothing to show: the failed state replaces the tiles and the table */
@@ -268,7 +294,7 @@ const ContainerList: React.FC<ContainerListProps> = ({
   const subtitle = scope === 'all'
     ? `Every container on the hub and its ${members.length} VM${members.length === 1 ? '' : 's'}`
     : scopeMember ? `The containers inside the VM ${memberName}` : undefined
-  const emptyHint = search ? 'Try another name, image, stack or VM.' : filter !== 'all' ? `No ${filter} containers right now — pick another filter.` : scopeMember ? `Nothing runs inside the VM ${memberName} yet — deploy a template there and its containers appear here.` : 'Start a stack or deploy a template and its containers appear here.'
+  const emptyHint = search ? 'Try another name, image, stack or VM.' : filter !== 'all' ? `No ${filter === 'panel' ? 'game-server' : filter} containers right now — pick another filter.` : scopeMember ? `Nothing runs inside the VM ${memberName} yet — deploy a template there and its containers appear here.` : 'Start a stack or deploy a template and its containers appear here.'
 
   return (
     <div className="flex flex-col gap-4 md:gap-6 animate-fade-in">
@@ -294,6 +320,7 @@ const ContainerList: React.FC<ContainerListProps> = ({
           {!failed && <span className="text-sm text-slate-400">
             <span className="text-emerald-400 font-semibold">{runningCount} running</span>
             {asleepCount > 0 && <><span className="mx-1.5 text-slate-500">&middot;</span><AsleepCount n={asleepCount} /></>}
+            {panelCount > 0 && <><span className="mx-1.5 text-slate-500">&middot;</span><span className={TONE_TEXT.fleet} title="Created by a game-server panel's Wings; managed in the panel">{panelCount} game server{panelCount === 1 ? '' : 's'}</span></>}
             <span className="mx-1.5 text-slate-500">&middot;</span>
             <span>{containers.length} total</span>
           </span>}
@@ -397,11 +424,11 @@ const ContainerList: React.FC<ContainerListProps> = ({
 
       {/* ---- Filter tabs ---- */}
       <div className="surface flex items-center gap-1 overflow-x-auto scrollbar-none p-1">
-        {(['all', 'running', 'asleep', 'stopped', 'paused'] as const).filter((f) => f !== 'asleep' || asleepCount > 0 || filter === 'asleep').map((filterVal) => {
-          const labelMap = { all: 'All', running: 'Running', asleep: 'Asleep', stopped: 'Stopped', paused: 'Paused' }
-          const countMap = { all: containers.length, running: runningCount, asleep: asleepCount, stopped: stoppedCount, paused: pausedCount }
-          const colorMap = { all: 'text-cyan-400', running: 'text-emerald-400', asleep: 'text-indigo-300', stopped: 'text-rose-400', paused: 'text-amber-400' }
-          const activeBgMap = { all: 'bg-cyan-500/15', running: 'bg-emerald-500/15', asleep: 'bg-indigo-500/15', stopped: 'bg-rose-500/15', paused: 'bg-amber-500/15' }
+        {(['all', 'running', 'asleep', 'stopped', 'paused', 'panel'] as const).filter((f) => (f !== 'asleep' || asleepCount > 0 || filter === 'asleep') && (f !== 'panel' || panelCount > 0 || filter === 'panel')).map((filterVal) => {
+          const labelMap = { all: 'All', running: 'Running', asleep: 'Asleep', stopped: 'Stopped', paused: 'Paused', panel: panelLabel }
+          const countMap = { all: containers.length, running: runningCount, asleep: asleepCount, stopped: stoppedCount, paused: pausedCount, panel: panelCount }
+          const colorMap = { all: 'text-cyan-400', running: 'text-emerald-400', asleep: 'text-indigo-300', stopped: 'text-rose-400', paused: 'text-amber-400', panel: '' }
+          const activeBgMap = { all: 'bg-cyan-500/15', running: 'bg-emerald-500/15', asleep: 'bg-indigo-500/15', stopped: 'bg-rose-500/15', paused: 'bg-amber-500/15', panel: TONE_TILE.fleet }
           return (
             <button
               key={filterVal}
@@ -454,7 +481,7 @@ const ContainerList: React.FC<ContainerListProps> = ({
               <React.Fragment key={`group-${g.key}`}>
                 {g.header && (
                   <div className="flex items-center gap-2 px-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-                    <span className={`w-1.5 h-1.5 rounded-full ${g.key === 'hub' ? 'bg-emerald-400' : 'bg-amber-300'}`} />
+                    <span className={`w-1.5 h-1.5 rounded-full ${groupDot(g.key)}`} />
                     {g.header}
                     <span className="text-slate-500 normal-case tracking-normal" title={statesLine(countStates(g.rows))}>{statesLine(countStates(g.rows), { noun: false })} · {g.rows.length} in all</span>
                   </div>
@@ -543,7 +570,7 @@ const ContainerList: React.FC<ContainerListProps> = ({
                     <tr key={`group-${g.key}`} className="bg-white/[0.02]">
                       <td colSpan={COLUMNS.length + 3} className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
                         <span className="inline-flex items-center gap-2">
-                          <span className={`w-1.5 h-1.5 rounded-full ${g.key === 'hub' ? 'bg-emerald-400' : 'bg-amber-300'}`} />
+                          <span className={`w-1.5 h-1.5 rounded-full ${groupDot(g.key)}`} />
                           {g.header}
                           <span className="text-slate-500 normal-case tracking-normal" title={statesLine(countStates(g.rows))}>{statesLine(countStates(g.rows), { noun: false })} · {g.rows.length} in all</span>
                         </span>
