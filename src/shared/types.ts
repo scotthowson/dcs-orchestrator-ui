@@ -5075,6 +5075,44 @@ export interface TechnitiumInstance {
   blocked?: number
   apps?: { advanced_blocking: boolean; query_logs: boolean }
   hash?: string
+  /** Technitium's own update check (every 6 hours): a newer version is out */
+  update_available?: boolean
+  update_version?: string | null
+  /** each blocklist's health, read from Technitium's log */
+  lists?: TechnitiumListHealth
+  /** the primary's DHCP pool (null on the secondary, or when it could not be read) */
+  dhcp?: TechnitiumDhcpPool | null
+}
+export interface TechnitiumListState { url: string; entries: number | null; last_updated: string | null; error: string | null }
+export interface TechnitiumListHealth {
+  lists: TechnitiumListState[]
+  /** the names blocked by all the lists together */
+  total: number | null
+  /** false: Technitium's log said nothing of them, only the total is known (note says so) */
+  per_list?: boolean
+  updated_at?: string | null
+  note?: string | null
+}
+export interface TechnitiumDhcpPool { enabled: boolean; leases: number; pool_size: number; pct: number | null }
+export type TechnitiumAlertEvent = 'technitium_down' | 'technitium_out_of_sync' | 'technitium_lists_stale' | 'technitium_dhcp_pool'
+/** an alert in force (GET /dns/technitium/status alerts): what "Needs your attention" lists, with the fix */
+export interface TechnitiumAlert {
+  key: string
+  event: TechnitiumAlertEvent
+  server: TechnitiumRole | null
+  headline: string
+  message: string
+  action: 'page' | 'sync' | 'lists' | 'dhcp' | null
+  since: number
+}
+export interface TechnitiumBackup { file: string; server: TechnitiumRole; bytes: number; created_at: string | null; version: string | null; domain: string | null; block_lists: number; apps: string[] }
+/** GET /dns/technitium/backups (admin) */
+export interface TechnitiumBackups {
+  backups: TechnitiumBackup[]
+  keep: number
+  /** local hour of the nightly backup; null = off */
+  nightly_hour: number | null
+  last_nightly: { day: string; done?: boolean; at?: number; files?: string[]; tries?: number; errors?: { server: TechnitiumRole; error: string }[] } | null
 }
 export interface TechnitiumHouse { safe_search: boolean; youtube: TechnitiumYoutube }
 export interface TechnitiumSyncResult { ok: boolean; message: string }
@@ -5089,6 +5127,8 @@ export interface TechnitiumStatus {
   house: TechnitiumHouse
   groups: number
   bedtime_active: string[]
+  /** the alerts in force (a server down, out of step, lists stale, the DHCP pool nearly full) */
+  alerts?: TechnitiumAlert[]
 }
 export type TechnitiumRange = 'lastHour' | 'lastDay' | 'lastWeek'
 /** GET /dns/technitium/stats (both servers added up) */

@@ -10,7 +10,10 @@
 // a group, pin an address), the DHCP move (the scope made off with every known device kept, the router's DHCP off,
 // on here, a renewed device's DNS), Config → Integrations turning it off (the tab and the card go, the page says so),
 // and a viewer, who sees it all read-only and never asks for a device's queries. GET /config comes from the lab with
-// technitium_enabled from the fake (the lab's own .env keeps Technitium off). Screenshots land in OUT.
+// technitium_enabled from the fake (the lab's own .env keeps Technitium off). The safety net: each blocklist's health and
+// Update lists now (Lists), the update notice with its command, the backups with Back up now and a restore that asks first
+// (Servers), the alerts in "Needs your attention" with their fix, the dashboard's Technitium tile (and none while it is
+// off), a link to a tab (#/technitium/devices). Screenshots land in OUT.
 //
 //   PUPPETEER_DIR=/tmp/dcs-ui-sweep UI=http://localhost:3021 API=http://127.0.0.1:41921 \
 //     VIEWER_USER=… VIEWER_PASS=… node tests/technitium.mjs
@@ -54,7 +57,7 @@ const SEED = () => [
 ]
 const fake = {
   configured: true, paused: 0, house: { safe_search: false, youtube: 'off' }, groups: [], inBedtime: false, pausedBed: null, calls: [],
-  enabled: true, devices: [], scope: null, leases: [], local: { routes: false },
+  enabled: true, devices: [], scope: null, leases: [], local: { routes: false }, alerts: [],
   localAnswer() {
     const hosts = this.local.routes ? ['jellyfin.example.org', 'vmapp.example.org'].map((host) => ({ host, ip: '192.168.2.233', instances: ['primary', 'secondary'] })) : []
     const nick = this.devices.filter((d) => d.nickname && d.home_answer !== false)
@@ -66,11 +69,22 @@ const fake = {
     return { total: 3, domain: 'example.org', local: { available: true, on: this.local.routes, address: '192.168.2.233', last: null },
       routes: [r('jellyfin.example.org', 'jellyfin', 'media'), r('vmapp.example.org', 'vmapp', 'media', { member: 'm1', member_name: 'media-vm', vmid: 101, fleet: true }), r('app.other.test', 'other', 'web', { lan: null })] }
   },
+  backups: [
+    { file: 'primary-2026-10-10_0300.zip', server: 'primary', bytes: 18342, created_at: '2026-10-10T03:00:00Z', version: '15.6', domain: 'dns1', block_lists: 3, apps: ['Advanced Blocking', 'Query Logs (Sqlite)'] },
+    { file: 'secondary-2026-10-10_0300.zip', server: 'secondary', bytes: 17120, created_at: '2026-10-10T03:00:00Z', version: '15.6', domain: 'dns2', block_lists: 3, apps: ['Advanced Blocking'] },
+  ],
   status() {
     if (!this.configured) return { configured: false, primary: { role: 'primary', url: null, configured: false, reachable: false }, secondary: null, in_sync: null, last_sync: null, house: this.house, groups: 0, bedtime_active: [] }
     const p = inst('primary', 'http://192.168.2.53:5380', 'dns1'), s = inst('secondary', 'http://192.168.2.207:5380', 'dns2')
     if (this.paused > Date.now()) for (const i of [p, s]) { i.blocking = false; i.paused_until = new Date(this.paused).toISOString() }
-    return { configured: true, primary: p, secondary: s, in_sync: true, last_sync: { at: Date.now() / 1000, ok: true, message: 'The secondary has what the primary has' }, house: this.house, groups: this.groups.length, bedtime_active: this.inBedtime ? this.groups.map((g) => g.id) : [] }
+    const hagezi = 'https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/'
+    const lists = (failing) => ({ total: 412345, per_list: true, updated_at: new Date(Date.now() - 5 * 3600e3).toISOString(), note: null, lists: [
+      { url: `${hagezi}pro-onlydomains.txt`, entries: 190211, last_updated: new Date(Date.now() - 5 * 3600e3).toISOString(), error: null },
+      { url: `${hagezi}tif-onlydomains.txt`, entries: 221734, last_updated: new Date(Date.now() - (failing ? 60 : 5) * 3600e3).toISOString(), error: failing ? 'Response status code does not indicate success: 404 (Not Found).' : null },
+      { url: `${hagezi}doh-onlydomains.txt`, entries: 400, last_updated: new Date(Date.now() - 5 * 3600e3).toISOString(), error: null }] })
+    Object.assign(p, { update_available: false, update_version: null, lists: lists(true), dhcp: { enabled: true, leases: 41, pool_size: 89, pct: 46 } })
+    Object.assign(s, { update_available: true, update_version: '15.7', lists: lists(false), dhcp: null })
+    return { configured: true, primary: p, secondary: s, alerts: this.alerts, in_sync: true, last_sync: { at: Date.now() / 1000, ok: true, message: 'The secondary has what the primary has' }, house: this.house, groups: this.groups.length, bedtime_active: this.inBedtime ? this.groups.map((g) => g.id) : [] }
   },
   stats() {
     const labels = [...Array(12)].map((_, i) => new Date(Date.now() - (11 - i) * 300e3).toISOString())
@@ -144,6 +158,15 @@ const fake = {
     if (method === 'GET' && p === '/local') return this.localAnswer()
     if (method === 'POST' && p === '/local') { this.local.routes = body.routes; return { success: true, routes: body.routes, zones: body.routes ? 2 : 0, warning: null, message: body.routes ? 'Your routes resolve to this server inside the house: 2 names' : 'Your routes resolve through the internet again' } }
     if (method === 'GET' && p === '/status') return this.status()
+    if (method === 'POST' && p === '/lists/update') return { success: true, servers: ['primary', 'secondary'], warning: null, message: 'Technitium is downloading its blocklists again: a minute or two' }
+    if (method === 'GET' && p === '/backups') return { backups: this.backups, keep: 14, nightly_hour: 3, last_nightly: { day: '2026-10-10', done: true } }
+    if (method === 'POST' && p === '/backup') {
+      const at = new Date().toISOString(), stamp = at.slice(0, 16).replace('T', '_').replace(':', '')
+      const made = ['primary', 'secondary'].map((r) => ({ file: `${r}-${stamp}.zip`, server: r, bytes: 18000, created_at: at, version: '15.6', domain: r === 'primary' ? 'dns1' : 'dns2', block_lists: 3, apps: [] }))
+      this.backups = [...made, ...this.backups]
+      return { success: true, files: made.map((b) => b.file), errors: [], message: `Backed up: ${made.map((b) => b.file).join(', ')}` }
+    }
+    if (method === 'POST' && p === '/restore') return { success: true, server: body.server, file: body.file, restarted: true, sync, warning: null, message: `Restored ${body.file} onto the ${body.server}. Technitium reloaded its settings and restarted its DNS service (a few seconds without answers).` }
     if (method === 'GET' && p === '/stats') return this.stats()
     if (method === 'GET' && p === '/groups') return this.groupsAnswer()
     if (method === 'GET' && p === '/activity') return this.activity(u.searchParams)
@@ -409,13 +432,64 @@ try {
   // lists
   await clickText(page, 'Lists')
   check('lists: the baseline list tagged', await until(page, () => /pro-onlydomains\.txt/.test(document.querySelector('main')?.innerText ?? '') && /baseline/.test(document.querySelector('main')?.innerText ?? '')))
+  t = await text(page)
+  check('lists: each list\'s health on both servers: names, the last update, the failing one and why', /List health/.test(t) && /190,211 names/.test(t) && /412,345 names blocked/.test(t) && /404 \(Not Found\)/.test(t) && /1 failing/.test(t))
+  await shot(page, 'lists-health')
+  await clickText(page, 'Update lists now', 'main')
+  check('lists: Update lists now', await waitFor(() => fake.calls.some((c) => c.method === 'POST' && c.p === '/lists/update')) && await until(page, () => /downloading its blocklists again/.test(document.body.innerText)))
 
   // connect sheet
   await clickText(page, 'Servers')
   check('connect: the sheet with both roles', await until(page, () => /Technitium servers/.test(document.body.innerText) && [...document.querySelectorAll('[role="dialog"]')].some((d) => /Secondary/.test(d.innerText))))
   check('connect: a stored token is not shown', await page.$eval('#tt-token', (e) => e.value === '' && /Stored/.test(e.placeholder)))
+  check('servers: the primary runs the newest version', await until(page, () => /Technitium 15\.6: the newest version/.test(document.body.innerText)))
+  check('servers: the backups, the nightly hour and how many are kept', await until(page, () => /Every night at 03:00, 14 kept per server/.test(document.body.innerText)) && /Technitium 15\.6 · 3 lists/.test(await bodyText(page)))
   await shot(page, 'connect-sheet')
+  await clickText(page, 'Back up now', '[role="dialog"]')
+  check('servers: Back up now, the new ones on top', await waitFor(() => fake.calls.some((c) => c.method === 'POST' && c.p === '/backup')) && await until(page, () => /Backed up: primary-/.test(document.body.innerText)))
+  await clickText(page, 'Restore primary-2026-10-10_0300.zip', '[role="dialog"]')
+  check('servers: a restore asks first, saying Technitium restarts', await until(page, () => /Restore this backup onto the primary\?/.test(document.body.innerText) && /restarts its DNS service/.test(document.body.innerText)))
+  await shot(page, 'restore-confirm')
+  check('servers: …nothing restored before the answer', !fake.calls.some((c) => c.p === '/restore'))
+  await clickText(page, 'Restore backup')
+  const rs = await waitFor(() => fake.calls.some((c) => c.p === '/restore'))
+  const rc = fake.calls.find((c) => c.p === '/restore')
+  check('servers: restored, with the confirmation the server asks for', rs && rc.body.server === 'primary' && rc.body.file === 'primary-2026-10-10_0300.zip' && rc.body.confirm === true, JSON.stringify(rc?.body))
+  check('servers: …the answer says Technitium restarted', await until(page, () => /restarted its DNS service/.test(document.body.innerText)))
+  await clickText(page, 'Secondary', '[role="dialog"]')
+  check('servers: the secondary has 15.7 waiting, with the command to run on it', await until(page, () => /Technitium 15\.7 is out \(this server runs 15\.6\)/.test(document.body.innerText) && /curl -sSL https:\/\/download\.technitium\.com\/dns\/install\.sh \| sudo bash/.test(document.body.innerText)))
+  await shot(page, 'servers-update-notice')
   await page.keyboard.press('Escape'); await sleep(300)
+
+  // the dashboard: the alerts in "Needs your attention" with their fix, and the Technitium tile
+  fake.alerts = [
+    { key: 'technitium_down:secondary', event: 'technitium_down', server: 'secondary', headline: 'The secondary Technitium is not answering', message: 'http://192.168.2.207:5380 has not answered DCS for 2 minutes.', action: 'page', since: NOW() - 180 },
+    { key: 'technitium_out_of_sync', event: 'technitium_out_of_sync', server: null, headline: 'The secondary Technitium is out of step', message: 'It has differed from the primary for 12 minutes and the sync failed.', action: 'sync', since: NOW() - 60 },
+    { key: 'technitium_lists_stale:primary', event: 'technitium_lists_stale', server: 'primary', headline: 'The primary Technitium\'s blocklists are out of date', message: '1 of its 3 blocklists could not be updated.', action: 'lists', since: NOW() - 60 },
+  ]
+  await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('app-settings') || '{}'); s.lastPage = 'dashboard'; localStorage.setItem('app-settings', JSON.stringify(s)) })
+  await page.reload({ waitUntil: 'domcontentloaded' })
+  check('needs you: a server not answering, out of step, lists stale', await until(page, () => /The secondary Technitium is not answering/.test(document.querySelector('main')?.innerText ?? '') && /out of step/.test(document.querySelector('main')?.innerText ?? '') && /blocklists are out of date/.test(document.querySelector('main')?.innerText ?? ''), 30000))
+  check('needs you: …with Sync now and Update lists', await page.evaluate(() => { const b = [...document.querySelectorAll('main button')].map((x) => x.innerText.trim()); return b.includes('Sync now') && b.includes('Update lists') }))
+  await page.evaluate(() => document.querySelector('main')?.scrollTo(0, 0))
+  await shot(page, 'dashboard-needs-you')
+  await clickText(page, 'Sync now', 'main')
+  check('needs you: Sync now runs the sync', await waitFor(() => fake.calls.some((c) => c.p === '/sync')))
+  const tile = await page.evaluate(() => {
+    const h = [...document.querySelectorAll('main h2, main h3')].find((e) => e.innerText.trim() === 'Technitium')
+    const card = h?.closest('.glass-card'); card?.scrollIntoView({ block: 'center' })
+    return card ? card.innerText : ''
+  })
+  check('tile: today\'s queries and blocked, both servers, in sync', /1,234 queries · 87 blocked/.test(tile) && /primary/i.test(tile) && /secondary/i.test(tile) && /In sync/.test(tile) && /15\.7 available/.test(tile), tile.slice(0, 200))
+  check('tile: …the mini bar, one column a sample', await page.evaluate(() => [...document.querySelectorAll('main [role="img"]')].some((e) => /Queries by hour today/.test(e.getAttribute('aria-label') || '') && e.children.length === 12)))
+  await sleep(400)
+  const tileBox = await page.evaluate(() => { const h = [...document.querySelectorAll('main h2, main h3')].find((e) => e.innerText.trim() === 'Technitium'); const r = h?.closest('.glass-card')?.getBoundingClientRect(); return r ? { x: r.x, y: r.y, width: r.width, height: r.height } : null })
+  if (tileBox) await page.screenshot({ path: path.join(OUT, 'dashboard-tile.png'), clip: { x: Math.max(0, tileBox.x - 8), y: Math.max(0, tileBox.y - 8), width: tileBox.width + 16, height: tileBox.height + 16 } })
+  await page.evaluate(() => { const h = [...document.querySelectorAll('main h2, main h3')].find((e) => e.innerText.trim() === 'Technitium'); h?.closest('.glass-card')?.click() })
+  check('tile: a tap opens the page', await until(page, () => /Pause 5 min/.test(document.querySelector('main')?.innerText ?? '') || /Paused/.test(document.querySelector('main')?.innerText ?? '')))
+  fake.alerts = []
+  await page.goto(`${UI}/#/technitium/devices`, { waitUntil: 'domcontentloaded' })
+  check('a link to a tab opens it (#/technitium/devices)', await until(page, () => /Scan the network/.test(document.querySelector('main')?.innerText ?? '') && !!document.querySelector('main table'), 20000))
 
   // nothing connected
   fake.configured = false
@@ -466,6 +540,10 @@ try {
   await page.reload({ waitUntil: 'domcontentloaded' })
   await until(page, () => /DNS/.test(document.querySelector('main')?.innerText ?? ''), 20000); await sleep(1500)
   check('config: …no Technitium card on DNS & routes', !/Open Technitium/.test(await text(page)))
+  await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('app-settings') || '{}'); s.lastPage = 'dashboard'; localStorage.setItem('app-settings', JSON.stringify(s)) })
+  await page.reload({ waitUntil: 'domcontentloaded' })
+  await until(page, () => /Needs your attention|Nothing needs you/.test(document.querySelector('main')?.innerText ?? ''), 30000); await sleep(1500)
+  check('config: …no Technitium tile on the dashboard', !(await page.evaluate(() => [...document.querySelectorAll('main h2, main h3')].some((e) => e.innerText.trim() === 'Technitium'))))
   await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('app-settings') || '{}'); s.lastPage = 'technitium'; localStorage.setItem('app-settings', JSON.stringify(s)) })
   await page.reload({ waitUntil: 'domcontentloaded' })
   check('config: …the page says it is off and where to turn it on', await until(page, () => /Technitium is off/.test(document.querySelector('main')?.innerText ?? '') && /Open Config/.test(document.querySelector('main')?.innerText ?? ''), 20000))
@@ -523,7 +601,12 @@ try {
     check('viewer: DHCP read-only', await until(page, () => /Move DHCP here/.test(document.querySelector('main')?.innerText ?? '')) && !/Turn DHCP on here|Create the scope/.test((await page.$$eval('main button', (b) => b.map((x) => x.innerText).join(' ')))))
     check('viewer: Resolve my routes locally, read-only', await until(page, () => [...document.querySelectorAll('main [role="switch"]')].some((e) => /Resolve my routes locally/.test(document.querySelector(`label[for="${e.id}"]`)?.innerText ?? '') && e.disabled)))
     await shot(page, 'dhcp-viewer-phone')
+    await clickText(page, 'Lists')
+    check('viewer: the list health, read-only', await until(page, () => /List health/.test(document.querySelector('main')?.innerText ?? '')) && !/Update lists now/.test(await text(page)))
+    check('viewer: no sideways scroll on the lists', await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1))
+    await shot(page, 'lists-viewer-phone')
     check('viewer: never asked for a device\'s queries', !fake.calls.some((c) => c.p === '/activity'))
+    check('viewer: never asked for the backups', !fake.calls.some((c) => c.p === '/backups'))
     check('viewer: no 403 from the API', !statuses.includes(403), statuses.filter((s) => s >= 400).join(','))
     await page.close()
   }

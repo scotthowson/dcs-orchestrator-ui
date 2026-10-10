@@ -193,11 +193,12 @@ export default function App() {
   useEffect(() => {
     if (!isAuthenticated) return
     const open = () => {
-      const m = /^#\/([a-z-]+)\/?$/.exec(window.location.hash)
+      // #/page, or #/page/tab (a notification's link to Technitium's Devices tab): the page gets {tab}
+      const m = /^#\/([a-z-]+)(?:\/([a-z-]+))?\/?$/.exec(window.location.hash)
       if (!m) return
       const page = m[1] as PageId
       if (!(page in pageMeta) || page === 'setup') return
-      setCurrentPage(page)
+      setCurrentPage(page, m[2] ? { tab: m[2] } : undefined)
       try { window.history.replaceState(null, '', window.location.pathname + window.location.search) } catch { /* a sandboxed frame */ }
     }
     // after the page-after-sign-in preference, so a link wins over it

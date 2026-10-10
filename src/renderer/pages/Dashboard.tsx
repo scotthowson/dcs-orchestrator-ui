@@ -11,8 +11,9 @@ import {
   fetchDisks, fetchSystemInfo,
   fetchStacks, fetchImageUpdates, fetchBackupStatus, fetchOsUpdates,
   fetchLogStats, fetchMaintenanceReport, fetchNotificationHistory,
-  fetchAutomations, fetchSchedules, fetchMetricsTrends, crowdsecStatus, crowdsecCommunity,
+  fetchAutomations, fetchSchedules, fetchMetricsTrends, crowdsecStatus, crowdsecCommunity, fetchTechnitiumStatus,
 } from '../api/endpoints'
+import { useTechnitiumEnabled } from '../hooks/useTechnitiumEnabled'
 import { useConnectionStore } from '../stores/connectionStore'
 import { useAuthStore } from '../stores/authStore'
 import { useContainerStore } from '../stores/containerStore'
@@ -321,6 +322,10 @@ export default function Dashboard() {
     enabled: isAdmin && !!crowdsecPoll.data?.running,
   })
 
+  // --- /dns/technitium/status every 60 s while Technitium is on (shared with its page and the tile): its alerts reach "Needs your attention"
+  const technitiumOn = useTechnitiumEnabled()
+  const technitiumPoll = usePolling(fetchTechnitiumStatus, 60000, { key: pollKeys.technitiumStatus, enabled: technitiumOn === true })
+
   // --- /metrics/trends?range=1h every 60 s ---
   const trendsPoll = usePolling(() => fetchMetricsTrends('1h'), 60000, watch)
 
@@ -379,7 +384,7 @@ export default function Dashboard() {
             cardConfig={dashLayout.cardConfig}
             onSaveCardConfig={dashLayout.saveCardConfig}
             cardProps={{
-              'needs-you': { stacks: stacksPoll.data?.stacks ?? null, stacksError: stacksPoll.error, images: imageUpdatesPoll.data ?? null, backup: backupStatusPoll.data ?? null, disks: disksPoll.data?.disks ?? null, osUpdates: osUpdatesPoll.data ?? null, crowdsecCommunity: crowdsecCommunityPoll.data ?? null, cloudflare: crowdsecPoll.data?.cloudflare ?? null },
+              'needs-you': { stacks: stacksPoll.data?.stacks ?? null, stacksError: stacksPoll.error, images: imageUpdatesPoll.data ?? null, backup: backupStatusPoll.data ?? null, disks: disksPoll.data?.disks ?? null, osUpdates: osUpdatesPoll.data ?? null, crowdsecCommunity: crowdsecCommunityPoll.data ?? null, cloudflare: crowdsecPoll.data?.cloudflare ?? null, technitium: technitiumOn ? technitiumPoll.data ?? null : null },
               'stack-controls': { stacks: stacksPoll.data?.stacks ?? null, error: stacksPoll.error, onRetry: stacksPoll.refresh, onRefresh: stacksPoll.refresh },
               'stack-grid': { stacks: stacksPoll.data?.stacks ?? null, error: stacksPoll.error, onRetry: stacksPoll.refresh },
               'resource-chart': { history: resourceHistoryRef.current },
