@@ -1,6 +1,7 @@
 // =============================================================================
-// ChatSettingsPanel — Settings → Chat: the bubble on this device, and for an
-// admin the server's own switch (CHAT_ENABLED, through GET/POST /config) and
+// ChatSettingsPanel — Settings → Chat: the bubble on this device, whether it
+// also shows the rooms of every other server this device is signed in to (a tab
+// each, plus Everyone), and for an admin the server's own switch (CHAT_ENABLED, through GET/POST /config) and
 // whether users may write (CHAT_USERS_CAN_POST). Switching the room off hides
 // the bubble on every dashboard at once (the live stream says so).
 // =============================================================================
@@ -9,7 +10,7 @@ import { useEffect, useState } from 'react'
 import { Switch } from '@mantine/core'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { useAuthStore } from '../../stores/authStore'
-import { useChatStore } from '../../stores/chatStore'
+import { useChatStore, activeRoom, roomsOn } from '../../stores/chatStore'
 import { fetchConfig, updateConfig } from '../../api/endpoints'
 import { chatErrorText } from '../../stores/chatStore'
 
@@ -17,8 +18,10 @@ export default function ChatSettingsPanel() {
   const bubble = useSettingsStore((s) => s.chatBubble) !== false
   const updateSetting = useSettingsStore((s) => s.updateSetting)
   const isAdmin = useAuthStore((s) => s.userRole) === 'admin'
-  const status = useChatStore((s) => s.status)
-  const offReason = useChatStore((s) => s.offReason)
+  const across = useSettingsStore((s) => s.chatAcross) !== false
+  const status = useChatStore((s) => activeRoom(s)?.status ?? 'unknown')
+  const offReason = useChatStore((s) => activeRoom(s)?.offReason ?? null)
+  const others = useChatStore((s) => roomsOn(s).filter((r) => !r.active).map((r) => r.name).join(', '))
 
   // the server's switches (admins): null until read, or when the server has no chat
   const [server, setServer] = useState<{ enabled: boolean; usersPost: boolean } | null>(null)
@@ -40,7 +43,7 @@ export default function ChatSettingsPanel() {
       await updateConfig({ [key]: on ? 'true' : 'false' })
       setServer((s) => (s ? { ...s, ...(key === 'CHAT_ENABLED' ? { enabled: on } : { usersPost: on }) } : s))
       if (key === 'CHAT_ENABLED') useChatStore.getState().setEnabled(on)
-      else void useChatStore.getState().refresh()
+      else { const a = activeRoom(useChatStore.getState()); if (a) void useChatStore.getState().refresh(a.id) }
     } catch (err) {
       setError(chatErrorText(err))
     } finally {
@@ -58,6 +61,7 @@ export default function ChatSettingsPanel() {
     <div className="space-y-4" data-chat-settings>
       <p className="text-xs text-slate-400 max-w-prose leading-relaxed">
         One room per server for everyone signed in to it. The bubble sits in the bottom-right corner; messages arrive live.
+        Signed in to several servers, it shows each server's room and who is online on which.
       </p>
       <Switch
         label="Show the chat bubble"
@@ -67,6 +71,16 @@ export default function ChatSettingsPanel() {
         color="emerald"
         size="sm"
       />
+      <Switch
+        label="Show rooms of every server I'm signed in to"
+        description="A tab for each server this device holds a session for, and Everyone, which puts them together. Each room is read and written with that server's own session; nothing is passed between servers. On this device only."
+        checked={across}
+        onChange={(e) => updateSetting('chatAcross', e.currentTarget.checked)}
+        color="emerald"
+        size="sm"
+        data-chat-across
+      />
+      {across && others && <p className="text-[11px] text-slate-500" data-chat-across-rooms>Also showing: {others}.</p>}
       {note && <p className="text-[11px] text-slate-500">{note}</p>}
       {isAdmin && server && (
         <div className="border-t border-white/[0.03] pt-4 space-y-3">

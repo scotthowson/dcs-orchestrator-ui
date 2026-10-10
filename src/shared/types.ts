@@ -1078,6 +1078,8 @@ export interface AppSettings {
   chatBubble: boolean
   /** a browser notification for a chat message while the dashboard is in the background (this device only, off by default) */
   chatNotify: boolean
+  /** the rooms of every other server this dashboard is signed in to, in tabs beside this server's (this device only, on by default) */
+  chatAcross: boolean
 }
 
 // ---------------------------------------------------------------------------
@@ -4767,9 +4769,28 @@ export interface ChatMessage {
   deleted?: boolean
   deleted_by?: string
   deleted_at?: number
+  /** the writer's picture (GET /users/{name}/avatar on the room's server, with that server's session), read with each answer */
+  avatar_url?: string
+  /** …or the emoji they picked */
+  avatar_emoji?: string
 }
 
-export interface ChatPresence { user: string; role: 'admin' | 'user' | string; seen: number }
+/** what a person shows the others (Settings → Profile), plain text */
+export interface ChatPersonCard {
+  avatar_url?: string
+  avatar_emoji?: string
+  display_name?: string
+  /** ≤ 80 characters */
+  status?: string
+  status_emoji?: string
+  /** ≤ 280 characters */
+  bio?: string
+}
+
+export interface ChatPresence extends ChatPersonCard { user: string; role: 'admin' | 'user' | string; seen: number }
+
+/** GET /users/{name}/profile */
+export interface ChatUserProfile extends ChatPersonCard { user: string; role: string; online: boolean }
 
 export interface ChatRoom {
   id: string
@@ -4791,6 +4812,8 @@ export interface ChatRoom {
 export interface ChatMessagesResponse { messages: ChatMessage[]; has_more: boolean; room: ChatRoom }
 export interface ChatMessageResponse { message: ChatMessage }
 export interface ChatPresenceResponse { online: ChatPresence[]; online_window: number }
+/** GET /chat/summary: the room without its messages; `unread` only when asked with ?after=<id> (an API before 4.0.48 has no summary) */
+export interface ChatSummaryResponse { room: ChatRoom; unread?: number }
 
 /** what the "chat" event of the live stream carries */
 export type ChatLiveEvent =

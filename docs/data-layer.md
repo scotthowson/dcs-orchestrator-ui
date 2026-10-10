@@ -11,7 +11,7 @@ it leaves the server. One implementation of each; this page says which, and what
 | What an error means | `api/errors.ts` `apiOutcome` (cancelled, signed-out, forbidden, rate-limited with `retryAfterMs`, offline, failed), `apiErrorMessage`, `apiErrorData`, `isLinkFailure` | the polling engine, chat, CrowdSec, fleet sheets |
 | Polling | `lib/poll.ts` (the engine) and `hooks/usePolling.ts` (its React face) | every page, card and hook that refreshes |
 | The names of shared requests | `api/pollKeys.ts` | the polls that ask what another poll asks |
-| The live stream | `lib/sse.ts` `sseClient` (one `GET /stream`, typed events, reconnect with backoff) and `hooks/useLiveStream.ts` (`useLiveEvent`, `useLiveConnected`) | Activity → Live stream, the chat |
+| The live stream | `lib/sse.ts` `sseClient` (one `GET /stream`, typed events, reconnect with backoff) and `hooks/useLiveStream.ts` (`useLiveEvent`, `useLiveConnected`); another server's chat room: `lib/chatStream.ts` (`GET /stream?only=chat` on that server, while the dashboard is shown) | Activity → Live stream, the chat |
 | Leaving a server or an account | `lib/serverScope.ts` (`onServerReset`, `resetsWithServer`, `resetServerScope`) | every store and cache registers; `serverStore` calls it |
 | The link to the server | `stores/connectionStore.ts` (connect, the 10 s heartbeat on `/ping`, reconnect with backoff) and `serverStore`'s "can't be reached" screen | App, the polling engine |
 
@@ -21,7 +21,10 @@ it leaves the server. One implementation of each; this page says which, and what
 own, for a reason): the server discovery before a server is chosen (`lib/discover.ts`, `App.tsx` `/setup/status`),
 ending a session on a server that is not the active one (`serverStore` `logoutElsewhere`), ending the Terminal's
 Linux sign-in when the dashboard leaves a server or signs out (`lib/terminalSession`: `keepalive`, it must outlive the
-requests `cancelAll` drops), the dashboard's own
+requests `cancelAll` drops), the chat's rooms on the other servers the dashboard is signed in to (`stores/chatStore`:
+an `ApiClient` of their own per server, made with that server's address and the session that server issued — a token
+never goes anywhere else — plus that room's live feed, `lib/chatStream`, and the people's pictures, fetched with that
+server's session so the session never sits in an `<img>` address), the dashboard's own
 `build.json` (`UpdateBanner`), a theme imported from a URL the person typed (`ThemesPanel`), the live stream
 (`lib/sse.ts`: it is read as it arrives) and the two archive downloads that stream a file to the browser
 (`apiClient.download`).
