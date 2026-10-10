@@ -4,7 +4,7 @@
 
 import {
   LayoutDashboard, Layers, HeartPulse, Activity, Box, Monitor, HardDrive, TrendingUp, Zap, ArrowUpCircle, Archive, ScrollText,
-  Wrench, Bell, Rocket, ShieldCheck, Boxes, Crosshair, Globe, StickyNote, Bookmark, BatteryCharging, Bot, Cpu, Server, BellRing,
+  Wrench, Bell, Rocket, ShieldCheck, Boxes, Crosshair, Globe, StickyNote, Bookmark, BatteryCharging, Bot, Cpu, Server, BellRing, ShieldHalf,
   type LucideIcon,
 } from 'lucide-react'
 import type { DashboardLayout } from '../../../shared/types'
@@ -39,7 +39,7 @@ export const H_UNIT = 50  // px per row unit
 // Row 34-40: Automations + Recent events + Quick actions (thirds)
 // Row 41-46: Protection + Stack controls + Container spotlight (thirds)
 // Row 47-52: Routes & DNS + Notes + Bookmarks
-// Row 53-59: Proxmox + Power
+// Row 53-59: Proxmox + Power + Technitium (only while it is on in Config)
 // (A saved layout keeps its own positions; these are what a new dashboard and "Reset" start from.
 // A card added later reaches a saved layout hidden, ready to enable: useDashboardLayout.mergeRegistry.)
 // Card constraints: minW/minH prevent cards from being too small to read,
@@ -73,12 +73,13 @@ export const CARD_REGISTRY: CardRegistryEntry[] = [
   { id: 'bookmarks',          title: pageLabel('bookmarks'), iconName: 'Bookmark',      defaultX: 18, defaultY: 47, defaultW: 6,  defaultH: 6,  minW: 4,  minH: 2, maxW: 24, maxH: 16, description: 'Your saved bookmarks as tiles' },
   { id: 'proxmox',            title: pageLabel('proxmox'),  iconName: 'Server',          defaultX: 0,  defaultY: 53, defaultW: 8,  defaultH: 7,  minW: 4,  minH: 3, maxW: 24, maxH: 16, description: 'Node load and every VM and container on your Proxmox host' },
   { id: 'power',              title: 'Power',              iconName: 'BatteryCharging', defaultX: 8,  defaultY: 53, defaultW: 6,  defaultH: 5,  minW: 4,  minH: 3, maxW: 24, maxH: 12, description: 'UPS at a glance: mains or battery, charge, runtime, and the clean stop before it runs out' },
+  { id: 'technitium',         title: pageLabel('technitium'), iconName: 'ShieldHalf',  defaultX: 14, defaultY: 53, defaultW: 10, defaultH: 5,  minW: 4, minH: 3, maxW: 24, maxH: 10, description: 'The home\'s DNS: today\'s queries and blocked, both servers, in sync (while Technitium is on)' },
 ]
 
 /** The icons a registry entry can name: the header of the card and the picker in edit mode draw the same one */
 export const CARD_ICONS: Record<string, LucideIcon> = {
   LayoutDashboard, Layers, HeartPulse, Activity, Box, Monitor, HardDrive, TrendingUp, Zap, ArrowUpCircle, Archive, ScrollText,
-  Wrench, Bell, Rocket, ShieldCheck, Boxes, Crosshair, Globe, StickyNote, Bookmark, BatteryCharging, Bot, Cpu, Server, BellRing,
+  Wrench, Bell, Rocket, ShieldCheck, Boxes, Crosshair, Globe, StickyNote, Bookmark, BatteryCharging, Bot, Cpu, Server, BellRing, ShieldHalf,
 }
 
 export function getDefaultLayout(): DashboardLayout {

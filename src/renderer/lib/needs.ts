@@ -5,7 +5,7 @@
 // =============================================================================
 
 import { pageLabel } from '../constants/pageTitles'
-import type { BackupStatusResponse, CloudflareBouncerBrief, CrowdSecCommunityResponse, DiskInfo, HealthReport, ImageCheckResponse, OsUpdatesInfo, OsUpdatesResponse, PageId, StackInfo } from '../../shared/types'
+import type { BackupStatusResponse, CloudflareBouncerBrief, CrowdSecCommunityResponse, DiskInfo, HealthReport, ImageCheckResponse, OsUpdatesInfo, OsUpdatesResponse, PageId, StackInfo, TechnitiumAlert, TechnitiumStatus } from '../../shared/types'
 import { containerState, isAsleep } from './containerState'
 
 export type Severity = 'problem' | 'attention'
@@ -21,7 +21,7 @@ export interface NeedItem {
   /** what makes it a new item when it changes: a hidden item comes back when this differs */
   fingerprint: string
   /** a one-click fix the card offers an admin (the server it runs on: null = this one) */
-  fix?: { kind: 'sablier-repair' | 'sablier-start'; label: string; member: string | null }
+  fix?: { kind: 'sablier-repair' | 'sablier-start' | 'technitium-sync' | 'technitium-lists'; label: string; member: string | null }
 }
 
 const BACKUP_STALE_DAYS = 7
@@ -56,6 +56,8 @@ export function collectNeeds(input: {
   crowdsecCommunity?: CrowdSecCommunityResponse | null
   /** Push bans to Cloudflare, from /crowdsec/status (admins only) */
   cloudflare?: CloudflareBouncerBrief | null
+  /** Technitium's status while it is on in Config: the alerts the server keeps */
+  technitium?: TechnitiumStatus | null
   now?: number
 }): NeedItem[] {
   const { stacks, health, images, backup, disks, dcsUpdates } = input
@@ -184,6 +186,9 @@ export function collectNeeds(input: {
   // reach Cloudflare's edge. Cloudflare keeps the old ones, so it is not an emergency, but a protection the person asked for is gone
   out.push(...cloudflareNeeds(input.cloudflare ?? null, now))
 
+  // the home's resolvers: a server down, the two out of step, blocklists stale, the DHCP pool nearly full (the server raises and clears them)
+  out.push(...technitiumNeeds(input.technitium ?? null))
+
   // worst first, then the order above
   return out.sort((a, b) => (a.severity === b.severity ? 0 : a.severity === 'problem' ? -1 : 1))
 }
@@ -205,6 +210,25 @@ export function cloudflareNeeds(cf: CloudflareBouncerBrief | null, now = Date.no
     detail: failing && cf.error ? cf.error.message : `No sync with Cloudflare for ${Math.round(staleFor / 60)} minutes: new bans don’t reach its edge.`,
     page: 'crowdsec', payload: { tab: 'bouncers' }, fingerprint: failing && cf.error ? `error:${cf.error.code}:${cf.error.since}` : `stale:${cf.last_sync ?? 0}`,
   }]
+}
+
+/** where each Technitium alert's fix is: a button (an admin's) or the page's tab */
+const TT_FIX: Partial<Record<NonNullable<TechnitiumAlert['action']>, NonNullable<NeedItem['fix']>>> = {
+  sync: { kind: 'technitium-sync', label: 'Sync now', member: null },
+  lists: { kind: 'technitium-lists', label: 'Update lists', member: null },
+}
+const TT_TAB: Partial<Record<NonNullable<TechnitiumAlert['action']>, string>> = { lists: 'lists', dhcp: 'dhcp' }
+
+/** Technitium's alerts in force: a server not answering is a problem, the rest needs a look */
+export function technitiumNeeds(st: TechnitiumStatus | null): NeedItem[] {
+  return (st?.alerts ?? []).map((a) => {
+    const tab = a.action ? TT_TAB[a.action] : undefined
+    return {
+      key: `technitium-${a.key}`, severity: a.event === 'technitium_down' ? 'problem' : 'attention',
+      title: a.headline, detail: a.message, page: 'technitium', payload: tab ? { tab } : undefined,
+      fingerprint: String(a.since), fix: a.action ? TT_FIX[a.action] : undefined,
+    }
+  })
 }
 
 /** each server's look, the hub first; a VM that does not answer, cannot say or has not looked yet is left out */

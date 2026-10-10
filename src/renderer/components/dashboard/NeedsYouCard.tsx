@@ -15,13 +15,13 @@ import { useMemo, useState } from 'react'
 import { CheckCircle2, ChevronRight, EyeOff, Loader2, Wrench } from 'lucide-react'
 import { useAuthStore } from '../../stores/authStore'
 import { useToast } from '../common/Toast'
-import { repairOnDemand, startContainer } from '../../api/endpoints'
+import { repairOnDemand, startContainer, technitiumSync, updateTechnitiumLists } from '../../api/endpoints'
 import { useHealthStore } from '../../stores/healthStore'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { useConnectionStore } from '../../stores/connectionStore'
 import { pageLabel } from '../../constants/pageTitles'
 import { ADMIN_ONLY_PAGES, type PageId } from '../../../shared/types'
-import type { BackupStatusResponse, CloudflareBouncerBrief, CrowdSecCommunityResponse, DiskInfo, ImageCheckResponse, OsUpdatesResponse, StackInfo } from '../../../shared/types'
+import type { BackupStatusResponse, CloudflareBouncerBrief, CrowdSecCommunityResponse, DiskInfo, ImageCheckResponse, OsUpdatesResponse, StackInfo, TechnitiumStatus } from '../../../shared/types'
 import { collectNeeds, plural, type NeedItem } from '../../lib/needs'
 import { Card, CardOffline } from './cardShared'
 import { Skeleton } from '../common/PageState'
@@ -50,9 +50,11 @@ interface Props {
   crowdsecCommunity?: CrowdSecCommunityResponse | null
   /** Push bans to Cloudflare, from the CrowdSec status the dashboard polls (its rule is for admins: they turn it on and fix it) */
   cloudflare?: CloudflareBouncerBrief | null
+  /** Technitium's status (while it is on): its alerts in force */
+  technitium?: TechnitiumStatus | null
 }
 
-export default function NeedsYouCard({ stacks, stacksError, images, backup, disks, osUpdates, crowdsecCommunity, cloudflare }: Props) {
+export default function NeedsYouCard({ stacks, stacksError, images, backup, disks, osUpdates, crowdsecCommunity, cloudflare, technitium }: Props) {
   const health = useHealthStore((s) => s.report)
   // the DCS update count is what an admin's check found (kept on this device): no item for anyone else, who cannot install it
   const isAdmin = useAuthStore((s) => s.userRole) === 'admin'
@@ -69,7 +71,13 @@ export default function NeedsYouCard({ stacks, stacksError, images, backup, disk
     if (!i.fix || fixing) return
     setFixing(i.key)
     try {
-      if (i.fix.kind === 'sablier-start' && !i.fix.member) {
+      if (i.fix.kind === 'technitium-sync') {
+        const res = await technitiumSync()
+        addToast({ type: 'success', message: res.message })
+      } else if (i.fix.kind === 'technitium-lists') {
+        const res = await updateTechnitiumLists()
+        addToast({ type: 'success', message: res.message })
+      } else if (i.fix.kind === 'sablier-start' && !i.fix.member) {
         await startContainer('Sablier')
         addToast({ type: 'success', message: 'Sablier is starting: what is asleep can wake again' })
       } else {
@@ -84,7 +92,8 @@ export default function NeedsYouCard({ stacks, stacksError, images, backup, disk
   const os = isAdmin ? osUpdates ?? null : null
   const cs = isAdmin ? crowdsecCommunity ?? null : null
   const cf = isAdmin ? cloudflare ?? null : null
-  const items = useMemo(() => collectNeeds({ stacks, health, images, backup, disks, dcsUpdates, osUpdates: os, crowdsecCommunity: cs, cloudflare: cf }), [stacks, health, images, backup, disks, dcsUpdates, os, cs, cf])
+  const tt = technitium ?? null
+  const items = useMemo(() => collectNeeds({ stacks, health, images, backup, disks, dcsUpdates, osUpdates: os, crowdsecCommunity: cs, cloudflare: cf, technitium: tt }), [stacks, health, images, backup, disks, dcsUpdates, os, cs, cf, tt])
   // a viewer is never sent to an admin's page (it bounces back to the dashboard): the page they may open, or none
   const shown = items.filter((i) => hidden[i.key] !== i.fingerprint)
     .map((i) => ({ ...i, to: isAdmin || !ADMIN_ONLY_PAGES.has(i.page) ? i.page : VIEWER_PAGE[i.page] }))

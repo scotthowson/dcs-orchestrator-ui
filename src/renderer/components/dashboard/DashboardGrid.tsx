@@ -45,6 +45,8 @@ import PowerCard from './PowerCard'
 import BookmarksCard from './BookmarksCard'
 import ProxmoxCard from './ProxmoxCard'
 import NeedsYouCard from './NeedsYouCard'
+import TechnitiumTile from './TechnitiumTile'
+import { useTechnitiumEnabled } from '../../hooks/useTechnitiumEnabled'
 import ModalOverlay from '../common/ModalOverlay'
 
 import { Pill } from '../common/Pill'
@@ -62,7 +64,7 @@ const COMPONENT_MAP: Record<string, React.ComponentType<any>> = {
   'quick-actions': QuickActions, 'crowdsec': CrowdSecStatus,
   'stack-controls': StackControls, 'container-spotlight': ContainerSpotlight,
   'routes-dns': RoutesDns, 'notes': NotesCard, 'bookmarks': BookmarksCard,
-  'power': PowerCard, 'proxmox': ProxmoxCard,
+  'power': PowerCard, 'proxmox': ProxmoxCard, 'technitium': TechnitiumTile,
 }
 
 interface Props {
@@ -147,7 +149,7 @@ function EditChrome({ label, showName = true, tone, w, h, active, onRemove, onMo
 }
 
 export default function DashboardGrid({
-  cards, editMode, labels, onToggleCard, onResizeCard, onMoveCard,
+  cards: allCards, editMode, labels, onToggleCard, onResizeCard, onMoveCard,
   onExitEdit, onDiscardEdit, onResetLayout, onAddSpecial, onAddPluginCard, onSetLabel, cardProps = {},
   cardConfig = {}, onSaveCardConfig,
 }: Props) {
@@ -157,6 +159,9 @@ export default function DashboardGrid({
   const [pluginCards, setPluginCards] = useState<PluginCardMeta[]>([])
   const gridRef = useRef<HTMLDivElement>(null)
   const isConnected = useConnectionStore((s) => s.status === 'connected')
+  // Technitium off in Config: its tile is neither on the grid nor offered in the picker
+  const technitiumOn = useTechnitiumEnabled() === true
+  const cards = technitiumOn ? allCards : allCards.filter((c) => c.id !== 'technitium')
 
   // Phones get one column: 24 columns squeeze a quarter-width card to a few pixels
   const [isNarrow, setIsNarrow] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches)

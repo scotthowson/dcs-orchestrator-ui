@@ -62,6 +62,13 @@ type TriggerType =
   | 'fleet_vm_ready'
   | 'fleet_vm_failed'
   | 'docker_engine_update'
+  | 'technitium_down'
+  | 'technitium_out_of_sync'
+  | 'technitium_lists_stale'
+  | 'technitium_dhcp_pool'
+  | 'technitium_new_device'
+  | 'technitium_bedtime'
+  | 'technitium_device_blocked_expired'
 
 type Priority = 'urgent' | 'high' | 'default' | 'low'
 
@@ -88,6 +95,14 @@ const TRIGGER_OPTIONS: { value: TriggerType; label: string }[] = [
   { value: 'fleet_vm_ready', label: 'VM built and joined' },
   { value: 'fleet_vm_failed', label: 'VM build failed' },
   { value: 'docker_engine_update', label: 'Docker Engine updated' },
+  // Technitium DNS (its rules are made the first time its clock runs: bedtime and a block running out start off)
+  { value: 'technitium_down', label: 'Technitium: a server not answering' },
+  { value: 'technitium_out_of_sync', label: 'Technitium: out of step' },
+  { value: 'technitium_lists_stale', label: 'Technitium: blocklists not updating' },
+  { value: 'technitium_dhcp_pool', label: 'Technitium: DHCP pool nearly full' },
+  { value: 'technitium_new_device', label: 'Technitium: a new device on the network' },
+  { value: 'technitium_bedtime', label: 'Technitium: a group entered or left bedtime' },
+  { value: 'technitium_device_blocked_expired', label: 'Technitium: a device block ran out' },
 ]
 
 const PRIORITY_OPTIONS: { value: Priority; label: string }[] = [
@@ -109,6 +124,8 @@ const TEMPLATE_VARIABLES = [
   { var: '{action}', desc: 'What was attempted (stack failures)' },
   { var: '{mount}', desc: 'Mount point (disk warnings)' },
   { var: '{message}', desc: 'Details (updates, backups, health, automations)' },
+  { var: '{headline}', desc: 'Technitium: the alert in one line' },
+  { var: '{server}', desc: 'Technitium: primary or secondary' },
 ]
 
 /** Premade notification rule templates */
@@ -1487,6 +1504,13 @@ const WEBHOOK_EVENT_GROUPS: { label: string; events: { value: string; label: str
     { value: 'fleet_member_added', label: 'Member added by address' },
     { value: 'fleet_member_removed', label: 'Member removed' },
     { value: 'fleet_proxy', label: 'Action on a member through the hub' },
+  ] },
+  { label: 'Technitium DNS', events: [
+    { value: 'technitium_down', label: 'A server not answering (and back)' },
+    { value: 'technitium_out_of_sync', label: 'Out of step (and in step again)' },
+    { value: 'technitium_lists_stale', label: 'Blocklists not updating' },
+    { value: 'technitium_dhcp_pool', label: 'DHCP pool nearly full' },
+    { value: 'technitium_new_device', label: 'A new device on the network' },
   ] },
 ]
 const WEBHOOK_EVENT_TYPES = WEBHOOK_EVENT_GROUPS.flatMap((g) => g.events)

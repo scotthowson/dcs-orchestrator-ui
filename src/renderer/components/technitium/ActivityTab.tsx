@@ -17,6 +17,7 @@ import { fetchTechnitiumActivity, fetchTechnitiumGroups, fetchTechnitiumLists, f
 import { BTN_CARD_QUIET, BTN_ICON_SM, TONE_GHOST_OK, TONE_GHOST_DANGER, TEXT_META } from '../../lib/ui'
 import { INPUT, LABEL } from '../../lib/fieldStyles'
 import { deviceName, useDeviceDirectory } from './deviceKit'
+import { ListsHealth } from './SafetyNet'
 
 const time = (iso: string) => new Date(iso).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' })
 
@@ -110,6 +111,7 @@ export function ListsTab({ isAdmin }: { isAdmin: boolean }) {
   const label = (u: string) => (data.baseline_lists.includes(u) ? 'baseline' : data.categories.find((c) => c.url === u)?.name)
   return (
     <div className="space-y-4">
+      <ListsHealth isAdmin={isAdmin} />
       <ListEditor icon={Link2} title="Blocklists" sub="Downloaded by Technitium every day; a name on any of them is blocked for everyone." items={data.blocklists} mono
         tag={label} isAdmin={isAdmin} placeholder="https://…/list.txt" valid={(v) => /^https?:\/\/\S+$/.test(v)}
         onAdd={(v) => run(() => technitiumBlocklist(v), 'The list is added: Technitium downloads it now')}

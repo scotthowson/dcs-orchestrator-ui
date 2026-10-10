@@ -3,7 +3,7 @@
 // =============================================================================
 
 import { apiClient } from './client'
-import type { TechnitiumStatus, TechnitiumStats, TechnitiumRange, TechnitiumActivity, TechnitiumLists, TechnitiumGroups, TechnitiumGroup, TechnitiumGroupInput, TechnitiumHouse, TechnitiumSyncResult, TechnitiumConnectResult, TechnitiumBootstrapResult, TechnitiumRole, TechnitiumDevices, TechnitiumScan, TechnitiumNetDevice, TechnitiumDeviceChange, TechnitiumDhcp, TechnitiumScopeInput } from '../../shared/types'
+import type { TechnitiumStatus, TechnitiumStats, TechnitiumRange, TechnitiumActivity, TechnitiumLists, TechnitiumGroups, TechnitiumGroup, TechnitiumGroupInput, TechnitiumHouse, TechnitiumSyncResult, TechnitiumConnectResult, TechnitiumBootstrapResult, TechnitiumRole, TechnitiumDevices, TechnitiumScan, TechnitiumNetDevice, TechnitiumDeviceChange, TechnitiumDhcp, TechnitiumScopeInput, TechnitiumBackups } from '../../shared/types'
 import type {
   FleetVersions,
   FleetUpdateResponse,
@@ -2178,6 +2178,22 @@ export function switchTechnitiumDhcp(on: boolean, name?: string): Promise<{ scop
 /** DELETE /dns/technitium/dhcp/leases/{mac} */
 export function endTechnitiumLease(mac: string): Promise<{ success: boolean }> {
   return apiClient.delete(`/dns/technitium/dhcp/leases/${encodeURIComponent(mac)}`)
+}
+/** POST /dns/technitium/lists/update — every server downloads its blocklists again */
+export function updateTechnitiumLists(): Promise<{ servers: TechnitiumRole[]; message: string; warning: string | null }> {
+  return apiClient.post('/dns/technitium/lists/update', {}, 60000)
+}
+/** GET /dns/technitium/backups — the backups kept, newest first (admin) */
+export function fetchTechnitiumBackups(): Promise<TechnitiumBackups> {
+  return apiClient.get<TechnitiumBackups>('/dns/technitium/backups')
+}
+/** POST /dns/technitium/backup — both servers, now */
+export function backupTechnitium(): Promise<{ files: string[]; errors: { server: TechnitiumRole; error: string }[]; message: string }> {
+  return apiClient.post('/dns/technitium/backup', {}, 300000)
+}
+/** POST /dns/technitium/restore — a backup onto a server (it restarts its DNS service) */
+export function restoreTechnitium(server: TechnitiumRole, file: string): Promise<TtSync & { message: string; warning: string | null }> {
+  return apiClient.post('/dns/technitium/restore', { server, file, confirm: true }, 300000)
 }
 /** POST /dns/technitium/bootstrap — the house's baseline (installs two apps: it can take a minute) */
 export function bootstrapTechnitium(role: TechnitiumRole | 'both' = 'both'): Promise<TechnitiumBootstrapResult> {

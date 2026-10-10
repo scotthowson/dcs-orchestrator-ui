@@ -29,6 +29,7 @@ import { ActivityTab, ListsTab } from '../components/technitium/ActivityTab'
 import DevicesTab from '../components/technitium/DevicesTab'
 import DhcpTab from '../components/technitium/DhcpTab'
 import { DeviceIcon } from '../components/technitium/deviceKit'
+import { BackupsPanel, UpdateNotice } from '../components/technitium/SafetyNet'
 import { useTechnitiumEnabled } from '../hooks/useTechnitiumEnabled'
 import { useSettingsStore } from '../stores/settingsStore'
 import { pageLabel } from '../constants/pageTitles'
@@ -76,6 +77,12 @@ function countdown(ms: number): string {
 export default function Technitium() {
   const isAdmin = useAuthStore((s) => s.userRole === 'admin')
   const [tab, setTab] = useState<Tab>('overview')
+  // a link to a tab (Needs your attention, #/technitium/devices in a notification) opens it
+  const navigationPayload = useSettingsStore((s) => s.navigationPayload)
+  useEffect(() => {
+    const t = navigationPayload?.tab
+    if (typeof t === 'string' && ['overview', 'devices', 'kids', 'activity', 'dhcp', 'lists'].includes(t)) setTab(t as Tab)
+  }, [navigationPayload])
   const [connectOpen, setConnectOpen] = useState(false)
   const on = useTechnitiumEnabled()
   const setPage = useSettingsStore((s) => s.setCurrentPage)
@@ -394,6 +401,8 @@ function ConnectSheet({ status, onClose, onChanged }: { status: TechnitiumStatus
           <p className={HINT}>In Technitium: your name at the top right → Create API Token. DCS keeps it in its secrets store and never shows it again.</p>
         </div>
         {result && <Notice tone={result.ok ? 'ok' : 'problem'} role="status">{result.text}</Notice>}
+        <UpdateNotice inst={current} />
+        {status?.primary.configured && <BackupsPanel />}
       </div>
     </Sheet>
   )
