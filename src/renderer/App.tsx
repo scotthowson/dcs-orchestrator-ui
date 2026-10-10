@@ -51,6 +51,7 @@ import Secrets from './pages/Secrets'
 import Plugins from './pages/Plugins'
 import DNS from './pages/DNS'
 import Technitium from './pages/Technitium'
+import { technitiumEnabledNow } from './hooks/useTechnitiumEnabled'
 import Proxmox from './pages/Proxmox'
 import CrowdSec from './pages/CrowdSec'
 import Export from './pages/Export'
@@ -526,7 +527,8 @@ export default function App() {
         if (section) {
           e.preventDefault()
           const { currentPage: current, hiddenPages } = useSettingsStore.getState()
-          const shown = visiblePages(section, { isAdmin: useAuthStore.getState().userRole === 'admin', hidden: hiddenPages ?? [], adminOnly: ADMIN_ONLY_PAGES })
+          const hidden = technitiumEnabledNow() ? hiddenPages ?? [] : [...(hiddenPages ?? []), 'technitium' as const]
+          const shown = visiblePages(section, { isAdmin: useAuthStore.getState().userRole === 'admin', hidden, adminOnly: ADMIN_ONLY_PAGES })
           if (shown.includes(current as never)) setCurrentPage(current, { resetView: true })
           else {
             const to = sectionTarget(section, shown)

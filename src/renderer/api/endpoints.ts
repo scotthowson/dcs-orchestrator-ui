@@ -3,7 +3,7 @@
 // =============================================================================
 
 import { apiClient } from './client'
-import type { TechnitiumStatus, TechnitiumStats, TechnitiumRange, TechnitiumActivity, TechnitiumLists, TechnitiumGroups, TechnitiumGroup, TechnitiumGroupInput, TechnitiumHouse, TechnitiumSyncResult, TechnitiumConnectResult, TechnitiumBootstrapResult, TechnitiumRole } from '../../shared/types'
+import type { TechnitiumStatus, TechnitiumStats, TechnitiumRange, TechnitiumActivity, TechnitiumLists, TechnitiumGroups, TechnitiumGroup, TechnitiumGroupInput, TechnitiumHouse, TechnitiumSyncResult, TechnitiumConnectResult, TechnitiumBootstrapResult, TechnitiumRole, TechnitiumDevices, TechnitiumScan, TechnitiumNetDevice, TechnitiumDeviceChange, TechnitiumDhcp, TechnitiumScopeInput } from '../../shared/types'
 import type {
   FleetVersions,
   FleetUpdateResponse,
@@ -2138,6 +2138,46 @@ export function pauseTechnitiumBedtime(id: string, minutes = 30): Promise<TtSync
 /** POST /dns/technitium/connect — saves, then tests; url "" disconnects; no token keeps the stored one */
 export function connectTechnitium(role: TechnitiumRole, url: string, token?: string): Promise<TechnitiumConnectResult> {
   return apiClient.post<TechnitiumConnectResult>('/dns/technitium/connect', token ? { role, url, token } : { role, url }, 30000)
+}
+/** GET /dns/technitium/devices — the device directory (viewer) */
+export function fetchTechnitiumDevices(): Promise<TechnitiumDevices> {
+  return apiClient.get<TechnitiumDevices>('/dns/technitium/devices')
+}
+/** POST /dns/technitium/devices/scan — look for devices now (the sweep of the network can take a few seconds) */
+export function scanTechnitiumDevices(): Promise<TechnitiumScan & { message: string }> {
+  return apiClient.post('/dns/technitium/devices/scan', {}, 120000)
+}
+/** PUT /dns/technitium/devices/{id} — nickname, icon, notes, group, static (a DHCP reservation), blocked_until */
+export function updateTechnitiumDevice(id: string, change: TechnitiumDeviceChange): Promise<TtSync & { device: TechnitiumNetDevice; warning: string | null }> {
+  return apiClient.put(`/dns/technitium/devices/${encodeURIComponent(id)}`, change, 120000)
+}
+/** DELETE /dns/technitium/devices/{id} — forget it (it comes back with its nickname when seen again) */
+export function forgetTechnitiumDevice(id: string): Promise<{ success: boolean }> {
+  return apiClient.delete(`/dns/technitium/devices/${encodeURIComponent(id)}`)
+}
+/** DELETE /dns/technitium/devices/forgotten — what is kept of forgotten devices goes */
+export function clearForgottenTechnitiumDevices(): Promise<{ cleared: number }> {
+  return apiClient.delete('/dns/technitium/devices/forgotten')
+}
+/** POST /dns/technitium/devices/oui-update — IEEE's whole list of vendors */
+export function updateTechnitiumVendors(): Promise<{ prefixes: number; message: string }> {
+  return apiClient.post('/dns/technitium/devices/oui-update', {}, 180000)
+}
+/** GET /dns/technitium/dhcp — scopes, leases, the hub's network and a scope made from it (viewer) */
+export function fetchTechnitiumDhcp(): Promise<TechnitiumDhcp> {
+  return apiClient.get<TechnitiumDhcp>('/dns/technitium/dhcp')
+}
+/** POST /dns/technitium/dhcp/scope — the house's scope, made off */
+export function saveTechnitiumScope(scope: TechnitiumScopeInput): Promise<{ scope: string; created: boolean; enabled: boolean; reserved: number; skipped: { ip: string; error: string }[]; message: string }> {
+  return apiClient.post('/dns/technitium/dhcp/scope', scope, 120000)
+}
+/** POST /dns/technitium/dhcp/enable or /disable */
+export function switchTechnitiumDhcp(on: boolean, name?: string): Promise<{ scope: string; enabled: boolean; message: string }> {
+  return apiClient.post(`/dns/technitium/dhcp/${on ? 'enable' : 'disable'}`, name ? { name } : {}, 60000)
+}
+/** DELETE /dns/technitium/dhcp/leases/{mac} */
+export function endTechnitiumLease(mac: string): Promise<{ success: boolean }> {
+  return apiClient.delete(`/dns/technitium/dhcp/leases/${encodeURIComponent(mac)}`)
 }
 /** POST /dns/technitium/bootstrap — the house's baseline (installs two apps: it can take a minute) */
 export function bootstrapTechnitium(role: TechnitiumRole | 'both' = 'both'): Promise<TechnitiumBootstrapResult> {

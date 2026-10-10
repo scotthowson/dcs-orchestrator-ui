@@ -79,7 +79,12 @@ also needs `austin` (role `user`) for the chat journey.
 `tests/technitium.mjs` drives the Technitium page with every `/dns/technitium/*` answer served from a fake inside the
 test (no Technitium needed; the lab signs in): the overview, Allow on a blocked name, the pause's countdown and Resume,
 a kids' group added, put in bedtime, paused, edited and deleted, SafeSearch, a device's queries and their filter, the
-connect sheet (also with nothing connected) and a viewer on a phone (read-only, never asking for a device's queries).
+connect sheet (also with nothing connected), the device directory (an empty one scanned, the icon picker, a nickname
+edited in place, search and filters, the drawer with a block until a time, pinning an address while the router does
+DHCP), the DHCP move (the scope made off with every known device kept, the router's DHCP off, on here, a renewed device's
+DNS), Config → Integrations turning it off (the tab and the DNS & routes card go, the page says so), the light look, and
+a viewer on a phone (read-only, never asking for a device's queries). `GET /config` is the lab's own with
+`technitium_enabled` from the fake: the lab's `.env` keeps Technitium off, so its clock never scans a real network.
 
 ```bash
 PUPPETEER_DIR=/tmp/dcs-ui-sweep VIEWER_USER=viewer VIEWER_PASS=… node tests/technitium.mjs   # screenshots in docs/ui-polish/technitium/

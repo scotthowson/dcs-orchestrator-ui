@@ -420,6 +420,8 @@ export interface ServerConfig {
   chat_retention_days?: number
   chat_retention_max?: number
   chat_rate_limit?: number
+  /** Config → Integrations: the Technitium page shows only when this is on */
+  technitium_enabled?: boolean
   update_channel?: string
   /** UPDATE_ON_BOOT: pull image updates during an unattended boot (an older API leaves it out) */
   update_on_boot?: boolean
@@ -5093,7 +5095,7 @@ export interface TechnitiumStats {
   totals: { queries: number; blocked: number; clients: number; cached: number; nxdomain: number }
   series: { labels: string[]; queries: number[]; blocked: number[] }
   /** name: the device's label in a group, else Technitium's name for it (DHCP), else null */
-  top_clients: { ip: string; count: number; name: string | null }[]
+  top_clients: { ip: string; count: number; name: string | null; device_id?: string | null; icon?: TechnitiumIcon | null }[]
   top_domains: { domain: string; count: number }[]
   top_blocked: { domain: string; count: number }[]
   query_types: { type: string; count: number }[]
@@ -5114,7 +5116,8 @@ export interface TechnitiumActivity { entries: TechnitiumQuery[]; unavailable: {
 export interface TechnitiumCategory { id: string; name: string; url?: string }
 /** GET /dns/technitium/lists */
 export interface TechnitiumLists { blocklists: string[]; allowed: string[]; blocked: string[]; categories: TechnitiumCategory[]; baseline_lists: string[] }
-export interface TechnitiumDevice { ip: string; label: string; mac?: string | null }
+/** a device of a kids' group: its address, a label, and the device directory's id when it was picked from there */
+export interface TechnitiumDevice { ip: string; label: string; mac?: string | null; id?: string | null }
 /** days: 1 is Monday … 7 Sunday; from/to "HH:MM" in the server's time */
 export interface TechnitiumBedtime { enabled: boolean; from: string; to: string; days: number[] }
 export interface TechnitiumGroup {
@@ -5136,6 +5139,76 @@ export interface TechnitiumGroups {
   /** SafeSearch is the whole house's: Technitium cannot do it per group */
   safe_search_scope: 'house'
   now: string
+}
+export type TechnitiumIcon = 'desktop' | 'laptop' | 'phone' | 'tablet' | 'tv' | 'console' | 'speaker' | 'camera' | 'printer' | 'router'
+  | 'server' | 'iot' | 'lightbulb' | 'thermostat' | 'watch' | 'car' | 'unknown'
+export type TechnitiumSource = 'dhcp' | 'arp' | 'mdns' | 'rdns' | 'querylog' | 'manual'
+/** one device of the directory (GET /dns/technitium/devices): id is its MAC's 12 hex digits, or ip-<address> while no MAC is known */
+export interface TechnitiumNetDevice {
+  id: string
+  ip: string | null
+  mac: string | null
+  mac_random?: boolean
+  vendor: string | null
+  hostname: string | null
+  nickname: string | null
+  icon: TechnitiumIcon
+  /** the icon was guessed from the vendor and the name, nobody picked it */
+  icon_guessed: boolean
+  notes: string | null
+  static?: boolean
+  reserved_ip?: string | null
+  /** epoch seconds: every name blocked for it until then */
+  blocked_until?: number | null
+  blocked?: boolean
+  hub?: boolean
+  first_seen: number
+  last_seen: number
+  queries_today: number
+  blocked_today: number
+  /** when each source last saw it (epoch seconds) */
+  sources: Partial<Record<TechnitiumSource, number>>
+  group_id: string | null
+  group_name: string | null
+}
+export interface TechnitiumScan {
+  at: number; found: number; new: number; devices: number; swept: boolean; named_by_dhcp: number
+  sources: Partial<Record<TechnitiumSource, number>>; errors: string[]
+}
+/** GET /dns/technitium/devices */
+export interface TechnitiumDevices {
+  devices: TechnitiumNetDevice[]
+  forgotten: number
+  last_scan: TechnitiumScan | null
+  dhcp: { serving: boolean; at: number } | null
+  icons: TechnitiumIcon[]
+  now: number
+}
+export interface TechnitiumDeviceChange { nickname?: string | null; icon?: TechnitiumIcon; notes?: string | null; group_id?: string | null; static?: boolean; blocked_until?: number | null }
+export interface TechnitiumDhcpScope {
+  name: string; enabled: boolean; start: string; end: string; mask: string; network: string; broadcast: string; router: string | null
+  dns: string[]; domain: string; lease_hours: number; exclusions: { startingAddress: string; endingAddress: string }[]; ping_check: boolean
+  reservations: { mac: string; ip: string; hostname: string | null; comments: string | null; device_id: string | null; nickname: string | null }[]
+}
+export interface TechnitiumLease {
+  scope: string; type: string; mac: string; ip: string; hostname: string | null; obtained: string; expires: string
+  /** the DNS servers this device was told to use (its scope's) */
+  dns: string[]
+  device_id: string | null; nickname: string | null; icon: TechnitiumIcon | null
+}
+export interface TechnitiumScopeInput {
+  name?: string; start: string; end: string; mask?: string; router: string; dns: string[]; domain: string; lease_hours: number
+  exclusions: { start: string; end: string }[]; ping_check: boolean; reserve_known: boolean
+}
+/** GET /dns/technitium/dhcp */
+export interface TechnitiumDhcp {
+  enabled: boolean
+  scopes: TechnitiumDhcpScope[]
+  leases: TechnitiumLease[]
+  hub: { ip: string; prefix: number; gateway: string | null; interface: string } | null
+  suggested: (TechnitiumScopeInput & { name: string; mask: string }) | null
+  resolvers: { primary: string | null; secondary: string | null }
+  devices: { seen: number; asking: number; silent: { id: string; ip: string | null; nickname: string | null; hostname: string | null; icon: TechnitiumIcon }[] }
 }
 /** POST /dns/technitium/connect */
 export interface TechnitiumConnectResult { success: boolean; role: TechnitiumRole; url?: string; connected: boolean; reachable?: boolean; version?: string; domain?: string; error?: string; message?: string }

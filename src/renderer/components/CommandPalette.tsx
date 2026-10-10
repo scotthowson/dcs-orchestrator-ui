@@ -27,6 +27,7 @@ import { useStackStore } from '../stores/stackStore'
 import { useContainerStore } from '../stores/containerStore'
 import type { PageId, TemplateInfo, ProxmoxVm, FleetMember } from '../../shared/types'
 import { ADMIN_ONLY_PAGES } from '../../shared/types'
+import { technitiumEnabledNow } from '../hooks/useTechnitiumEnabled'
 import ModalOverlay from './common/ModalOverlay'
 import { navPages, sectionOf } from '../constants/navSections'
 import { containerState, isAsleep, stackLine, STATE_META } from '../lib/containerState'
@@ -230,7 +231,7 @@ export function CommandPalette() {
     // every page the sidebar reaches, in its order
     const allPages: PageId[] = navPages
     // Filter out admin-only pages for non-admin users
-    const pages = allPages.filter((p) => !ADMIN_ONLY_PAGES.has(p) || isAdmin)
+    const pages = allPages.filter((p) => (!ADMIN_ONLY_PAGES.has(p) || isAdmin) && (p !== 'technitium' || technitiumEnabledNow()))
     for (const page of pages) {
       const meta = pageMeta[page]
       items.push({

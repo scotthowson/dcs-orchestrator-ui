@@ -1,4 +1,4 @@
-// The Technitium card on DNS & routes: the home's resolver at a glance, a click from its page
+// The Technitium card on DNS & routes: the home's resolver at a glance, a click from its page (only while it is on in Config)
 import { ShieldHalf, ArrowRight } from 'lucide-react'
 import { Panel } from '../dashboard/cardShared'
 import StatusLine from '../common/StatusLine'
@@ -7,6 +7,7 @@ import { pollKeys } from '../../api/pollKeys'
 import { fetchTechnitiumStatus } from '../../api/endpoints'
 import { pageLabel } from '../../constants/pageTitles'
 import { useSettingsStore } from '../../stores/settingsStore'
+import { useTechnitiumEnabled } from '../../hooks/useTechnitiumEnabled'
 import { BTN_TOOLBAR_QUIET } from '../../lib/ui'
 import type { Tone } from '../../lib/tone'
 import type { TechnitiumInstance, TechnitiumStatus } from '../../../shared/types'
@@ -26,8 +27,11 @@ function verdict(data: TechnitiumStatus | null): { tone: Tone; title: string } {
 
 export default function TechnitiumCard() {
   const setPage = useSettingsStore((s) => s.setCurrentPage)
-  const { data } = usePolling(fetchTechnitiumStatus, 60000, { key: pollKeys.technitiumStatus })
+  const on = useTechnitiumEnabled()
+  const { data } = usePolling(fetchTechnitiumStatus, 60000, { key: pollKeys.technitiumStatus, enabled: on === true })
   const { tone, title } = verdict(data)
+  // Config → Integrations has it off: no card
+  if (on !== true) return null
   return (
     <Panel icon={ShieldHalf} title={pageLabel('technitium')} actions={<button type="button" className={BTN_TOOLBAR_QUIET} onClick={() => setPage('technitium')}>Open {pageLabel('technitium')} <ArrowRight size={14} /></button>}>
       <StatusLine tone={tone} title={title}>

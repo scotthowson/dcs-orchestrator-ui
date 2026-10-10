@@ -157,6 +157,8 @@ were merged, every poll gets the answers of the fastest one.
 | Proxmox | a guest's snapshots, while its details or its *Take snapshot* sheet are open (4.0.42) | — | 30 s |
 | DNS & routes | `/routes/maintenance`, once when a route's maintenance sheet opens (4.0.42) | — | no poll |
 | Technitium (4.0.42) | `/dns/technitium/status` (shared with its card on DNS & routes, 60 s there), the numbers, the kids' groups, the lists, a device's queries | — | 15 / 30 / 30 / 60 / 15 s (the queries only while a device is chosen) |
+| Technitium (devices) | `/dns/technitium/devices` (`technitium-devices`, shared by the Devices, Kids, Activity and DHCP tabs), `/dns/technitium/dhcp`, a device's 50 latest queries while its drawer is open (admin) | — | 30 / 30 / 30 s; none of it while Config → Integrations has Technitium off |
+| every page | `/config` (`config`: the Technitium switch the navigation follows, shared with the Config page) | — | 5 min (60 s while the Config page is open; a save asks again) |
 | Containers | the list (everywhere / hub) | 10 s + the global 15 s | one stream at 10 s |
 | Containers | a container's stats / processes | 10 s (+ a second sample after 2 s) / 10 s | same |
 | Health | report / containers / events / metrics / score | 5 (15 everywhere) / 10 / 15 (20) / 10 / 15 s | same; report and containers shared with the global poller |

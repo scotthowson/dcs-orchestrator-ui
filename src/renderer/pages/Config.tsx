@@ -26,7 +26,7 @@ import {
   HeartPulse,
   Activity,
   HardDrive,
-  Container, LifeBuoy, BatteryCharging, ArrowUpCircle,
+  Container, LifeBuoy, BatteryCharging, ArrowUpCircle, Puzzle,
 } from 'lucide-react'
 import { FloatingSaveBar } from '../components/common/FloatingSaveBar'
 import { ProxmoxTestPanel, TraefikFeedPanel, HomarrPanel } from '../components/settings/IntegrationPanels'
@@ -35,6 +35,7 @@ import { ErrorState } from '../components/common/PageState'
 import { pageLabel } from '../constants/pageTitles'
 import { BTN_TOOLBAR, BTN_TOOLBAR_QUIET, TONE_OK, TONE_QUIET } from '../lib/ui'
 import { usePolling } from '../hooks/usePolling'
+import { pollKeys } from '../api/pollKeys'
 import { fetchConfig, updateConfig, setSecret } from '../api/endpoints'
 import { useSettingsStore } from '../stores/settingsStore'
 import { useConnectionStore } from '../stores/connectionStore'
@@ -359,7 +360,7 @@ export default function Config() {
   const isConnected = useConnectionStore((s) => s.status) === 'connected'
   const connServerUrl = useConnectionStore((s) => s.serverUrl)
 
-  const { data, loading, error, refresh } = usePolling<ServerConfig>(fetchConfig, 60000)
+  const { data, loading, error, refresh } = usePolling<ServerConfig>(fetchConfig, 60000, { key: pollKeys.config })
 
   // Local editable copy
   const [edits, setEdits] = useState<EditableConfig>({})
@@ -465,6 +466,7 @@ export default function Config() {
     PORTAINER_URL: d.portainer_url ?? '',
     DASHBOARD_ICON_URL: d.dashboard_icon_url ?? '',
     DOCKER_COMPOSE_VERSION: d.docker_compose_version ?? 'auto',
+    TECHNITIUM_ENABLED: d.technitium_enabled ?? false,
   }), [])
 
   // Sync from server ONLY when user hasn't started editing
@@ -736,6 +738,21 @@ export default function Config() {
               description="Send ntfy notifications when stack images are updated"
               configKey="UPDATE_NOTIFICATION"
               value={Boolean(edits.UPDATE_NOTIFICATION ?? cfg.update_notification)}
+              onChange={handleBoolChange}
+            />
+          </GroupCard>
+
+          {/* Integrations: a feature whose page shows only when it is on */}
+          <GroupCard
+            icon={<Puzzle size={16} className="text-slate-400" />}
+            title="Integrations"
+            description="Services this server runs pages for; off keeps their page out of the menu"
+          >
+            <ToggleRow
+              label="Technitium DNS"
+              description={`The ${pageLabel('technitium')} page (Security) and its card on ${pageLabel('dns')}: the home's resolver, its devices, DHCP and the kids' groups. Off hides them and stops DCS's clock for it; Technitium keeps answering as it is`}
+              configKey="TECHNITIUM_ENABLED"
+              value={Boolean(edits.TECHNITIUM_ENABLED)}
               onChange={handleBoolChange}
             />
           </GroupCard>
@@ -1201,6 +1218,7 @@ function getOriginalValue(data: ServerConfig, key: string): string | boolean | n
     PORTAINER_URL: data.portainer_url ?? '',
     DASHBOARD_ICON_URL: data.dashboard_icon_url ?? '',
     DOCKER_COMPOSE_VERSION: data.docker_compose_version ?? 'auto',
+    TECHNITIUM_ENABLED: data.technitium_enabled ?? false,
   }
   return map[key] ?? ''
 }

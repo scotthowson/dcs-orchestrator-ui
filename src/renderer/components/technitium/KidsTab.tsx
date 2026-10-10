@@ -1,7 +1,8 @@
 // The Technitium page's Kids tab: the house's SafeSearch and YouTube switch, the groups as cards (devices, category
-// lists, bedtime, "in bedtime now", a 30-minute pause), the add / edit sheet and the delete confirmation.
+// lists, bedtime, "in bedtime now", a 30-minute pause), the add / edit sheet and the delete confirmation. A group's
+// devices are picked from the device directory (their icon and nickname); an address typed by hand still works.
 
-import { useCallback, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Users, Plus, Pencil, Trash2, Moon, MoonStar, Loader2, Search as SearchIcon, X, Youtube } from 'lucide-react'
 import { Panel } from '../dashboard/cardShared'
 import Sheet from '../common/Sheet'
@@ -12,12 +13,14 @@ import { Pill } from '../common/Pill'
 import { EmptyState, ErrorState, Skeleton } from '../common/PageState'
 import { useConfirm } from '../common/ConfirmDialog'
 import { useToast } from '../common/Toast'
+import SearchInput from '../common/SearchInput'
 import { usePolling } from '../../hooks/usePolling'
 import { apiErrorMessage } from '../../api/errors'
+import { DeviceIcon, deviceName, useDeviceDirectory } from './deviceKit'
 import {
-  fetchTechnitiumGroups, fetchTechnitiumStats, saveTechnitiumGroup, deleteTechnitiumGroup, pauseTechnitiumBedtime, technitiumSafeSearch,
+  fetchTechnitiumGroups, saveTechnitiumGroup, deleteTechnitiumGroup, pauseTechnitiumBedtime, technitiumSafeSearch,
 } from '../../api/endpoints'
-import type { TechnitiumCategory, TechnitiumGroup, TechnitiumGroupInput, TechnitiumGroups, TechnitiumYoutube } from '../../../shared/types'
+import type { TechnitiumCategory, TechnitiumGroup, TechnitiumGroupInput, TechnitiumGroups, TechnitiumHouse, TechnitiumYoutube } from '../../../shared/types'
 import { BTN_TOOLBAR_OK, BTN_CARD_QUIET, BTN_SHEET_QUIET, BTN_SHEET_PRIMARY, BTN_ICON_SM, TONE_GHOST, TONE_GHOST_DANGER, TEXT_META, SECTION_LABEL } from '../../lib/ui'
 import { INPUT, LABEL, HINT, CHOICE_SM, CHOICE_ON, CHOICE_OFF } from '../../lib/fieldStyles'
 
@@ -31,9 +34,21 @@ function daysLabel(days: number[]): string {
   return d.map((x) => DAYS[x - 1]).join(', ')
 }
 const until = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+const NIGHTS: { label: string; days: number[] }[] = [
+  { label: 'Every night', days: [1, 2, 3, 4, 5, 6, 7] },
+  { label: 'School nights (Sun–Thu)', days: [1, 2, 3, 4, 7] },
+  { label: 'Fri & Sat', days: [5, 6] },
+]
+/** how long a bedtime lasts, "10 h" or "9 h 30" */
+function length(from: string, to: string): string {
+  const m = (t: string) => { const [h, mm] = t.split(':').map(Number); return h * 60 + mm }
+  const d = (m(to) - m(from) + 1440) % 1440
+  return d === 0 ? '—' : `${Math.floor(d / 60)} h${d % 60 ? ` ${String(d % 60).padStart(2, '0')}` : ''}`
+}
 
 export default function KidsTab({ isAdmin, onChanged }: { isAdmin: boolean; onChanged: () => Promise<void> }) {
   const { data, error, loading, refresh } = usePolling(fetchTechnitiumGroups, 30000, { key: 'technitium-groups' })
+  const dir = useDeviceDirectory()
   const [editing, setEditing] = useState<TechnitiumGroup | 'new' | null>(null)
   const { addToast } = useToast()
   const confirm = useConfirm()
@@ -84,7 +99,16 @@ export default function KidsTab({ isAdmin, onChanged }: { isAdmin: boolean; onCh
                   <p className={SECTION_LABEL}>Devices</p>
                   {g.devices.length ? (
                     <ul className="mt-1 space-y-0.5">
-                      {g.devices.map((d) => <li key={d.ip} className="text-sm text-slate-300 flex items-baseline gap-2 min-w-0"><span className="truncate">{d.label || d.ip}</span>{d.label && <span className="font-mono text-xs text-slate-500">{d.ip}</span>}</li>)}
+                      {g.devices.map((d) => {
+                        const known = (d.id ? dir.byId.get(d.id) : undefined) ?? dir.byIp.get(d.ip)
+                        const name = known?.nickname || d.label || (known ? deviceName(known) : d.ip)
+                        return (
+                          <li key={d.ip} className="text-sm text-slate-300 flex items-center gap-2 min-w-0">
+                            <DeviceIcon icon={known?.icon ?? 'unknown'} guessed={!known || known.icon_guessed} size="sm" />
+                            <span className="truncate">{name}</span>{name !== d.ip && <span className="font-mono text-xs text-slate-500 shrink-0">{d.ip}</span>}
+                          </li>
+                        )
+                      })}
                     </ul>
                   ) : <p className={TEXT_META}>None yet: the group does nothing until a device is in it.</p>}
                 </div>
@@ -105,7 +129,7 @@ export default function KidsTab({ isAdmin, onChanged }: { isAdmin: boolean; onCh
           ))}
         </div>
       )}
-      {editing && <GroupSheet group={editing === 'new' ? null : editing} categories={data.categories} taken={data.groups.filter((g) => editing === 'new' || g.id !== editing.id).flatMap((g) => g.devices.map((d) => d.ip))}
+      {editing && <GroupSheet group={editing === 'new' ? null : editing} categories={data.categories} house={data.house} directory={dir.data?.devices ?? []} taken={data.groups.filter((g) => editing === 'new' || g.id !== editing.id).flatMap((g) => g.devices.map((d) => d.ip))}
         onClose={() => setEditing(null)} onSaved={async (msg, sync) => { setEditing(null); await after(msg, sync) }} />}
     </div>
   )
@@ -136,34 +160,45 @@ function HouseSafeSearch({ data, isAdmin, onChanged }: { data: TechnitiumGroups;
   )
 }
 
-function GroupSheet({ group, categories, taken, onClose, onSaved }: {
+function GroupSheet({ group, categories, house, directory, taken, onClose, onSaved }: {
   group: TechnitiumGroup | null
   categories: TechnitiumCategory[]
+  house: TechnitiumHouse
+  directory: import('../../../shared/types').TechnitiumNetDevice[]
   taken: string[]
   onClose: () => void
   onSaved: (msg: string, sync: { ok: boolean; message: string } | null) => Promise<void>
 }) {
   const [g, setG] = useState<TechnitiumGroupInput>(() => group
     ? { id: group.id, name: group.name, devices: group.devices.map((d) => ({ ...d })), lists: [...group.lists], bedtime: { ...group.bedtime } }
-    : { name: '', devices: [], lists: ['adult', 'gambling', 'proxy-vpn'], bedtime: { enabled: true, from: '20:30', to: '07:00', days: [1, 2, 3, 4, 7] } })
+    // a new group: the house's usual one (the boys: 21:00 to 07:00 every night)
+    : { name: '', devices: [], lists: ['adult', 'gambling', 'proxy-vpn'], bedtime: { enabled: true, from: '21:00', to: '07:00', days: [1, 2, 3, 4, 5, 6, 7] } })
   const [ip, setIp] = useState('')
   const [label, setLabel] = useState('')
+  const [find, setFind] = useState('')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
-  const fetchClients = useCallback(() => fetchTechnitiumStats('lastDay'), [])
-  const { data: stats } = usePolling(fetchClients, 60000, { key: 'technitium-stats:lastDay' })
+  const houseStrict = house.safe_search && house.youtube === 'strict'
+  const [alsoHouse, setAlsoHouse] = useState(!group && !houseStrict)
   const set = (p: Partial<TechnitiumGroupInput>) => setG((x) => ({ ...x, ...p }))
   const ipOk = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$|^[0-9a-f:]{2,39}(\/\d{1,3})?$/i.test(ip.trim())
-  const addDevice = (d: { ip: string; label: string }) => {
+  const addDevice = (d: { ip: string; label: string; mac?: string | null; id?: string | null }) => {
     if (g.devices.some((x) => x.ip === d.ip)) return
     set({ devices: [...g.devices, d] }); setIp(''); setLabel('')
   }
-  const suggestions = (stats?.top_clients ?? []).filter((c) => !g.devices.some((d) => d.ip === c.ip) && !taken.includes(c.ip)).slice(0, 8)
+  // the directory's devices that can join: not in this group, not in another one; busiest first
+  const pickable = useMemo(() => {
+    const needle = find.trim().toLowerCase()
+    return directory.filter((d) => d.ip && !d.hub && !g.devices.some((x) => x.ip === d.ip) && !taken.includes(d.ip!)
+      && (!needle || [d.nickname, d.hostname, d.ip, d.vendor].some((x) => x?.toLowerCase().includes(needle))))
+  }, [directory, g.devices, taken, find])
+  const dirOf = (ipAddr: string, id?: string | null) => directory.find((d) => (id && d.id === id) || d.ip === ipAddr)
   const save = async () => {
     setBusy(true); setErr(null)
     try {
       const r = await saveTechnitiumGroup({ ...g, name: g.name.trim() })
-      await onSaved(`${r.group.name} is saved`, r.sync)
+      if (alsoHouse) await technitiumSafeSearch({ safe_search: true, youtube: 'strict' })
+      await onSaved(`${r.group.name} is saved${alsoHouse ? '; SafeSearch and YouTube strict are on for the house' : ''}`, r.sync)
     } catch (e) { setErr(apiErrorMessage(e)) } finally { setBusy(false) }
   }
   return (
@@ -175,7 +210,7 @@ function GroupSheet({ group, categories, taken, onClose, onSaved }: {
       <div className="space-y-5">
         <div>
           <label htmlFor="tg-name" className={LABEL}>Name</label>
-          <input id="tg-name" className={INPUT} value={g.name} maxLength={40} onChange={(e) => set({ name: e.target.value })} placeholder="The boys" />
+          <input id="tg-name" className={INPUT} value={g.name} maxLength={40} onChange={(e) => set({ name: e.target.value })} placeholder="Boys" />
         </div>
 
         <fieldset>
@@ -184,6 +219,7 @@ function GroupSheet({ group, categories, taken, onClose, onSaved }: {
             <ul className="mb-2 space-y-1">
               {g.devices.map((d, i) => (
                 <li key={d.ip} className="flex items-center gap-2">
+                  <DeviceIcon icon={dirOf(d.ip, d.id)?.icon ?? 'unknown'} guessed={!dirOf(d.ip, d.id) || dirOf(d.ip, d.id)!.icon_guessed} size="sm" />
                   <input aria-label={`Label of ${d.ip}`} className={`${INPUT} flex-1`} value={d.label} maxLength={40} placeholder="Tablet, Switch…"
                     onChange={(e) => set({ devices: g.devices.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)) })} />
                   <span className="font-mono text-xs text-slate-400 w-32 truncate">{d.ip}</span>
@@ -192,25 +228,29 @@ function GroupSheet({ group, categories, taken, onClose, onSaved }: {
               ))}
             </ul>
           )}
-          <div className="flex flex-wrap gap-2">
+          {directory.length > 0 && (
+            <div className="mb-3 space-y-2">
+              <p className={HINT}>From the devices of the house:</p>
+              {directory.length > 12 && <SearchInput size="sm" value={find} onChange={setFind} placeholder="Find a device" label="Find a device to add" />}
+              <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto scrollbar-thin">
+                {pickable.slice(0, 40).map((d) => (
+                  <button key={d.id} type="button" className={`${CHOICE_SM} ${CHOICE_OFF} !h-auto py-1`} aria-label={`Add ${deviceName(d)} (${d.ip})`}
+                    onClick={() => addDevice({ ip: d.ip!, label: (d.nickname ?? deviceName(d)).slice(0, 40), mac: d.mac, id: d.id })}>
+                    <DeviceIcon icon={d.icon} guessed={d.icon_guessed} size="sm" /> <span className="truncate max-w-[10rem]">{deviceName(d)}</span> <span className="font-mono text-slate-500">{d.ip}</span>
+                  </button>
+                ))}
+                {pickable.length === 0 && <span className={TEXT_META}>{find ? 'No device matches.' : 'Every device is in a group already.'}</span>}
+              </div>
+            </div>
+          )}
+          <p className={HINT}>Or an address by hand (a device not seen yet, or a small network like 192.168.2.48/29):</p>
+          <div className="flex flex-wrap gap-2 mt-1">
             <input aria-label="Device address" className={`${INPUT} font-mono flex-1 min-w-[10rem]`} value={ip} onChange={(e) => setIp(e.target.value)} placeholder="192.168.2.50" />
             <input aria-label="Device label" className={`${INPUT} flex-1 min-w-[8rem]`} value={label} maxLength={40} onChange={(e) => setLabel(e.target.value)} placeholder="Label" />
             <button type="button" className={BTN_CARD_QUIET} disabled={!ipOk || taken.includes(ip.trim())} onClick={() => addDevice({ ip: ip.trim(), label: label.trim() })}><Plus size={12} /> Add</button>
           </div>
           {taken.includes(ip.trim()) && <p className={`${HINT} text-rose-400`}>That device is in another group: a device is in one group at a time.</p>}
-          {suggestions.length > 0 && (
-            <div className="mt-2">
-              <p className={HINT}>Seen on the network today:</p>
-              <div className="mt-1 flex flex-wrap gap-1.5">
-                {suggestions.map((c) => (
-                  <button key={c.ip} type="button" className={`${CHOICE_SM} ${CHOICE_OFF}`} onClick={() => addDevice({ ip: c.ip, label: c.name && c.name !== c.ip ? c.name.split('.')[0] : '' })}>
-                    <Plus size={12} /> {c.name ? `${c.name} · ` : ''}<span className="font-mono">{c.ip}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-          <p className={HINT}>A device is its address: give the tablets and consoles a reserved address in DHCP so it does not change.</p>
+          <p className={HINT}>A device picked from the list stays in the group when its address changes; pin its address (Devices tab) to keep the logs tidy.</p>
         </fieldset>
 
         <fieldset className="space-y-3">
@@ -226,9 +266,19 @@ function GroupSheet({ group, categories, taken, onClose, onSaved }: {
           <ToggleRow label="Bedtime" help="Every name stops answering for these devices (this server's own sites still work)." checked={g.bedtime.enabled} onChange={(v) => set({ bedtime: { ...g.bedtime, enabled: v } })} />
           {g.bedtime.enabled && (
             <>
-              <div className="flex flex-wrap gap-3">
+              <p className="text-sm text-slate-200 flex items-center gap-2" aria-live="polite">
+                <MoonStar size={14} className="text-slate-500 shrink-0" aria-hidden />
+                {g.bedtime.from} → {g.bedtime.to}, {g.bedtime.days.length ? daysLabel(g.bedtime.days) : 'no night picked'} <span className="text-slate-500">· {length(g.bedtime.from, g.bedtime.to)}</span>
+              </p>
+              <div className="flex flex-wrap items-end gap-3">
                 <div><label htmlFor="tg-from" className={LABEL}>From</label><input id="tg-from" type="time" className={INPUT} value={g.bedtime.from} onChange={(e) => set({ bedtime: { ...g.bedtime, from: e.target.value } })} /></div>
                 <div><label htmlFor="tg-to" className={LABEL}>Until</label><input id="tg-to" type="time" className={INPUT} value={g.bedtime.to} onChange={(e) => set({ bedtime: { ...g.bedtime, to: e.target.value } })} /></div>
+              </div>
+              <div role="group" aria-label="Quick nights" className="flex flex-wrap gap-1.5">
+                {NIGHTS.map((n) => {
+                  const on = [...g.bedtime.days].sort().join() === [...n.days].sort().join()
+                  return <button key={n.label} type="button" aria-pressed={on} className={`${CHOICE_SM} ${on ? CHOICE_ON : CHOICE_OFF}`} onClick={() => set({ bedtime: { ...g.bedtime, days: n.days } })}>{n.label}</button>
+                })}
               </div>
               <div role="group" aria-label="Nights" className="flex flex-wrap gap-1.5">
                 {DAYS.map((d, i) => {
@@ -241,6 +291,9 @@ function GroupSheet({ group, categories, taken, onClose, onSaved }: {
             </>
           )}
         </fieldset>
+        {!group && !houseStrict && (
+          <ToggleRow label="Also for the whole house: SafeSearch on, YouTube strict" help="Technitium cannot do these per group: they apply to every device, grown-ups included." checked={alsoHouse} onChange={setAlsoHouse} />
+        )}
         {err && <Notice tone="problem" role="alert">{err}</Notice>}
       </div>
     </Sheet>

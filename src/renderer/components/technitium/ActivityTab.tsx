@@ -1,4 +1,4 @@
-// The Technitium page's Devices tab (a device's recent queries, blocked ones marked, Allow / Block per row; admin
+// The Technitium page's Activity tab (a device's recent queries, blocked ones marked, Allow / Block per row; admin
 // only, the API refuses a viewer) and its Lists tab (the blocklists, the names allowed and blocked for everyone).
 
 import { useCallback, useMemo, useState } from 'react'
@@ -16,6 +16,7 @@ import { apiErrorMessage } from '../../api/errors'
 import { fetchTechnitiumActivity, fetchTechnitiumGroups, fetchTechnitiumLists, fetchTechnitiumStats, technitiumBlocklist, technitiumListName } from '../../api/endpoints'
 import { BTN_CARD_QUIET, BTN_ICON_SM, TONE_GHOST_OK, TONE_GHOST_DANGER, TEXT_META } from '../../lib/ui'
 import { INPUT, LABEL } from '../../lib/fieldStyles'
+import { deviceName, useDeviceDirectory } from './deviceKit'
 
 const time = (iso: string) => new Date(iso).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' })
 
@@ -27,15 +28,18 @@ export function ActivityTab() {
   const fetchClients = useCallback(() => fetchTechnitiumStats('lastDay'), [])
   const { data: stats } = usePolling(fetchClients, 60000, { key: 'technitium-stats:lastDay' })
   const { data: groups } = usePolling(fetchTechnitiumGroups, 60000, { key: 'technitium-groups' })
+  const dir = useDeviceDirectory()
   const valid = /^(\d{1,3}\.){3}\d{1,3}$|^[0-9a-f:]{2,39}$/i.test(client)
   const fetchLog = useCallback(() => fetchTechnitiumActivity({ client, blocked: blockedOnly, limit: 200 }), [client, blockedOnly])
   const { data, error, loading, refresh } = usePolling(fetchLog, 15000, { key: `technitium-activity:${client}:${blockedOnly}`, enabled: valid })
   const devices = useMemo(() => {
     const m = new Map<string, string>()
-    for (const g of groups?.groups ?? []) for (const d of g.devices) m.set(d.ip, `${d.label || d.ip} (${g.name})`)
+    // the directory's names first (a nickname, else the device's own name), with its group
+    for (const d of dir.data?.devices ?? []) if (d.ip) m.set(d.ip, `${deviceName(d)}${d.group_name ? ` (${d.group_name})` : ''}`)
+    for (const g of groups?.groups ?? []) for (const d of g.devices) if (!m.has(d.ip)) m.set(d.ip, `${d.label || d.ip} (${g.name})`)
     for (const c of stats?.top_clients ?? []) if (!m.has(c.ip)) m.set(c.ip, c.name ?? c.ip)
-    return [...m.entries()]
-  }, [groups, stats])
+    return [...m.entries()].sort((a, b) => a[1].localeCompare(b[1]))
+  }, [groups, stats, dir.data])
   const rows = useMemo(() => (data?.entries ?? []).filter((e) => !filter || e.name.includes(filter.toLowerCase())), [data, filter])
   const act = async (list: 'allow' | 'block', name: string) => {
     try { const r = await technitiumListName(list, name); addToast({ type: 'success', message: r.message }); void refresh() } catch (e) { addToast({ type: 'error', message: apiErrorMessage(e) }) }

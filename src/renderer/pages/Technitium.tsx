@@ -10,7 +10,7 @@ import { Menu } from '@mantine/core'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import {
   RefreshCw, Pause, Play, ChevronDown, Plug, Wand2, Server, ShieldCheck, Users, Activity as ActivityIcon, ListChecks,
-  ArrowLeftRight, Search, Ban, Globe, MonitorSmartphone, CheckCircle2, Loader2,
+  ArrowLeftRight, Search, Ban, Globe, MonitorSmartphone, CheckCircle2, Loader2, Network, Settings2,
 } from 'lucide-react'
 import PageHeader from '../components/common/PageHeader'
 import StatTile from '../components/common/StatTile'
@@ -26,6 +26,13 @@ import { useToast } from '../components/common/Toast'
 import { Panel } from '../components/dashboard/cardShared'
 import KidsTab from '../components/technitium/KidsTab'
 import { ActivityTab, ListsTab } from '../components/technitium/ActivityTab'
+import DevicesTab from '../components/technitium/DevicesTab'
+import DhcpTab from '../components/technitium/DhcpTab'
+import { DeviceIcon } from '../components/technitium/deviceKit'
+import { useTechnitiumEnabled } from '../hooks/useTechnitiumEnabled'
+import { useSettingsStore } from '../stores/settingsStore'
+import { pageLabel } from '../constants/pageTitles'
+import { apiErrorData } from '../api/errors'
 import { usePolling } from '../hooks/usePolling'
 import { pollKeys } from '../api/pollKeys'
 import { apiErrorMessage } from '../api/errors'
@@ -40,7 +47,7 @@ import { PAGE_STACK } from '../lib/pageKit'
 import { INPUT, LABEL, HINT } from '../lib/fieldStyles'
 import { TONE_HEX } from '../lib/tone'
 
-type Tab = 'overview' | 'kids' | 'activity' | 'lists'
+type Tab = 'overview' | 'devices' | 'kids' | 'activity' | 'dhcp' | 'lists'
 const RANGES: { value: TechnitiumRange; label: string }[] = [
   { value: 'lastHour', label: 'Last hour' }, { value: 'lastDay', label: 'Last day' }, { value: 'lastWeek', label: 'Last week' },
 ]
@@ -70,14 +77,31 @@ export default function Technitium() {
   const isAdmin = useAuthStore((s) => s.userRole === 'admin')
   const [tab, setTab] = useState<Tab>('overview')
   const [connectOpen, setConnectOpen] = useState(false)
-  const { data: status, error, loading, refresh, fetching } = usePolling(fetchTechnitiumStatus, 15000, { key: pollKeys.technitiumStatus })
+  const on = useTechnitiumEnabled()
+  const setPage = useSettingsStore((s) => s.setCurrentPage)
+  const { data: status, error, loading, refresh, fetching } = usePolling(fetchTechnitiumStatus, 15000, { key: pollKeys.technitiumStatus, enabled: on === true })
+  // Config → Integrations has it off (the switch, or the server's 404 feature_off)
+  const off = on === false || apiErrorData(error)?.code === 'feature_off'
 
   const tabs = [
     { value: 'overview' as const, label: 'Overview', icon: Globe },
+    { value: 'devices' as const, label: 'Devices', icon: MonitorSmartphone },
     { value: 'kids' as const, label: 'Kids', icon: Users, count: status?.groups || undefined },
-    ...(isAdmin ? [{ value: 'activity' as const, label: 'Devices', icon: ActivityIcon }] : []),
+    ...(isAdmin ? [{ value: 'activity' as const, label: 'Activity', icon: ActivityIcon }] : []),
+    { value: 'dhcp' as const, label: 'DHCP', icon: Network },
     { value: 'lists' as const, label: 'Lists', icon: ListChecks },
   ]
+
+  if (off) {
+    return (
+      <div className={`${PAGE_STACK} animate-fade-in`}>
+        <PageHeader page="technitium" />
+        <EmptyState icon={<ShieldCheck size={28} />} title="Technitium is off"
+          hint={isAdmin ? `Turn it on in ${pageLabel('config')} → Integrations: the page, its devices and DHCP, and its card on ${pageLabel('dns')} come back.` : 'An admin turns it on in Config → Integrations.'}
+          action={isAdmin ? <button type="button" className={BTN_TOOLBAR_PRIMARY} onClick={() => setPage('config')}><Settings2 size={14} /> Open {pageLabel('config')}</button> : undefined} />
+      </div>
+    )
+  }
 
   return (
     <div className={`${PAGE_STACK} animate-fade-in`}>
@@ -99,7 +123,7 @@ export default function Technitium() {
         </>}
       />
 
-      {loading && !status && <Skeleton variant="tiles" rows={4} />}
+      {(loading || on === null) && !status && <Skeleton variant="tiles" rows={4} />}
       {error && !status && <ErrorState title="Could not read Technitium's status" error={error} onRetry={() => void refresh()} />}
 
       {status && !status.configured && (
@@ -117,8 +141,10 @@ export default function Technitium() {
         <>
           <Segmented ariaLabel="Technitium view" value={tab} onChange={setTab} options={tabs} />
           {tab === 'overview' && <Overview status={status} isAdmin={isAdmin} onChanged={refresh} />}
+          {tab === 'devices' && <DevicesTab isAdmin={isAdmin} />}
           {tab === 'kids' && <KidsTab isAdmin={isAdmin} onChanged={refresh} />}
           {tab === 'activity' && isAdmin && <ActivityTab />}
+          {tab === 'dhcp' && <DhcpTab isAdmin={isAdmin} />}
           {tab === 'lists' && <ListsTab isAdmin={isAdmin} />}
         </>
       )}
@@ -303,7 +329,7 @@ function TopLists({ stats, isAdmin, onAllow }: { stats: TechnitiumStats; isAdmin
   return (
     <div className="grid gap-3 lg:grid-cols-3">
       <Panel icon={MonitorSmartphone} title="Top clients">
-        {stats.top_clients.length ? <ul>{stats.top_clients.map((c) => <Row key={c.ip} k={c.ip} count={c.count} name={<>{c.name ?? c.ip}{c.name && <span className="ml-2 font-mono text-xs text-slate-500">{c.ip}</span>}</>} />)}</ul> : empty}
+        {stats.top_clients.length ? <ul>{stats.top_clients.map((c) => <Row key={c.ip} k={c.ip} count={c.count} name={<span className="flex items-center gap-2 min-w-0">{c.icon && <DeviceIcon icon={c.icon} size="sm" />}<span className="truncate">{c.name ?? c.ip}</span>{c.name && <span className="font-mono text-xs text-slate-500 shrink-0">{c.ip}</span>}</span>} />)}</ul> : empty}
       </Panel>
       <Panel icon={Globe} title="Top domains">
         {stats.top_domains.length ? <ul>{stats.top_domains.map((d) => <Row key={d.domain} k={d.domain} count={d.count} name={<span className="font-mono text-xs">{d.domain}</span>} />)}</ul> : empty}
