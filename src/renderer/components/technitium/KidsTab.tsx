@@ -16,7 +16,7 @@ import { useToast } from '../common/Toast'
 import SearchInput from '../common/SearchInput'
 import { usePolling } from '../../hooks/usePolling'
 import { apiErrorMessage } from '../../api/errors'
-import { DeviceIcon, deviceName, useDeviceDirectory } from './deviceKit'
+import { DeviceIcon, TAP, deviceName, useDeviceDirectory } from './deviceKit'
 import {
   fetchTechnitiumGroups, saveTechnitiumGroup, deleteTechnitiumGroup, pauseTechnitiumBedtime, technitiumSafeSearch,
 } from '../../api/endpoints'
@@ -91,19 +91,19 @@ export default function KidsTab({ isAdmin, onChanged }: { isAdmin: boolean; onCh
             <Panel key={g.id} icon={Users} title={g.name}
               badge={g.in_bedtime ? <Pill tone="attention" icon={<Moon size={10} />}>In bedtime now</Pill> : g.bedtime_paused_until ? <Pill tone="info">Bedtime paused until {until(g.bedtime_paused_until)}</Pill> : undefined}
               actions={isAdmin ? <>
-                <button type="button" className={`${BTN_ICON_SM} ${TONE_GHOST}`} onClick={() => setEditing(g)} aria-label={`Edit ${g.name}`} title="Edit"><Pencil size={14} /></button>
-                <button type="button" className={`${BTN_ICON_SM} ${TONE_GHOST_DANGER}`} onClick={() => void remove(g)} aria-label={`Delete ${g.name}`} title="Delete"><Trash2 size={14} /></button>
+                <button type="button" className={`${BTN_ICON_SM} ${TAP} ${TONE_GHOST}`} onClick={() => setEditing(g)} aria-label={`Edit ${g.name}`} title="Edit"><Pencil size={14} /></button>
+                <button type="button" className={`${BTN_ICON_SM} ${TAP} ${TONE_GHOST_DANGER}`} onClick={() => void remove(g)} aria-label={`Delete ${g.name}`} title="Delete"><Trash2 size={14} /></button>
               </> : undefined}>
               <div className="space-y-3">
                 <div>
                   <p className={SECTION_LABEL}>Devices</p>
                   {g.devices.length ? (
-                    <ul className="mt-1 space-y-0.5">
+                    <ul className="mt-2 space-y-2">
                       {g.devices.map((d) => {
                         const known = (d.id ? dir.byId.get(d.id) : undefined) ?? dir.byIp.get(d.ip)
                         const name = known?.nickname || d.label || (known ? deviceName(known) : d.ip)
                         return (
-                          <li key={d.ip} className="text-sm text-slate-300 flex items-center gap-2 min-w-0">
+                          <li key={d.ip} className="text-sm text-slate-300 flex items-center gap-3 min-w-0">
                             <DeviceIcon icon={known?.icon ?? 'unknown'} guessed={!known || known.icon_guessed} size="sm" />
                             <span className="truncate">{name}</span>{name !== d.ip && <span className="font-mono text-xs text-slate-500 shrink-0">{d.ip}</span>}
                           </li>
@@ -218,12 +218,12 @@ function GroupSheet({ group, categories, house, directory, taken, onClose, onSav
           {g.devices.length > 0 && (
             <ul className="mb-2 space-y-1">
               {g.devices.map((d, i) => (
-                <li key={d.ip} className="flex items-center gap-2">
+                <li key={d.ip} className="flex items-center gap-3">
                   <DeviceIcon icon={dirOf(d.ip, d.id)?.icon ?? 'unknown'} guessed={!dirOf(d.ip, d.id) || dirOf(d.ip, d.id)!.icon_guessed} size="sm" />
                   <input aria-label={`Label of ${d.ip}`} className={`${INPUT} flex-1`} value={d.label} maxLength={40} placeholder="Tablet, Switch…"
                     onChange={(e) => set({ devices: g.devices.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)) })} />
-                  <span className="font-mono text-xs text-slate-400 w-32 truncate">{d.ip}</span>
-                  <button type="button" className={`${BTN_ICON_SM} ${TONE_GHOST_DANGER}`} aria-label={`Remove ${d.label || d.ip}`} onClick={() => set({ devices: g.devices.filter((_, j) => j !== i) })}><X size={14} /></button>
+                  <span className="font-mono text-xs text-slate-400 w-32 max-sm:w-24 truncate">{d.ip}</span>
+                  <button type="button" className={`${BTN_ICON_SM} ${TAP} ${TONE_GHOST_DANGER}`} aria-label={`Remove ${d.label || d.ip}`} onClick={() => set({ devices: g.devices.filter((_, j) => j !== i) })}><X size={14} /></button>
                 </li>
               ))}
             </ul>

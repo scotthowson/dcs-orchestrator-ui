@@ -6,8 +6,9 @@
 // device's queries and their filter, the local names (Resolve my routes locally on the DHCP tab and on DNS & routes, the
 // LAN pill on a route, a device's .home name and its copy button, the drawer's "Also answer" switch), the connect sheet
 // (also when nothing is connected), the device directory (scan an
-// empty one, the icon picker, a nickname edited in place, search and filters, the drawer with a block until a time and
-// a group, pin an address), the DHCP move (the scope made off with every known device kept, the router's DHCP off,
+// empty one, the icon picker, a nickname edited in place, the rows (a gap after the icon, one height, a guess said so,
+// no "no nickname yet" wall), the phone cards (address · vendor · last seen, a 40 px menu, the drawer on a tap), search
+// and filters, the drawer with a block until a time and a group, pin an address), the DHCP move (the scope made off with every known device kept, the router's DHCP off,
 // on here, a renewed device's DNS), Config → Integrations turning it off (the tab and the card go, the page says so),
 // and a viewer, who sees it all read-only and never asks for a device's queries. GET /config comes from the lab with
 // technitium_enabled from the fake (the lab's own .env keeps Technitium off). The safety net: each blocklist's health and
@@ -331,6 +332,15 @@ try {
   await clickText(page, 'Away 7 days+')
   check('devices: the ones away a week', await until(page, () => document.querySelectorAll('main tbody tr').length === 1 && /pi-hole/.test(document.querySelector('main tbody')?.innerText ?? '')))
   await clickText(page, 'All')
+  // the rows: a real gap between the icon and the name, one height (a row with its .home name aside), no "no nickname yet" wall
+  check('devices: 12 px or more between the icon and the name', await page.evaluate(() => {
+    const r = document.querySelector('main tbody tr'); const i = r?.querySelector('td:first-child span[aria-hidden]')?.getBoundingClientRect(); const n = r?.querySelector('td:nth-child(2) button')?.getBoundingClientRect()
+    return !!i && !!n && n.left - i.right >= 12
+  }))
+  const heights = await page.evaluate(() => [...document.querySelectorAll('main tbody tr')].filter((r) => !/reach it as/.test(r.innerText)).map((r) => Math.round(r.getBoundingClientRect().height)))
+  check('devices: the rows are one height', new Set(heights).size === 1, heights.join(','))
+  check('devices: a missing nickname is the italic name alone', !/no nickname yet/.test(await text(page)) && await page.evaluate(() => [...document.querySelectorAll('main tbody td:nth-child(2) button')].some((b) => b.classList.contains('italic'))))
+  check('devices: a guessed icon says so: "guessed from its name; click to set"', await page.evaluate(() => /guessed from its name; click to set/.test(document.querySelector('main tbody [aria-label$="(a guess). Change it"]')?.getAttribute('title') ?? '')))
   await shot(page, 'devices-dark')
   await clickText(page, 'Actions for Nintendo')
   await clickText(page, 'Pin address')
@@ -596,6 +606,16 @@ try {
     await clickText(page, 'Devices')
     check('viewer: the devices as cards on a phone, read-only', await until(page, () => document.querySelectorAll('main ul.md\\:hidden > li').length === 6) && !/Scan the network/.test(await text(page)) && !(await page.$('[aria-label^="Rename"]')) && !(await page.$('[aria-label$="Change it"]')))
     check('viewer: no sideways scroll on the devices', await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1))
+    const card = await page.evaluate(() => [...document.querySelectorAll('main ul.md\\:hidden > li')].find((l) => /192\.168\.2\.61/.test(l.innerText))?.innerText ?? '')
+    check('phone: a card says address · vendor · last seen under the name', /192\.168\.2\.61 · Espressif · (just now|\d+ min ago)/.test(card.replace(/\s+/g, ' ')), JSON.stringify(card))
+    check('phone: 12 px or more between the icon and the name, the row menu 40 px', await page.evaluate(() => {
+      const li = document.querySelector('main ul.md\\:hidden > li'); const i = li?.querySelector('span[aria-hidden]')?.getBoundingClientRect(); const n = li?.querySelector('button[aria-label$=": details"]')?.getBoundingClientRect()
+      const m = li?.querySelector('button[aria-label^="Actions for"]')?.getBoundingClientRect()
+      return !!i && !!n && !!m && n.left - i.right >= 12 && m.height >= 40 && m.width >= 40
+    }))
+    await page.click('main [aria-label="esp-kitchen: details"]')
+    check('phone: the card opens the drawer', await until(page, () => /Its name on the network/.test(document.body.innerText)))
+    await page.keyboard.press('Escape'); await sleep(400)
     await shot(page, 'devices-viewer-phone')
     await clickText(page, 'DHCP')
     check('viewer: DHCP read-only', await until(page, () => /Move DHCP here/.test(document.querySelector('main')?.innerText ?? '')) && !/Turn DHCP on here|Create the scope/.test((await page.$$eval('main button', (b) => b.map((x) => x.innerText).join(' ')))))

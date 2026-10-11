@@ -28,7 +28,7 @@ import KidsTab from '../components/technitium/KidsTab'
 import { ActivityTab, ListsTab } from '../components/technitium/ActivityTab'
 import DevicesTab from '../components/technitium/DevicesTab'
 import DhcpTab from '../components/technitium/DhcpTab'
-import { DeviceIcon } from '../components/technitium/deviceKit'
+import { DeviceIcon, TAP } from '../components/technitium/deviceKit'
 import { BackupsPanel, UpdateNotice } from '../components/technitium/SafetyNet'
 import { useTechnitiumEnabled } from '../hooks/useTechnitiumEnabled'
 import { useSettingsStore } from '../stores/settingsStore'
@@ -279,9 +279,9 @@ function Overview({ status, isAdmin, onChanged }: { status: TechnitiumStatus; is
       </div>
       {error && !stats && <ErrorState title="Could not read the numbers" error={error} onRetry={() => void refresh()} />}
       <div className="grid grid-cols-3 gap-3">
-        <StatTile icon={Search} label="Queries" value={num(stats?.totals.queries)} loading={loading && !stats} tone="info" />
-        <StatTile icon={Ban} label="Blocked" value={num(stats?.totals.blocked)} sub={stats ? `${blockedPct} % of them` : undefined} loading={loading && !stats} tone="neutral" />
-        <StatTile icon={MonitorSmartphone} label="Clients" value={num(stats?.totals.clients)} loading={loading && !stats} tone="neutral" />
+        <StatTile icon={Search} label="Queries" short="Queries" value={num(stats?.totals.queries)} loading={loading && !stats} tone="info" />
+        <StatTile icon={Ban} label="Blocked" short="Blocked" value={num(stats?.totals.blocked)} sub={stats ? `${blockedPct} % of them` : undefined} loading={loading && !stats} tone="neutral" />
+        <StatTile icon={MonitorSmartphone} label="Clients" short="Clients" value={num(stats?.totals.clients)} loading={loading && !stats} tone="neutral" />
       </div>
       {chart.length > 1 && (
         <Panel icon={ActivityIcon} title="Queries and blocked" sub={RANGES.find((r) => r.value === range)?.label}>
@@ -326,7 +326,7 @@ function InstancePanel({ inst, title }: { inst: TechnitiumInstance; title: strin
 
 function TopLists({ stats, isAdmin, onAllow }: { stats: TechnitiumStats; isAdmin: boolean; onAllow: (d: string) => void }) {
   const Row = ({ k, name, count, action }: { k: string; name: React.ReactNode; count: number; action?: React.ReactNode }) => (
-    <li key={k} className="flex items-center gap-2 py-1.5 min-w-0">
+    <li key={k} className="flex items-center gap-3 py-2 min-w-0">
       <div className="min-w-0 flex-1 text-sm text-slate-300 truncate">{name}</div>
       <span className="text-xs text-slate-500 tabular-nums">{count.toLocaleString()}</span>
       {action}
@@ -336,7 +336,7 @@ function TopLists({ stats, isAdmin, onAllow }: { stats: TechnitiumStats; isAdmin
   return (
     <div className="grid gap-3 lg:grid-cols-3">
       <Panel icon={MonitorSmartphone} title="Top clients">
-        {stats.top_clients.length ? <ul>{stats.top_clients.map((c) => <Row key={c.ip} k={c.ip} count={c.count} name={<span className="flex items-center gap-2 min-w-0">{c.icon && <DeviceIcon icon={c.icon} size="sm" />}<span className="truncate">{c.name ?? c.ip}</span>{c.name && <span className="font-mono text-xs text-slate-500 shrink-0">{c.ip}</span>}</span>} />)}</ul> : empty}
+        {stats.top_clients.length ? <ul>{stats.top_clients.map((c) => <Row key={c.ip} k={c.ip} count={c.count} name={<span className="flex items-center gap-3 min-w-0"><DeviceIcon icon={c.icon} size="sm" /><span className="truncate">{c.name ?? c.ip}</span>{c.name && <span className="font-mono text-xs text-slate-500 shrink-0">{c.ip}</span>}</span>} />)}</ul> : empty}
       </Panel>
       <Panel icon={Globe} title="Top domains">
         {stats.top_domains.length ? <ul>{stats.top_domains.map((d) => <Row key={d.domain} k={d.domain} count={d.count} name={<span className="font-mono text-xs">{d.domain}</span>} />)}</ul> : empty}
@@ -344,7 +344,7 @@ function TopLists({ stats, isAdmin, onAllow }: { stats: TechnitiumStats; isAdmin
       <Panel icon={Ban} title="Top blocked">
         {stats.top_blocked.length ? <ul>{stats.top_blocked.map((d) => (
           <Row key={d.domain} k={d.domain} count={d.count} name={<span className="font-mono text-xs">{d.domain}</span>}
-            action={isAdmin ? <button type="button" className={`${BTN_ICON_SM} ${TONE_GHOST_OK}`} onClick={() => onAllow(d.domain)} aria-label={`Allow ${d.domain} for everyone`} title="Allow for everyone"><CheckCircle2 size={14} /></button> : undefined} />
+            action={isAdmin ? <button type="button" className={`${BTN_ICON_SM} ${TAP} ${TONE_GHOST_OK}`} onClick={() => onAllow(d.domain)} aria-label={`Allow ${d.domain} for everyone`} title="Allow for everyone"><CheckCircle2 size={14} /></button> : undefined} />
         ))}</ul> : empty}
       </Panel>
     </div>

@@ -1,11 +1,10 @@
 // The Technitium page's devices, drawn once: the icon of each kind of device, its name as the page says it, the
 // icon picker (a popover of every icon, keyboard reachable), the directory as one shared request, and time-ago.
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ComponentType } from 'react'
 import { Popover } from '@mantine/core'
 import {
-  Monitor, Laptop, Smartphone, Tablet, Tv, Gamepad2, Speaker, Cctv, Printer, Router, Server, Cpu, Lightbulb, Thermometer, Watch, Car, CircleHelp,
-  type LucideIcon,
+  Monitor, Laptop, Smartphone, Tablet, Tv, Gamepad2, Speaker, Cctv, Printer, Router, Server, Cpu, Lightbulb, Thermometer, Watch, Car,
 } from 'lucide-react'
 import { usePolling } from '../../hooks/usePolling'
 import { pollKeys } from '../../api/pollKeys'
@@ -13,7 +12,16 @@ import { fetchTechnitiumDevices } from '../../api/endpoints'
 import type { TechnitiumIcon, TechnitiumNetDevice } from '../../../shared/types'
 import { FOCUS_RING } from '../../lib/ui'
 
-export const DEVICE_ICONS: Record<TechnitiumIcon, { icon: LucideIcon; label: string }> = {
+/** a device DCS cannot tell: a quiet rounded box with a dot (lucide's stroke), not a question mark */
+function GenericDevice({ size = 24 }: { size?: number | string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <rect x="4" y="5" width="16" height="14" rx="3" /><circle cx="12" cy="12" r="1" fill="currentColor" />
+    </svg>
+  )
+}
+
+export const DEVICE_ICONS: Record<TechnitiumIcon, { icon: ComponentType<{ size?: number | string }>; label: string }> = {
   desktop: { icon: Monitor, label: 'Desktop' },
   laptop: { icon: Laptop, label: 'Laptop' },
   phone: { icon: Smartphone, label: 'Phone' },
@@ -30,16 +38,25 @@ export const DEVICE_ICONS: Record<TechnitiumIcon, { icon: LucideIcon; label: str
   thermostat: { icon: Thermometer, label: 'Thermostat' },
   watch: { icon: Watch, label: 'Watch' },
   car: { icon: Car, label: 'Car' },
-  unknown: { icon: CircleHelp, label: 'Unknown' },
+  unknown: { icon: GenericDevice, label: 'Unknown' },
 }
 export const ICON_ORDER = Object.keys(DEVICE_ICONS) as TechnitiumIcon[]
 
-/** the round tile a device's icon sits in (a guessed icon is drawn quieter) */
+/** a phone's touch target (40 px) for a small icon button of the page */
+export const TAP = 'max-sm:h-10 max-sm:w-10'
+/** "Phone · guessed from its name; click to set" */
+export const iconTitle = (d: Pick<TechnitiumNetDevice, 'icon' | 'icon_guessed'>, canEdit: boolean) =>
+  `${DEVICE_ICONS[d.icon]?.label ?? 'Unknown'}${d.icon_guessed ? ` · guessed from its name${canEdit ? '; click to set' : ''}` : ''}`
+
+/** the round tile a device's icon sits in: one chosen in cyan; a guess with a faint dotted ring; unknown quiet */
 export function DeviceIcon({ icon, guessed = false, size = 'md' }: { icon: TechnitiumIcon | null | undefined; guessed?: boolean; size?: 'sm' | 'md' | 'lg' }) {
-  const I = DEVICE_ICONS[icon ?? 'unknown']?.icon ?? CircleHelp
+  const k = icon && DEVICE_ICONS[icon] ? icon : 'unknown'
+  const I = DEVICE_ICONS[k].icon
   const box = size === 'lg' ? 'h-11 w-11' : size === 'sm' ? 'h-6 w-6' : 'h-9 w-9'
+  const look = k === 'unknown' ? 'bg-white/[0.03] border-white/10 text-slate-500'
+    : guessed ? 'bg-white/[0.03] border-dotted border-slate-500 text-slate-300' : 'bg-cyan-500/10 border-cyan-500/20 text-cyan-300'
   return (
-    <span aria-hidden className={`${box} shrink-0 rounded-full inline-flex items-center justify-center border ${guessed ? 'bg-white/[0.03] border-white/5 text-slate-500' : 'bg-cyan-500/10 border-cyan-500/20 text-cyan-300'}`}>
+    <span aria-hidden className={`${box} shrink-0 rounded-full inline-flex items-center justify-center border ${look}`}>
       <I size={size === 'lg' ? 20 : size === 'sm' ? 12 : 16} />
     </span>
   )
@@ -80,11 +97,11 @@ export function IconPicker({ device, canEdit, onPick }: { device: TechnitiumNetD
   const [open, setOpen] = useState(false)
   const name = deviceName(device)
   const tile = <DeviceIcon icon={device.icon} guessed={device.icon_guessed} />
-  if (!canEdit) return <span title={`${DEVICE_ICONS[device.icon]?.label ?? 'Unknown'}${device.icon_guessed ? ' (a guess)' : ''}`}>{tile}</span>
+  if (!canEdit) return <span className="inline-flex" title={iconTitle(device, false)}>{tile}</span>
   return (
     <Popover opened={open} onChange={setOpen} position="bottom-start" withinPortal shadow="md" radius="md" trapFocus returnFocus>
       <Popover.Target>
-        <button type="button" onClick={() => setOpen((o) => !o)} className={`rounded-full ${FOCUS_RING}`}
+        <button type="button" onClick={() => setOpen((o) => !o)} className={`rounded-full inline-flex ${FOCUS_RING}`} title={iconTitle(device, true)}
           aria-label={`Icon of ${name}: ${DEVICE_ICONS[device.icon]?.label ?? 'Unknown'}${device.icon_guessed ? ' (a guess)' : ''}. Change it`} aria-haspopup="dialog" aria-expanded={open}>
           {tile}
         </button>

@@ -22,7 +22,7 @@ import { fetchTechnitiumDhcp, saveTechnitiumScope, switchTechnitiumDhcp, endTech
 import type { TechnitiumDhcp, TechnitiumScopeInput } from '../../../shared/types'
 import { BTN_TOOLBAR_QUIET, BTN_TOOLBAR_PRIMARY, BTN_TOOLBAR_OK, BTN_ICON_SM, TONE_GHOST_DANGER, TEXT_META } from '../../lib/ui'
 import { INPUT, LABEL, HINT } from '../../lib/fieldStyles'
-import { DeviceIcon, ago, useDeviceDirectory } from './deviceKit'
+import { DeviceIcon, TAP, ago, useDeviceDirectory } from './deviceKit'
 import LocalNamesPanel from './LocalNames'
 
 const ROUTER_OFF_KEY = 'dcs-tt-router-dhcp-off'
@@ -40,10 +40,10 @@ export default function DhcpTab({ isAdmin }: { isAdmin: boolean }) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatTile icon={data.enabled ? Network : RouterIcon} label="Hands out addresses" value={data.enabled ? 'Technitium' : 'The router'} tone={data.enabled ? 'ok' : 'neutral'} />
-        <StatTile icon={Network} label="Leases" value={data.leases.length.toLocaleString()} tone="neutral" />
-        <StatTile icon={Pin} label="Reserved" value={reserved.toLocaleString()} tone="neutral" />
-        <StatTile icon={Radar} label="Ask Technitium" value={`${data.devices.asking} of ${data.devices.seen}`} sub="devices seen in the last 24 h" tone={data.devices.seen && data.devices.asking < data.devices.seen ? 'attention' : 'ok'} />
+        <StatTile icon={data.enabled ? Network : RouterIcon} label="Hands out addresses" short="Hands out" value={data.enabled ? 'Technitium' : 'The router'} tone={data.enabled ? 'ok' : 'neutral'} />
+        <StatTile icon={Network} label="Leases" short="Leases" value={data.leases.length.toLocaleString()} tone="neutral" />
+        <StatTile icon={Pin} label="Reserved" short="Reserved" value={reserved.toLocaleString()} tone="neutral" />
+        <StatTile icon={Radar} label="Ask Technitium" short="Asking" value={`${data.devices.asking} of ${data.devices.seen}`} sub="devices seen in the last 24 h" tone={data.devices.seen && data.devices.asking < data.devices.seen ? 'attention' : 'ok'} />
       </div>
       <LocalNamesPanel isAdmin={isAdmin} names={data.names} />
       <MoveFlow data={data} isAdmin={isAdmin} devices={dir.data?.devices.length ?? 0} lastScan={dir.data?.last_scan?.at ?? null} onChanged={onDirectory} />
@@ -53,7 +53,7 @@ export default function DhcpTab({ isAdmin }: { isAdmin: boolean }) {
         <Panel icon={ShieldAlert} title="Not asking Technitium" sub="Seen on the network in the last 24 hours, but no query reached Technitium: they still use the DNS the router gave them (or one of their own). Once DHCP is here they move over as their leases renew.">
           <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {data.devices.silent.map((d) => (
-              <li key={d.id} className="flex items-center gap-2 min-w-0">
+              <li key={d.id} className="flex items-center gap-3 min-w-0">
                 <DeviceIcon icon={d.icon} size="sm" />
                 <span className="truncate text-sm text-slate-300">{d.nickname ?? d.hostname ?? d.ip}</span>
                 <span className="font-mono text-xs text-slate-500 shrink-0">{d.ip}</span>
@@ -257,8 +257,8 @@ function LeasesPanel({ data, isAdmin, onChanged }: { data: TechnitiumDhcp; isAdm
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead><tr className="text-left text-xs text-slate-500 uppercase tracking-wider border-b border-white/5">
-            <th className="pl-4 py-2 font-medium">Device</th><th className="py-2 font-medium">Address</th><th className="py-2 font-medium hidden md:table-cell">MAC</th>
-            <th className="py-2 font-medium">DNS given</th><th className="py-2 font-medium hidden sm:table-cell">Until</th><th className="pr-3 py-2"><span className="sr-only">Actions</span></th>
+            <th className="pl-4 pr-4 py-2.5 font-medium">Device</th><th className="pr-4 py-2.5 font-medium">Address</th><th className="pr-4 py-2.5 font-medium hidden md:table-cell">MAC</th>
+            <th className="pr-4 py-2.5 font-medium">DNS given</th><th className="pr-4 py-2.5 font-medium hidden sm:table-cell">Until</th><th className="pr-3 py-2"><span className="sr-only">Actions</span></th>
           </tr></thead>
           <tbody>
             {data.leases.map((l) => {
@@ -266,12 +266,12 @@ function LeasesPanel({ data, isAdmin, onChanged }: { data: TechnitiumDhcp; isAdm
               const ours = data.resolvers.primary ? l.dns.includes(data.resolvers.primary) : true
               return (
                 <tr key={l.mac} className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02]">
-                  <td className="pl-4 py-2"><div className="flex items-center gap-2 min-w-0"><DeviceIcon icon={l.icon} size="sm" /><span className="truncate text-slate-300 max-w-[12rem]">{name}</span>{l.type === 'Reserved' && <Pill size="xs" tone="info">reserved</Pill>}</div></td>
-                  <td className="py-2 font-mono text-xs text-slate-300 whitespace-nowrap">{l.ip}</td>
-                  <td className="py-2 font-mono text-xs text-slate-500 hidden md:table-cell">{l.mac}</td>
-                  <td className="py-2"><span className={`font-mono text-xs ${ours ? 'text-emerald-400' : 'text-rose-400'}`}>{l.dns.join(', ') || '—'}</span></td>
-                  <td className="py-2 text-xs text-slate-500 hidden sm:table-cell whitespace-nowrap">{until(l.expires)}</td>
-                  <td className="pr-3 py-2 text-right">{isAdmin && <button type="button" className={`${BTN_ICON_SM} ${TONE_GHOST_DANGER}`} aria-label={`End the lease of ${name}`} title="End lease" onClick={() => void end(l.mac, name)}><Trash2 size={14} /></button>}</td>
+                  <td className="pl-4 pr-4 py-2.5"><div className="flex items-center gap-3 min-w-0"><DeviceIcon icon={l.icon} size="sm" /><span className="truncate text-slate-300 max-w-[12rem]">{name}</span>{l.type === 'Reserved' && <Pill size="xs" tone="info">reserved</Pill>}</div></td>
+                  <td className="pr-4 py-2.5 font-mono text-xs text-slate-300 whitespace-nowrap">{l.ip}</td>
+                  <td className="pr-4 py-2.5 font-mono text-xs text-slate-500 hidden md:table-cell">{l.mac}</td>
+                  <td className="pr-4 py-2.5"><span className={`font-mono text-xs ${ours ? 'text-emerald-400' : 'text-rose-400'}`}>{l.dns.join(', ') || '—'}</span></td>
+                  <td className="pr-4 py-2.5 text-xs text-slate-500 hidden sm:table-cell whitespace-nowrap">{until(l.expires)}</td>
+                  <td className="pr-3 py-2.5 text-right">{isAdmin && <button type="button" className={`${BTN_ICON_SM} ${TAP} ${TONE_GHOST_DANGER}`} aria-label={`End the lease of ${name}`} title="End lease" onClick={() => void end(l.mac, name)}><Trash2 size={14} /></button>}</td>
                 </tr>
               )
             })}

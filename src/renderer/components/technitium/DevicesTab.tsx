@@ -1,6 +1,6 @@
 // The Technitium page's Devices tab: the device directory (every device of the house: its icon, nickname, name on
 // the network, address, MAC and vendor, group, a pinned address, when it was last seen, its queries and blocked ones
-// in the last 24 hours). A table from md up, cards on a phone; search, filters, sort; the icon picker and the nickname
+// in the last 24 hours). A table from md up, cards on a phone (the card opens the drawer); search, filters, sort; the icon picker and the nickname
 // edited in place; a row menu; the drawer with every field, the notes, its latest queries, the group and a block until
 // a time. "Scan the network" fills it. A viewer reads it all and changes nothing.
 
@@ -30,7 +30,7 @@ import {
 import type { TechnitiumDeviceChange, TechnitiumIcon, TechnitiumNetDevice, TechnitiumSource } from '../../../shared/types'
 import { BTN_TOOLBAR_QUIET, BTN_TOOLBAR_PRIMARY, BTN_SHEET_QUIET, BTN_SHEET_PRIMARY, BTN_ICON_SM, TONE_GHOST, TEXT_META, SECTION_LABEL, FOCUS_RING } from '../../lib/ui'
 import { INPUT, FIELD_SM, LABEL, HINT, CHOICE_SM, CHOICE_ON, CHOICE_OFF } from '../../lib/fieldStyles'
-import { DEVICE_ICONS, DeviceIcon, IconGrid, IconPicker, ago, deviceName, exact, useDeviceDirectory } from './deviceKit'
+import { DEVICE_ICONS, DeviceIcon, IconGrid, IconPicker, TAP, ago, deviceName, exact, useDeviceDirectory } from './deviceKit'
 
 type Filter = 'all' | 'unnamed' | 'new' | 'offline' | 'blocked'
 type Sort = 'activity' | 'name' | 'seen' | 'address'
@@ -168,67 +168,82 @@ export default function DevicesTab({ isAdmin }: { isAdmin: boolean }) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-xs text-slate-500 uppercase tracking-wider border-b border-white/5">
-                  <th className="pl-4 py-2.5 font-medium w-12"><span className="sr-only">Icon</span></th>
-                  <th className="py-2.5 font-medium">Device</th>
-                  <th className="py-2.5 font-medium">Address</th>
-                  <th className="py-2.5 font-medium hidden lg:table-cell">MAC · vendor</th>
-                  <th className="py-2.5 font-medium">Group</th>
-                  <th className="py-2.5 font-medium">Last seen</th>
-                  <th className="py-2.5 font-medium w-36">24 hours</th>
-                  <th className="pr-3 py-2.5 w-10"><span className="sr-only">Actions</span></th>
+                  <th className="pl-4 pr-4 py-2.5 font-medium w-[4.25rem]"><span className="sr-only">Icon</span></th>
+                  <th className="pr-4 py-2.5 font-medium">Device</th>
+                  <th className="pr-4 py-2.5 font-medium">Address</th>
+                  <th className="pr-4 py-2.5 font-medium hidden lg:table-cell">MAC · vendor</th>
+                  <th className="pr-4 py-2.5 font-medium">Group</th>
+                  <th className="pr-4 py-2.5 font-medium">Last seen</th>
+                  <th className="pr-4 py-2.5 font-medium w-40">24 hours</th>
+                  <th className="pr-3 py-2.5 w-11"><span className="sr-only">Actions</span></th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((d) => (
-                  <tr key={d.id} className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02] align-middle">
-                    <td className="pl-4 py-2"><IconPicker device={d} canEdit={isAdmin} onPick={(icon) => void change(d, { icon }, `${deviceName(d)}: ${DEVICE_ICONS[icon].label.toLowerCase()}`)} /></td>
-                    <td className="py-2 pr-3 min-w-0 max-w-[16rem]">
+                  <tr key={d.id} className="group/row border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02] align-middle">
+                    <td className="pl-4 pr-4 py-3"><IconPicker device={d} canEdit={isAdmin} onPick={(icon) => void change(d, { icon }, `${deviceName(d)}: ${DEVICE_ICONS[icon].label.toLowerCase()}`)} /></td>
+                    <td className="pr-4 py-3 min-w-0 max-w-[18rem]">
                       <Nickname device={d} canEdit={isAdmin} onSave={(nickname) => change(d, { nickname }, nickname ? `${nickname} is named` : 'The nickname is cleared')} onOpen={() => setOpen(d.id)} />
-                      <div className="text-xs text-slate-500 truncate" title={d.hostname ?? undefined}>{subline(d)}</div>
+                      {subline(d) && <div className="text-xs text-slate-500 truncate" title={d.hostname ?? undefined}>{subline(d)}</div>}
                       <HomeName d={d} />
                     </td>
-                    <td className="py-2 pr-3 whitespace-nowrap">
+                    <td className="pr-4 py-3 whitespace-nowrap">
                       <span className="font-mono text-xs text-slate-300">{d.ip ?? '—'}</span>
-                      <div className="flex gap-1 mt-0.5">
-                        {d.static && <Pill size="xs" tone="info" icon={<Pin size={10} />} title="Its address is reserved in Technitium's DHCP">static</Pill>}
-                        {d.blocked && <Pill size="xs" tone="problem" icon={<Ban size={10} />} title={`Blocked until ${exact(d.blocked_until)}`}>blocked</Pill>}
-                        {d.hub && <Pill size="xs" tone="neutral">hub</Pill>}
-                      </div>
+                      {(d.static || d.blocked || d.hub) && (
+                        <div className="flex gap-1">
+                          {d.static && <Pill size="xs" tone="info" icon={<Pin size={10} />} title="Its address is reserved in Technitium's DHCP">static</Pill>}
+                          {d.blocked && <Pill size="xs" tone="problem" icon={<Ban size={10} />} title={`Blocked until ${exact(d.blocked_until)}`}>blocked</Pill>}
+                          {d.hub && <Pill size="xs" tone="neutral">hub</Pill>}
+                        </div>
+                      )}
                     </td>
-                    <td className="py-2 pr-3 hidden lg:table-cell min-w-0">
+                    <td className="pr-4 py-3 hidden lg:table-cell min-w-0">
                       <span className="font-mono text-xs text-slate-400">{d.mac ?? '—'}</span>
                       <div className="text-xs text-slate-500 truncate max-w-[12rem]" title={d.vendor ?? undefined}>{d.vendor ?? 'vendor unknown'}</div>
                     </td>
-                    <td className="py-2 pr-3">{d.group_name ? <Pill tone="fleet">{d.group_name}</Pill> : <span className="text-xs text-slate-600">—</span>}</td>
-                    <td className="py-2 pr-3 whitespace-nowrap text-xs text-slate-400" title={exact(d.last_seen)}>{ago(d.last_seen, now)}</td>
-                    <td className="py-2 pr-3"><Activity d={d} max={max} /></td>
-                    <td className="pr-3 py-2 text-right"><RowMenu d={d} isAdmin={isAdmin} onOpen={() => setOpen(d.id)} onChange={change} onForget={forget} now={now} /></td>
+                    <td className="pr-4 py-3">{d.group_name ? <Pill tone="fleet">{d.group_name}</Pill> : <span className="text-xs text-slate-600">—</span>}</td>
+                    <td className="pr-4 py-3 whitespace-nowrap text-xs text-slate-400" title={exact(d.last_seen)}>{ago(d.last_seen, now)}</td>
+                    <td className="pr-4 py-3"><Activity d={d} max={max} /></td>
+                    {/* the row menu shows on hover or focus where there is a pointer that hovers; always on a touch screen */}
+                    <td className="pr-3 py-3 text-right [@media(hover:hover)]:opacity-0 group-hover/row:opacity-100 focus-within:opacity-100 has-[[aria-expanded=true]]:opacity-100 transition-opacity">
+                      <RowMenu d={d} isAdmin={isAdmin} onOpen={() => setOpen(d.id)} onChange={change} onForget={forget} now={now} />
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          {/* a phone: cards */}
+          {/* a phone: cards (the icon, the name, then address · vendor · last seen and the 24 hours); the card opens the drawer */}
           <ul className="md:hidden space-y-2">
-            {rows.map((d) => (
-              <li key={d.id} className="surface p-3 flex items-start gap-3 min-w-0">
-                <IconPicker device={d} canEdit={isAdmin} onPick={(icon) => void change(d, { icon })} />
-                <div className="min-w-0 flex-1">
-                  <Nickname device={d} canEdit={isAdmin} onSave={(nickname) => change(d, { nickname })} onOpen={() => setOpen(d.id)} />
-                  <div className="text-xs text-slate-500 truncate">{subline(d)}</div>
-                  <HomeName d={d} />
-                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
-                    <span className="font-mono text-xs text-slate-300">{d.ip ?? '—'}</span>
-                    <span className="text-xs text-slate-500" title={exact(d.last_seen)}>{ago(d.last_seen, now)}</span>
-                    {d.static && <Pill size="xs" tone="info">static</Pill>}
-                    {d.blocked && <Pill size="xs" tone="problem">blocked</Pill>}
-                    {d.group_name && <Pill size="xs" tone="fleet">{d.group_name}</Pill>}
+            {rows.map((d) => {
+              const title = rowTitle(d)
+              const vendor = d.vendor && d.vendor !== 'Private address' && d.vendor !== title ? shortVendor(d.vendor) : null
+              return (
+                <li key={d.id} className="surface pl-3 pr-1.5 py-3 flex items-start gap-3 min-w-0">
+                  <span className="pt-0.5"><IconPicker device={d} canEdit={isAdmin} onPick={(icon) => void change(d, { icon })} /></span>
+                  <div className="min-w-0 flex-1">
+                    <button type="button" onClick={() => setOpen(d.id)} aria-label={`${title}: details`} className={`block w-full min-w-0 text-left rounded ${FOCUS_RING}`}>
+                      <span className="flex items-center gap-2 min-w-0">
+                        <span className={`truncate text-sm font-medium ${d.nickname ? 'text-slate-200' : 'text-slate-400 italic'}`}>{title}</span>
+                        {d.hub && <Pill size="xs" tone="neutral">hub</Pill>}
+                        {d.static && <Pill size="xs" tone="info">static</Pill>}
+                        {d.blocked && <Pill size="xs" tone="problem">blocked</Pill>}
+                        {d.group_name && <Pill size="xs" tone="fleet">{d.group_name}</Pill>}
+                      </span>
+                      {/* address · vendor · last seen: a long vendor gives way, the address and the time stay whole */}
+                      <span className="mt-0.5 flex min-w-0 text-xs text-slate-500 whitespace-nowrap tabular-nums">
+                        {d.ip && <span className="shrink-0">{d.ip}&nbsp;·&nbsp;</span>}
+                        {vendor && <span className="truncate">{vendor}</span>}
+                        <span className="shrink-0">{vendor ? '\u00a0·\u00a0' : ''}{ago(d.last_seen, now)}</span>
+                      </span>
+                      <span className="mt-2 block"><Activity d={d} max={max} /></span>
+                    </button>
+                    <HomeName d={d} />
                   </div>
-                  <div className="mt-2"><Activity d={d} max={max} /></div>
-                </div>
-                <RowMenu d={d} isAdmin={isAdmin} onOpen={() => setOpen(d.id)} onChange={change} onForget={forget} now={now} />
-              </li>
-            ))}
+                  <RowMenu d={d} isAdmin={isAdmin} onOpen={() => setOpen(d.id)} onChange={change} onForget={forget} now={now} />
+                </li>
+              )
+            })}
           </ul>
         </>
       )}
@@ -238,10 +253,22 @@ export default function DevicesTab({ isAdmin }: { isAdmin: boolean }) {
   )
 }
 
-/** the line under a device's name: the name it gives itself once it has a nickname; else what it still lacks */
+/** "Samsung Electronics Co.,Ltd" as "Samsung" for the phone's one line (the drawer has the whole name) */
+const shortVendor = (v: string) => v.replace(/[\s,]+(electronics|corporate|corporation|corp\.?|inc\.?|co\.?|ltd\.?|llc|gmbh|technologies|international|interactive|trading|broadband)\b.*$/i, '') || v
+
+/** a row's name: the nickname, the name it gives itself, its vendor, else "Unnamed device" (its address is in the row already) */
+function rowTitle(d: TechnitiumNetDevice): string {
+  const n = deviceName(d)
+  return n === d.ip || n === d.id ? 'Unnamed device' : n
+}
+/** the line under the name in the table: what the name does not say already (its own name, its vendor); a missing
+ *  nickname shows by the italic name alone, never a line per row */
 function subline(d: TechnitiumNetDevice): string {
-  if (d.nickname) return d.hostname ?? d.vendor ?? (d.hub ? 'this server' : '')
-  return d.hub ? 'this server · no nickname yet' : 'no nickname yet'
+  const title = rowTitle(d)
+  const host = d.hostname?.replace(/\.(local|home|lan)\.?$/i, '')
+  const vendor = d.vendor && d.vendor !== 'Private address' ? d.vendor : null
+  const extra = host && host !== title ? host : vendor && vendor !== title ? vendor : ''
+  return d.hub ? ['this server', extra].filter(Boolean).join(' · ') : extra
 }
 
 /** the name it answers to at home ("reach it as toms-tablet.home"), with a copy button */
@@ -278,7 +305,7 @@ function Activity({ d, max }: { d: TechnitiumNetDevice; max: number }) {
   )
 }
 
-/** the nickname, edited where it is (Enter or leaving the field saves, Escape cancels); the name opens the drawer */
+/** the nickname in the table, edited where it is (Enter or leaving the field saves, Escape cancels); the name opens the drawer. On a phone the drawer names it */
 function Nickname({ device, canEdit, onSave, onOpen }: { device: TechnitiumNetDevice; canEdit: boolean; onSave: (v: string | null) => Promise<boolean>; onOpen: () => void }) {
   const [editing, setEditing] = useState(false)
   const [v, setV] = useState(device.nickname ?? '')
@@ -302,10 +329,10 @@ function Nickname({ device, canEdit, onSave, onOpen }: { device: TechnitiumNetDe
   return (
     <div className="flex items-center gap-1 min-w-0 group">
       <button type="button" onClick={onOpen} className={`min-w-0 truncate text-left text-sm font-medium rounded ${FOCUS_RING} ${device.nickname ? 'text-slate-200' : 'text-slate-400 italic'} hover:underline`} title="Details">
-        {device.nickname ?? deviceName(device)}
+        {rowTitle(device)}
       </button>
       {canEdit && (
-        <button type="button" onClick={() => { setV(device.nickname ?? ''); setEditing(true) }} className={`${BTN_ICON_SM} ${TONE_GHOST} opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100`} aria-label={`Rename ${deviceName(device)}`} title="Rename">
+        <button type="button" onClick={() => { setV(device.nickname ?? ''); setEditing(true) }} className={`${BTN_ICON_SM} -my-1.5 ${TONE_GHOST} [@media(hover:hover)]:opacity-0 group-hover:opacity-100 focus-visible:opacity-100`} aria-label={`Rename ${deviceName(device)}`} title="Rename">
           <Pencil size={12} />
         </button>
       )}
@@ -333,7 +360,7 @@ function RowMenu({ d, isAdmin, onOpen, onChange, onForget, now }: {
   const name = deviceName(d)
   return (
     <Menu position="bottom-end" withinPortal>
-      <Menu.Target><button type="button" className={`${BTN_ICON_SM} ${TONE_GHOST}`} aria-label={`Actions for ${name}`}><MoreHorizontal size={14} /></button></Menu.Target>
+      <Menu.Target><button type="button" className={`${BTN_ICON_SM} ${TAP} ${TONE_GHOST}`} aria-label={`Actions for ${name}`}><MoreHorizontal size={14} /></button></Menu.Target>
       <Menu.Dropdown>
         <Menu.Item leftSection={<Pencil size={14} />} onClick={onOpen}>{isAdmin ? 'Edit' : 'Details'}</Menu.Item>
         {isAdmin && (d.static

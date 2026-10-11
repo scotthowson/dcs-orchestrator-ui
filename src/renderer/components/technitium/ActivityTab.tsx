@@ -16,7 +16,7 @@ import { apiErrorMessage } from '../../api/errors'
 import { fetchTechnitiumActivity, fetchTechnitiumGroups, fetchTechnitiumLists, fetchTechnitiumStats, technitiumBlocklist, technitiumListName } from '../../api/endpoints'
 import { BTN_CARD_QUIET, BTN_ICON_SM, TONE_GHOST_OK, TONE_GHOST_DANGER, TEXT_META } from '../../lib/ui'
 import { INPUT, LABEL } from '../../lib/fieldStyles'
-import { deviceName, useDeviceDirectory } from './deviceKit'
+import { TAP, deviceName, useDeviceDirectory } from './deviceKit'
 import { ListsHealth } from './SafetyNet'
 
 const time = (iso: string) => new Date(iso).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' })
@@ -83,8 +83,8 @@ export function ActivityTab() {
                       <td className="py-1.5 hidden sm:table-cell">{e.blocked ? <Pill tone="problem" size="xs">Blocked</Pill> : <span className="text-xs text-slate-500">{e.response}</span>}</td>
                       <td className="py-1.5 pr-4 md:pr-5 text-right whitespace-nowrap">
                         {e.blocked
-                          ? <button type="button" className={`${BTN_ICON_SM} ${TONE_GHOST_OK}`} onClick={() => void act('allow', e.name)} aria-label={`Allow ${e.name} for everyone`} title="Allow for everyone"><CheckCircle2 size={14} /></button>
-                          : <button type="button" className={`${BTN_ICON_SM} ${TONE_GHOST_DANGER}`} onClick={() => void act('block', e.name)} aria-label={`Block ${e.name} for everyone`} title="Block for everyone"><Ban size={14} /></button>}
+                          ? <button type="button" className={`${BTN_ICON_SM} ${TAP} ${TONE_GHOST_OK}`} onClick={() => void act('allow', e.name)} aria-label={`Allow ${e.name} for everyone`} title="Allow for everyone"><CheckCircle2 size={14} /></button>
+                          : <button type="button" className={`${BTN_ICON_SM} ${TAP} ${TONE_GHOST_DANGER}`} onClick={() => void act('block', e.name)} aria-label={`Block ${e.name} for everyone`} title="Block for everyone"><Ban size={14} /></button>}
                       </td>
                     </tr>
                   ))}
@@ -149,10 +149,10 @@ function ListEditor({ icon, title, sub, items, mono, tag, isAdmin, placeholder, 
       {items.length ? (
         <ul className="divide-y divide-white/5">
           {items.map((v) => (
-            <li key={v} className="flex items-center gap-2 py-1.5 min-w-0">
+            <li key={v} className="flex items-center gap-3 py-1.5 min-w-0">
               <span className={`min-w-0 flex-1 text-sm text-slate-300 break-all ${mono ? 'font-mono text-xs' : ''}`}>{v}</span>
               {tag?.(v) && <Pill tone="neutral" size="xs">{tag(v)}</Pill>}
-              {isAdmin && <button type="button" className={`${BTN_ICON_SM} ${TONE_GHOST_DANGER}`} onClick={() => void onRemove(v)} aria-label={`Remove ${v}`} title="Remove"><Trash2 size={14} /></button>}
+              {isAdmin && <button type="button" className={`${BTN_ICON_SM} ${TAP} ${TONE_GHOST_DANGER}`} onClick={() => void onRemove(v)} aria-label={`Remove ${v}`} title="Remove"><Trash2 size={14} /></button>}
             </li>
           ))}
         </ul>
@@ -160,7 +160,7 @@ function ListEditor({ icon, title, sub, items, mono, tag, isAdmin, placeholder, 
       {isAdmin && (
         <form className="mt-3 flex gap-2" onSubmit={(e) => { e.preventDefault(); if (valid(value.trim())) void add() }}>
           <input aria-label={`Add to ${title.toLowerCase()}`} className={`${INPUT} ${mono ? 'font-mono' : ''}`} value={value} onChange={(e) => setValue(e.target.value)} placeholder={placeholder} />
-          <button type="submit" className={BTN_CARD_QUIET} disabled={busy || !valid(value.trim())}>{busy ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />} Add</button>
+          <button type="submit" className={`${BTN_CARD_QUIET} !h-auto self-stretch`} disabled={busy || !valid(value.trim())}>{busy ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />} Add</button>
         </form>
       )}
     </Panel>
