@@ -11,9 +11,9 @@ import {
   fetchDisks, fetchSystemInfo,
   fetchStacks, fetchImageUpdates, fetchBackupStatus, fetchOsUpdates,
   fetchLogStats, fetchMaintenanceReport, fetchNotificationHistory,
-  fetchAutomations, fetchSchedules, fetchMetricsTrends, crowdsecStatus, crowdsecCommunity, fetchTechnitiumStatus,
+  fetchAutomations, fetchSchedules, fetchMetricsTrends, crowdsecStatus, crowdsecCommunity, fetchTechnitiumStatus, fetchVpnStatus,
 } from '../api/endpoints'
-import { useTechnitiumEnabled } from '../hooks/useTechnitiumEnabled'
+import { useTechnitiumEnabled, useVpnEnabled } from '../hooks/useTechnitiumEnabled'
 import { useConnectionStore } from '../stores/connectionStore'
 import { useAuthStore } from '../stores/authStore'
 import { useContainerStore } from '../stores/containerStore'
@@ -325,6 +325,9 @@ export default function Dashboard() {
   // --- /dns/technitium/status every 60 s while Technitium is on (shared with its page and the tile): its alerts reach "Needs your attention"
   const technitiumOn = useTechnitiumEnabled()
   const technitiumPoll = usePolling(fetchTechnitiumStatus, 60000, { key: pollKeys.technitiumStatus, enabled: technitiumOn === true })
+  // --- /vpn/status every 60 s while the VPN is on (shared with its page and the container pills): the tunnel down, a leak
+  const vpnOn = useVpnEnabled()
+  const vpnPoll = usePolling(fetchVpnStatus, 60000, { key: pollKeys.vpnStatus, enabled: vpnOn === true })
 
   // --- /metrics/trends?range=1h every 60 s ---
   const trendsPoll = usePolling(() => fetchMetricsTrends('1h'), 60000, watch)
@@ -384,7 +387,7 @@ export default function Dashboard() {
             cardConfig={dashLayout.cardConfig}
             onSaveCardConfig={dashLayout.saveCardConfig}
             cardProps={{
-              'needs-you': { stacks: stacksPoll.data?.stacks ?? null, stacksError: stacksPoll.error, images: imageUpdatesPoll.data ?? null, backup: backupStatusPoll.data ?? null, disks: disksPoll.data?.disks ?? null, osUpdates: osUpdatesPoll.data ?? null, crowdsecCommunity: crowdsecCommunityPoll.data ?? null, cloudflare: crowdsecPoll.data?.cloudflare ?? null, crowdsecDown: crowdsecPoll.data?.down_alert ?? null, technitium: technitiumOn ? technitiumPoll.data ?? null : null },
+              'needs-you': { stacks: stacksPoll.data?.stacks ?? null, stacksError: stacksPoll.error, images: imageUpdatesPoll.data ?? null, backup: backupStatusPoll.data ?? null, disks: disksPoll.data?.disks ?? null, osUpdates: osUpdatesPoll.data ?? null, crowdsecCommunity: crowdsecCommunityPoll.data ?? null, cloudflare: crowdsecPoll.data?.cloudflare ?? null, crowdsecDown: crowdsecPoll.data?.down_alert ?? null, technitium: technitiumOn ? technitiumPoll.data ?? null : null, vpn: vpnOn ? vpnPoll.data ?? null : null },
               'stack-controls': { stacks: stacksPoll.data?.stacks ?? null, error: stacksPoll.error, onRetry: stacksPoll.refresh, onRefresh: stacksPoll.refresh },
               'stack-grid': { stacks: stacksPoll.data?.stacks ?? null, error: stacksPoll.error, onRetry: stacksPoll.refresh },
               'resource-chart': { history: resourceHistoryRef.current },

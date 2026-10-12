@@ -5,7 +5,7 @@
 // =============================================================================
 
 import { pageLabel } from '../constants/pageTitles'
-import type { BackupStatusResponse, CloudflareBouncerBrief, CrowdSecCommunityResponse, CrowdSecStatusResponse, DiskInfo, HealthReport, ImageCheckResponse, OsUpdatesInfo, OsUpdatesResponse, PageId, StackInfo, TechnitiumAlert, TechnitiumStatus } from '../../shared/types'
+import type { BackupStatusResponse, CloudflareBouncerBrief, CrowdSecCommunityResponse, CrowdSecStatusResponse, DiskInfo, HealthReport, ImageCheckResponse, OsUpdatesInfo, OsUpdatesResponse, PageId, StackInfo, TechnitiumAlert, TechnitiumStatus, VpnStatus } from '../../shared/types'
 import { containerState, isAsleep } from './containerState'
 
 export type Severity = 'problem' | 'attention'
@@ -60,6 +60,8 @@ export function collectNeeds(input: {
   crowdsecDown?: CrowdSecStatusResponse['down_alert']
   /** Technitium's status while it is on in Config: the alerts the server keeps */
   technitium?: TechnitiumStatus | null
+  /** the VPN's status while it is on in Config: the tunnel down, a leak */
+  vpn?: VpnStatus | null
   now?: number
 }): NeedItem[] {
   const { stacks, health, images, backup, disks, dcsUpdates } = input
@@ -200,6 +202,9 @@ export function collectNeeds(input: {
   // the home's resolvers: a server down, the two out of step, blocklists stale, the DHCP pool nearly full (the server raises and clears them)
   out.push(...technitiumNeeds(input.technitium ?? null))
 
+  // the VPN: the tunnel down (the containers behind it are cut off by the kill switch) or a container showing the home address
+  out.push(...vpnNeeds(input.vpn ?? null))
+
   // worst first, then the order above
   return out.sort((a, b) => (a.severity === b.severity ? 0 : a.severity === 'problem' ? -1 : 1))
 }
@@ -240,6 +245,13 @@ export function technitiumNeeds(st: TechnitiumStatus | null): NeedItem[] {
       fingerprint: String(a.since), fix: a.action ? TT_FIX[a.action] : undefined,
     }
   })
+}
+
+/** the VPN's alerts in force (the server raises and clears them): both are problems, a leak or containers cut off */
+export function vpnNeeds(st: VpnStatus | null): NeedItem[] {
+  return (st?.alerts ?? []).map((a) => ({
+    key: `vpn-${a.key}`, severity: 'problem' as const, title: a.headline, detail: a.message, page: 'vpn' as const, fingerprint: String(a.since),
+  }))
 }
 
 /** each server's look, the hub first; a VM that does not answer, cannot say or has not looked yet is left out */

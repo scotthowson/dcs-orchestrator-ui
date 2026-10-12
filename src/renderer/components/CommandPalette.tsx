@@ -27,7 +27,7 @@ import { useStackStore } from '../stores/stackStore'
 import { useContainerStore } from '../stores/containerStore'
 import type { PageId, TemplateInfo, ProxmoxVm, FleetMember } from '../../shared/types'
 import { ADMIN_ONLY_PAGES } from '../../shared/types'
-import { technitiumEnabledNow } from '../hooks/useTechnitiumEnabled'
+import { technitiumEnabledNow, vpnEnabledNow } from '../hooks/useTechnitiumEnabled'
 import ModalOverlay from './common/ModalOverlay'
 import { navPages, sectionOf } from '../constants/navSections'
 import { containerState, isAsleep, stackLine, STATE_META } from '../lib/containerState'
@@ -212,6 +212,7 @@ export function CommandPalette() {
       templates: ['template', 'scaffold', 'preset', 'compose template'],
       dns: ['dns', 'routes', 'cloudflare', 'domain', 'traefik', 'subdomain', 'certificate'],
       technitium: ['technitium', 'dns', 'resolver', 'block', 'ads', 'kids', 'parental', 'bedtime', 'safesearch', 'dhcp'],
+      vpn: ['vpn', 'gluetun', 'pia', 'private internet access', 'wireguard', 'tunnel', 'kill switch', 'qbittorrent', 'torrent', 'port forward', 'leak'],
       proxmox: ['proxmox', 'pve', 'vm', 'virtual machine', 'lxc', 'hypervisor', 'node'],
       crowdsec: ['crowdsec', 'ban', 'unban', 'block', 'blocklist', 'allowlist', 'whitelist', 'attack', 'intrusion', 'fail2ban', 'bouncer', 'security', 'country', 'ip', 'brute force'],
       updates: ['update', 'upgrade', 'new version', 'outdated'],
@@ -231,7 +232,7 @@ export function CommandPalette() {
     // every page the sidebar reaches, in its order
     const allPages: PageId[] = navPages
     // Filter out admin-only pages for non-admin users
-    const pages = allPages.filter((p) => (!ADMIN_ONLY_PAGES.has(p) || isAdmin) && (p !== 'technitium' || technitiumEnabledNow()))
+    const pages = allPages.filter((p) => (!ADMIN_ONLY_PAGES.has(p) || isAdmin) && (p !== 'technitium' || technitiumEnabledNow()) && (p !== 'vpn' || vpnEnabledNow()))
     for (const page of pages) {
       const meta = pageMeta[page]
       items.push({

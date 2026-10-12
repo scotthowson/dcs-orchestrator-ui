@@ -467,6 +467,7 @@ export default function Config() {
     DASHBOARD_ICON_URL: d.dashboard_icon_url ?? '',
     DOCKER_COMPOSE_VERSION: d.docker_compose_version ?? 'auto',
     TECHNITIUM_ENABLED: d.technitium_enabled ?? false,
+    VPN_ENABLED: d.vpn_enabled ?? false,
   }), [])
 
   // Sync from server ONLY when user hasn't started editing
@@ -753,6 +754,13 @@ export default function Config() {
               description={`The ${pageLabel('technitium')} page (Security) and its card on ${pageLabel('dns')}: the home's resolver, its devices, DHCP and the kids' groups. Off hides them and stops DCS's clock for it; Technitium keeps answering as it is`}
               configKey="TECHNITIUM_ENABLED"
               value={Boolean(edits.TECHNITIUM_ENABLED)}
+              onChange={handleBoolChange}
+            />
+            <ToggleRow
+              label="VPN"
+              description={`The ${pageLabel('vpn')} page (Security): the containers you choose (qBittorrent) through a WireGuard tunnel to Private Internet Access, with a kill switch and the forwarded port. Off hides it and stops DCS's clock for it; containers already behind the VPN stay there`}
+              configKey="VPN_ENABLED"
+              value={Boolean(edits.VPN_ENABLED)}
               onChange={handleBoolChange}
             />
           </GroupCard>
@@ -1219,6 +1227,7 @@ function getOriginalValue(data: ServerConfig, key: string): string | boolean | n
     DASHBOARD_ICON_URL: data.dashboard_icon_url ?? '',
     DOCKER_COMPOSE_VERSION: data.docker_compose_version ?? 'auto',
     TECHNITIUM_ENABLED: data.technitium_enabled ?? false,
+    VPN_ENABLED: data.vpn_enabled ?? false,
   }
   return map[key] ?? ''
 }

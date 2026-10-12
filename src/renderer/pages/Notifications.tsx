@@ -69,6 +69,8 @@ type TriggerType =
   | 'technitium_new_device'
   | 'technitium_bedtime'
   | 'technitium_device_blocked_expired'
+  | 'vpn_down'
+  | 'vpn_leak'
 
 type Priority = 'urgent' | 'high' | 'default' | 'low'
 
@@ -103,6 +105,9 @@ const TRIGGER_OPTIONS: { value: TriggerType; label: string }[] = [
   { value: 'technitium_new_device', label: 'Technitium: a new device on the network' },
   { value: 'technitium_bedtime', label: 'Technitium: a group entered or left bedtime' },
   { value: 'technitium_device_blocked_expired', label: 'Technitium: a device block ran out' },
+  // the VPN (its rules are made the first time its clock runs, both on)
+  { value: 'vpn_down', label: 'VPN: the tunnel is down (the containers behind it are cut off)' },
+  { value: 'vpn_leak', label: 'VPN: a container behind it shows the home address' },
 ]
 
 const PRIORITY_OPTIONS: { value: Priority; label: string }[] = [
@@ -1511,6 +1516,10 @@ const WEBHOOK_EVENT_GROUPS: { label: string; events: { value: string; label: str
     { value: 'technitium_lists_stale', label: 'Blocklists not updating' },
     { value: 'technitium_dhcp_pool', label: 'DHCP pool nearly full' },
     { value: 'technitium_new_device', label: 'A new device on the network' },
+  ] },
+  { label: 'VPN', events: [
+    { value: 'vpn_down', label: 'The tunnel is down (and back)' },
+    { value: 'vpn_leak', label: 'A container shows the home address' },
   ] },
 ]
 const WEBHOOK_EVENT_TYPES = WEBHOOK_EVENT_GROUPS.flatMap((g) => g.events)

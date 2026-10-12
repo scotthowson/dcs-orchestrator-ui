@@ -75,6 +75,7 @@ const SECTION_OF = {
   crowdsec: 'security',
   dns: 'security',
   technitium: 'security',
+  vpn: 'security',
   secrets: 'security',
   users: 'security',
 

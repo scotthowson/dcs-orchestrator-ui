@@ -20,3 +20,16 @@ export function useTechnitiumEnabled(): boolean | null {
 export function technitiumEnabledNow(): boolean {
   return lastPollValue<ServerConfig>(pollKeys.config)?.technitium_enabled === true
 }
+
+/** Config → Integrations' VPN switch (GET /config vpn_enabled): the VPN page and its pill on container rows. null until the server said */
+export function useVpnEnabled(): boolean | null {
+  const { data } = usePolling(fetchConfig, 300000, { key: pollKeys.config })
+  return data ? data.vpn_enabled === true : null
+}
+export function vpnEnabledNow(): boolean {
+  return lastPollValue<ServerConfig>(pollKeys.config)?.vpn_enabled === true
+}
+/** the pages a switched-off integration keeps out of the menu, read outside React */
+export function featureOffPages(): ('technitium' | 'vpn')[] {
+  return [...(technitiumEnabledNow() ? [] : ['technitium' as const]), ...(vpnEnabledNow() ? [] : ['vpn' as const])]
+}

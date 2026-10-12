@@ -51,7 +51,8 @@ import Secrets from './pages/Secrets'
 import Plugins from './pages/Plugins'
 import DNS from './pages/DNS'
 import Technitium from './pages/Technitium'
-import { technitiumEnabledNow } from './hooks/useTechnitiumEnabled'
+import { featureOffPages } from './hooks/useTechnitiumEnabled'
+import Vpn from './pages/Vpn'
 import Proxmox from './pages/Proxmox'
 import CrowdSec from './pages/CrowdSec'
 import Export from './pages/Export'
@@ -105,6 +106,7 @@ const pageComponents: Record<Exclude<PageId, AliasPageId>, React.ComponentType> 
   plugins: Plugins,
   dns: DNS,
   technitium: Technitium,
+  vpn: Vpn,
   proxmox: Proxmox,
   crowdsec: CrowdSec,
   export: Export,
@@ -528,7 +530,7 @@ export default function App() {
         if (section) {
           e.preventDefault()
           const { currentPage: current, hiddenPages } = useSettingsStore.getState()
-          const hidden = technitiumEnabledNow() ? hiddenPages ?? [] : [...(hiddenPages ?? []), 'technitium' as const]
+          const hidden = [...(hiddenPages ?? []), ...featureOffPages()]
           const shown = visiblePages(section, { isAdmin: useAuthStore.getState().userRole === 'admin', hidden, adminOnly: ADMIN_ONLY_PAGES })
           if (shown.includes(current as never)) setCurrentPage(current, { resetView: true })
           else {

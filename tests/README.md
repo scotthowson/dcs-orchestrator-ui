@@ -90,4 +90,14 @@ a viewer on a phone (read-only, never asking for a device's queries). `GET /conf
 PUPPETEER_DIR=/tmp/dcs-ui-sweep VIEWER_USER=viewer VIEWER_PASS=… node tests/technitium.mjs   # screenshots in docs/ui-polish/technitium/
 ```
 
+`tests/vpn.mjs` drives the VPN page the same way (every `/vpn/*` answer, `PUT /containers/{name}/vpn` and the vpn-gluetun deploy
+from a fake inside the test): off in Config, Set up (deployed, not started), Connect (the account, the fastest region, PIA's
+regions with Canada's first), the status, a container added from the picker and its VPN pill on Containers, the leak test,
+Pause and Resume, the WireGuard clients' switch, a tunnel-down alert on the page and in "Needs your attention", a phone, and
+a viewer (read-only).
+
+```bash
+PUPPETEER_DIR=/tmp/dcs-ui-sweep VIEWER_USER=viewer VIEWER_PASS=… node tests/vpn.mjs   # screenshots in docs/ui-polish/vpn/
+```
+
 CI (`.github/workflows/ci.yml`) runs the two Node tests; the browser tests need the lab and run locally.
