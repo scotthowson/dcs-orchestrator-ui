@@ -17,6 +17,7 @@ import { BTN_ICON_SM, TONE_GHOST, TONE_GHOST_OK, TONE_GHOST_DANGER } from '../..
 import { StateChip, StateDot } from '../common/StateChip'
 import { Pill } from '../common/Pill'
 import { containerState, isAsleep, STATE_META } from '../../lib/containerState'
+import { useVpnBehind } from '../../hooks/useVpnBehind'
 
 import { REVEAL } from '../../lib/pageKit'
 // one pill shape for a container's state, whatever it says (sleeping included): same height, never on two lines
@@ -43,6 +44,13 @@ function PanelTag({ container }: { container: ContainerInfo }) {
       {container.owner_hint && <span className="truncate text-[11px] text-slate-500 font-mono">{container.owner_hint}</span>}
     </span>
   )
+}
+
+/** "VPN" when the container goes through the VPN (its traffic leaves only through the tunnel) */
+function VpnTag({ container }: { container: ContainerInfo }) {
+  const behind = useVpnBehind()
+  if (container.member || !behind.has(container.name)) return null
+  return <Pill tone="info" size="xs" title="Goes through the VPN: it reaches the internet only through the tunnel (Security → VPN)">VPN</Pill>
 }
 
 function formatUptime(seconds: number): string {
@@ -222,6 +230,7 @@ const ContainerRow: React.FC<ContainerRowProps> = ({
           <div className="flex flex-col items-start gap-1 min-w-0">
             <ContainerNameWithPopover container={container} formatUptime={formatUptime} onOpen={() => onClick(container)} />
             <PanelTag container={container} />
+            <VpnTag container={container} />
             {showCapsule && <VmCapsule member={container.member} name={container.member_name} vmid={container.vmid} size="xs" />}
           </div>
         </div>
@@ -399,6 +408,7 @@ export const ContainerCard: React.FC<ContainerRowProps> = ({
       {/* Middle: badges */}
       <div className="flex items-center gap-2 mt-2.5 flex-wrap">
         <PanelTag container={container} />
+            <VpnTag container={container} />
         {showCapsule && <VmCapsule member={container.member} name={container.member_name} vmid={container.vmid} size="xs" />}
         {isAsleep(container) ? (
           <StateChip state={containerState(container)} size="xs" onClick={onOnDemand ? () => onOnDemand(container) : undefined} />

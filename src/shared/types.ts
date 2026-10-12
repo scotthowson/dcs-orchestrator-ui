@@ -422,6 +422,8 @@ export interface ServerConfig {
   chat_rate_limit?: number
   /** Config → Integrations: the Technitium page shows only when this is on */
   technitium_enabled?: boolean
+  /** Config → Integrations: the VPN page shows only when this is on */
+  vpn_enabled?: boolean
   update_channel?: string
   /** UPDATE_ON_BOOT: pull image updates during an unattended boot (an older API leaves it out) */
   update_on_boot?: boolean
@@ -1832,6 +1834,7 @@ export type PageId =
   | 'export'
   | 'dns'
   | 'technitium'
+  | 'vpn'
   | 'proxmox'
   | 'crowdsec'
   | 'setup'
@@ -5277,3 +5280,53 @@ export interface TechnitiumLocal {
 export interface TechnitiumConnectResult { success: boolean; role: TechnitiumRole; url?: string; connected: boolean; reachable?: boolean; version?: string; domain?: string; error?: string; message?: string }
 /** POST /dns/technitium/bootstrap */
 export interface TechnitiumBootstrapResult { success: boolean; roles: Partial<Record<TechnitiumRole, { changed: string[]; installed: string[] }>>; unchanged: boolean }
+
+// ---- VPN (/vpn/*, .lib/vpn.sh): chosen containers through a WireGuard tunnel (Gluetun) ----
+export interface VpnAttached {
+  stack: string
+  service: string
+  container: string
+  image: string
+  /** the container's own ports (inside), now published on Gluetun */
+  targets: number[]
+  since: number
+  running: boolean
+  qbittorrent: boolean
+  leak_test: VpnLeakResult & { at: number } | null
+}
+export interface VpnAlert { key: string; event: 'vpn_down' | 'vpn_leak'; headline: string; message: string; since: number }
+export interface VpnWireguardClients { on: boolean; container?: string | null; subnet?: string; wg_ip?: string; gluetun_ip?: string; network?: string; applied_at?: number }
+/** GET /vpn/status (every account) */
+export interface VpnStatus {
+  enabled: boolean
+  /** the vpn-gluetun template is in networking-security */
+  deployed: boolean
+  account_set: boolean
+  /** a WireGuard key is registered (connected once) */
+  configured: boolean
+  running: boolean
+  paused: boolean
+  container: string
+  stack: string
+  started_at: string | null
+  uptime_s: number | null
+  region_name: string | null
+  server_name: string | null
+  port_forwarding: boolean
+  qbittorrent_port: number | null
+  qbittorrent_error: string | null
+  attached: VpnAttached[]
+  last_change: number | null
+  down_since: number | null
+  alerts: VpnAlert[]
+  wireguard_clients: VpnWireguardClients
+  vpn_status: string | null
+  connected: boolean
+  public_ip: string | null
+  country: string | null
+  region: string | null
+  city: string | null
+  forwarded_port: number | null
+}
+export interface VpnRegion { id: string; name: string; country: string; geo: boolean }
+export interface VpnLeakResult { container: string; ip: string | null; verdict: 'tunnel' | 'leak' | 'offline' | 'unknown' }

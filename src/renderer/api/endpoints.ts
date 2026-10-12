@@ -3,7 +3,7 @@
 // =============================================================================
 
 import { apiClient } from './client'
-import type { TechnitiumStatus, TechnitiumStats, TechnitiumRange, TechnitiumActivity, TechnitiumLists, TechnitiumGroups, TechnitiumGroup, TechnitiumGroupInput, TechnitiumHouse, TechnitiumSyncResult, TechnitiumConnectResult, TechnitiumBootstrapResult, TechnitiumRole, TechnitiumDevices, TechnitiumScan, TechnitiumNetDevice, TechnitiumDeviceChange, TechnitiumDhcp, TechnitiumScopeInput, TechnitiumLocal, TechnitiumBackups } from '../../shared/types'
+import type { TechnitiumStatus, TechnitiumStats, TechnitiumRange, TechnitiumActivity, TechnitiumLists, TechnitiumGroups, TechnitiumGroup, TechnitiumGroupInput, TechnitiumHouse, TechnitiumSyncResult, TechnitiumConnectResult, TechnitiumBootstrapResult, TechnitiumRole, TechnitiumDevices, TechnitiumScan, TechnitiumNetDevice, TechnitiumDeviceChange, TechnitiumDhcp, TechnitiumScopeInput, TechnitiumLocal, TechnitiumBackups, VpnStatus, VpnRegion, VpnLeakResult } from '../../shared/types'
 import type {
   FleetVersions,
   FleetUpdateResponse,
@@ -2206,4 +2206,33 @@ export function restoreTechnitium(server: TechnitiumRole, file: string): Promise
 /** POST /dns/technitium/bootstrap — the house's baseline (installs two apps: it can take a minute) */
 export function bootstrapTechnitium(role: TechnitiumRole | 'both' = 'both'): Promise<TechnitiumBootstrapResult> {
   return apiClient.post<TechnitiumBootstrapResult>('/dns/technitium/bootstrap', { role }, 300000)
+}
+
+// ---- VPN (/vpn/*) ----
+/** GET /vpn/status — the tunnel, its exit address, the forwarded port, the containers behind it (every account) */
+export function fetchVpnStatus(): Promise<VpnStatus> {
+  return apiClient.get<VpnStatus>('/vpn/status')
+}
+/** GET /vpn/regions — PIA's regions that forward a port, Canada's first */
+export function fetchVpnRegions(): Promise<{ regions: VpnRegion[] }> {
+  return apiClient.get<{ regions: VpnRegion[] }>('/vpn/regions')
+}
+/** POST /vpn/connect — register a WireGuard key with PIA (the account is kept once PIA took it) and restart Gluetun (admin) */
+export function vpnConnect(body: { region: string; username?: string; password?: string }): Promise<{ success: boolean; region: { id: string; name: string; country: string; server: string }; message: string }> {
+  return apiClient.post('/vpn/connect', body, 120000)
+}
+/** POST /vpn/pause | /vpn/resume — stop or start the tunnel (admin) */
+export function vpnPause(): Promise<{ message: string }> { return apiClient.post('/vpn/pause', {}, 120000) }
+export function vpnResume(): Promise<{ message: string }> { return apiClient.post('/vpn/resume', {}, 180000) }
+/** POST /vpn/leak-test — the address each container behind the VPN shows the outside world (admin) */
+export function vpnLeakTest(): Promise<{ success: boolean; exit_ip: string | null; results: VpnLeakResult[]; leaks: number }> {
+  return apiClient.post('/vpn/leak-test', {}, 120000)
+}
+/** PUT /containers/{name}/vpn — a container through the VPN, or out of it (admin) */
+export function setContainerVpn(container: string, on: boolean): Promise<{ success: boolean; on: boolean; message: string }> {
+  return apiClient.put(`/containers/${encodeURIComponent(container)}/vpn`, { on }, 300000)
+}
+/** PUT /vpn/wireguard-clients — the WireGuard server's clients out through the VPN (admin) */
+export function setVpnWireguardClients(on: boolean, container?: string): Promise<{ success: boolean; message: string }> {
+  return apiClient.put('/vpn/wireguard-clients', container ? { on, container } : { on }, 120000)
 }

@@ -21,7 +21,7 @@ import { useSettingsStore } from '../../stores/settingsStore'
 import { useConnectionStore } from '../../stores/connectionStore'
 import { pageLabel } from '../../constants/pageTitles'
 import { ADMIN_ONLY_PAGES, type PageId } from '../../../shared/types'
-import type { BackupStatusResponse, CloudflareBouncerBrief, CrowdSecCommunityResponse, CrowdSecStatusResponse, DiskInfo, ImageCheckResponse, OsUpdatesResponse, StackInfo, TechnitiumStatus } from '../../../shared/types'
+import type { BackupStatusResponse, CloudflareBouncerBrief, CrowdSecCommunityResponse, CrowdSecStatusResponse, DiskInfo, ImageCheckResponse, OsUpdatesResponse, StackInfo, TechnitiumStatus, VpnStatus } from '../../../shared/types'
 import { collectNeeds, plural, type NeedItem } from '../../lib/needs'
 import { Card, CardOffline } from './cardShared'
 import { Skeleton } from '../common/PageState'
@@ -54,9 +54,11 @@ interface Props {
   crowdsecDown?: CrowdSecStatusResponse['down_alert']
   /** Technitium's status (while it is on): its alerts in force */
   technitium?: TechnitiumStatus | null
+  /** the VPN's status (while it is on): its alerts in force */
+  vpn?: VpnStatus | null
 }
 
-export default function NeedsYouCard({ stacks, stacksError, images, backup, disks, osUpdates, crowdsecCommunity, cloudflare, crowdsecDown, technitium }: Props) {
+export default function NeedsYouCard({ stacks, stacksError, images, backup, disks, osUpdates, crowdsecCommunity, cloudflare, crowdsecDown, technitium, vpn }: Props) {
   const health = useHealthStore((s) => s.report)
   // the DCS update count is what an admin's check found (kept on this device): no item for anyone else, who cannot install it
   const isAdmin = useAuthStore((s) => s.userRole) === 'admin'
@@ -98,7 +100,7 @@ export default function NeedsYouCard({ stacks, stacksError, images, backup, disk
   const cs = isAdmin ? crowdsecCommunity ?? null : null
   const cf = isAdmin ? cloudflare ?? null : null
   const tt = technitium ?? null
-  const items = useMemo(() => collectNeeds({ stacks, health, images, backup, disks, dcsUpdates, osUpdates: os, crowdsecCommunity: cs, cloudflare: cf, crowdsecDown, technitium: tt }), [stacks, health, images, backup, disks, dcsUpdates, os, cs, cf, crowdsecDown, tt])
+  const items = useMemo(() => collectNeeds({ stacks, health, images, backup, disks, dcsUpdates, osUpdates: os, crowdsecCommunity: cs, cloudflare: cf, crowdsecDown, technitium: tt, vpn: vpn ?? null }), [stacks, health, images, backup, disks, dcsUpdates, os, cs, cf, crowdsecDown, tt, vpn])
   // a viewer is never sent to an admin's page (it bounces back to the dashboard): the page they may open, or none
   const shown = items.filter((i) => hidden[i.key] !== i.fingerprint)
     .map((i) => ({ ...i, to: isAdmin || !ADMIN_ONLY_PAGES.has(i.page) ? i.page : VIEWER_PAGE[i.page] }))

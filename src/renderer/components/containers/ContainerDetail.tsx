@@ -39,6 +39,7 @@ import {
 } from '../../lib/ui'
 import OnDemandDialog from './OnDemandDialog'
 import HomarrChip from './HomarrChip'
+import VpnButton from './VpnButton'
 import ThemeButton from './ThemeButton'
 import { Bomb } from 'lucide-react'
 import { StateChip } from '../common/StateChip'
@@ -908,6 +909,7 @@ const ContainerDetail: React.FC<ContainerDetailProps> = ({
             </Hint>
           )}
           {isAdmin && <ThemeButton containerName={containerName} member={member} disabled={!!actionLoading} />}
+          {isAdmin && !member && composeProject && <VpnButton containerName={containerName} disabled={!!actionLoading} />}
           {onDemandOpen && (
             <OnDemandDialog
               containerName={containerName}
