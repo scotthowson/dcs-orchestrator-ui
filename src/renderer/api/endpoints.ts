@@ -3,7 +3,7 @@
 // =============================================================================
 
 import { apiClient } from './client'
-import type { TechnitiumStatus, TechnitiumStats, TechnitiumRange, TechnitiumActivity, TechnitiumLists, TechnitiumGroups, TechnitiumGroup, TechnitiumGroupInput, TechnitiumHouse, TechnitiumSyncResult, TechnitiumConnectResult, TechnitiumBootstrapResult, TechnitiumRole, TechnitiumDevices, TechnitiumScan, TechnitiumNetDevice, TechnitiumDeviceChange, TechnitiumDhcp, TechnitiumScopeInput, TechnitiumLocal, TechnitiumBackups } from '../../shared/types'
+import type { TechnitiumStatus, TechnitiumStats, TechnitiumRange, TechnitiumActivity, TechnitiumLists, TechnitiumGroups, TechnitiumGroup, TechnitiumGroupInput, TechnitiumGroupReport, TechnitiumHouse, TechnitiumSyncResult, TechnitiumConnectResult, TechnitiumBootstrapResult, TechnitiumRole, TechnitiumDevices, TechnitiumScan, TechnitiumNetDevice, TechnitiumDeviceChange, TechnitiumDhcp, TechnitiumScopeInput, TechnitiumLocal, TechnitiumBackups } from '../../shared/types'
 import type {
   FleetVersions,
   FleetUpdateResponse,
@@ -2131,9 +2131,13 @@ export function saveTechnitiumGroup(group: TechnitiumGroupInput): Promise<TtSync
 export function deleteTechnitiumGroup(id: string): Promise<TtSync> {
   return apiClient.delete(`/dns/technitium/groups/${encodeURIComponent(id)}`)
 }
-/** POST /dns/technitium/groups/{id}/pause-bedtime — 30 minutes by default, 0 ends the pause */
-export function pauseTechnitiumBedtime(id: string, minutes = 30): Promise<TtSync & { paused_until: string | null }> {
-  return apiClient.post(`/dns/technitium/groups/${encodeURIComponent(id)}/pause-bedtime`, { minutes }, 60000)
+/** POST /dns/technitium/groups/{id}/pause — a group's windows (or one: window) for 30 minutes by default; 0 ends the pause */
+export function pauseTechnitiumGroup(id: string, minutes = 30, window?: string): Promise<TtSync & { paused_until: string | null; window: string | null }> {
+  return apiClient.post(`/dns/technitium/groups/${encodeURIComponent(id)}/pause`, window ? { minutes, window } : { minutes }, 60000)
+}
+/** GET /dns/technitium/groups/{id}/report (admin) — what the group's devices looked up */
+export function fetchTechnitiumGroupReport(id: string, range: 'lastDay' | 'lastWeek' = 'lastDay'): Promise<TechnitiumGroupReport> {
+  return apiClient.get<TechnitiumGroupReport>(`/dns/technitium/groups/${encodeURIComponent(id)}/report?range=${range}`)
 }
 /** POST /dns/technitium/connect — saves, then tests; url "" disconnects; no token keeps the stored one */
 export function connectTechnitium(role: TechnitiumRole, url: string, token?: string): Promise<TechnitiumConnectResult> {

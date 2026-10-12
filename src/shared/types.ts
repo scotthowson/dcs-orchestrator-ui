@@ -5159,32 +5159,84 @@ export interface TechnitiumQuery {
 }
 /** GET /dns/technitium/activity (admin) */
 export interface TechnitiumActivity { entries: TechnitiumQuery[]; unavailable: { role: TechnitiumRole; error: string }[] }
-export interface TechnitiumCategory { id: string; name: string; url?: string }
+/** a category a kids' group can block: maintained lists (lists) and/or built-in names (names); url only in GET /dns/technitium/lists */
+export interface TechnitiumCategory { id: string; name: string; description?: string; sources?: string[]; lists?: number; names?: number; url?: string; urls?: string[] }
 /** GET /dns/technitium/lists */
 export interface TechnitiumLists { blocklists: string[]; allowed: string[]; blocked: string[]; categories: TechnitiumCategory[]; baseline_lists: string[] }
 /** a device of a kids' group: its address, a label, and the device directory's id when it was picked from there */
 export interface TechnitiumDevice { ip: string; label: string; mac?: string | null; id?: string | null }
-/** days: 1 is Monday … 7 Sunday; from/to "HH:MM" in the server's time */
-export interface TechnitiumBedtime { enabled: boolean; from: string; to: string; days: number[] }
+export type TechnitiumGroupMode = 'filter' | 'allowlist'
+/** a time window of a kids' group: days 1 is Monday … 7 Sunday; from/to "HH:MM" in the server's time (20:30 → 07:00 runs into the
+ *  next morning); scope all blocks every name (bedtime), categories blocks only those */
+export interface TechnitiumWindow {
+  id?: string
+  name: string
+  enabled: boolean
+  from: string
+  to: string
+  days: number[]
+  scope: 'all' | 'categories'
+  categories: string[]
+  /** GET: in force now, and until when it is paused */
+  active?: boolean
+  paused_until?: string | null
+}
+/** what is in force for a group now */
+export interface TechnitiumGroupActive { ids: string[]; names: string[]; all: boolean; categories: string[]; ends: Record<string, string> }
 export interface TechnitiumGroup {
   id: string
   name: string
   devices: TechnitiumDevice[]
-  lists: string[]
-  bedtime: TechnitiumBedtime
+  mode: TechnitiumGroupMode
+  categories: string[]
+  safe_search: boolean
+  youtube: TechnitiumYoutube
+  windows: TechnitiumWindow[]
+  /** exceptions (with their subdomains): win over the group's blocks */
+  allowed: string[]
+  /** extra names blocked */
+  blocked: string[]
+  /** allow-list mode: the sites allowed */
+  sites: string[]
+  active?: TechnitiumGroupActive | null
   in_bedtime?: boolean
+  /** the whole group paused until then */
+  paused_until?: string | null
   bedtime_paused_until?: string | null
 }
-export type TechnitiumGroupInput = Pick<TechnitiumGroup, 'name' | 'devices' | 'lists' | 'bedtime'> & { id?: string }
+export type TechnitiumGroupInput = Pick<TechnitiumGroup, 'name' | 'devices' | 'mode' | 'categories' | 'safe_search' | 'youtube' | 'windows' | 'allowed' | 'blocked' | 'sites'> & { id?: string }
+/** a site an allow-list group can have */
+export interface TechnitiumSite { id: string; name: string; description: string; domains: string[] }
+export interface TechnitiumWindowPreset extends TechnitiumWindow { id: string; title: string }
 /** GET /dns/technitium/groups */
 export interface TechnitiumGroups {
   house: TechnitiumHouse
   groups: TechnitiumGroup[]
   categories: TechnitiumCategory[]
+  allowlist_sites: TechnitiumSite[]
+  essentials: { description: string; domains: string[]; subdomains: string[] }
+  window_presets: TechnitiumWindowPreset[]
+  allowlist_presets: { id: string; name: string; description: string; sites: string[] }[]
   forced_names: { safe_search: string[]; youtube: string[] }
-  /** SafeSearch is the whole house's: Technitium cannot do it per group */
-  safe_search_scope: 'house'
+  /** SafeSearch is a group's; the house switch is optional */
+  safe_search_scope: 'group'
+  list_url: string
+  /** what the move to these controls did (once) */
+  migration: { at: number; notes: string[] } | null
   now: string
+}
+export interface TechnitiumCount { name: string; count: number }
+/** GET /dns/technitium/groups/{id}/report (admin) */
+export interface TechnitiumGroupReport {
+  id: string
+  name: string
+  range: 'lastDay' | 'lastWeek'
+  lookups: number
+  blocked: number
+  top: TechnitiumCount[]
+  top_blocked: TechnitiumCount[]
+  by_category: { category: string; count: number }[]
+  devices: { ip: string; label: string; id: string | null; lookups: number; blocked: number; top: TechnitiumCount[]; top_blocked: TechnitiumCount[] }[]
 }
 export type TechnitiumIcon = 'desktop' | 'laptop' | 'phone' | 'tablet' | 'tv' | 'console' | 'speaker' | 'camera' | 'printer' | 'router'
   | 'server' | 'iot' | 'lightbulb' | 'thermostat' | 'watch' | 'car' | 'unknown'

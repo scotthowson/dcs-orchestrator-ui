@@ -1,11 +1,11 @@
-// The Technitium page's Kids tab: the house's SafeSearch and YouTube switch, the groups as cards (devices, category
-// lists, bedtime, "in bedtime now", a 30-minute pause), the add / edit sheet and the delete confirmation. A group's
-// devices are picked from the device directory (their icon and nickname); an address typed by hand still works.
+// The Technitium page's Kids tab: the groups as cards (what is in force at a glance: bedtime, a categories window, the
+// allow-list mode, a pause; the devices, SafeSearch and YouTube, the categories or sites, the windows, today's lookups),
+// the editor (GroupSheet), the delete confirmation, what the move to per-group controls did, and the optional
+// whole-house SafeSearch switch.
 
-import { useMemo, useState } from 'react'
-import { Users, Plus, Pencil, Trash2, Moon, MoonStar, Loader2, Search as SearchIcon, X, Youtube } from 'lucide-react'
+import { useState } from 'react'
+import { Users, Plus, Pencil, Trash2, Moon, MoonStar, Loader2, Search as SearchIcon, Youtube, Clock, ListChecks, Pause, Info } from 'lucide-react'
 import { Panel } from '../dashboard/cardShared'
-import Sheet from '../common/Sheet'
 import Segmented from '../common/Segmented'
 import Notice from '../common/Notice'
 import { ToggleRow } from '../common/Toggle'
@@ -13,38 +13,19 @@ import { Pill } from '../common/Pill'
 import { EmptyState, ErrorState, Skeleton } from '../common/PageState'
 import { useConfirm } from '../common/ConfirmDialog'
 import { useToast } from '../common/Toast'
-import SearchInput from '../common/SearchInput'
 import { usePolling } from '../../hooks/usePolling'
 import { apiErrorMessage } from '../../api/errors'
 import { DeviceIcon, TAP, deviceName, useDeviceDirectory } from './deviceKit'
+import GroupSheet from './GroupSheet'
+import { activeLabels, clock, daysLabel, windowBlocks } from './kidsKit'
 import {
-  fetchTechnitiumGroups, saveTechnitiumGroup, deleteTechnitiumGroup, pauseTechnitiumBedtime, technitiumSafeSearch,
+  fetchTechnitiumGroups, deleteTechnitiumGroup, pauseTechnitiumGroup, technitiumSafeSearch, fetchTechnitiumGroupReport,
 } from '../../api/endpoints'
-import type { TechnitiumCategory, TechnitiumGroup, TechnitiumGroupInput, TechnitiumGroups, TechnitiumHouse, TechnitiumYoutube } from '../../../shared/types'
-import { BTN_TOOLBAR_OK, BTN_CARD_QUIET, BTN_SHEET_QUIET, BTN_SHEET_PRIMARY, BTN_ICON_SM, TONE_GHOST, TONE_GHOST_DANGER, TEXT_META, SECTION_LABEL } from '../../lib/ui'
-import { INPUT, LABEL, HINT, CHOICE_SM, CHOICE_ON, CHOICE_OFF } from '../../lib/fieldStyles'
+import type { TechnitiumGroup, TechnitiumGroups, TechnitiumYoutube } from '../../../shared/types'
+import { BTN_TOOLBAR_OK, BTN_CARD_QUIET, BTN_ICON_SM, TONE_GHOST, TONE_GHOST_DANGER, TEXT_META, SECTION_LABEL } from '../../lib/ui'
 
-const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-function daysLabel(days: number[]): string {
-  const d = [...days].sort()
-  if (d.length === 7) return 'every night'
-  if (d.join() === '1,2,3,4,5') return 'school nights (Mon–Fri)'
-  if (d.join() === '1,2,3,4,7') return 'school nights (Sun–Thu)'
-  if (d.join() === '6,7') return 'weekends'
-  return d.map((x) => DAYS[x - 1]).join(', ')
-}
-const until = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-const NIGHTS: { label: string; days: number[] }[] = [
-  { label: 'Every night', days: [1, 2, 3, 4, 5, 6, 7] },
-  { label: 'School nights (Sun–Thu)', days: [1, 2, 3, 4, 7] },
-  { label: 'Fri & Sat', days: [5, 6] },
-]
-/** how long a bedtime lasts, "10 h" or "9 h 30" */
-function length(from: string, to: string): string {
-  const m = (t: string) => { const [h, mm] = t.split(':').map(Number); return h * 60 + mm }
-  const d = (m(to) - m(from) + 1440) % 1440
-  return d === 0 ? '—' : `${Math.floor(d / 60)} h${d % 60 ? ` ${String(d % 60).padStart(2, '0')}` : ''}`
-}
+const NOTE_KEY = 'dcs.technitium.kids-migration-seen'
+const fmt = (n: number) => n.toLocaleString()
 
 export default function KidsTab({ isAdmin, onChanged }: { isAdmin: boolean; onChanged: () => Promise<void> }) {
   const { data, error, loading, refresh } = usePolling(fetchTechnitiumGroups, 30000, { key: 'technitium-groups' })
@@ -53,6 +34,7 @@ export default function KidsTab({ isAdmin, onChanged }: { isAdmin: boolean; onCh
   const { addToast } = useToast()
   const confirm = useConfirm()
   const [busy, setBusy] = useState<string | null>(null)
+  const [noteSeen, setNoteSeen] = useState(() => { try { return localStorage.getItem(NOTE_KEY) } catch { return null } })
   const after = async (msg: string, sync?: { ok: boolean; message: string } | null) => {
     addToast({ type: sync && !sync.ok ? 'warning' : 'success', message: sync && !sync.ok ? `${msg}; the secondary did not follow: ${sync.message}` : msg })
     await Promise.all([refresh(), onChanged()])
@@ -62,80 +44,138 @@ export default function KidsTab({ isAdmin, onChanged }: { isAdmin: boolean; onCh
     try { await fn() } catch (e) { addToast({ type: 'error', message: apiErrorMessage(e) }) } finally { setBusy(null) }
   }
   const remove = (g: TechnitiumGroup) => act(g.id, async () => {
-    if (!await confirm({ title: `Delete the group ${g.name}?`, message: `Its ${g.devices.length} device${g.devices.length === 1 ? '' : 's'} go back to the house's blocking alone: no category lists, no bedtime.`, confirmLabel: 'Delete group', danger: true })) return
+    if (!await confirm({ title: `Delete the group ${g.name}?`, message: `Its ${g.devices.length} device${g.devices.length === 1 ? '' : 's'} go back to the house's blocking alone: no categories, no SafeSearch, no time windows.`, confirmLabel: 'Delete group', danger: true })) return
     const r = await deleteTechnitiumGroup(g.id)
     await after(`${g.name} is deleted`, r.sync)
   })
-  const pause = (g: TechnitiumGroup, minutes: number) => act(g.id, async () => {
-    const r = await pauseTechnitiumBedtime(g.id, minutes)
-    await after(minutes ? `${g.name}: bedtime paused until ${r.paused_until ? until(r.paused_until) : '—'}` : `${g.name}: bedtime is back`, r.sync)
+  const pause = (g: TechnitiumGroup, minutes: number, window?: string) => act(g.id, async () => {
+    const r = await pauseTechnitiumGroup(g.id, minutes, window)
+    const what = window ? g.windows.find((w) => w.id === window)?.name ?? 'The window' : 'Its windows'
+    await after(minutes ? `${g.name}: ${what.toLowerCase()} paused until ${r.paused_until ? clock(r.paused_until) : '—'}` : `${g.name}: the pause is over`, r.sync)
   })
 
   if (loading && !data) return <Skeleton variant="cards" rows={2} />
   if (error && !data) return <ErrorState title="Could not read the groups" error={error} onRetry={() => void refresh()} />
   if (!data) return null
+  const notes = data.migration?.notes ?? []
+  const showNote = notes.length > 0 && noteSeen !== String(data.migration?.at)
   return (
     <div className="space-y-4">
-      <HouseSafeSearch data={data} isAdmin={isAdmin} onChanged={() => after('SafeSearch saved', null)} />
+      {showNote && (
+        <Notice tone="info" icon={Info} title="The kids' controls are per group now"
+          onDismiss={() => { try { localStorage.setItem(NOTE_KEY, String(data.migration?.at)) } catch { /* a private window */ } setNoteSeen(String(data.migration?.at)) }}>
+          <ul className="list-disc pl-4 space-y-1">{notes.map((n) => <li key={n}>{n}</li>)}</ul>
+        </Notice>
+      )}
       <div className="flex items-center justify-between gap-3">
         <h2 className={SECTION_LABEL}>Groups</h2>
         {isAdmin && <button type="button" className={BTN_TOOLBAR_OK} onClick={() => setEditing('new')}><Plus size={14} /> Add group</button>}
       </div>
       {data.groups.length === 0 ? (
         <EmptyState compact icon={<Users size={28} />} title="No groups yet"
-          hint="A group is a child, or all the boys: their tablets and consoles, the categories they cannot reach and a bedtime when nothing answers."
+          hint="A group is a child, or all the boys: their tablets, SafeSearch and YouTube for them alone, what they cannot reach, and when (bedtime, homework)."
           action={isAdmin ? <button type="button" className={BTN_TOOLBAR_OK} onClick={() => setEditing('new')}><Plus size={14} /> Add group</button> : undefined} />
       ) : (
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {data.groups.map((g) => (
-            <Panel key={g.id} icon={Users} title={g.name}
-              badge={g.in_bedtime ? <Pill tone="attention" icon={<Moon size={10} />}>In bedtime now</Pill> : g.bedtime_paused_until ? <Pill tone="info">Bedtime paused until {until(g.bedtime_paused_until)}</Pill> : undefined}
-              actions={isAdmin ? <>
-                <button type="button" className={`${BTN_ICON_SM} ${TAP} ${TONE_GHOST}`} onClick={() => setEditing(g)} aria-label={`Edit ${g.name}`} title="Edit"><Pencil size={14} /></button>
-                <button type="button" className={`${BTN_ICON_SM} ${TAP} ${TONE_GHOST_DANGER}`} onClick={() => void remove(g)} aria-label={`Delete ${g.name}`} title="Delete"><Trash2 size={14} /></button>
-              </> : undefined}>
-              <div className="space-y-3">
-                <div>
-                  <p className={SECTION_LABEL}>Devices</p>
-                  {g.devices.length ? (
-                    <ul className="mt-2 space-y-2">
-                      {g.devices.map((d) => {
-                        const known = (d.id ? dir.byId.get(d.id) : undefined) ?? dir.byIp.get(d.ip)
-                        const name = known?.nickname || d.label || (known ? deviceName(known) : d.ip)
-                        return (
-                          <li key={d.ip} className="text-sm text-slate-300 flex items-center gap-3 min-w-0">
-                            <DeviceIcon icon={known?.icon ?? 'unknown'} guessed={!known || known.icon_guessed} size="sm" />
-                            <span className="truncate">{name}</span>{name !== d.ip && <span className="font-mono text-xs text-slate-500 shrink-0">{d.ip}</span>}
-                          </li>
-                        )
-                      })}
-                    </ul>
-                  ) : <p className={TEXT_META}>None yet: the group does nothing until a device is in it.</p>}
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {g.lists.length ? g.lists.map((l) => <Pill key={l} tone="neutral">{data.categories.find((c) => c.id === l)?.name ?? l}</Pill>) : <span className={TEXT_META}>No category lists</span>}
-                </div>
-                <p className="text-sm text-slate-300 flex items-center gap-2">
-                  <MoonStar size={14} className="text-slate-500 shrink-0" aria-hidden />
-                  {g.bedtime.enabled ? <>Bedtime {g.bedtime.from}–{g.bedtime.to}, {daysLabel(g.bedtime.days)}</> : <span className="text-slate-500">No bedtime</span>}
-                </p>
-                {isAdmin && g.bedtime.enabled && (g.in_bedtime || g.bedtime_paused_until) && (
-                  <button type="button" disabled={busy === g.id} className={BTN_CARD_QUIET} onClick={() => void pause(g, g.bedtime_paused_until ? 0 : 30)}>
-                    {busy === g.id ? <Loader2 size={12} className="animate-spin" /> : <Moon size={12} />} {g.bedtime_paused_until ? 'End the pause' : 'Pause bedtime 30 min'}
-                  </button>
-                )}
-              </div>
-            </Panel>
+            <GroupCard key={g.id} g={g} data={data} dir={dir} isAdmin={isAdmin} busy={busy === g.id}
+              onEdit={() => setEditing(g)} onDelete={() => void remove(g)} onPause={(m, w) => void pause(g, m, w)} />
           ))}
         </div>
       )}
-      {editing && <GroupSheet group={editing === 'new' ? null : editing} categories={data.categories} house={data.house} directory={dir.data?.devices ?? []} taken={data.groups.filter((g) => editing === 'new' || g.id !== editing.id).flatMap((g) => g.devices.map((d) => d.ip))}
+      <HouseSafeSearch data={data} isAdmin={isAdmin} onChanged={() => after('SafeSearch for the house saved', null)} />
+      {editing && <GroupSheet group={editing === 'new' ? null : editing} data={data} directory={dir.data?.devices ?? []}
+        taken={data.groups.filter((g) => editing === 'new' || g.id !== editing.id).flatMap((g) => g.devices.map((d) => d.ip))}
         onClose={() => setEditing(null)} onSaved={async (msg, sync) => { setEditing(null); await after(msg, sync) }} />}
     </div>
   )
 }
 
-// SafeSearch and YouTube are the whole house's: Technitium's Advanced Blocking cannot rewrite a name for one group
+function GroupCard({ g, data, dir, isAdmin, busy, onEdit, onDelete, onPause }: {
+  g: TechnitiumGroup
+  data: TechnitiumGroups
+  dir: ReturnType<typeof useDeviceDirectory>
+  isAdmin: boolean
+  busy: boolean
+  onEdit: () => void
+  onDelete: () => void
+  onPause: (minutes: number, window?: string) => void
+}) {
+  // today's lookups: the admin's (a device's queries are not a viewer's)
+  const report = usePolling(() => fetchTechnitiumGroupReport(g.id, 'lastDay'), 300000, { key: `technitium-report-${g.id}`, enabled: isAdmin })
+  const active = activeLabels(g, data.categories)
+  const pausedWindows = g.windows.filter((w) => w.paused_until)
+  const enabledWindows = g.windows.filter((w) => w.enabled)
+  const r = report.data
+  return (
+    <Panel icon={Users} title={g.name}
+      actions={isAdmin ? <>
+        <button type="button" className={`${BTN_ICON_SM} ${TAP} ${TONE_GHOST}`} onClick={onEdit} aria-label={`Edit ${g.name}`} title="Edit"><Pencil size={14} /></button>
+        <button type="button" className={`${BTN_ICON_SM} ${TAP} ${TONE_GHOST_DANGER}`} onClick={onDelete} aria-label={`Delete ${g.name}`} title="Delete"><Trash2 size={14} /></button>
+      </> : undefined}>
+      <div className="space-y-3">
+        <div className="flex flex-wrap gap-1.5" aria-label="In force now">
+          {active.map((a) => <Pill key={a.key} tone="attention" icon={a.all ? <Moon size={10} /> : <Clock size={10} />}>{a.text}</Pill>)}
+          {g.paused_until && <Pill tone="info" icon={<Pause size={10} />}>Paused until {clock(g.paused_until)}</Pill>}
+          {pausedWindows.map((w) => <Pill key={w.id} tone="info" icon={<Pause size={10} />}>{w.name} paused until {clock(w.paused_until!)}</Pill>)}
+          {g.mode === 'allowlist' && <Pill tone="info" icon={<ListChecks size={10} />}>Allow-list</Pill>}
+          <Pill tone={g.safe_search ? 'ok' : 'neutral'} icon={<SearchIcon size={10} />}>SafeSearch {g.safe_search ? 'on' : 'off'}</Pill>
+          <Pill tone={g.youtube === 'off' ? 'neutral' : 'ok'} icon={<Youtube size={10} />}>YouTube {g.youtube}</Pill>
+        </div>
+        <div>
+          <p className={SECTION_LABEL}>Devices</p>
+          {g.devices.length ? (
+            <ul className="mt-2 space-y-2">
+              {g.devices.map((d) => {
+                const known = (d.id ? dir.byId.get(d.id) : undefined) ?? dir.byIp.get(d.ip)
+                const name = known?.nickname || d.label || (known ? deviceName(known) : d.ip)
+                return (
+                  <li key={d.ip} className="text-sm text-slate-300 flex items-center gap-3 min-w-0">
+                    <DeviceIcon icon={known?.icon ?? 'unknown'} guessed={!known || known.icon_guessed} size="sm" />
+                    <span className="truncate">{name}</span>{name !== d.ip && <span className="font-mono text-xs text-slate-500 shrink-0">{d.ip}</span>}
+                  </li>
+                )
+              })}
+            </ul>
+          ) : <p className={TEXT_META}>None yet: the group does nothing until a device is in it.</p>}
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {g.mode === 'allowlist'
+            ? (g.sites.length ? g.sites.map((s) => <Pill key={s} tone="neutral">{data.allowlist_sites.find((x) => x.id === s)?.name ?? s}</Pill>) : <span className={TEXT_META}>No site allowed yet</span>)
+            : (g.categories.length ? g.categories.map((c) => <Pill key={c} tone="neutral">{data.categories.find((x) => x.id === c)?.name ?? c}</Pill>) : <span className={TEXT_META}>No category blocked</span>)}
+          {g.allowed.length + g.blocked.length > 0 && <span className={TEXT_META}>· {g.allowed.length} allowed, {g.blocked.length} blocked by hand</span>}
+        </div>
+        <ul className="space-y-1">
+          {g.windows.length === 0 && <li className={TEXT_META}>No time window</li>}
+          {g.windows.map((w) => (
+            <li key={w.id} className={`text-sm flex items-start gap-2 ${w.enabled ? 'text-slate-300' : 'text-slate-500'}`}>
+              {w.scope === 'all' ? <MoonStar size={14} className="text-slate-500 shrink-0 mt-0.5" aria-hidden /> : <Clock size={14} className="text-slate-500 shrink-0 mt-0.5" aria-hidden />}
+              <span className="min-w-0">{w.name} {w.from}–{w.to}, {daysLabel(w.days)}: {windowBlocks(w, data.categories)}{w.enabled ? '' : ' (off)'}</span>
+            </li>
+          ))}
+        </ul>
+        {isAdmin && r && (
+          <p className={TEXT_META}>Today: {fmt(r.lookups)} lookups, {fmt(r.blocked)} blocked{r.top[0] ? `, top: ${r.top[0].name}` : ''}{r.top_blocked[0] ? `; most blocked: ${r.top_blocked[0].name}` : ''}</p>
+        )}
+        {isAdmin && (active.length > 0 || g.paused_until || pausedWindows.length > 0) && enabledWindows.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {g.paused_until || pausedWindows.length > 0
+              ? <button type="button" disabled={busy} className={BTN_CARD_QUIET} onClick={() => onPause(0, g.paused_until ? undefined : pausedWindows[0].id)}>{busy ? <Loader2 size={12} className="animate-spin" /> : <Pause size={12} />} End the pause</button>
+              : <>
+                  <button type="button" disabled={busy} className={BTN_CARD_QUIET} onClick={() => onPause(30)}>{busy ? <Loader2 size={12} className="animate-spin" /> : <Pause size={12} />} Pause 30 min</button>
+                  {active.length > 1 && active.map((a) => {
+                    const w = g.windows.find((x) => x.id === a.key)
+                    return <button key={a.key} type="button" disabled={busy} className={BTN_CARD_QUIET} onClick={() => onPause(30, a.key)}><Pause size={12} /> Pause {w?.name ?? 'it'} 30 min</button>
+                  })}
+                </>}
+          </div>
+        )}
+      </div>
+    </Panel>
+  )
+}
+
+// SafeSearch and YouTube for every device of the house, grown-ups included: optional, off by default (a group has its own)
 function HouseSafeSearch({ data, isAdmin, onChanged }: { data: TechnitiumGroups; isAdmin: boolean; onChanged: () => Promise<void> }) {
   const { addToast } = useToast()
   const [busy, setBusy] = useState(false)
@@ -144,158 +184,18 @@ function HouseSafeSearch({ data, isAdmin, onChanged }: { data: TechnitiumGroups;
     try { await technitiumSafeSearch(house); await onChanged() } catch (e) { addToast({ type: 'error', message: apiErrorMessage(e) }) } finally { setBusy(false) }
   }
   return (
-    <Panel icon={SearchIcon} title="SafeSearch for the whole house" sub="Technitium cannot force SafeSearch for one group: it is on for every device, grown-ups included. For the kids alone, add “Search engines without SafeSearch” to their group.">
+    <Panel icon={SearchIcon} title="SafeSearch for the whole house (optional)" sub="Every device, yours too. Off is usual: each kids' group has its own SafeSearch and YouTube setting.">
       <div className="space-y-4">
-        <ToggleRow label="Force SafeSearch" help={`Google, Bing and DuckDuckGo answer with their safe results (${data.forced_names.safe_search.join(', ')}).`} checked={data.house.safe_search} disabled={!isAdmin || busy} onChange={(v) => void save({ safe_search: v })} />
+        <ToggleRow label="Force SafeSearch for every device" help={`Google, Bing and DuckDuckGo answer with their safe results (${data.forced_names.safe_search.join(', ')}).`} def="off" checked={data.house.safe_search} disabled={!isAdmin || busy} onChange={(v) => void save({ safe_search: v })} />
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-sm text-slate-200 flex items-center gap-2"><Youtube size={14} className="text-slate-500" aria-hidden /> YouTube restricted mode</p>
+            <p className="text-sm text-slate-200 flex items-center gap-2"><Youtube size={14} className="text-slate-500" aria-hidden /> YouTube restricted mode for every device</p>
             <p className={TEXT_META}>Moderate hides most mature videos; strict hides more, and comments.</p>
           </div>
-          <Segmented ariaLabel="YouTube restricted mode" value={data.house.youtube} onChange={(v) => isAdmin && !busy && void save({ youtube: v })}
+          <Segmented ariaLabel="YouTube restricted mode for the house" value={data.house.youtube} onChange={(v) => isAdmin && !busy && void save({ youtube: v })}
             options={[{ value: 'off', label: 'Off', disabled: !isAdmin }, { value: 'moderate', label: 'Moderate', disabled: !isAdmin }, { value: 'strict', label: 'Strict', disabled: !isAdmin }]} />
         </div>
       </div>
     </Panel>
-  )
-}
-
-function GroupSheet({ group, categories, house, directory, taken, onClose, onSaved }: {
-  group: TechnitiumGroup | null
-  categories: TechnitiumCategory[]
-  house: TechnitiumHouse
-  directory: import('../../../shared/types').TechnitiumNetDevice[]
-  taken: string[]
-  onClose: () => void
-  onSaved: (msg: string, sync: { ok: boolean; message: string } | null) => Promise<void>
-}) {
-  const [g, setG] = useState<TechnitiumGroupInput>(() => group
-    ? { id: group.id, name: group.name, devices: group.devices.map((d) => ({ ...d })), lists: [...group.lists], bedtime: { ...group.bedtime } }
-    // a new group: the house's usual one (the boys: 21:00 to 07:00 every night)
-    : { name: '', devices: [], lists: ['adult', 'gambling', 'proxy-vpn'], bedtime: { enabled: true, from: '21:00', to: '07:00', days: [1, 2, 3, 4, 5, 6, 7] } })
-  const [ip, setIp] = useState('')
-  const [label, setLabel] = useState('')
-  const [find, setFind] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [err, setErr] = useState<string | null>(null)
-  const houseStrict = house.safe_search && house.youtube === 'strict'
-  const [alsoHouse, setAlsoHouse] = useState(!group && !houseStrict)
-  const set = (p: Partial<TechnitiumGroupInput>) => setG((x) => ({ ...x, ...p }))
-  const ipOk = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$|^[0-9a-f:]{2,39}(\/\d{1,3})?$/i.test(ip.trim())
-  const addDevice = (d: { ip: string; label: string; mac?: string | null; id?: string | null }) => {
-    if (g.devices.some((x) => x.ip === d.ip)) return
-    set({ devices: [...g.devices, d] }); setIp(''); setLabel('')
-  }
-  // the directory's devices that can join: not in this group, not in another one; busiest first
-  const pickable = useMemo(() => {
-    const needle = find.trim().toLowerCase()
-    return directory.filter((d) => d.ip && !d.hub && !g.devices.some((x) => x.ip === d.ip) && !taken.includes(d.ip!)
-      && (!needle || [d.nickname, d.hostname, d.ip, d.vendor].some((x) => x?.toLowerCase().includes(needle))))
-  }, [directory, g.devices, taken, find])
-  const dirOf = (ipAddr: string, id?: string | null) => directory.find((d) => (id && d.id === id) || d.ip === ipAddr)
-  const save = async () => {
-    setBusy(true); setErr(null)
-    try {
-      const r = await saveTechnitiumGroup({ ...g, name: g.name.trim() })
-      if (alsoHouse) await technitiumSafeSearch({ safe_search: true, youtube: 'strict' })
-      await onSaved(`${r.group.name} is saved${alsoHouse ? '; SafeSearch and YouTube strict are on for the house' : ''}`, r.sync)
-    } catch (e) { setErr(apiErrorMessage(e)) } finally { setBusy(false) }
-  }
-  return (
-    <Sheet title={group ? `Edit ${group.name}` : 'Add a group'} subtitle="Devices, what they cannot reach, and their bedtime" icon={<Users size={16} />} wide onClose={onClose} keepOnBackdrop
-      footer={<div className="flex gap-2">
-        <button type="button" className={BTN_SHEET_QUIET} onClick={onClose}>Cancel</button>
-        <button type="button" disabled={busy || !g.name.trim()} className={`${BTN_SHEET_PRIMARY} flex-1`} onClick={() => void save()}>{busy && <Loader2 size={16} className="animate-spin" />} Save</button>
-      </div>}>
-      <div className="space-y-5">
-        <div>
-          <label htmlFor="tg-name" className={LABEL}>Name</label>
-          <input id="tg-name" className={INPUT} value={g.name} maxLength={40} onChange={(e) => set({ name: e.target.value })} placeholder="Boys" />
-        </div>
-
-        <fieldset>
-          <legend className={LABEL}>Devices</legend>
-          {g.devices.length > 0 && (
-            <ul className="mb-2 space-y-1">
-              {g.devices.map((d, i) => (
-                <li key={d.ip} className="flex items-center gap-3">
-                  <DeviceIcon icon={dirOf(d.ip, d.id)?.icon ?? 'unknown'} guessed={!dirOf(d.ip, d.id) || dirOf(d.ip, d.id)!.icon_guessed} size="sm" />
-                  <input aria-label={`Label of ${d.ip}`} className={`${INPUT} flex-1`} value={d.label} maxLength={40} placeholder="Tablet, Switch…"
-                    onChange={(e) => set({ devices: g.devices.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)) })} />
-                  <span className="font-mono text-xs text-slate-400 w-32 max-sm:w-24 truncate">{d.ip}</span>
-                  <button type="button" className={`${BTN_ICON_SM} ${TAP} ${TONE_GHOST_DANGER}`} aria-label={`Remove ${d.label || d.ip}`} onClick={() => set({ devices: g.devices.filter((_, j) => j !== i) })}><X size={14} /></button>
-                </li>
-              ))}
-            </ul>
-          )}
-          {directory.length > 0 && (
-            <div className="mb-3 space-y-2">
-              <p className={HINT}>From the devices of the house:</p>
-              {directory.length > 12 && <SearchInput size="sm" value={find} onChange={setFind} placeholder="Find a device" label="Find a device to add" />}
-              <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto scrollbar-thin">
-                {pickable.slice(0, 40).map((d) => (
-                  <button key={d.id} type="button" className={`${CHOICE_SM} ${CHOICE_OFF} !h-auto py-1`} aria-label={`Add ${deviceName(d)} (${d.ip})`}
-                    onClick={() => addDevice({ ip: d.ip!, label: (d.nickname ?? deviceName(d)).slice(0, 40), mac: d.mac, id: d.id })}>
-                    <DeviceIcon icon={d.icon} guessed={d.icon_guessed} size="sm" /> <span className="truncate max-w-[10rem]">{deviceName(d)}</span> <span className="font-mono text-slate-500">{d.ip}</span>
-                  </button>
-                ))}
-                {pickable.length === 0 && <span className={TEXT_META}>{find ? 'No device matches.' : 'Every device is in a group already.'}</span>}
-              </div>
-            </div>
-          )}
-          <p className={HINT}>Or an address by hand (a device not seen yet, or a small network like 192.168.2.48/29):</p>
-          <div className="flex flex-wrap gap-2 mt-1">
-            <input aria-label="Device address" className={`${INPUT} font-mono flex-1 min-w-[10rem]`} value={ip} onChange={(e) => setIp(e.target.value)} placeholder="192.168.2.50" />
-            <input aria-label="Device label" className={`${INPUT} flex-1 min-w-[8rem]`} value={label} maxLength={40} onChange={(e) => setLabel(e.target.value)} placeholder="Label" />
-            <button type="button" className={BTN_CARD_QUIET} disabled={!ipOk || taken.includes(ip.trim())} onClick={() => addDevice({ ip: ip.trim(), label: label.trim() })}><Plus size={12} /> Add</button>
-          </div>
-          {taken.includes(ip.trim()) && <p className={`${HINT} text-rose-400`}>That device is in another group: a device is in one group at a time.</p>}
-          <p className={HINT}>A device picked from the list stays in the group when its address changes; pin its address (Devices tab) to keep the logs tidy.</p>
-        </fieldset>
-
-        <fieldset className="space-y-3">
-          <legend className={LABEL}>Blocked for this group</legend>
-          {categories.map((c) => (
-            <ToggleRow key={c.id} label={c.name} checked={g.lists.includes(c.id)} onChange={(v) => set({ lists: v ? [...g.lists, c.id] : g.lists.filter((x) => x !== c.id) })} />
-          ))}
-          <p className={HINT}>Hagezi's lists, on top of what the whole house blocks. There is no dating list to offer.</p>
-        </fieldset>
-
-        <fieldset className="space-y-3">
-          <legend className={LABEL}>Bedtime</legend>
-          <ToggleRow label="Bedtime" help="Every name stops answering for these devices (this server's own sites still work)." checked={g.bedtime.enabled} onChange={(v) => set({ bedtime: { ...g.bedtime, enabled: v } })} />
-          {g.bedtime.enabled && (
-            <>
-              <p className="text-sm text-slate-200 flex items-center gap-2" aria-live="polite">
-                <MoonStar size={14} className="text-slate-500 shrink-0" aria-hidden />
-                {g.bedtime.from} → {g.bedtime.to}, {g.bedtime.days.length ? daysLabel(g.bedtime.days) : 'no night picked'} <span className="text-slate-500">· {length(g.bedtime.from, g.bedtime.to)}</span>
-              </p>
-              <div className="flex flex-wrap items-end gap-3">
-                <div><label htmlFor="tg-from" className={LABEL}>From</label><input id="tg-from" type="time" className={INPUT} value={g.bedtime.from} onChange={(e) => set({ bedtime: { ...g.bedtime, from: e.target.value } })} /></div>
-                <div><label htmlFor="tg-to" className={LABEL}>Until</label><input id="tg-to" type="time" className={INPUT} value={g.bedtime.to} onChange={(e) => set({ bedtime: { ...g.bedtime, to: e.target.value } })} /></div>
-              </div>
-              <div role="group" aria-label="Quick nights" className="flex flex-wrap gap-1.5">
-                {NIGHTS.map((n) => {
-                  const on = [...g.bedtime.days].sort().join() === [...n.days].sort().join()
-                  return <button key={n.label} type="button" aria-pressed={on} className={`${CHOICE_SM} ${on ? CHOICE_ON : CHOICE_OFF}`} onClick={() => set({ bedtime: { ...g.bedtime, days: n.days } })}>{n.label}</button>
-                })}
-              </div>
-              <div role="group" aria-label="Nights" className="flex flex-wrap gap-1.5">
-                {DAYS.map((d, i) => {
-                  const on = g.bedtime.days.includes(i + 1)
-                  return <button key={d} type="button" aria-pressed={on} className={`${CHOICE_SM} ${on ? CHOICE_ON : CHOICE_OFF}`}
-                    onClick={() => set({ bedtime: { ...g.bedtime, days: on ? g.bedtime.days.filter((x) => x !== i + 1) : [...g.bedtime.days, i + 1] } })}>{d}</button>
-                })}
-              </div>
-              <p className={HINT}>The night it starts: a bedtime from 20:30 to 07:00 on Sunday ends on Monday morning. In the server's time.</p>
-            </>
-          )}
-        </fieldset>
-        {!group && !houseStrict && (
-          <ToggleRow label="Also for the whole house: SafeSearch on, YouTube strict" help="Technitium cannot do these per group: they apply to every device, grown-ups included." checked={alsoHouse} onChange={setAlsoHouse} />
-        )}
-        {err && <Notice tone="problem" role="alert">{err}</Notice>}
-      </div>
-    </Sheet>
   )
 }

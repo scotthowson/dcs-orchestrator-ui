@@ -42,7 +42,11 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const inst = (role, url, domain) => ({ role, url, configured: true, reachable: true, error: null, version: '15.6', domain, up_since: new Date(Date.now() - 3 * 86400e3).toISOString(),
   blocking: true, paused_until: null, forwarders: ['dns.quad9.net:853 (9.9.9.9)', 'dns.quad9.net:853 (149.112.112.112)', 'dns.mullvad.net:853 (194.242.2.2)'], forwarder_protocol: 'Tls', dnssec: true,
   block_lists: 3, list_update_hours: 24, lists_last_update: new Date(Date.now() - 5 * 3600e3).toISOString(), zones: 2, allowed: 1, blocked: 2, apps: { advanced_blocking: true, query_logs: true }, hash: 'abc' })
-const CATS = [{ id: 'adult', name: 'Adult content' }, { id: 'gambling', name: 'Gambling' }, { id: 'social', name: 'Social networks' }, { id: 'proxy-vpn', name: 'VPNs, proxies and other DNS' }, { id: 'nosafesearch', name: 'Search engines without SafeSearch' }]
+const CATS = [['adult', 'Adult content'], ['gambling', 'Gambling'], ['social', 'Social media'], ['video', 'Video and streaming'], ['games', 'Games'], ['chat', 'Chat'], ['shopping', 'Shopping'],
+  ['nosafesearch', 'Search engines without SafeSearch'], ['proxy-vpn', 'VPNs, proxies and other DNS'], ['piracy', 'Piracy']].map(([id, name]) => ({ id, name, description: `${name}: the lists and names`, sources: [], lists: 1, names: 0 }))
+const SITES = [['youtubekids', 'YouTube Kids'], ['pbskids', 'PBS Kids'], ['khan', 'Khan Academy Kids'], ['netflix', 'Netflix'], ['disney', 'Disney+'], ['roblox', 'Roblox']].map(([id, name]) => ({ id, name, description: name, domains: [`${id}.com`] }))
+const PRESETS = [{ id: 'homework', name: 'Homework', title: 'Homework: games and video blocked 16:00–18:00 Mon–Fri', enabled: false, from: '16:00', to: '18:00', days: [1, 2, 3, 4, 5], scope: 'categories', categories: ['games', 'video'] },
+  { id: 'no-internet', name: 'No internet', title: 'No internet 16:00–18:00 Mon–Fri', enabled: false, from: '16:00', to: '18:00', days: [1, 2, 3, 4, 5], scope: 'all', categories: [] }]
 const NOW = () => Math.round(Date.now() / 1000)
 const dev = (id, ip, mac, o = {}) => ({ id, ip, mac, mac_random: false, vendor: null, hostname: null, nickname: null, icon: 'unknown', icon_guessed: true, notes: null, static: false,
   reserved_ip: null, blocked_until: null, blocked: false, hub: false, first_seen: NOW() - 10 * 86400, last_seen: NOW() - 60, queries_today: 0, blocked_today: 0,
@@ -57,7 +61,8 @@ const SEED = () => [
   dev('28cdc1000070', '192.168.2.70', '28:cd:c1:00:00:70', { vendor: 'Raspberry Pi', hostname: 'pi-hole.home', icon: 'server', last_seen: NOW() - 12 * 86400 }),
 ]
 const fake = {
-  configured: true, paused: 0, house: { safe_search: false, youtube: 'off' }, groups: [], inBedtime: false, pausedBed: null, calls: [],
+  configured: true, paused: 0, house: { safe_search: false, youtube: 'off' }, groups: [], active: [], pausedBed: null, calls: [],
+  migration: { at: 1791799200, notes: ['SafeSearch on and YouTube strict were for the whole house: every group has them now, and the whole-house switch is off (devices in no group, yours, are not filtered any more).', 'Xbox moved from Boys to Consoles: the same bedtime, adult content and gambling blocked, no games block (Xbox Live and PlayStation Network must work).'] },
   enabled: true, devices: [], scope: null, leases: [], local: { routes: false }, alerts: [],
   localAnswer() {
     const hosts = this.local.routes ? ['jellyfin.example.org', 'vmapp.example.org'].map((host) => ({ host, ip: '192.168.2.233', instances: ['primary', 'secondary'] })) : []
@@ -85,7 +90,7 @@ const fake = {
       { url: `${hagezi}doh-onlydomains.txt`, entries: 400, last_updated: new Date(Date.now() - 5 * 3600e3).toISOString(), error: null }] })
     Object.assign(p, { update_available: false, update_version: null, lists: lists(true), dhcp: { enabled: true, leases: 41, pool_size: 89, pct: 46 } })
     Object.assign(s, { update_available: true, update_version: '15.7', lists: lists(false), dhcp: null })
-    return { configured: true, primary: p, secondary: s, alerts: this.alerts, in_sync: true, last_sync: { at: Date.now() / 1000, ok: true, message: 'The secondary has what the primary has' }, house: this.house, groups: this.groups.length, bedtime_active: this.inBedtime ? this.groups.map((g) => g.id) : [] }
+    return { configured: true, primary: p, secondary: s, alerts: this.alerts, in_sync: true, last_sync: { at: Date.now() / 1000, ok: true, message: 'The secondary has what the primary has' }, house: this.house, groups: this.groups.length, bedtime_active: [] }
   },
   stats() {
     const labels = [...Array(12)].map((_, i) => new Date(Date.now() - (11 - i) * 300e3).toISOString())
@@ -96,8 +101,14 @@ const fake = {
       top_blocked: [{ domain: 'ads.example.net', count: 40 }], query_types: [{ type: 'A', count: 900 }] }
   },
   groupsAnswer() {
-    return { house: this.house, groups: this.groups.map((g) => ({ ...g, in_bedtime: this.inBedtime && !this.pausedBed, bedtime_paused_until: this.pausedBed })), categories: CATS,
-      forced_names: { safe_search: ['duckduckgo.com', 'www.bing.com', 'www.duckduckgo.com', 'www.google.com'], youtube: ['www.youtube.com'] }, safe_search_scope: 'house', now: new Date().toISOString() }
+    const on = (g, w) => !this.pausedBed && w.enabled && this.active.includes(w.id)
+    return { house: this.house, migration: this.migration,
+      groups: this.groups.map((g) => ({ ...g, windows: g.windows.map((w) => ({ ...w, active: on(g, w), paused_until: null })), in_bedtime: g.windows.some((w) => on(g, w) && w.scope === 'all'),
+        paused_until: this.pausedBed, bedtime_paused_until: this.pausedBed })),
+      categories: CATS, allowlist_sites: SITES, essentials: { description: 'What an Android tablet needs', domains: ['connectivitycheck.gstatic.com', 'time.android.com'], subdomains: [] },
+      window_presets: PRESETS, allowlist_presets: [{ id: 'little-ones', name: 'Little ones', description: 'For the youngest', sites: SITES.map((x) => x.id) }],
+      forced_names: { safe_search: ['duckduckgo.com', 'www.bing.com', 'www.duckduckgo.com', 'www.google.com'], youtube: ['www.youtube.com'] }, safe_search_scope: 'group',
+      list_url: 'http://192.168.2.233:9876/dns/technitium/kids-lists/', now: new Date().toISOString() }
   },
   activity(q) {
     const e = [
@@ -178,11 +189,13 @@ const fake = {
     if (p === '/safesearch') { Object.assign(this.house, body); return { success: true, house: this.house, sync } }
     if (p === '/sync') return { success: true, message: sync.message }
     if (p === '/connect') { this.configured = true; return { success: true, role: body.role, url: body.url, connected: true, reachable: true, version: '15.6', domain: 'dns1', message: 'Connected to Technitium 15.6 (dns1)' } }
+    if (method === 'GET' && /^\/groups\/[^/]+\/report$/.test(p)) return { id: p.split('/')[2], name: 'Boys', range: 'lastDay', lookups: 1240, blocked: 86, top: [{ name: 'roblox.com', count: 300 }], top_blocked: [{ name: 'www.roblox.com', count: 60 }], by_category: [{ category: 'games', count: 60 }], devices: [] }
     if (method === 'POST' && p === '/groups') {
-      const g = { ...body, id: body.id || 'g1a2b3c4d' }
+      const g = { ...body, id: body.id || 'g1a2b3c4d', windows: body.windows.map((w, i) => ({ ...w, id: w.id || `w${i + 1}` })) }
       this.groups = this.groups.some((x) => x.id === g.id) ? this.groups.map((x) => (x.id === g.id ? g : x)) : [...this.groups, g]
       return { success: true, group: g, sync, warning: null }
     }
+    if (method === 'POST' && p.endsWith('/pause')) { this.pausedBed = body.minutes ? new Date(Date.now() + body.minutes * 60e3).toISOString() : null; return { success: true, paused_until: this.pausedBed, window: body.window ?? null, sync } }
     if (method === 'POST' && p.endsWith('/pause-bedtime')) { this.pausedBed = body.minutes ? new Date(Date.now() + body.minutes * 60e3).toISOString() : null; return { success: true, paused_until: this.pausedBed, sync } }
     if (method === 'DELETE' && p.startsWith('/groups/')) { this.groups = this.groups.filter((g) => `/groups/${g.id}` !== p); return { success: true, sync } }
     return null
@@ -269,6 +282,8 @@ async function shot(page, name) {
   await page.screenshot({ path: path.join(OUT, `${name}.png`) })
   if (h > vp.height) await page.setViewport(vp)
 }
+// whether the switch a label names is on
+const switchOn = (page, label, scope = 'body') => page.evaluate((label, scope) => { const l = [...document.querySelectorAll(`${scope} label`)].find((x) => x.innerText.trim() === label); return l ? !!document.getElementById(l.htmlFor)?.checked : null }, label, scope)
 async function typeInto(page, sel, value) { await page.click(sel, { clickCount: 3 }); await page.keyboard.press('Backspace'); await page.type(sel, value) }
 
 const browser = await puppeteer.launch({ executablePath: process.env.CHROME || '/usr/bin/google-chrome', headless: 'new', args: ['--no-sandbox', '--window-size=1440,1000'] })
@@ -387,41 +402,71 @@ try {
   check('dhcp: Resolve my routes locally: on', await waitFor(() => fake.calls.some((c) => c.method === 'POST' && c.p === '/local' && c.body.routes === true)) && await until(page, () => /Routes resolve here/.test(document.querySelector('main')?.innerText ?? '')))
   await shot(page, 'dhcp-local')
 
-  // kids: add, bedtime, pause, edit, delete
+  // kids: what the move did, add (SafeSearch and YouTube for the group, a homework window from its preset, a category, an extra), a window in force, pause, allow-list mode, edit, delete
   await clickText(page, 'Kids')
   check('kids: none yet', await until(page, () => /No groups yet/.test(document.querySelector('main')?.innerText ?? '')))
-  check('kids: SafeSearch says it is the whole house', /SafeSearch for the whole house/.test(await text(page)))
-  await clickText(page, 'Force SafeSearch')
-  check('kids: SafeSearch on', fake.calls.some((c) => c.p === '/safesearch' && c.body.safe_search === true))
+  check('kids: the move to per-group controls is said', /The kids' controls are per group now/.test(await text(page)) && /Xbox moved from Boys to Consoles/.test(await text(page)))
+  await clickText(page, 'Dismiss', 'main')
+  check('kids: …and dismissed', await until(page, () => !/per group now/.test(document.querySelector('main')?.innerText ?? '')))
+  check('kids: the whole-house switch is optional, and off', /SafeSearch for the whole house \(optional\)/.test(await text(page))
+    && await switchOn(page, 'Force SafeSearch for every device', 'main') === false)
   await clickText(page, 'Add group', 'main')
   check('kids: the sheet opens', await until(page, () => !!document.querySelector('[role="dialog"]')))
-  check('kids: a new group starts at 21:00–07:00 every night', await page.$eval('#tg-from', (e) => e.value) === '21:00' && /21:00 → 07:00, every night/.test(await bodyText(page)))
-  check('kids: …and offers SafeSearch and YouTube strict for the house', /Also for the whole house: SafeSearch on, YouTube strict/.test(await bodyText(page)))
+  const sheet = await bodyText(page)
+  check('kids: a new group: SafeSearch on, YouTube strict, bedtime 21:00–07:00 every day', /SafeSearch and YouTube/.test(sheet) && /Bedtime: 21:00–07:00, every day/.test(sheet)
+    && await switchOn(page, 'SafeSearch', '[role="dialog"]') === true && await switchOn(page, 'Allow-list mode', '[role="dialog"]') === false)
+  check('kids: …its sections', ['Devices', 'Allow-list mode', 'Blocked all day', 'Time windows', 'Exceptions'].every((x) => sheet.includes(x)))
   await page.type('#tg-name', 'Boys')
   await clickText(page, "Add Tom's tablet (192.168.2.50)", '[role="dialog"]')
   await page.type('[aria-label="Device address"]', '192.168.2.60'); await page.type('[aria-label="Device label"]', 'Switch')
   await clickText(page, 'Add', '[role="dialog"]')
-  await clickText(page, 'School nights (Sun–Thu)', '[role="dialog"]')
-  await clickText(page, 'Sat', '[role="dialog"]')
+  await clickText(page, 'Games', '[role="dialog"]')
+  await clickText(page, 'Homework: games and video blocked 16:00–18:00 Mon–Fri', '[role="dialog"]')
+  check('kids: the homework preset is added off', /Homework: 16:00–18:00, Mon–Fri/.test(await bodyText(page)) && /Blocks Games and Video and streaming · off/.test(await bodyText(page)))
+  await page.click('[aria-label="Homework on"]'); await sleep(300)
+  await page.type('#tg-blocked', 'CoolMathGames.com'); await page.keyboard.press('Enter'); await sleep(200)
   await shot(page, 'group-sheet')
   await clickText(page, 'Save', '[role="dialog"]')
   const saved = fake.calls.find((c) => c.p === '/groups' && c.method === 'POST')
-  check('kids: saved with its devices (the directory\'s id), lists and nights', saved && saved.body.name === 'Boys' && saved.body.devices.map((d) => d.ip).join() === '192.168.2.50,192.168.2.60'
-    && saved.body.devices[0].label === "Tom's tablet" && saved.body.devices[0].id === 'daa119000050' && saved.body.lists.includes('adult') && saved.body.bedtime.days.join() === '1,2,3,4,7,6'
-    && saved.body.bedtime.from === '21:00', JSON.stringify(saved?.body))
-  check('kids: …SafeSearch and YouTube strict for the house with it', fake.calls.some((c) => c.p === '/safesearch' && c.body.safe_search === true && c.body.youtube === 'strict'))
-  check('kids: the card names the devices', await until(page, () => /Boys/.test(document.querySelector('main')?.innerText ?? '') && /Switch/.test(document.querySelector('main')?.innerText ?? '') && /Tom's tablet/.test(document.querySelector('main')?.innerText ?? '')))
-  fake.inBedtime = true
+  const sb = saved?.body ?? {}
+  check('kids: saved with its devices (the directory\'s id), SafeSearch, YouTube, categories, windows, an extra', sb.name === 'Boys' && sb.devices.map((d) => d.ip).join() === '192.168.2.50,192.168.2.60'
+    && sb.devices[0].id === 'daa119000050' && sb.safe_search === true && sb.youtube === 'strict' && sb.categories.includes('games') && sb.mode === 'filter'
+    && sb.windows.length === 2 && sb.windows[1].enabled === true && sb.windows[1].scope === 'categories' && sb.windows[1].categories.join() === 'games,video' && sb.blocked.join() === 'coolmathgames.com', JSON.stringify(sb))
+  check('kids: no whole-house call with it', !fake.calls.some((c) => c.p === '/safesearch'))
+  check('kids: the card: devices, SafeSearch, YouTube, the windows', await until(page, () => { const t = document.querySelector('main')?.innerText ?? ''; return /Boys/.test(t) && /Switch/.test(t) && /Tom's tablet/.test(t) && /SafeSearch on/.test(t) && /YouTube strict/.test(t) && /Homework 16:00–18:00, Mon–Fri: Games and Video and streaming/.test(t) }))
+  check('kids: …today\'s lookups (the report)', await until(page, () => /Today: 1,240 lookups, 86 blocked, top: roblox\.com/.test(document.querySelector('main')?.innerText ?? '')) && fake.calls.some((c) => /\/groups\/g1a2b3c4d\/report/.test(c.p)))
+  fake.active = ['w2']
   await clickText(page, 'Refresh')
-  check('kids: "In bedtime now"', await until(page, () => /In bedtime now/.test(document.querySelector('main')?.innerText ?? ''), 35000))
-  await shot(page, 'kids-bedtime')
-  await clickText(page, 'Pause bedtime 30 min')
-  check('kids: bedtime paused 30 minutes', fake.calls.some((c) => c.p.endsWith('/pause-bedtime') && c.body.minutes === 30) && await until(page, () => /Bedtime paused until/.test(document.querySelector('main')?.innerText ?? '')))
+  check('kids: "Games and Video and streaming blocked until 18:00"', await until(page, () => /Games and Video and streaming blocked until 18:00/.test(document.querySelector('main')?.innerText ?? ''), 35000))
+  fake.active = ['w1', 'w2']
+  await clickText(page, 'Refresh')
+  check('kids: "Bedtime until 07:00" with it, a pause per window', await until(page, () => /Bedtime until 07:00/.test(document.querySelector('main')?.innerText ?? ''), 35000) && /Pause Homework 30 min/.test(await text(page)))
+  await page.setViewport({ width: 1280, height: 900 }); await sleep(500)
+  await clickText(page, 'Kids'); await until(page, () => /Boys/.test(document.querySelector('main')?.innerText ?? ''), 15000)
+  await shot(page, 'kids-active')
+  await page.setViewport({ width: 390, height: 844, isMobile: true }); await sleep(800)
+  await clickText(page, 'Kids'); await until(page, () => /Boys/.test(document.querySelector('main')?.innerText ?? ''), 15000)
+  check('kids: no sideways scroll on a phone', await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1))
+  await shot(page, 'kids-phone-dark')
+  await page.setViewport({ width: 1440, height: 1000 }); await sleep(800)
+  await clickText(page, 'Kids'); await until(page, () => /Boys/.test(document.querySelector('main')?.innerText ?? ''), 15000)
+  await until(page, () => /Pause 30 min/.test(document.querySelector('main')?.innerText ?? ''), 15000)
+  await clickText(page, 'Pause 30 min', 'main')
+  check('kids: paused 30 minutes', fake.calls.some((c) => c.p.endsWith('/pause') && c.body.minutes === 30 && !c.body.window) && await until(page, () => /Paused until/.test(document.querySelector('main')?.innerText ?? '')))
+  await clickText(page, 'End the pause', 'main')
+  check('kids: …the pause ended', fake.calls.some((c) => c.p.endsWith('/pause') && c.body.minutes === 0))
   await clickText(page, 'Edit Boys')
   await typeInto(page, '#tg-name', 'The boys')
+  await clickText(page, 'Allow-list mode', '[role="dialog"]')
+  check('kids: allow-list mode starts from Little ones (6 sites, each a switch)', await until(page, () => /YouTube Kids/.test(document.body.innerText) && /Use Little ones/.test(document.body.innerText))
+    && await switchOn(page, 'YouTube Kids') === true && await switchOn(page, 'Roblox') === true)
+  await clickText(page, 'Roblox', '[role="dialog"]')
+  await shot(page, 'group-sheet-allowlist')
   await clickText(page, 'Save', '[role="dialog"]')
   const edited = fake.calls.filter((c) => c.p === '/groups' && c.method === 'POST').pop()
-  check('kids: edited (same id)', edited?.body.id === 'g1a2b3c4d' && edited.body.name === 'The boys')
+  check('kids: edited (same id), allow-list with 5 sites', edited?.body.id === 'g1a2b3c4d' && edited.body.name === 'The boys' && edited.body.mode === 'allowlist' && edited.body.sites.length === 5 && !edited.body.sites.includes('roblox'), JSON.stringify(edited?.body))
+  check('kids: the card says Allow-list', await until(page, () => /Allow-list/.test(document.querySelector('main')?.innerText ?? '') && /PBS Kids/.test(document.querySelector('main')?.innerText ?? '')))
+  fake.active = []
   await clickText(page, 'Delete The boys')
   check('kids: delete asks first', await until(page, () => /Delete the group The boys\?/.test(document.body.innerText)))
   await clickText(page, 'Delete group')
@@ -571,6 +616,25 @@ try {
   await clickText(page, 'DHCP')
   await until(page, () => /Leases/.test(document.querySelector('main')?.innerText ?? ''))
   await shot(page, 'dhcp-light')
+  // the kids' cards in the light look, desktop and phone
+  fake.groups = [{ id: 'g7', name: 'Boys', devices: [{ ip: '192.168.2.50', label: "Tom's tablet", id: 'daa119000050' }], mode: 'filter', categories: ['adult', 'gambling', 'games'], safe_search: true, youtube: 'strict', allowed: [], blocked: [], sites: [],
+    windows: [{ id: 'w1', name: 'Bedtime', enabled: true, from: '21:00', to: '07:00', days: [1, 2, 3, 4, 5, 6, 7], scope: 'all', categories: [] }, { id: 'w2', name: 'Homework', enabled: true, from: '16:00', to: '18:00', days: [1, 2, 3, 4, 5], scope: 'categories', categories: ['games', 'video'] }] },
+    { id: 'g8', name: 'Little', devices: [{ ip: '192.168.2.61', label: 'Tablet 5' }], mode: 'allowlist', categories: [], safe_search: true, youtube: 'strict', allowed: [], blocked: [], sites: ['youtubekids', 'pbskids', 'netflix'], windows: [] }]
+  fake.active = ['w2']; fake.pausedBed = null
+  await clickText(page, 'Kids')
+  await until(page, () => /Games and Video and streaming blocked until 18:00/.test(document.querySelector('main')?.innerText ?? ''), 35000)
+  await page.setViewport({ width: 1280, height: 900 }); await sleep(600)
+  await clickText(page, 'Kids'); await until(page, () => /Boys/.test(document.querySelector('main')?.innerText ?? ''), 15000)
+  await shot(page, 'kids-light')
+  await page.setViewport({ width: 390, height: 844, isMobile: true }); await sleep(800)
+  await clickText(page, 'Kids'); await until(page, () => /Boys/.test(document.querySelector('main')?.innerText ?? ''), 15000)
+  check('kids: light, phone: no sideways scroll', await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1))
+  await shot(page, 'kids-phone-light')
+  await clickText(page, 'Edit Boys'); await sleep(600)
+  await shot(page, 'group-sheet-phone-light')
+  await page.keyboard.press('Escape'); await sleep(300)
+  await page.setViewport({ width: 1440, height: 1000 }); await sleep(600)
+  fake.groups = []; fake.active = []
   await openPage(page, ADMIN, { lastPage: 'dns' })
   await until(page, () => /LAN 192\.168\.2\.233/.test(document.querySelector('main')?.innerText ?? '') && /Inside the house/.test(document.querySelector('main')?.innerText ?? ''), 20000); await sleep(1500)
   // the account's look may have come back with the sign-in: Ctrl+D again until it is light
@@ -584,7 +648,8 @@ try {
   if (VIEWER.user) {
     console.log('Viewer')
     fake.local.routes = true
-    fake.calls = []; fake.groups = [{ id: 'g9', name: 'Girls', devices: [{ ip: '192.168.2.70', label: 'Tablet' }], lists: ['adult'], bedtime: { enabled: true, from: '20:00', to: '07:00', days: [1, 2, 3, 4, 5, 6, 7] } }]
+    fake.calls = []; fake.groups = [{ id: 'g9', name: 'Girls', devices: [{ ip: '192.168.2.70', label: 'Tablet' }], mode: 'filter', categories: ['adult'], safe_search: true, youtube: 'strict', allowed: [], blocked: [], sites: [],
+      windows: [{ id: 'bedtime', name: 'Bedtime', enabled: true, from: '20:00', to: '07:00', days: [1, 2, 3, 4, 5, 6, 7], scope: 'all', categories: [] }] }]; fake.active = ['bedtime']
     page = await browser.newPage()
     await page.setViewport({ width: 390, height: 844, isMobile: true })
     const statuses = []
@@ -602,6 +667,7 @@ try {
     await clickText(page, 'Kids')
     check('viewer: the groups, read-only', await until(page, () => /Girls/.test(document.querySelector('main')?.innerText ?? '')) && !/Add group/.test(await text(page)) && !(await page.$('[aria-label="Edit Girls"]')))
     check('viewer: the switches are off limits', await page.evaluate(() => [...document.querySelectorAll('main input[role="switch"], main [role="switch"]')].every((e) => e.disabled || e.getAttribute('aria-disabled') === 'true' || e.closest('[data-disabled]'))))
+    check('viewer: the group\'s state, no report asked', /Bedtime until 07:00/.test(await text(page)) && !fake.calls.some((c) => /\/report/.test(c.p)) && !/Pause 30 min/.test(await text(page)))
     await shot(page, 'kids-viewer-phone')
     await clickText(page, 'Devices')
     check('viewer: the devices as cards on a phone, read-only', await until(page, () => document.querySelectorAll('main ul.md\\:hidden > li').length === 6) && !/Scan the network/.test(await text(page)) && !(await page.$('[aria-label^="Rename"]')) && !(await page.$('[aria-label$="Change it"]')))
