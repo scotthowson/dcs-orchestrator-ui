@@ -5392,6 +5392,9 @@ export interface VpnAttached {
   running: boolean
   qbittorrent: boolean
   leak_test: VpnLeakResult & { at: number } | null
+  /** 4.0.55: stopped while the tunnel is down (after 2 minutes), started again when it is back */
+  stop_when_down?: boolean
+  restart_when_up?: boolean
 }
 export interface VpnAlert { key: string; event: 'vpn_down' | 'vpn_leak'; headline: string; message: string; since: number }
 export interface VpnWireguardClients { on: boolean; container?: string | null; subnet?: string; wg_ip?: string; gluetun_ip?: string; network?: string; applied_at?: number }
@@ -5426,6 +5429,41 @@ export interface VpnStatus {
   region: string | null
   city: string | null
   forwarded_port: number | null
+  /** 4.0.55: how long the tunnel has been up (null when it is not) */
+  session_s?: number | null
+  /** the current region's connect time when it was last measured */
+  server_latency_ms?: number | null
+  last_speed_test?: VpnSpeedTest | null
+  last_leak_test?: { at: number; by: string; tested: number; leaks: number; results: VpnLeakResult[] } | null
 }
-export interface VpnRegion { id: string; name: string; country: string; geo: boolean }
+export interface VpnRegion { id: string; name: string; country: string; geo: boolean; latency_ms?: number | null }
+export interface VpnSpeedTest { at?: number; bytes: number; seconds: number; mbps: number; latency_ms: number | null; host: string }
+export interface VpnBytes { rx: number; tx: number }
+/** GET /vpn/traffic (every account): rx = down, tx = up, in bytes */
+export interface VpnTraffic {
+  measured: boolean
+  interface: string | null
+  updated_at: number | null
+  live: { rx_bps: number; tx_bps: number; window_s: number } | null
+  totals: { today: VpnBytes; month: VpnBytes; last_24h: VpnBytes }
+  /** [start, rx, tx] per 5 minutes over 24 h */
+  per_5min: [number, number, number][]
+  hourly: [number, number, number][]
+  daily: [string, number, number][]
+  uptime: { last_24h: number | null; last_30d: number | null }
+  containers: { container: string; today: VpnBytes; month: VpnBytes; last_24h: VpnBytes; share: number | null; measured: boolean }[]
+  wireguard_clients: { today: VpnBytes; month: VpnBytes; last_24h: VpnBytes } | null
+  counting_error: string | null
+}
+export interface VpnEvent { t: number; kind: string; message: string; reason?: string | null; port?: number; down_s?: number; mbps?: number; latency_ms?: number | null; container?: string; leaks?: number }
+/** GET /vpn/history (every account) */
+export interface VpnHistory {
+  events: VpnEvent[]
+  uptime: { last_24h: number | null; last_30d: number | null }
+  session: { up: boolean; since: number | null; length_s: number | null; paused?: boolean }
+  reconnects_24h: number
+  ports: { port: number; from: number; to: number | null }[]
+  last_leak_test: VpnStatus['last_leak_test']
+  speed_tests: (VpnSpeedTest & { t: number })[]
+}
 export interface VpnLeakResult { container: string; ip: string | null; verdict: 'tunnel' | 'leak' | 'offline' | 'unknown' }
