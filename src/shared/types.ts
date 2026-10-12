@@ -3401,6 +3401,8 @@ export interface CrowdSecStatusResponse {
   enforcement?: CrowdSecEnforcement
   /** Push bans to Cloudflare, in brief (absent on a server before it) */
   cloudflare?: CloudflareBouncerBrief
+  /** CrowdSec found not running (raised once, cleared when it runs again; absent before 4.0.52). since: epoch seconds */
+  down_alert?: { since: number; reason: string; message: string } | null
 }
 
 /** What Traefik's own files say about the CrowdSec bouncer plugin */

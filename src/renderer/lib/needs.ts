@@ -5,7 +5,7 @@
 // =============================================================================
 
 import { pageLabel } from '../constants/pageTitles'
-import type { BackupStatusResponse, CloudflareBouncerBrief, CrowdSecCommunityResponse, DiskInfo, HealthReport, ImageCheckResponse, OsUpdatesInfo, OsUpdatesResponse, PageId, StackInfo, TechnitiumAlert, TechnitiumStatus } from '../../shared/types'
+import type { BackupStatusResponse, CloudflareBouncerBrief, CrowdSecCommunityResponse, CrowdSecStatusResponse, DiskInfo, HealthReport, ImageCheckResponse, OsUpdatesInfo, OsUpdatesResponse, PageId, StackInfo, TechnitiumAlert, TechnitiumStatus } from '../../shared/types'
 import { containerState, isAsleep } from './containerState'
 
 export type Severity = 'problem' | 'attention'
@@ -21,7 +21,7 @@ export interface NeedItem {
   /** what makes it a new item when it changes: a hidden item comes back when this differs */
   fingerprint: string
   /** a one-click fix the card offers an admin (the server it runs on: null = this one) */
-  fix?: { kind: 'sablier-repair' | 'sablier-start' | 'technitium-sync' | 'technitium-lists'; label: string; member: string | null }
+  fix?: { kind: 'sablier-repair' | 'sablier-start' | 'technitium-sync' | 'technitium-lists' | 'crowdsec-start'; label: string; member: string | null }
 }
 
 const BACKUP_STALE_DAYS = 7
@@ -56,6 +56,8 @@ export function collectNeeds(input: {
   crowdsecCommunity?: CrowdSecCommunityResponse | null
   /** Push bans to Cloudflare, from /crowdsec/status (admins only) */
   cloudflare?: CloudflareBouncerBrief | null
+  /** CrowdSec found not running, from /crowdsec/status (everyone: only an admin gets the Start button) */
+  crowdsecDown?: CrowdSecStatusResponse['down_alert']
   /** Technitium's status while it is on in Config: the alerts the server keeps */
   technitium?: TechnitiumStatus | null
   now?: number
@@ -171,6 +173,15 @@ export function collectNeeds(input: {
   }
 
   out.push(...osUpdateNeeds(input.osUpdates ?? null, now))
+
+  // CrowdSec is not running: with the bouncer in live mode every site answers 403 (the server raises it once and clears it)
+  const down = input.crowdsecDown
+  if (down) {
+    const r = down.reason.length > 200 ? `${down.reason.slice(0, 199).trimEnd()}…` : down.reason.replace(/\.$/, '')
+    out.push({ key: 'crowdsec-down', severity: 'problem', title: 'CrowdSec is not running',
+      detail: `${r[0]?.toUpperCase() ?? ''}${r.slice(1)}. With the Traefik bouncer in live mode every visitor gets 403 until it is back.`,
+      page: 'crowdsec', fingerprint: String(down.since), fix: { kind: 'crowdsec-start', label: 'Start CrowdSec', member: null } })
+  }
 
   // the central API has refused this engine's login for hours: the community blocklist goes stale until it registers again (one
   // click on the page). A pause (too many logins, lifts by itself) is not a problem and is left out: registering during a pause

@@ -15,13 +15,13 @@ import { useMemo, useState } from 'react'
 import { CheckCircle2, ChevronRight, EyeOff, Loader2, Wrench } from 'lucide-react'
 import { useAuthStore } from '../../stores/authStore'
 import { useToast } from '../common/Toast'
-import { repairOnDemand, startContainer, technitiumSync, updateTechnitiumLists } from '../../api/endpoints'
+import { crowdsecService, repairOnDemand, startContainer, technitiumSync, updateTechnitiumLists } from '../../api/endpoints'
 import { useHealthStore } from '../../stores/healthStore'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { useConnectionStore } from '../../stores/connectionStore'
 import { pageLabel } from '../../constants/pageTitles'
 import { ADMIN_ONLY_PAGES, type PageId } from '../../../shared/types'
-import type { BackupStatusResponse, CloudflareBouncerBrief, CrowdSecCommunityResponse, DiskInfo, ImageCheckResponse, OsUpdatesResponse, StackInfo, TechnitiumStatus } from '../../../shared/types'
+import type { BackupStatusResponse, CloudflareBouncerBrief, CrowdSecCommunityResponse, CrowdSecStatusResponse, DiskInfo, ImageCheckResponse, OsUpdatesResponse, StackInfo, TechnitiumStatus } from '../../../shared/types'
 import { collectNeeds, plural, type NeedItem } from '../../lib/needs'
 import { Card, CardOffline } from './cardShared'
 import { Skeleton } from '../common/PageState'
@@ -50,11 +50,13 @@ interface Props {
   crowdsecCommunity?: CrowdSecCommunityResponse | null
   /** Push bans to Cloudflare, from the CrowdSec status the dashboard polls (its rule is for admins: they turn it on and fix it) */
   cloudflare?: CloudflareBouncerBrief | null
+  /** CrowdSec found not running, from the same status (everyone sees it; the Start button is an admin's) */
+  crowdsecDown?: CrowdSecStatusResponse['down_alert']
   /** Technitium's status (while it is on): its alerts in force */
   technitium?: TechnitiumStatus | null
 }
 
-export default function NeedsYouCard({ stacks, stacksError, images, backup, disks, osUpdates, crowdsecCommunity, cloudflare, technitium }: Props) {
+export default function NeedsYouCard({ stacks, stacksError, images, backup, disks, osUpdates, crowdsecCommunity, cloudflare, crowdsecDown, technitium }: Props) {
   const health = useHealthStore((s) => s.report)
   // the DCS update count is what an admin's check found (kept on this device): no item for anyone else, who cannot install it
   const isAdmin = useAuthStore((s) => s.userRole) === 'admin'
@@ -77,6 +79,9 @@ export default function NeedsYouCard({ stacks, stacksError, images, backup, disk
       } else if (i.fix.kind === 'technitium-lists') {
         const res = await updateTechnitiumLists()
         addToast({ type: 'success', message: res.message })
+      } else if (i.fix.kind === 'crowdsec-start') {
+        const res = await crowdsecService('start')
+        addToast({ type: res.success === false ? 'warning' : 'success', message: res.message || 'CrowdSec is starting', duration: 8000 })
       } else if (i.fix.kind === 'sablier-start' && !i.fix.member) {
         await startContainer('Sablier')
         addToast({ type: 'success', message: 'Sablier is starting: what is asleep can wake again' })
@@ -93,7 +98,7 @@ export default function NeedsYouCard({ stacks, stacksError, images, backup, disk
   const cs = isAdmin ? crowdsecCommunity ?? null : null
   const cf = isAdmin ? cloudflare ?? null : null
   const tt = technitium ?? null
-  const items = useMemo(() => collectNeeds({ stacks, health, images, backup, disks, dcsUpdates, osUpdates: os, crowdsecCommunity: cs, cloudflare: cf, technitium: tt }), [stacks, health, images, backup, disks, dcsUpdates, os, cs, cf, tt])
+  const items = useMemo(() => collectNeeds({ stacks, health, images, backup, disks, dcsUpdates, osUpdates: os, crowdsecCommunity: cs, cloudflare: cf, crowdsecDown, technitium: tt }), [stacks, health, images, backup, disks, dcsUpdates, os, cs, cf, crowdsecDown, tt])
   // a viewer is never sent to an admin's page (it bounces back to the dashboard): the page they may open, or none
   const shown = items.filter((i) => hidden[i.key] !== i.fingerprint)
     .map((i) => ({ ...i, to: isAdmin || !ADMIN_ONLY_PAGES.has(i.page) ? i.page : VIEWER_PAGE[i.page] }))
