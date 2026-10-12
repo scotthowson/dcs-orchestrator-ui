@@ -3,7 +3,7 @@
 // =============================================================================
 
 import { apiClient } from './client'
-import type { TechnitiumStatus, TechnitiumStats, TechnitiumRange, TechnitiumActivity, TechnitiumLists, TechnitiumGroups, TechnitiumGroup, TechnitiumGroupInput, TechnitiumGroupReport, TechnitiumHouse, TechnitiumSyncResult, TechnitiumConnectResult, TechnitiumBootstrapResult, TechnitiumRole, TechnitiumDevices, TechnitiumScan, TechnitiumNetDevice, TechnitiumDeviceChange, TechnitiumDhcp, TechnitiumScopeInput, TechnitiumLocal, TechnitiumBackups, VpnStatus, VpnRegion, VpnLeakResult } from '../../shared/types'
+import type { TechnitiumStatus, TechnitiumStats, TechnitiumRange, TechnitiumActivity, TechnitiumLists, TechnitiumGroups, TechnitiumGroup, TechnitiumGroupInput, TechnitiumGroupReport, TechnitiumHouse, TechnitiumHouseInput, TechnitiumSyncResult, TechnitiumConnectResult, TechnitiumBootstrapResult, TechnitiumRole, TechnitiumDevices, TechnitiumScan, TechnitiumNetDevice, TechnitiumDeviceChange, TechnitiumDhcp, TechnitiumScopeInput, TechnitiumLocal, TechnitiumBackups, VpnStatus, VpnRegion, VpnLeakResult } from '../../shared/types'
 import type {
   FleetVersions,
   FleetUpdateResponse,
@@ -2136,6 +2136,30 @@ export function pauseTechnitiumGroup(id: string, minutes = 30, window?: string):
   return apiClient.post(`/dns/technitium/groups/${encodeURIComponent(id)}/pause`, window ? { minutes, window } : { minutes }, 60000)
 }
 /** GET /dns/technitium/groups/{id}/report (admin) — what the group's devices looked up */
+export function cloneTechnitiumGroup(id: string, name?: string): Promise<TtSync & { group: TechnitiumGroup }> {
+  return apiClient.post(`/dns/technitium/groups/${encodeURIComponent(id)}/clone`, name ? { name } : {}, 60000)
+}
+
+/** the house's rules (the fields sent change, the others stay) */
+export function saveTechnitiumHouse(house: Partial<TechnitiumHouseInput>): Promise<TtSync & { house: TechnitiumHouse; warning: string | null }> {
+  return apiClient.post('/dns/technitium/house', house, 60000)
+}
+
+/** every kids' rule off for everyone for a while (0 ends it) */
+export function pauseTechnitiumHouse(minutes = 30): Promise<TtSync & { paused_until: string | null }> {
+  return apiClient.post('/dns/technitium/house/pause', { minutes }, 60000)
+}
+
+/** every group's bedtime in force now until its usual end; cancel undoes it */
+export function technitiumBedtimeNow(cancel = false): Promise<TtSync & { forced: { owner: string; window: string; until: string }[] }> {
+  return apiClient.post('/dns/technitium/house/bedtime', cancel ? { cancel: true } : {}, 60000)
+}
+
+/** a site allowed for a while, for one device or the whole house; remove ends it */
+export function allowTechnitiumFor(name: string, opts: { device_id?: string; minutes?: number; remove?: boolean } = {}): Promise<TtSync & { name: string; device: string | null; until: string | null }> {
+  return apiClient.post('/dns/technitium/house/allow', { name, ...opts }, 60000)
+}
+
 export function fetchTechnitiumGroupReport(id: string, range: 'lastDay' | 'lastWeek' = 'lastDay'): Promise<TechnitiumGroupReport> {
   return apiClient.get<TechnitiumGroupReport>(`/dns/technitium/groups/${encodeURIComponent(id)}/report?range=${range}`)
 }

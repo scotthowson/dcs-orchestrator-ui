@@ -5055,7 +5055,10 @@ export interface DnsRecordInput {
 // ---------------------------------------------------------------------------
 
 export type TechnitiumRole = 'primary' | 'secondary'
-export type TechnitiumYoutube = 'off' | 'moderate' | 'strict'
+/** off < moderate < strict (restricted mode) < kids_only (YouTube blocked, YouTube Kids works) < blocked (every YouTube name) */
+export type TechnitiumYoutube = 'off' | 'moderate' | 'strict' | 'kids_only' | 'blocked'
+export type TechnitiumGroupColor = 'blue' | 'green' | 'orange' | 'purple' | 'pink' | 'teal' | 'red' | 'yellow' | 'gray'
+export type TechnitiumGroupIcon = 'users' | 'baby' | 'child' | 'teen' | 'gamepad' | 'tv' | 'school' | 'moon' | 'star' | 'heart' | 'rocket' | 'house'
 /** one server as GET /dns/technitium/status sees it (the details only when it answered) */
 export interface TechnitiumInstance {
   role: TechnitiumRole
@@ -5119,7 +5122,23 @@ export interface TechnitiumBackups {
   nightly_hour: number | null
   last_nightly: { day: string; done?: boolean; at?: number; files?: string[]; tries?: number; errors?: { server: TechnitiumRole; error: string }[] } | null
 }
-export interface TechnitiumHouse { safe_search: boolean; youtube: TechnitiumYoutube }
+/** the house's rules: a group's (filter mode) for every device that follows the house; GET adds what is in force */
+export interface TechnitiumHouse {
+  safe_search: boolean
+  youtube: TechnitiumYoutube
+  categories?: string[]
+  windows?: TechnitiumWindow[]
+  allowed?: string[]
+  blocked?: string[]
+  /** GET /dns/technitium/groups: anything set */
+  on?: boolean
+  active?: TechnitiumGroupActive | null
+  in_bedtime?: boolean
+  paused_until?: string | null
+  /** the devices that do not follow the house */
+  exempt?: { id: string; ip: string | null; name: string }[]
+}
+export type TechnitiumHouseInput = Pick<Required<TechnitiumHouse>, 'safe_search' | 'youtube' | 'categories' | 'windows' | 'allowed' | 'blocked'>
 export interface TechnitiumSyncResult { ok: boolean; message: string }
 /** GET /dns/technitium/status */
 export interface TechnitiumStatus {
@@ -5180,12 +5199,17 @@ export interface TechnitiumWindow {
   days: number[]
   scope: 'all' | 'categories'
   categories: string[]
-  /** GET: in force now, and until when it is paused */
+  /** its own YouTube while it is in force (only ever stricter than the group's) */
+  youtube?: Exclude<TechnitiumYoutube, 'off'> | null
+  /** instead of from/to/days: 7 days from Monday × 24 hours, in force where true */
+  grid?: boolean[][] | null
+  /** GET: in force now, until when it is paused, until when Bedtime now holds it */
   active?: boolean
   paused_until?: string | null
+  forced_until?: string | null
 }
 /** what is in force for a group now */
-export interface TechnitiumGroupActive { ids: string[]; names: string[]; all: boolean; categories: string[]; ends: Record<string, string> }
+export interface TechnitiumGroupActive { ids: string[]; names: string[]; all: boolean; categories: string[]; youtube?: string[]; ends: Record<string, string> }
 export interface TechnitiumGroup {
   id: string
   name: string
@@ -5201,13 +5225,15 @@ export interface TechnitiumGroup {
   blocked: string[]
   /** allow-list mode: the sites allowed */
   sites: string[]
+  color?: TechnitiumGroupColor | null
+  icon?: TechnitiumGroupIcon | null
   active?: TechnitiumGroupActive | null
   in_bedtime?: boolean
   /** the whole group paused until then */
   paused_until?: string | null
   bedtime_paused_until?: string | null
 }
-export type TechnitiumGroupInput = Pick<TechnitiumGroup, 'name' | 'devices' | 'mode' | 'categories' | 'safe_search' | 'youtube' | 'windows' | 'allowed' | 'blocked' | 'sites'> & { id?: string }
+export type TechnitiumGroupInput = Pick<TechnitiumGroup, 'name' | 'devices' | 'mode' | 'categories' | 'safe_search' | 'youtube' | 'windows' | 'allowed' | 'blocked' | 'sites' | 'color' | 'icon'> & { id?: string }
 /** a site an allow-list group can have */
 export interface TechnitiumSite { id: string; name: string; description: string; domains: string[] }
 export interface TechnitiumWindowPreset extends TechnitiumWindow { id: string; title: string }
@@ -5227,6 +5253,13 @@ export interface TechnitiumGroups {
   /** what the move to these controls did (once) */
   migration: { at: number; notes: string[] } | null
   now: string
+  /** the quick actions in force: the house paused, Bedtime now, the exceptions for a while */
+  house_paused_until?: string | null
+  bedtime_now?: { owner: string; name: string; window: string; until: string }[]
+  temp_allows?: { name: string; device: string | null; label: string | null; until: string; by: string }[]
+  youtube_modes?: TechnitiumYoutube[]
+  group_colors?: TechnitiumGroupColor[]
+  group_icons?: TechnitiumGroupIcon[]
 }
 export interface TechnitiumCount { name: string; count: number }
 /** GET /dns/technitium/groups/{id}/report (admin) */
@@ -5275,7 +5308,19 @@ export interface TechnitiumNetDevice {
   home_name?: string | null
   /** false: its nickname is not a name (the drawer's "Also answer" switch); on by default */
   home_answer?: boolean
+  group_color?: TechnitiumGroupColor | null
+  group_icon?: TechnitiumGroupIcon | null
+  /** true: the house's rules do not apply to it (its group's still do) */
+  house_exempt?: boolean
+  /** its own exceptions (win over the house and its group) and its own blocked names */
+  allowed?: string[]
+  blocked_names?: string[]
+  /** its own extra categories, YouTube and window, on top of its group's */
+  override?: TechnitiumDeviceOverride | null
+  /** it has rules of its own (a group of its own in Technitium) */
+  own_rules?: boolean
 }
+export interface TechnitiumDeviceOverride { categories: string[]; youtube: Exclude<TechnitiumYoutube, 'off'> | null; window: TechnitiumWindow | null }
 export interface TechnitiumScan {
   at: number; found: number; new: number; devices: number; swept: boolean; named_by_dhcp: number
   sources: Partial<Record<TechnitiumSource, number>>; errors: string[]
@@ -5287,9 +5332,11 @@ export interface TechnitiumDevices {
   last_scan: TechnitiumScan | null
   dhcp: { serving: boolean; at: number } | null
   icons: TechnitiumIcon[]
+  /** the house has rules (a device in no group gets them) */
+  house_on?: boolean
   now: number
 }
-export interface TechnitiumDeviceChange { nickname?: string | null; icon?: TechnitiumIcon; notes?: string | null; group_id?: string | null; static?: boolean; blocked_until?: number | null; home_answer?: boolean }
+export interface TechnitiumDeviceChange { nickname?: string | null; icon?: TechnitiumIcon; notes?: string | null; group_id?: string | null; static?: boolean; blocked_until?: number | null; home_answer?: boolean; house_exempt?: boolean; allowed?: string[]; blocked_names?: string[]; override?: TechnitiumDeviceOverride | null }
 export interface TechnitiumDhcpScope {
   name: string; enabled: boolean; start: string; end: string; mask: string; network: string; broadcast: string; router: string | null
   dns: string[]; domain: string; lease_hours: number; exclusions: { startingAddress: string; endingAddress: string }[]; ping_check: boolean

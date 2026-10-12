@@ -14,7 +14,10 @@
 // technitium_enabled from the fake (the lab's own .env keeps Technitium off). The safety net: each blocklist's health and
 // Update lists now (Lists), the update notice with its command, the backups with Back up now and a restore that asks first
 // (Servers), the alerts in "Needs your attention" with their fix, the dashboard's Technitium tile (and none while it is
-// off), a link to a tab (#/technitium/devices). Screenshots land in OUT.
+// off), a link to a tab (#/technitium/devices). The house: its rules (the same sheet, no name or devices), the quick
+// actions (pause the house, Bedtime now and their undo, an exception for an hour from the Activity tab and its end), a
+// device left out of the house and its own rules (the drawer), YouTube's five settings and a window's own, the week grid
+// painted with the mouse, a group's colour and icon, clone. Screenshots land in OUT.
 //
 //   PUPPETEER_DIR=/tmp/dcs-ui-sweep UI=http://localhost:3021 API=http://127.0.0.1:41921 \
 //     VIEWER_USER=… VIEWER_PASS=… node tests/technitium.mjs
@@ -61,7 +64,8 @@ const SEED = () => [
   dev('28cdc1000070', '192.168.2.70', '28:cd:c1:00:00:70', { vendor: 'Raspberry Pi', hostname: 'pi-hole.home', icon: 'server', last_seen: NOW() - 12 * 86400 }),
 ]
 const fake = {
-  configured: true, paused: 0, house: { safe_search: false, youtube: 'off' }, groups: [], active: [], pausedBed: null, calls: [],
+  configured: true, paused: 0, house: { safe_search: false, youtube: 'off', categories: [], windows: [], allowed: [], blocked: [] }, groups: [], active: [], pausedBed: null, calls: [],
+  housePaused: null, bedtimeNow: [], tempAllows: [],
   migration: { at: 1791799200, notes: ['SafeSearch on and YouTube strict were for the whole house: every group has them now, and the whole-house switch is off (devices in no group, yours, are not filtered any more).', 'Xbox moved from Boys to Consoles: the same bedtime, adult content and gambling blocked, no games block (Xbox Live and PlayStation Network must work).'] },
   enabled: true, devices: [], scope: null, leases: [], local: { routes: false }, alerts: [],
   localAnswer() {
@@ -102,7 +106,13 @@ const fake = {
   },
   groupsAnswer() {
     const on = (g, w) => !this.pausedBed && w.enabled && this.active.includes(w.id)
-    return { house: this.house, migration: this.migration,
+    const h = this.house
+    const exempt = this.devices.filter((d) => d.house_exempt).map((d) => ({ id: d.id, ip: d.ip, name: d.nickname ?? d.hostname ?? d.ip }))
+    return { house: { ...h, on: h.categories.length > 0 || h.safe_search || h.youtube !== 'off' || h.blocked.length > 0 || h.windows.some((w) => w.enabled), active: null, in_bedtime: false, paused_until: null, exempt },
+      house_paused_until: this.housePaused, bedtime_now: this.bedtimeNow, temp_allows: this.tempAllows,
+      youtube_modes: ['off', 'moderate', 'strict', 'kids_only', 'blocked'], group_colors: ['blue', 'green', 'orange', 'purple', 'pink', 'teal', 'red', 'yellow', 'gray'],
+      group_icons: ['users', 'baby', 'child', 'teen', 'gamepad', 'tv', 'school', 'moon', 'star', 'heart', 'rocket', 'house'],
+      migration: this.migration,
       groups: this.groups.map((g) => ({ ...g, windows: g.windows.map((w) => ({ ...w, active: on(g, w), paused_until: null })), in_bedtime: g.windows.some((w) => on(g, w) && w.scope === 'all'),
         paused_until: this.pausedBed, bedtime_paused_until: this.pausedBed })),
       categories: CATS, allowlist_sites: SITES, essentials: { description: 'What an Android tablet needs', domains: ['connectivitycheck.gstatic.com', 'time.android.com'], subdomains: [] },
@@ -120,7 +130,9 @@ const fake = {
   },
   withGroups(d) {
     const g = this.groups.find((x) => x.devices.some((y) => y.id === d.id || y.ip === d.ip))
-    return { ...d, group_id: g?.id ?? null, group_name: g?.name ?? null, blocked: (d.blocked_until ?? 0) > NOW(), home_name: d.nickname && d.home_answer !== false ? `${slug(d.nickname)}.home` : null }
+    const own = (d.allowed ?? []).length > 0 || (d.blocked_names ?? []).length > 0 || !!d.override
+    return { ...d, group_id: g?.id ?? null, group_name: g?.name ?? null, group_color: g?.color ?? null, group_icon: g?.icon ?? null, blocked: (d.blocked_until ?? 0) > NOW(),
+      home_name: d.nickname && d.home_answer !== false ? `${slug(d.nickname)}.home` : null, house_exempt: !!d.house_exempt, allowed: d.allowed ?? [], blocked_names: d.blocked_names ?? [], override: d.override ?? null, own_rules: own }
   },
   dhcpAnswer() {
     const sc = this.scope ? [{ name: 'LAN', enabled: this.scope.enabled, start: this.scope.start, end: this.scope.end, mask: '255.255.255.0', network: '192.168.2.0', broadcast: '192.168.2.255',
@@ -141,7 +153,28 @@ const fake = {
     this.calls.push({ method, p, body })
     if (!this.enabled) return { status: 404, body: { error: true, code: 'feature_off', reason: 'feature_off', message: 'Technitium is off. Turn it on in Config → Integrations.' } }
     const sync = { ok: true, message: 'The secondary has what the primary has' }
-    if (method === 'GET' && p === '/devices') return { devices: this.devices.map((d) => this.withGroups(d)), forgotten: 0, last_scan: this.devices.length ? { at: NOW() - 120, found: 6, new: 0, devices: 6, swept: true, named_by_dhcp: 2, sources: { arp: 6 }, errors: [] } : null, dhcp: { serving: !!this.scope?.enabled, at: NOW() }, icons: [], now: NOW() }
+    // the house: its rules, the quick actions, clone
+    if (method === 'POST' && p === '/house') { Object.assign(this.house, body); return { success: true, house: this.house, sync, warning: null } }
+    if (method === 'POST' && p === '/house/pause') { this.housePaused = body.minutes ? new Date(Date.now() + body.minutes * 60e3).toISOString() : null; return { success: true, paused_until: this.housePaused, sync } }
+    if (method === 'POST' && p === '/house/bedtime') {
+      const until = new Date(Date.now() + 9 * 3600e3).toISOString()
+      this.bedtimeNow = body.cancel ? [] : this.groups.filter((g) => g.windows.some((w) => w.scope === 'all' && /bed/i.test(w.name))).map((g) => ({ owner: g.id, name: g.name, window: 'w1', until }))
+      if (!body.cancel && !this.bedtimeNow.length) return { status: 409, body: { error: true, code: 409, message: 'No group has a bedtime window (a window named Bedtime that blocks everything): add one in a group' } }
+      return { success: true, forced: this.bedtimeNow.map((b) => ({ owner: b.name, window: 'Bedtime', until: b.until })), sync }
+    }
+    if (method === 'POST' && p === '/house/allow') {
+      const dv = this.devices.find((d) => d.id === body.device_id)
+      this.tempAllows = this.tempAllows.filter((a) => a.name !== body.name || (a.device ?? '') !== (body.device_id ?? ''))
+      const until = new Date(Date.now() + (body.minutes ?? 60) * 60e3).toISOString()
+      if (!body.remove) this.tempAllows.push({ name: body.name, device: body.device_id ?? null, label: dv ? (dv.nickname ?? dv.hostname ?? dv.ip) : null, until, by: 'lab' })
+      return { success: true, name: body.name, device: dv ? (dv.nickname ?? dv.hostname ?? dv.ip) : null, until: body.remove ? null : until, sync }
+    }
+    if (method === 'POST' && /^\/groups\/[^/]+\/clone$/.test(p)) {
+      const src = this.groups.find((g) => g.id === p.split('/')[2]); if (!src) return null
+      const g = { ...structuredClone(src), id: `gc${this.groups.length}`, name: body.name ?? `${src.name} copy`, devices: [] }
+      this.groups.push(g); return { success: true, group: g, sync, warning: null }
+    }
+    if (method === 'GET' && p === '/devices') return { house_on: this.groupsAnswer().house.on, devices: this.devices.map((d) => this.withGroups(d)), forgotten: 0, last_scan: this.devices.length ? { at: NOW() - 120, found: 6, new: 0, devices: 6, swept: true, named_by_dhcp: 2, sources: { arp: 6 }, errors: [] } : null, dhcp: { serving: !!this.scope?.enabled, at: NOW() }, icons: [], now: NOW() }
     if (method === 'POST' && p === '/devices/scan') { if (!this.devices.length) this.devices = SEED(); return { success: true, found: 6, new: 6, named_by_dhcp: 2, message: '6 devices found, 2 named by DHCP' } }
     if (method === 'PUT' && p.startsWith('/devices/')) {
       const id = p.slice('/devices/'.length), d = this.devices.find((x) => x.id === id)
@@ -152,6 +185,7 @@ const fake = {
       if ('static' in body) { if (!this.scope) return { status: 409, body: { error: true, code: 409, reason: 'no_dhcp_scope', message: `Technitium has no DHCP scope for ${d.ip}: the router still hands out addresses. Move DHCP here first (the DHCP tab), then pin it.` } }; d.static = body.static; d.reserved_ip = body.static ? d.ip : null }
       if ('blocked_until' in body) d.blocked_until = body.blocked_until
       if ('home_answer' in body) d.home_answer = body.home_answer
+      for (const k of ['house_exempt', 'allowed', 'blocked_names', 'override']) if (k in body) d[k] = body[k]
       if ('group_id' in body) {
         for (const g of this.groups) g.devices = g.devices.filter((y) => y.id !== d.id && y.ip !== d.ip)
         const g = this.groups.find((x) => x.id === body.group_id); if (g) g.devices.push({ ip: d.ip, label: d.nickname ?? '', mac: d.mac, id: d.id })
@@ -263,7 +297,9 @@ async function openPage(page, who, patch) {
 const text = (page) => page.evaluate(() => document.querySelector('main')?.innerText ?? '')
 const bodyText = (page) => page.evaluate(() => document.body.innerText)
 async function clickText(page, label, scope = 'body') {
-  const ok = await page.evaluate((label, scope) => {
+  // a control can be a moment away (a page re-laid out after a resize): looked for up to 5 seconds
+  let ok = false
+  for (const t0 = Date.now(); !ok && Date.now() - t0 < 5000; ok || await sleep(250)) ok = await page.evaluate((label, scope) => {
     const els = [...document.querySelectorAll(`${scope} button, ${scope} [role="tab"], ${scope} [role="menuitem"], ${scope} label`)]
     const el = els.find((e) => e.getClientRects().length && ((e.getAttribute('aria-label') || '') === label || (e.innerText || '').trim() === label || (e.innerText || '').trim().startsWith(label)))
     if (el) { el.click(); return true }
@@ -284,6 +320,12 @@ async function shot(page, name) {
 }
 // whether the switch a label names is on
 const switchOn = (page, label, scope = 'body') => page.evaluate((label, scope) => { const l = [...document.querySelectorAll(`${scope} label`)].find((x) => x.innerText.trim() === label); return l ? !!document.getElementById(l.htmlFor)?.checked : null }, label, scope)
+// the look: Ctrl+D until it is light (the account's own look can come back with its preferences)
+async function ensureLight(page) {
+  for (let i = 0; i < 3 && !await page.evaluate(() => document.documentElement.classList.contains('light')); i++) {
+    await page.keyboard.down('Control'); await page.keyboard.press('d'); await page.keyboard.up('Control'); await sleep(600)
+  }
+}
 async function typeInto(page, sel, value) { await page.click(sel, { clickCount: 3 }); await page.keyboard.press('Backspace'); await page.type(sel, value) }
 
 const browser = await puppeteer.launch({ executablePath: process.env.CHROME || '/usr/bin/google-chrome', headless: 'new', args: ['--no-sandbox', '--window-size=1440,1000'] })
@@ -379,6 +421,22 @@ try {
   await clickText(page, 'Save', '[role="dialog"]')
   check('devices: …off: saved as home_answer false, the row has no name', await waitFor(() => fake.calls.some((c) => c.method === 'PUT' && c.body.home_answer === false)) && await until(page, () => !/reach it as/.test(document.querySelector('main tbody')?.innerText ?? '')))
   fake.devices.find((d) => d.id === 'daa119000050').home_answer = true
+  // the house per device: left out from the row menu; its own rules in the drawer (an exception, its own YouTube)
+  await clickText(page, "Actions for Tom's tablet")
+  await clickText(page, 'Leave out of the house rules')
+  check('devices: left out of the house rules from the row menu', await waitFor(() => fake.calls.some((c) => c.method === 'PUT' && c.p === '/devices/daa119000050' && c.body.house_exempt === true)))
+  await sleep(1500)   // the directory is asked again after a change
+  await clickText(page, "Tom's tablet", 'main tbody')
+  check('devices: the drawer: Follows the house rules off, In group', await until(page, () => /In group/.test([...document.querySelectorAll('[role="dialog"]')].map((d) => d.innerText).join('\n'))
+    && [...document.querySelectorAll('[role="dialog"] [role="switch"]')].some((e) => /Follows the house rules/.test(document.querySelector(`label[for="${e.id}"]`)?.innerText ?? '') && !e.checked)))
+  await clickText(page, 'Rules of its own', '[role="dialog"]')
+  await page.type('#td-allowed', 'roblox.com'); await page.keyboard.press('Enter'); await sleep(200)
+  await clickText(page, 'Kids only', '[role="dialog"] [aria-label="Its YouTube"]')
+  await shot(page, 'device-drawer-house')
+  await clickText(page, 'Save', '[role="dialog"]')
+  const own = fake.calls.filter((c) => c.method === 'PUT' && c.p === '/devices/daa119000050').pop()?.body ?? {}
+  check('devices: its own exception and YouTube saved', own.allowed?.join() === 'roblox.com' && own.override?.youtube === 'kids_only' && own.override.categories.length === 0 && own.override.window === null, JSON.stringify(own))
+  check('devices: …the row says own rules', await until(page, () => /own rules/.test(document.querySelector('main tbody')?.innerText ?? '')))
 
   // DHCP: the move, step by step
   await clickText(page, 'DHCP')
@@ -408,8 +466,9 @@ try {
   check('kids: the move to per-group controls is said', /The kids' controls are per group now/.test(await text(page)) && /Xbox moved from Boys to Consoles/.test(await text(page)))
   await clickText(page, 'Dismiss', 'main')
   check('kids: …and dismissed', await until(page, () => !/per group now/.test(document.querySelector('main')?.innerText ?? '')))
-  check('kids: the whole-house switch is optional, and off', /SafeSearch for the whole house \(optional\)/.test(await text(page))
-    && await switchOn(page, 'Force SafeSearch for every device', 'main') === false)
+  check('kids: the house rules: nothing set; the tablet left out says so', /The house rules/.test(await text(page)) && /Nothing set: a device in no group browses/.test(await text(page))
+    && /Not following the house: Tom's tablet\./.test(await text(page)))
+  check('kids: the quick actions are offered', /Pause the house 30 min/.test(await text(page)) && /Bedtime now/.test(await text(page)))
   await clickText(page, 'Add group', 'main')
   check('kids: the sheet opens', await until(page, () => !!document.querySelector('[role="dialog"]')))
   const sheet = await bodyText(page)
@@ -472,12 +531,89 @@ try {
   await clickText(page, 'Delete group')
   check('kids: deleted', fake.calls.some((c) => c.method === 'DELETE' && c.p === '/groups/g1a2b3c4d') && await until(page, () => /No groups yet/.test(document.querySelector('main')?.innerText ?? '')))
 
+  // the house: its rules in the same sheet (no name, devices, colour or allow-list), the quick actions and their undo
+  await clickText(page, 'Set the house rules', 'main')
+  check('house: the sheet: no name, no devices, no allow-list mode', await until(page, () => /The house rules/.test([...document.querySelectorAll('[role="dialog"]')].map((d) => d.innerText).join('\n')))
+    && !(await page.$('#tg-name')) && !/Allow-list mode/.test(await page.evaluate(() => [...document.querySelectorAll('[role="dialog"]')].map((d) => d.innerText).join('\n'))))
+  await clickText(page, 'Video and streaming', '[role="dialog"]')
+  await clickText(page, 'Kids only', '[role="dialog"]')
+  check('house: YouTube: five settings, what each does, what DNS cannot do', await until(page, () => { const t = [...document.querySelectorAll('[role="dialog"]')].map((d) => d.innerText).join('\n'); return ['Off', 'Moderate', 'Strict', 'Kids only', 'Blocked'].every((x) => t.includes(x)) && /YouTube Kids \(the app and youtubekids\.com\) keeps working/.test(t) && /cannot hide Shorts, a channel, the comments or the ads/.test(t) }))
+  await clickText(page, 'Save', '[role="dialog"]')
+  const hs = fake.calls.filter((c) => c.p === '/house').pop()?.body ?? {}
+  check('house: saved: video, YouTube kids only', hs.categories?.join() === 'video' && hs.youtube === 'kids_only' && Array.isArray(hs.windows), JSON.stringify(hs))
+  check('house: the card says so', await until(page, () => /Video and streaming/.test(document.querySelector('main')?.innerText ?? '') && /YouTube kids only/.test(document.querySelector('main')?.innerText ?? '')))
+  await clickText(page, 'Pause the house 30 min', 'main')
+  check('house: paused 30 minutes: said, and its end offered', fake.calls.some((c) => c.p === '/house/pause' && c.body.minutes === 30) && await until(page, () => /House paused until/.test(document.querySelector('main')?.innerText ?? '') && /End the pause/.test(document.querySelector('main')?.innerText ?? '')))
+  await clickText(page, 'End the pause', 'main')
+  check('house: …ended', fake.calls.some((c) => c.p === '/house/pause' && c.body.minutes === 0) && await until(page, () => !/House paused until/.test(document.querySelector('main')?.innerText ?? '')))
+  await clickText(page, 'Bedtime now', 'main')
+  check('house: Bedtime now with no bedtime window: says why', await until(page, () => /No group has a bedtime window/.test(document.body.innerText)))
+  // a group with its colour and icon, YouTube blocked, a week grid painted with the mouse and a window's own YouTube; clone
+  await clickText(page, 'Add group', 'main'); await until(page, () => !!document.querySelector('#tg-name'))
+  await page.type('#tg-name', 'Teens')
+  await clickText(page, 'purple', '[role="dialog"]'); await clickText(page, 'Teen', '[role="dialog"]')
+  await clickText(page, 'Blocked', '[role="dialog"]')
+  await clickText(page, 'Edit Bedtime', '[role="dialog"]')
+  await clickText(page, 'Week grid', '[role="dialog"]')
+  check('grid: the grid opens from the times (21:00–07:00 every day: 70 hours)', await until(page, () => /70 h a week/.test([...document.querySelectorAll('[role="dialog"]')].map((d) => d.innerText).join('\n'))))
+  await clickText(page, 'Clear', '[role="dialog"]')
+  // paint Monday 17:00 to 20:00 by dragging across four cells
+  const cell = async (d, h) => { const b = await (await page.$(`[role="dialog"] [data-d="${d}"][data-h="${h}"]`)).boundingBox(); return { x: b.x + b.width / 2, y: b.y + b.height / 2 } }
+  const c0 = await cell(0, 17), c3 = await cell(0, 20)
+  await page.mouse.move(c0.x, c0.y); await page.mouse.down(); await page.mouse.move(c3.x, c3.y, { steps: 8 }); await page.mouse.up(); await sleep(300)
+  check('grid: dragged: 4 hours, Monday 17:00 to 20:59', await until(page, () => /4 h a week/.test([...document.querySelectorAll('[role="dialog"]')].map((d) => d.innerText).join('\n'))))
+  await page.focus('[role="dialog"] [data-d="0"][data-h="17"]'); await page.keyboard.press('ArrowDown'); await page.keyboard.press(' '); await sleep(200)
+  check('grid: the keyboard paints too (Tuesday 17:00)', /5 h a week/.test(await page.evaluate(() => [...document.querySelectorAll('[role="dialog"]')].map((d) => d.innerText).join('\n'))))
+  await shot(page, 'group-sheet-grid')
+  await clickText(page, 'Save', '[role="dialog"]')
+  const tg = fake.calls.filter((c) => c.p === '/groups' && c.method === 'POST').pop()?.body ?? {}
+  const gh = (tg.windows?.[0]?.grid ?? []).flatMap((row, d) => row.map((on, h) => (on ? `${d}:${h}` : null))).filter(Boolean)
+  check('grid: saved: colour, icon, YouTube blocked, the grid', tg.name === 'Teens' && tg.color === 'purple' && tg.icon === 'teen' && tg.youtube === 'blocked' && gh.join() === '0:17,0:18,0:19,0:20,1:17', `${JSON.stringify({ ...tg, windows: undefined })} ${gh.join()}`)
+  check('grid: the card: its grid, YouTube blocked', await until(page, () => /Teens/.test(document.querySelector('main')?.innerText ?? '') && /Bedtime on a week grid \(5 h a week\): every name/.test(document.querySelector('main')?.innerText ?? '') && /YouTube blocked/.test(document.querySelector('main')?.innerText ?? '')))
+  await clickText(page, 'Edit Teens')
+  await clickText(page, 'Add a window', '[role="dialog"]'); await sleep(200)
+  await clickText(page, 'Some categories', '[role="dialog"]')
+  await clickText(page, 'Strict', '[role="dialog"] [aria-label="YouTube while it is in force"]')
+  await clickText(page, 'Save', '[role="dialog"]')
+  const tw = fake.calls.filter((c) => c.p === '/groups' && c.method === 'POST').pop()?.body?.windows?.[1] ?? {}
+  check('youtube: a window of its own YouTube (strict), no category needed', tw.scope === 'categories' && tw.youtube === 'strict' && tw.categories.length === 0, JSON.stringify(tw))
+  await clickText(page, 'Clone Teens')
+  check('clone: a copy of Teens', fake.calls.some((c) => /\/groups\/[^/]+\/clone$/.test(c.p)) && await until(page, () => /Teens copy/.test(document.querySelector('main')?.innerText ?? '')))
+  await clickText(page, 'Bedtime now', 'main')
+  check('house: Bedtime now: every group with a bedtime, until its end, and its undo', fake.calls.some((c) => c.p === '/house/bedtime' && !c.body.cancel) && await until(page, () => /Bedtime now: Teens, Teens copy until/.test(document.querySelector('main')?.innerText ?? '') && /Undo bedtime now/.test(document.querySelector('main')?.innerText ?? '')))
+  await page.setViewport({ width: 1280, height: 900 }); await sleep(500)
+  await clickText(page, 'Kids'); await until(page, () => /Teens/.test(document.querySelector('main')?.innerText ?? ''), 15000)
+  await shot(page, 'kids-house-dark')
+  await page.setViewport({ width: 390, height: 844, isMobile: true }); await sleep(800)
+  await clickText(page, 'Kids'); await until(page, () => /Teens/.test(document.querySelector('main')?.innerText ?? ''), 15000)
+  check('house: no sideways scroll on a phone', await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1))
+  await shot(page, 'kids-house-phone-dark')
+  await clickText(page, 'Edit Teens'); await clickText(page, 'Edit Bedtime', '[role="dialog"]'); await sleep(300)
+  check('grid: on a phone the grid fits (no sideways scroll)', await page.evaluate(() => { const g = document.querySelector('[role="dialog"] [role="grid"]'); return !!g && g.scrollWidth <= g.clientWidth + 1 }))
+  check('grid: on a phone the sheet does not scroll sideways', await page.evaluate(() => { const g = document.querySelector('[role="dialog"] [role="grid"]'); let e = g?.parentElement; while (e && getComputedStyle(e).overflowY !== 'auto') e = e.parentElement; return !!e && e.scrollWidth <= e.clientWidth + 1 }))
+  await page.evaluate(() => document.querySelector('[role="dialog"] [role="grid"]')?.scrollIntoView({ block: 'center' })); await sleep(400)
+  await page.screenshot({ path: path.join(OUT, 'group-sheet-grid-phone.png') })
+  await clickText(page, 'Cancel', '[role="dialog"]')
+  await page.setViewport({ width: 1440, height: 1000 }); await sleep(800)
+  await clickText(page, 'Kids'); await until(page, () => /Undo bedtime now/.test(document.querySelector('main')?.innerText ?? ''), 15000)
+  await clickText(page, 'Undo bedtime now', 'main')
+  check('house: …Bedtime now undone', fake.calls.some((c) => c.p === '/house/bedtime' && c.body.cancel === true) && await until(page, () => !/Undo bedtime now/.test(document.querySelector('main')?.innerText ?? '')))
+
   // a device's queries
   await clickText(page, 'Activity')
   await page.select('#tt-client', '192.168.2.50')
   check('activity: the picker names devices from the directory', await page.$$eval('#tt-client option', (o) => o.some((x) => /Tom's tablet/.test(x.textContent))))
   check('devices: the queries of the one picked', await until(page, () => /www\.youtube\.com/.test(document.querySelector('main')?.innerText ?? '')) && fake.calls.some((c) => c.p === '/activity'))
   check('devices: the blocked row is marked', await page.evaluate(() => [...document.querySelectorAll('main tr')].some((r) => /ads\.example\.net/.test(r.innerText) && /bg-rose/.test(r.className) && /Blocked/.test(r.innerText))))
+  await clickText(page, 'Allow ads.example.net for an hour')
+  check('activity: allow for an hour: for this device or the whole house', await until(page, () => /For Tom's tablet/.test(document.body.innerText) && /For the whole house/.test(document.body.innerText)))
+  await clickText(page, 'For the whole house')
+  check('activity: …for the house, an hour', await waitFor(() => fake.calls.some((c) => c.p === '/house/allow' && c.body.name === 'ads.example.net' && c.body.minutes === 60 && !c.body.device_id)) && await until(page, () => /ads\.example\.net is allowed for the house until/.test(document.body.innerText)))
+  await clickText(page, 'Kids')
+  check('activity: …the Kids tab lists it, and ends it', await until(page, () => /ads\.example\.net allowed for the house until/.test(document.querySelector('main')?.innerText ?? '')))
+  await clickText(page, 'End the exception for ads.example.net')
+  check('activity: …ended', await waitFor(() => fake.calls.some((c) => c.p === '/house/allow' && c.body.remove === true)) && await until(page, () => !/ads\.example\.net allowed for/.test(document.querySelector('main')?.innerText ?? '')))
+  await clickText(page, 'Activity'); await page.select('#tt-client', '192.168.2.50'); await until(page, () => /www\.youtube\.com/.test(document.querySelector('main')?.innerText ?? ''))
   await page.type('input[aria-label="Filter the queries by name"]', 'youtube')
   check('devices: the filter', await until(page, () => document.querySelectorAll('main tbody tr').length === 1))
   await shot(page, 'devices')
@@ -612,10 +748,10 @@ try {
   check('the light look', await until(page, () => document.documentElement.classList.contains('light')))
   await clickText(page, 'Devices')
   await until(page, () => document.querySelectorAll('main tbody tr').length === 6)
-  await shot(page, 'devices-light')
+  await ensureLight(page); await shot(page, 'devices-light')
   await clickText(page, 'DHCP')
   await until(page, () => /Leases/.test(document.querySelector('main')?.innerText ?? ''))
-  await shot(page, 'dhcp-light')
+  await ensureLight(page); await shot(page, 'dhcp-light')
   // the kids' cards in the light look, desktop and phone
   fake.groups = [{ id: 'g7', name: 'Boys', devices: [{ ip: '192.168.2.50', label: "Tom's tablet", id: 'daa119000050' }], mode: 'filter', categories: ['adult', 'gambling', 'games'], safe_search: true, youtube: 'strict', allowed: [], blocked: [], sites: [],
     windows: [{ id: 'w1', name: 'Bedtime', enabled: true, from: '21:00', to: '07:00', days: [1, 2, 3, 4, 5, 6, 7], scope: 'all', categories: [] }, { id: 'w2', name: 'Homework', enabled: true, from: '16:00', to: '18:00', days: [1, 2, 3, 4, 5], scope: 'categories', categories: ['games', 'video'] }] },
@@ -625,13 +761,13 @@ try {
   await until(page, () => /Games and Video and streaming blocked until 18:00/.test(document.querySelector('main')?.innerText ?? ''), 35000)
   await page.setViewport({ width: 1280, height: 900 }); await sleep(600)
   await clickText(page, 'Kids'); await until(page, () => /Boys/.test(document.querySelector('main')?.innerText ?? ''), 15000)
-  await shot(page, 'kids-light')
+  await ensureLight(page); await shot(page, 'kids-light')
   await page.setViewport({ width: 390, height: 844, isMobile: true }); await sleep(800)
   await clickText(page, 'Kids'); await until(page, () => /Boys/.test(document.querySelector('main')?.innerText ?? ''), 15000)
   check('kids: light, phone: no sideways scroll', await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1))
-  await shot(page, 'kids-phone-light')
+  await ensureLight(page); await shot(page, 'kids-phone-light')
   await clickText(page, 'Edit Boys'); await sleep(600)
-  await shot(page, 'group-sheet-phone-light')
+  await ensureLight(page); await shot(page, 'group-sheet-phone-light')
   await page.keyboard.press('Escape'); await sleep(300)
   await page.setViewport({ width: 1440, height: 1000 }); await sleep(600)
   fake.groups = []; fake.active = []
@@ -668,6 +804,7 @@ try {
     check('viewer: the groups, read-only', await until(page, () => /Girls/.test(document.querySelector('main')?.innerText ?? '')) && !/Add group/.test(await text(page)) && !(await page.$('[aria-label="Edit Girls"]')))
     check('viewer: the switches are off limits', await page.evaluate(() => [...document.querySelectorAll('main input[role="switch"], main [role="switch"]')].every((e) => e.disabled || e.getAttribute('aria-disabled') === 'true' || e.closest('[data-disabled]'))))
     check('viewer: the group\'s state, no report asked', /Bedtime until 07:00/.test(await text(page)) && !fake.calls.some((c) => /\/report/.test(c.p)) && !/Pause 30 min/.test(await text(page)))
+    check('viewer: the house rules read-only, no quick actions', /The house rules/.test(await text(page)) && !/Pause the house|Bedtime now|Set the house rules/.test(await text(page)) && !(await page.$('[aria-label="Edit the house rules"]')) && !(await page.$('[aria-label^="Clone"]')))
     await shot(page, 'kids-viewer-phone')
     await clickText(page, 'Devices')
     check('viewer: the devices as cards on a phone, read-only', await until(page, () => document.querySelectorAll('main ul.md\\:hidden > li').length === 6) && !/Scan the network/.test(await text(page)) && !(await page.$('[aria-label^="Rename"]')) && !(await page.$('[aria-label$="Change it"]')))
@@ -700,6 +837,7 @@ try {
   check('no console error or exception', errs.length === 0, errs.slice(0, 3).join(' | '))
 } catch (e) {
   fail++; console.log(`  FAIL ${e.message}`)
+  if (errors.length) console.log(`  (console: ${errors.slice(-3).join(' | ')})`)
 } finally {
   await browser.close()
 }

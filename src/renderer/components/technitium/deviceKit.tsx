@@ -9,7 +9,8 @@ import {
 import { usePolling } from '../../hooks/usePolling'
 import { pollKeys } from '../../api/pollKeys'
 import { fetchTechnitiumDevices } from '../../api/endpoints'
-import type { TechnitiumIcon, TechnitiumNetDevice } from '../../../shared/types'
+import type { TechnitiumGroupColor, TechnitiumGroupIcon, TechnitiumIcon, TechnitiumNetDevice } from '../../../shared/types'
+import { GROUP_ICONS, GROUP_TEXT, GROUP_TILE } from './kidsKit'
 import { FOCUS_RING } from '../../lib/ui'
 
 /** a device DCS cannot tell: a quiet rounded box with a dot (lucide's stroke), not a question mark */
@@ -135,5 +136,17 @@ export function IconGrid({ value, onPick, label, disabled = false }: { value: Te
         )
       })}
     </div>
+  )
+}
+
+/** a kids' group's mark: its icon in its colour on a tinted tile (the group card, a device's row, the Dashboard tile) */
+export function GroupMark({ color, icon, size = 'sm', label }: { color?: TechnitiumGroupColor | null; icon?: TechnitiumGroupIcon | null; size?: 'xs' | 'sm'; label?: string }) {
+  const I = GROUP_ICONS[icon ?? 'users'].icon
+  const c = color ?? 'gray'
+  return (
+    <span role={label ? 'img' : undefined} aria-label={label} aria-hidden={label ? undefined : true}
+      className={`inline-flex shrink-0 items-center justify-center rounded-md ${GROUP_TILE[c]} ${GROUP_TEXT[c]} ${size === 'xs' ? 'h-4 w-4' : 'h-6 w-6'}`}>
+      <I size={size === 'xs' ? 10 : 14} />
+    </span>
   )
 }

@@ -1,8 +1,10 @@
-// The Technitium page's Activity tab (a device's recent queries, blocked ones marked, Allow / Block per row; admin
-// only, the API refuses a viewer) and its Lists tab (the blocklists, the names allowed and blocked for everyone).
+// The Technitium page's Activity tab (a device's recent queries, blocked ones marked, Allow / Block per row, and Allow for an
+// hour for the device or the house; admin only, the API refuses a viewer) and its Lists tab (the blocklists, the names
+// allowed and blocked for everyone).
 
 import { useCallback, useMemo, useState } from 'react'
-import { Ban, CheckCircle2, ListChecks, MonitorSmartphone, Plus, Trash2, Loader2, Link2 } from 'lucide-react'
+import { Menu } from '@mantine/core'
+import { Ban, CheckCircle2, ListChecks, MonitorSmartphone, Plus, Trash2, Loader2, Link2, Hourglass, House } from 'lucide-react'
 import { Panel } from '../dashboard/cardShared'
 import SearchInput from '../common/SearchInput'
 import Notice from '../common/Notice'
@@ -12,14 +14,38 @@ import { EmptyState, ErrorState, Skeleton } from '../common/PageState'
 import { useConfirm } from '../common/ConfirmDialog'
 import { useToast } from '../common/Toast'
 import { usePolling } from '../../hooks/usePolling'
+import { refreshPoll } from '../../lib/poll'
 import { apiErrorMessage } from '../../api/errors'
-import { fetchTechnitiumActivity, fetchTechnitiumGroups, fetchTechnitiumLists, fetchTechnitiumStats, technitiumBlocklist, technitiumListName } from '../../api/endpoints'
-import { BTN_CARD_QUIET, BTN_ICON_SM, TONE_GHOST_OK, TONE_GHOST_DANGER, TEXT_META } from '../../lib/ui'
+import { allowTechnitiumFor, fetchTechnitiumActivity, fetchTechnitiumGroups, fetchTechnitiumLists, fetchTechnitiumStats, technitiumBlocklist, technitiumListName } from '../../api/endpoints'
+import { clock } from './kidsKit'
+import { BTN_CARD_QUIET, BTN_ICON_SM, TONE_GHOST, TONE_GHOST_OK, TONE_GHOST_DANGER, TEXT_META } from '../../lib/ui'
 import { INPUT, LABEL } from '../../lib/fieldStyles'
 import { TAP, deviceName, useDeviceDirectory } from './deviceKit'
 import { ListsHealth } from './SafetyNet'
 
 const time = (iso: string) => new Date(iso).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' })
+
+/** a blocked name allowed for an hour, for this device or for the whole house (it ends by itself; the Kids tab lists it and ends it) */
+export function AllowForAnHour({ name, device }: { name: string; device: { id: string; nickname: string | null; hostname: string | null; ip: string | null } | null }) {
+  const { addToast } = useToast()
+  const allow = async (deviceId?: string) => {
+    try {
+      const r = await allowTechnitiumFor(name, { device_id: deviceId, minutes: 60 })
+      addToast({ type: r.sync && !r.sync.ok ? 'warning' : 'success', message: `${name} is allowed for ${r.device ?? 'the house'} until ${r.until ? clock(r.until) : '—'}` })
+      void refreshPoll('technitium-groups')   // the Kids tab lists it
+    } catch (e) { addToast({ type: 'error', message: apiErrorMessage(e) }) }
+  }
+  return (
+    <Menu position="bottom-end" withinPortal>
+      <Menu.Target><button type="button" className={`${BTN_ICON_SM} ${TAP} ${TONE_GHOST}`} aria-label={`Allow ${name} for an hour`} title="Allow for an hour"><Hourglass size={14} /></button></Menu.Target>
+      <Menu.Dropdown>
+        <Menu.Label>Allow {name} for an hour</Menu.Label>
+        {device && <Menu.Item leftSection={<MonitorSmartphone size={14} />} onClick={() => void allow(device.id)}>For {device.nickname ?? device.hostname ?? device.ip ?? 'this device'}</Menu.Item>}
+        <Menu.Item leftSection={<House size={14} />} onClick={() => void allow()}>For the whole house</Menu.Item>
+      </Menu.Dropdown>
+    </Menu>
+  )
+}
 
 export function ActivityTab() {
   const { addToast } = useToast()
@@ -82,8 +108,9 @@ export function ActivityTab() {
                       <td className="py-1.5 font-mono text-xs text-slate-300 break-all">{e.name} <span className="text-slate-500">{e.type}</span></td>
                       <td className="py-1.5 hidden sm:table-cell">{e.blocked ? <Pill tone="problem" size="xs">Blocked</Pill> : <span className="text-xs text-slate-500">{e.response}</span>}</td>
                       <td className="py-1.5 pr-4 md:pr-5 text-right whitespace-nowrap">
+                        {e.blocked && <AllowForAnHour name={e.name} device={dir.data?.devices.find((d) => d.ip === client) ?? null} />}
                         {e.blocked
-                          ? <button type="button" className={`${BTN_ICON_SM} ${TAP} ${TONE_GHOST_OK}`} onClick={() => void act('allow', e.name)} aria-label={`Allow ${e.name} for everyone`} title="Allow for everyone"><CheckCircle2 size={14} /></button>
+                          ? <button type="button" className={`${BTN_ICON_SM} ${TAP} ${TONE_GHOST_OK}`} onClick={() => void act('allow', e.name)} aria-label={`Allow ${e.name} for everyone`} title="Allow for everyone, for good"><CheckCircle2 size={14} /></button>
                           : <button type="button" className={`${BTN_ICON_SM} ${TAP} ${TONE_GHOST_DANGER}`} onClick={() => void act('block', e.name)} aria-label={`Block ${e.name} for everyone`} title="Block for everyone"><Ban size={14} /></button>}
                       </td>
                     </tr>

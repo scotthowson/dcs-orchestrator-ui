@@ -1,14 +1,17 @@
 // =============================================================================
 // TechnitiumTile — the home's resolvers on the dashboard: today's queries and
 // blocked as a mini bar (one column an hour), each server's state dot, whether
-// the two are in step, and a tap to the Technitium page. Shown only while
+// the two are in step, the kids' groups (their colour and icon, a moon while a
+// window that blocks everything is on), and a tap to the Technitium page. Shown only while
 // Technitium is on in Config (the grid leaves it out otherwise). Its requests
 // are the page's own (shared keys), so an open page asks nothing twice.
 // =============================================================================
 
 import { usePolling } from '../../hooks/usePolling'
 import { pollKeys } from '../../api/pollKeys'
-import { fetchTechnitiumStats, fetchTechnitiumStatus } from '../../api/endpoints'
+import { fetchTechnitiumGroups, fetchTechnitiumStats, fetchTechnitiumStatus } from '../../api/endpoints'
+import { Moon } from 'lucide-react'
+import { GroupMark } from '../technitium/deviceKit'
 import { useTechnitiumEnabled } from '../../hooks/useTechnitiumEnabled'
 import { useConnectionStore } from '../../stores/connectionStore'
 import type { TechnitiumInstance, TechnitiumStatus } from '../../../shared/types'
@@ -34,6 +37,7 @@ export default function TechnitiumTile() {
   const isConnected = useConnectionStore((s) => s.status === 'connected')
   const status = usePolling(fetchTechnitiumStatus, 60000, { key: pollKeys.technitiumStatus, enabled: on === true })
   const stats = usePolling(() => fetchTechnitiumStats('lastDay'), 60000, { key: 'technitium-stats:lastDay', enabled: on === true && !!status.data?.configured })
+  const kids = usePolling(fetchTechnitiumGroups, 60000, { key: 'technitium-groups', enabled: on === true && !!status.data?.configured })
   if (on !== true) return null
 
   const st = status.data
@@ -68,6 +72,17 @@ export default function TechnitiumTile() {
               </div>
             ))}
           </div>
+        )}
+        {(kids.data?.groups.length ?? 0) > 0 && (
+          <ul className="flex flex-wrap gap-x-3 gap-y-1" aria-label="Kids groups">
+            {kids.data!.groups.map((g) => (
+              <li key={g.id} className="flex items-center gap-1.5 min-w-0 text-xs text-slate-300">
+                <GroupMark color={g.color} icon={g.icon} size="xs" />
+                <span className="truncate max-w-[8rem]">{g.name}</span>
+                {g.in_bedtime && <Moon size={11} className="text-amber-400 shrink-0" aria-label="every name blocked now" />}
+              </li>
+            ))}
+          </ul>
         )}
         <ul className="mt-auto space-y-1">
           {servers.map((s) => {

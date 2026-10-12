@@ -2,12 +2,13 @@
 // the network, address, MAC and vendor, group, a pinned address, when it was last seen, its queries and blocked ones
 // in the last 24 hours). A table from md up, cards on a phone (the card opens the drawer); search, filters, sort; the icon picker and the nickname
 // edited in place; a row menu; the drawer with every field, the notes, its latest queries, the group and a block until
-// a time. "Scan the network" fills it. A viewer reads it all and changes nothing.
+// a time; the house and its own rules: whether it follows the house's rules, its own allow and block lists, its own
+// categories, YouTube and window. "Scan the network" fills it. A viewer reads it all and changes nothing.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Menu } from '@mantine/core'
 import {
-  Radar, MoreHorizontal, Pencil, Pin, PinOff, Ban, Trash2, Loader2, MonitorSmartphone, Tags, Undo2, Clock, ListChecks, ShieldOff,
+  Radar, MoreHorizontal, Pencil, Pin, PinOff, Ban, Trash2, Loader2, MonitorSmartphone, Tags, Undo2, Clock, ListChecks, ShieldOff, House, UserX, Plus,
 } from 'lucide-react'
 import { Panel } from '../dashboard/cardShared'
 import Sheet from '../common/Sheet'
@@ -22,15 +23,19 @@ import { EmptyState, ErrorState, Skeleton } from '../common/PageState'
 import { useConfirm } from '../common/ConfirmDialog'
 import { useToast } from '../common/Toast'
 import { usePolling } from '../../hooks/usePolling'
+import { refreshPoll } from '../../lib/poll'
 import { apiErrorMessage } from '../../api/errors'
 import {
   scanTechnitiumDevices, updateTechnitiumDevice, forgetTechnitiumDevice, clearForgottenTechnitiumDevices, updateTechnitiumVendors,
   fetchTechnitiumGroups, fetchTechnitiumActivity,
 } from '../../api/endpoints'
-import type { TechnitiumDeviceChange, TechnitiumIcon, TechnitiumNetDevice, TechnitiumSource } from '../../../shared/types'
+import type { TechnitiumDeviceChange, TechnitiumDeviceOverride, TechnitiumGroups, TechnitiumIcon, TechnitiumNetDevice, TechnitiumSource, TechnitiumWindow } from '../../../shared/types'
+import { NameList, WindowEditor, YoutubeChoice } from './GroupSheet'
+import { AllowForAnHour } from './ActivityTab'
+import { NEW_WINDOW } from './kidsKit'
 import { BTN_TOOLBAR_QUIET, BTN_TOOLBAR_PRIMARY, BTN_SHEET_QUIET, BTN_SHEET_PRIMARY, BTN_ICON_SM, TONE_GHOST, TEXT_META, SECTION_LABEL, FOCUS_RING } from '../../lib/ui'
 import { INPUT, FIELD_SM, LABEL, HINT, CHOICE_SM, CHOICE_ON, CHOICE_OFF } from '../../lib/fieldStyles'
-import { DEVICE_ICONS, DeviceIcon, IconGrid, IconPicker, TAP, ago, deviceName, exact, useDeviceDirectory } from './deviceKit'
+import { DEVICE_ICONS, DeviceIcon, GroupMark, IconGrid, IconPicker, TAP, ago, deviceName, exact, useDeviceDirectory } from './deviceKit'
 
 type Filter = 'all' | 'unnamed' | 'new' | 'offline' | 'blocked'
 type Sort = 'activity' | 'name' | 'seen' | 'address'
@@ -60,6 +65,7 @@ export default function DevicesTab({ isAdmin }: { isAdmin: boolean }) {
       const r = await updateTechnitiumDevice(d.id, c)
       addToast({ type: r.warning || (r.sync && !r.sync.ok) ? 'warning' : 'success', message: r.warning ?? (r.sync && !r.sync.ok ? `${ok ?? 'Saved'}; the secondary did not follow: ${r.sync.message}` : ok ?? `${deviceName(r.device)} is saved`) })
       await refresh()
+      void refreshPoll('technitium-groups')   // a group, the house's exempt devices
       return true
     } catch (e) { addToast({ type: 'error', message: apiErrorMessage(e) }); return false }
   }, [addToast, refresh])
@@ -201,7 +207,7 @@ export default function DevicesTab({ isAdmin }: { isAdmin: boolean }) {
                       <span className="font-mono text-xs text-slate-400">{d.mac ?? '—'}</span>
                       <div className="text-xs text-slate-500 truncate max-w-[12rem]" title={d.vendor ?? undefined}>{d.vendor ?? 'vendor unknown'}</div>
                     </td>
-                    <td className="pr-4 py-3">{d.group_name ? <Pill tone="fleet">{d.group_name}</Pill> : <span className="text-xs text-slate-600">—</span>}</td>
+                    <td className="pr-4 py-3"><GroupCell d={d} houseOn={!!data?.house_on} /></td>
                     <td className="pr-4 py-3 whitespace-nowrap text-xs text-slate-400" title={exact(d.last_seen)}>{ago(d.last_seen, now)}</td>
                     <td className="pr-4 py-3"><Activity d={d} max={max} /></td>
                     {/* the row menu shows on hover or focus where there is a pointer that hovers; always on a touch screen */}
@@ -228,7 +234,9 @@ export default function DevicesTab({ isAdmin }: { isAdmin: boolean }) {
                         {d.hub && <Pill size="xs" tone="neutral">hub</Pill>}
                         {d.static && <Pill size="xs" tone="info">static</Pill>}
                         {d.blocked && <Pill size="xs" tone="problem">blocked</Pill>}
-                        {d.group_name && <Pill size="xs" tone="fleet">{d.group_name}</Pill>}
+                        {d.group_name && <Pill size="xs" tone="fleet" icon={<GroupMark color={d.group_color} icon={d.group_icon} size="xs" />}>{d.group_name}</Pill>}
+                        {d.house_exempt && data?.house_on && <Pill size="xs" tone="neutral" title="Does not follow the house rules">no house</Pill>}
+                        {d.own_rules && <Pill size="xs" tone="info" title="Has rules of its own">own rules</Pill>}
                       </span>
                       {/* address · vendor · last seen: a long vendor gives way, the address and the time stay whole */}
                       <span className="mt-0.5 flex min-w-0 text-xs text-slate-500 whitespace-nowrap tabular-nums">
@@ -247,7 +255,7 @@ export default function DevicesTab({ isAdmin }: { isAdmin: boolean }) {
           </ul>
         </>
       )}
-      {current && <DeviceSheet device={current} isAdmin={isAdmin} now={now} groups={(groups?.groups ?? []).map((g) => ({ id: g.id, name: g.name }))}
+      {current && <DeviceSheet device={current} isAdmin={isAdmin} now={now} kids={groups ?? null}
         onClose={() => setOpen(null)} onChange={change} onForget={forget} />}
     </div>
   )
@@ -353,6 +361,17 @@ function blockChoices(now: number): { label: string; until: number }[] {
 }
 const blockedLabel = (until: number | null | undefined, now: number) => (!until ? '' : until - now > 300 * 86400 ? 'until you unblock it' : `until ${new Date(until * 1000).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' })}`)
 
+/** the device's group (its colour and icon), and whether it follows the house or has rules of its own */
+function GroupCell({ d, houseOn }: { d: TechnitiumNetDevice; houseOn: boolean }) {
+  return (
+    <div className="flex flex-wrap items-center gap-1">
+      {d.group_name ? <Pill tone="fleet" icon={<GroupMark color={d.group_color} icon={d.group_icon} size="xs" />}>{d.group_name}</Pill> : <span className="text-xs text-slate-600">{houseOn && !d.house_exempt ? 'the house' : '—'}</span>}
+      {d.house_exempt && houseOn && <Pill size="xs" tone="neutral" title="Does not follow the house rules">no house</Pill>}
+      {d.own_rules && <Pill size="xs" tone="info" title="Has rules of its own: its exceptions win">own rules</Pill>}
+    </div>
+  )
+}
+
 function RowMenu({ d, isAdmin, onOpen, onChange, onForget, now }: {
   d: TechnitiumNetDevice; isAdmin: boolean; now: number; onOpen: () => void
   onChange: (d: TechnitiumNetDevice, c: TechnitiumDeviceChange, ok?: string) => Promise<boolean>; onForget: (d: TechnitiumNetDevice) => void
@@ -366,6 +385,9 @@ function RowMenu({ d, isAdmin, onOpen, onChange, onForget, now }: {
         {isAdmin && (d.static
           ? <Menu.Item leftSection={<PinOff size={14} />} onClick={() => void onChange(d, { static: false }, `${name}: its address is no longer reserved`)}>Unpin address</Menu.Item>
           : <Menu.Item leftSection={<Pin size={14} />} disabled={!d.mac || !d.ip} onClick={() => void onChange(d, { static: true }, `${name} keeps ${d.ip}`)}>Pin address</Menu.Item>)}
+        {isAdmin && (d.house_exempt
+          ? <Menu.Item leftSection={<House size={14} />} disabled={!d.ip} onClick={() => void onChange(d, { house_exempt: false }, `${name} follows the house rules`)}>Follow the house rules</Menu.Item>
+          : <Menu.Item leftSection={<UserX size={14} />} disabled={!d.ip} onClick={() => void onChange(d, { house_exempt: true }, `${name} no longer follows the house rules`)}>Leave out of the house rules</Menu.Item>)}
         {isAdmin && (d.blocked
           ? <Menu.Item leftSection={<ShieldOff size={14} />} onClick={() => void onChange(d, { blocked_until: null }, `${name} is unblocked`)}>Unblock</Menu.Item>
           : <Menu.Item leftSection={<Ban size={14} />} disabled={!d.ip} onClick={() => void onChange(d, { blocked_until: Math.round(now + 3600) }, `${name} is blocked for an hour`)}>Block for an hour</Menu.Item>)}
@@ -377,8 +399,8 @@ function RowMenu({ d, isAdmin, onOpen, onChange, onForget, now }: {
 }
 
 /** every field of a device; what it asked lately (an admin's); the group; a block until a time */
-function DeviceSheet({ device: d, isAdmin, now, groups, onClose, onChange, onForget }: {
-  device: TechnitiumNetDevice; isAdmin: boolean; now: number; groups: { id: string; name: string }[]
+function DeviceSheet({ device: d, isAdmin, now, kids, onClose, onChange, onForget }: {
+  device: TechnitiumNetDevice; isAdmin: boolean; now: number; kids: TechnitiumGroups | null
   onClose: () => void; onChange: (d: TechnitiumNetDevice, c: TechnitiumDeviceChange, ok?: string) => Promise<boolean>; onForget: (d: TechnitiumNetDevice) => void
 }) {
   const [nickname, setNickname] = useState(d.nickname ?? '')
@@ -388,7 +410,12 @@ function DeviceSheet({ device: d, isAdmin, now, groups, onClose, onChange, onFor
   const [stat, setStat] = useState(!!d.static)
   const [block, setBlock] = useState<number | null>(d.blocked ? d.blocked_until ?? null : null)
   const [answer, setAnswer] = useState(d.home_answer !== false)
+  const [follows, setFollows] = useState(!d.house_exempt)
+  const [allowed, setAllowed] = useState<string[]>(d.allowed ?? [])
+  const [blockedNames, setBlockedNames] = useState<string[]>(d.blocked_names ?? [])
+  const [own, setOwn] = useState<TechnitiumDeviceOverride>(d.override ?? { categories: [], youtube: null, window: null })
   const [busy, setBusy] = useState(false)
+  const groups = kids?.groups ?? []
   const name = deviceName(d)
   const diff: TechnitiumDeviceChange = {}
   if (nickname.trim() !== (d.nickname ?? '')) diff.nickname = nickname.trim() || null
@@ -398,6 +425,11 @@ function DeviceSheet({ device: d, isAdmin, now, groups, onClose, onChange, onFor
   if (stat !== !!d.static) diff.static = stat
   if ((block ?? null) !== (d.blocked ? d.blocked_until ?? null : null)) diff.blocked_until = block
   if (answer !== (d.home_answer !== false)) diff.home_answer = answer
+  if (follows === !!d.house_exempt) diff.house_exempt = !follows
+  if (allowed.join() !== (d.allowed ?? []).join()) diff.allowed = allowed
+  if (blockedNames.join() !== (d.blocked_names ?? []).join()) diff.blocked_names = blockedNames
+  const ownEmpty = own.categories.length === 0 && !own.youtube && !own.window
+  if (JSON.stringify(ownEmpty ? null : own) !== JSON.stringify(d.override ?? null)) diff.override = ownEmpty ? null : own
   // the zone of the house's names: the one its current name is in (home unless the scope says otherwise)
   const zone = d.home_name?.split('.').slice(1).join('.') || 'home'
   const asName = slug(nickname.trim()) ? `${slug(nickname.trim())}.${zone}` : ''
@@ -439,14 +471,20 @@ function DeviceSheet({ device: d, isAdmin, now, groups, onClose, onChange, onFor
           <dt className="text-slate-500">Seen by</dt>
           <dd className="flex flex-wrap gap-1">{(Object.keys(d.sources ?? {}) as TechnitiumSource[]).map((s) => <Pill key={s} size="xs" tone="neutral" title={exact(d.sources[s])}>{SOURCE_LABEL[s] ?? s}</Pill>)}</dd>
         </dl>
-        <div>
-          <label htmlFor="td-group" className={LABEL}>Kids' group</label>
-          <select id="td-group" className={INPUT} value={groupId} disabled={!isAdmin || !d.ip} onChange={(e) => setGroupId(e.target.value)}>
-            <option value="">No group: the house's blocking alone</option>
-            {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
-          </select>
-          <p className={HINT}>A group follows the device when its address changes.</p>
-        </div>
+        <fieldset className="space-y-3">
+          <legend className={`${SECTION_LABEL} mb-2`}>Its rules</legend>
+          <ToggleRow label="Follows the house rules" checked={follows} disabled={!isAdmin || !d.ip} onChange={setFollows}
+            help={follows ? 'The house rules apply to it (with its group’s, when it is in one).' : 'Left out of the house rules: for your own PC and phone. Its group’s rules still apply; Technitium’s own ad and threat lists too.'} />
+          <div>
+            <label htmlFor="td-group" className={LABEL}>In group</label>
+            <select id="td-group" className={INPUT} value={groupId} disabled={!isAdmin || !d.ip} onChange={(e) => setGroupId(e.target.value)}>
+              <option value="">No group: {follows ? 'the house rules alone' : 'nothing of DCS’s'}</option>
+              {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+            </select>
+            <p className={HINT}>A group follows the device when its address changes.</p>
+          </div>
+          {isAdmin && kids && <OwnRules d={d} kids={kids} allowed={allowed} setAllowed={setAllowed} blockedNames={blockedNames} setBlockedNames={setBlockedNames} own={own} setOwn={setOwn} />}
+        </fieldset>
         <ToggleRow label={asName ? `Also answer ${asName}` : 'Also answer its nickname as a name'} checked={answer && !!asName} disabled={!isAdmin || !asName || !d.ip} onChange={setAnswer}
           help={asName ? `Devices at home reach it by this name (${d.ip ?? 'its address'}), on both resolvers.` : 'Give it a nickname first: Tom’s tablet answers tom-s-tablet.home.'} />
         <ToggleRow label="Pin its address" help={d.mac ? `Reserves ${d.ip ?? 'its address'} for it in Technitium's DHCP, so the groups and the logs keep following it. Needs Technitium to hand out addresses (the DHCP tab).` : 'DCS does not know its MAC address yet: scan while it is on.'}
@@ -478,6 +516,7 @@ function DeviceSheet({ device: d, isAdmin, now, groups, onClose, onChange, onFor
                           <span className="text-slate-500 tabular-nums shrink-0">{new Date(e.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                           <span className="font-mono truncate flex-1" title={e.name}>{e.name}</span>
                           {e.blocked && <Pill size="xs" tone="problem">blocked</Pill>}
+                          {e.blocked && <AllowForAnHour name={e.name} device={d} />}
                         </li>
                       ))}
                     </ul>
@@ -487,5 +526,44 @@ function DeviceSheet({ device: d, isAdmin, now, groups, onClose, onChange, onFor
         {!isAdmin && <Hint label="A viewer reads the device; an admin changes it"><p className={TEXT_META}>Read only.</p></Hint>}
       </div>
     </Sheet>
+  )
+}
+
+/** a device's own rules: its exceptions (they win over the house and its group), its own blocked names, extra categories,
+ *  a YouTube setting and one window of its own (a group of its own in Technitium) */
+function OwnRules({ d, kids, allowed, setAllowed, blockedNames, setBlockedNames, own, setOwn }: {
+  d: TechnitiumNetDevice; kids: TechnitiumGroups
+  allowed: string[]; setAllowed: (v: string[]) => void; blockedNames: string[]; setBlockedNames: (v: string[]) => void
+  own: TechnitiumDeviceOverride; setOwn: (o: TechnitiumDeviceOverride) => void
+}) {
+  const [open, setOpen] = useState(allowed.length + blockedNames.length > 0 || !!d.override)
+  const setWindow = (p: Partial<TechnitiumWindow>) => own.window && setOwn({ ...own, window: { ...own.window, ...p } })
+  if (!open) return <button type="button" className={BTN_TOOLBAR_QUIET} onClick={() => setOpen(true)}><Plus size={14} /> Rules of its own</button>
+  return (
+    <div className="space-y-4 rounded-lg border border-white/5 p-3">
+      <p className={TEXT_META}>On top of its group and the house. Its exceptions win over every block (a bedtime too); <em>Block this device</em> still wins over them.</p>
+      <NameList id="td-allowed" label="Always allowed for it" hint="A site and its subdomains, for this device alone." names={allowed} onChange={setAllowed} />
+      <NameList id="td-blocked" label="Also blocked for it" hint="A site and its subdomains, blocked all day for this device." names={blockedNames} onChange={setBlockedNames} />
+      <div role="group" aria-label="Its own categories" className="space-y-2">
+        <p className={LABEL}>Also blocked all day</p>
+        <div className="flex flex-wrap gap-1.5">
+          {kids.categories.map((c) => {
+            const on = own.categories.includes(c.id)
+            return <button key={c.id} type="button" aria-pressed={on} className={`${CHOICE_SM} ${on ? CHOICE_ON : CHOICE_OFF}`}
+              onClick={() => setOwn({ ...own, categories: on ? own.categories.filter((x) => x !== c.id) : [...own.categories, c.id] })}>{c.name}</button>
+          })}
+        </div>
+      </div>
+      <YoutubeChoice label="Its YouTube" none="As its group" value={own.youtube} onChange={(v) => setOwn({ ...own, youtube: (v === 'off' ? null : v) as TechnitiumDeviceOverride['youtube'] })} />
+      <div className="space-y-2">
+        <p className={LABEL}>A window of its own</p>
+        {own.window
+          ? <>
+              <WindowEditor w={own.window} i={99} data={kids} onChange={setWindow} />
+              <button type="button" className={BTN_TOOLBAR_QUIET} onClick={() => setOwn({ ...own, window: null })}><Trash2 size={14} /> Remove its window</button>
+            </>
+          : <button type="button" className={BTN_TOOLBAR_QUIET} onClick={() => setOwn({ ...own, window: { ...NEW_WINDOW, name: 'Its own' } })}><Plus size={14} /> Add a window</button>}
+      </div>
+    </div>
   )
 }
