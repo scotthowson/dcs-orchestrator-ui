@@ -8,6 +8,11 @@
 // containers are offline) and Resume, the WireGuard clients' switch (it asks, says the speed), a tunnel-down alert in
 // "Needs your attention" and on the page, a viewer (read-only). Screenshots land in OUT.
 //
+// 4.0.55: the traffic (rates now, 24 hours, today and this month, each container's share), the server and its speed
+// (Test speed, Change server, Fastest now), the per-container policy (stop when down, start when back), the history
+// (uptime, the session, drops with their reason, the forwarded port), Verify (the leak test for all), the exit address
+// copied, the picker without core stacks.
+//
 //   PUPPETEER_DIR=/tmp/dcs-ui-sweep UI=http://localhost:3021 API=http://127.0.0.1:41921 node tests/vpn.mjs
 // Exit status: 0 when every check passed.
 // =============================================================================
@@ -32,12 +37,13 @@ const NOW = () => Math.round(Date.now() / 1000)
 
 // ---- the fake VPN (DCS's answers) ----
 const fake = {
-  enabled: false, deployed: false, configured: false, account: false, paused: false, connected: true, attached: [], wg: false, alerts: [], calls: [],
+  enabled: false, deployed: false, configured: false, account: false, paused: false, connected: true, attached: [], wg: false, alerts: [], calls: [], speed: null, region: 'CA Montreal', server: 'montreal424',
   status() {
     return {
       enabled: true, deployed: this.deployed, account_set: this.account, configured: this.configured, running: !this.paused, paused: this.paused,
       container: 'Gluetun', stack: 'networking-security', started_at: new Date(Date.now() - 7200e3).toISOString(), uptime_s: this.paused ? null : 7200,
-      region_name: this.configured ? 'CA Montreal' : null, server_name: this.configured ? 'montreal424' : null, port_forwarding: true,
+      region_name: this.configured ? this.region : null, server_name: this.configured ? this.server : null, port_forwarding: true,
+      session_s: this.paused || !this.connected ? null : 5400, server_latency_ms: 23, last_speed_test: this.speed, last_leak_test: null,
       qbittorrent_port: this.attached.some((a) => a.qbittorrent) ? 41234 : null, qbittorrent_error: null,
       attached: this.attached, last_change: NOW(), down_since: null, alerts: this.alerts,
       wireguard_clients: this.wg ? { on: true, container: 'WireGuard', subnet: '10.8.0.0/24' } : { on: false },
@@ -49,7 +55,29 @@ const fake = {
     const p = new URL(url).pathname
     this.calls.push({ method, p, body })
     if (p === '/vpn/status') return this.status()
-    if (p === '/vpn/regions') return { regions: [{ id: 'ca', name: 'CA Montreal', country: 'CA', geo: false }, { id: 'ca_toronto', name: 'CA Toronto', country: 'CA', geo: false }, { id: 'swiss', name: 'Switzerland', country: 'CH', geo: false }] }
+    if (p === '/vpn/regions') return { regions: [{ id: 'ca', name: 'CA Montreal', country: 'CA', geo: false, latency_ms: 23 }, { id: 'ca_toronto', name: 'CA Toronto', country: 'CA', geo: false, latency_ms: 31 }, { id: 'swiss', name: 'Switzerland', country: 'CH', geo: false, latency_ms: null }] }
+    if (p === '/vpn/traffic') {
+      const t0 = Math.floor(NOW() / 300) * 300
+      const per = Array.from({ length: 288 }, (_, i) => [t0 - (287 - i) * 300, Math.round(3e7 + 2.5e7 * Math.sin(i / 20) ** 2), Math.round(2e6 + 1e6 * Math.cos(i / 15) ** 2)])
+      const c = this.attached.map((a, i) => ({ container: a.container, today: { rx: 4.1e9 / (i + 1), tx: 3.2e8 / (i + 1) }, month: { rx: 61e9 / (i + 1), tx: 5.4e9 / (i + 1) }, last_24h: { rx: 4.1e9, tx: 3.2e8 }, share: i ? 0.21 : 0.74, measured: true }))
+      return { measured: true, interface: 'tun0', updated_at: NOW(), live: { rx_bps: 5.2e6, tx_bps: 3.1e5, window_s: 10 }, totals: { today: { rx: 5.6e9, tx: 4.4e8 }, month: { rx: 88e9, tx: 7.2e9 }, last_24h: { rx: 5.6e9, tx: 4.4e8 } },
+        per_5min: per, hourly: [], daily: [], uptime: { last_24h: 99.3, last_30d: 99.8 }, containers: c, wireguard_clients: this.wg ? { today: { rx: 2e8, tx: 5e7 }, month: { rx: 3e9, tx: 6e8 }, last_24h: { rx: 2e8, tx: 5e7 } } : null, counting_error: null }
+    }
+    if (p === '/vpn/history') return {
+      events: [
+        { t: NOW() - 300, kind: 'speed_test', message: 'Speed check: 94.2 Mbps down, 18 ms to speed.cloudflare.com', mbps: 94.2 },
+        { t: NOW() - 5400, kind: 'reconnect', message: 'The tunnel is back after 2 min down (198.51.100.7)', down_s: 120 },
+        { t: NOW() - 5520, kind: 'disconnect', message: 'The tunnel went down: [vpn] restarting VPN because it failed to pass the healthcheck', reason: '[vpn] restarting VPN because it failed to pass the healthcheck' },
+        { t: NOW() - 86000, kind: 'port', message: 'PIA forwards port 41234', port: 41234 },
+        { t: NOW() - 86100, kind: 'server_change', message: 'Connected to CA Montreal (montreal424) by lab' },
+      ],
+      uptime: { last_24h: 99.3, last_30d: 99.8 }, session: { up: true, since: NOW() - 5400, length_s: 5400 }, reconnects_24h: 1,
+      ports: [{ port: 41234, from: NOW() - 86000, to: null }], last_leak_test: { at: NOW() - 600, by: 'auto', tested: 1, leaks: 0, results: [] }, speed_tests: [],
+    }
+    if (p === '/vpn/speed-test') { this.speed = { at: NOW(), bytes: 20000000, seconds: 1.7, mbps: 94.2, latency_ms: 18, host: 'speed.cloudflare.com' }; return { success: true, ...this.speed, message: '94.2 Mbps through the tunnel, 18 ms to speed.cloudflare.com' } }
+    if (p === '/vpn/server') { const r = body.region === 'fastest' ? { id: 'ca_toronto', name: 'CA Toronto', server: 'toronto421' } : { id: body.region, name: 'Switzerland', server: 'zurich401' }; this.region = r.name; this.server = r.server; return { success: true, region: { ...r, country: 'CA' }, latency_ms: 31, message: `Moving to ${r.name} (${r.server}), 31 ms away: the tunnel is back in a few seconds` } }
+    const pm = p.match(/^\/vpn\/containers\/([^/]+)$/)
+    if (pm) { const a = this.attached.find((x) => x.container === decodeURIComponent(pm[1])); if (!a) return { status: 404, body: { error: true, code: 404, message: 'not behind' } }; Object.assign(a, body); return { success: true, container: a.container, stop_when_down: !!a.stop_when_down, restart_when_up: !!a.restart_when_up } }
     if (p === '/vpn/connect') { if (!this.account && !body.username) return { status: 502, body: { error: true, code: 502, message: 'Your PIA account is not stored' } }; this.account = true; this.configured = true; return { success: true, region: { id: 'ca', name: 'CA Montreal', country: 'CA', server: 'montreal424' }, message: 'Connecting to CA Montreal (montreal424): the tunnel is up in a few seconds' } }
     if (p === '/vpn/pause') { this.paused = true; return { success: true, paused: true, message: 'The VPN is paused: the containers behind it are offline until you resume it' } }
     if (p === '/vpn/resume') { this.paused = false; return { success: true, paused: false, message: 'The VPN is running again' } }
@@ -110,6 +138,8 @@ async function signIn(page, who, lastPage = 'vpn') {
   await page.goto(UI, { waitUntil: 'domcontentloaded' })
   await page.waitForSelector('main, input[placeholder="Enter password"]', { timeout: 30000 })
   if (await page.$('input[placeholder="Enter password"]')) {
+    // a remembered user name may be filled in already
+    await page.click('input[placeholder="Enter username"]', { clickCount: 3 }); await page.keyboard.press('Backspace')
     await page.type('input[placeholder="Enter username"]', who.user)
     await page.type('input[placeholder="Enter password"]', who.pass)
     await page.keyboard.press('Enter')
@@ -150,7 +180,7 @@ const browser = await puppeteer.launch({ executablePath: process.env.CHROME || '
 const errors = []
 try {
   const page = await browser.newPage()
-  await page.setViewport({ width: 1440, height: 900 })
+  await page.setViewport({ width: 1280, height: 900 })
   page.on('console', (m) => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) errors.push(m.text()) })
   page.on('pageerror', (e) => errors.push(String(e)))
   await intercept(page)
@@ -190,8 +220,30 @@ try {
   await clickText(page, 'Through the VPN')   // the confirm dialog's button
   check('add: PUT /containers/{name}/vpn {on: true}', await waitFor(() => fake.calls.some((c) => c.p === `/containers/${encodeURIComponent(pick)}/vpn` && c.body.on === true)))
   check('add: it is listed with its switch', await has(page, `${pick} through the VPN`) || await until(page, new Function(`return !!document.querySelector('[aria-label="${pick} through the VPN"]')`)))
-  await clickText(page, 'Test for leaks')
-  check('leak test: the tunnel\'s address', await has(page, 'Tunnel · 198.51.100.7'))
+  await clickText(page, 'Verify')
+  check('verify: every container\'s address, the tunnel\'s', await has(page, 'Tunnel · 198.51.100.7') && await has(page, 'Verified 1 container'))
+
+  // traffic, server, speed, history
+  check('traffic: the rates now, today and this month', await has(page, '42 Mbps') && await has(page, '2.5 Mbps') && await has(page, '88.7 GB'))
+  check('traffic: the 24-hour chart', await until(page, () => !!document.querySelector('[aria-label^="Traffic over the last 24 hours"] svg path')))
+  check('traffic: the container\'s share of the month', await has(page, '74 %'))
+  check('history: uptime, the session, the drop with its reason, the forwarded port', await has(page, '99.3 %') && await has(page, '90 min') && await has(page, 'failed to pass the healthcheck') && await has(page, '41234 · since'))
+  check('server: the region and its latency', await has(page, 'montreal424 · 23 ms'))
+  await clickText(page, 'Test speed')
+  check('speed: POST /vpn/speed-test, the result on the page', await waitFor(() => fake.calls.some((c) => c.p === '/vpn/speed-test')) && await has(page, '94.2 Mbps'))
+  check('speed: one every 5 minutes (the button waits)', await until(page, () => [...document.querySelectorAll('button')].find((b) => b.innerText.includes('Test speed'))?.disabled === true))
+  check('server: the picker shows each region\'s latency, not the current one', await until(page, () => [...document.querySelectorAll('#vpn-move option')].map((o) => o.textContent).join('|') === 'Choose a region…|CA Toronto · 31 ms|Switzerland'))
+  await clickText(page, 'Fastest now'); await clickText(page, 'Move')
+  check('server: Fastest now asks, then POST /vpn/server {region: fastest}', await waitFor(() => fake.calls.some((c) => c.p === '/vpn/server' && c.body.region === 'fastest')) && await has(page, 'Moving to CA Toronto'))
+  // the policy
+  await page.click(`#vpn-stop-${pick}`); await sleep(500)
+  check('policy: stop when down (and start when back) for that container', await waitFor(() => fake.calls.some((c) => c.p === `/vpn/containers/${encodeURIComponent(pick)}` && c.body.stop_when_down === true && c.body.restart_when_up === true)))
+  check('policy: the second switch appears', await until(page, new Function(`return !!document.getElementById('vpn-restart-${pick}')`)))
+  // the exit address, copied
+  check('exit address: a copy button', await until(page, () => !!document.querySelector('[aria-label="Copy the exit address"]')))
+  // the picker: no core stack, not Gluetun, not already behind
+  const after = await page.evaluate(() => [...document.querySelectorAll('#vpn-add option')].map((o) => o.value).filter(Boolean))
+  check('picker: not the one already behind, nothing from the core stacks', !after.includes(pick) && !after.some((n) => /^(dcs-|Traefik|Gluetun|CrowdSec)/i.test(n)), JSON.stringify(after))
   await shot(page, '04-connected')
 
   // pause and resume
@@ -226,21 +278,25 @@ try {
 
   // light theme and a phone
   await openPage(page, ADMIN, { lastPage: 'vpn', theme: 'light' })
-  await has(page, 'Behind the VPN'); await shot(page, '08-light')
+  await has(page, 'Behind the VPN')
+  // the synced preferences may bring the dark look back: flip it with the header's shortcut when it did
+  if (await page.evaluate(() => document.documentElement.classList.contains('dark') || document.documentElement.dataset.mode === 'dark')) { await page.keyboard.down('Control'); await page.keyboard.press('d'); await page.keyboard.up('Control'); await sleep(800) }
+  await shot(page, '08-light')
   await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true })
   await openPage(page, ADMIN, { lastPage: 'vpn', theme: 'dark' })
   await has(page, 'Behind the VPN')
   check('phone: no sideways scroll', await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1))
   await shot(page, '09-phone')
-  await page.setViewport({ width: 1440, height: 900 })
+  await page.setViewport({ width: 1280, height: 900 })
 
   // a viewer: read-only
   if (VIEWER.user) {
-    const v = await browser.newPage(); await v.setViewport({ width: 1440, height: 900 })
+    const v = await browser.newPage(); await v.setViewport({ width: 1280, height: 900 })
     await intercept(v)
-    await signIn(v, VIEWER, 'vpn')
+    try { await signIn(v, VIEWER, 'vpn') } catch (e) { await v.screenshot({ path: path.join(OUT, 'viewer-fail.png') }); console.log(await v.evaluate(() => document.body.innerText.slice(0, 400))); throw e }
     check('viewer: sees the status', await has(v, '198.51.100.7'))
-    check('viewer: no switches, no Pause, no Account', await v.evaluate(() => !document.querySelector('[role="switch"]') && ![...document.querySelectorAll('button')].some((b) => ['Pause', 'Account & region', 'Test for leaks'].includes(b.innerText.trim()))))
+    check('viewer: no switches, no Pause, no Account, no Verify, no Test speed, no Move', await v.evaluate(() => !document.querySelector('[role="switch"]') && !document.getElementById('vpn-move') && ![...document.querySelectorAll('button')].some((b) => ['Pause', 'Account & region', 'Verify', 'Test speed', 'Fastest now'].includes(b.innerText.trim()))))
+    check('viewer: sees the traffic and the history', await has(v, '88.7 GB') && await has(v, 'Forwarded port'))
     await v.close()
   }
   check('no console errors', errors.length === 0, errors.slice(0, 3).join(' | '))

@@ -20,6 +20,8 @@ import { useConfirm } from '../components/common/ConfirmDialog'
 import { useToast } from '../components/common/Toast'
 import { Panel } from '../components/dashboard/cardShared'
 import { useContainerVpnSwitch } from '../components/containers/VpnButton'
+import { CopyButton } from '../components/common/CopyButton'
+import { TrafficPanel, ServerPanel, HistoryPanel, duration } from '../components/vpn/VpnPanels'
 import { useVpnEnabled } from '../hooks/useTechnitiumEnabled'
 import { useSettingsStore } from '../stores/settingsStore'
 import { useAuthStore } from '../stores/authStore'
@@ -28,19 +30,15 @@ import { usePolling } from '../hooks/usePolling'
 import { pollKeys } from '../api/pollKeys'
 import { apiErrorData, apiErrorMessage } from '../api/errors'
 import {
-  fetchVpnStatus, fetchVpnRegions, vpnConnect, vpnPause, vpnResume, vpnLeakTest, setVpnWireguardClients, deployTemplate, fetchContainers,
+  fetchVpnStatus, fetchVpnRegions, vpnConnect, vpnPause, vpnResume, vpnLeakTest, setVpnWireguardClients, deployTemplate, fetchContainers, setVpnContainerPolicy,
 } from '../api/endpoints'
 import type { VpnLeakResult, VpnStatus } from '../../shared/types'
 import { BTN_TOOLBAR_QUIET, BTN_TOOLBAR_PRIMARY, BTN_TOOLBAR_ATTN, BTN_SHEET_PRIMARY, BTN_CARD_QUIET, TEXT_META } from '../lib/ui'
 import { PAGE_STACK } from '../lib/pageKit'
 import { INPUT, LABEL, HINT } from '../lib/fieldStyles'
 
-function uptime(s: number | null): string {
-  if (s == null) return '—'
-  if (s < 3600) return `${Math.max(1, Math.round(s / 60))} min`
-  if (s < 86400) return `${Math.round(s / 3600)} h`
-  return `${Math.round(s / 86400)} days`
-}
+/** stacks that never go behind the VPN: the dashboard's own, and the one Gluetun shares with Traefik and CrowdSec */
+const NEVER_BEHIND = new Set(['core-infrastructure', 'networking-security'])
 const VERDICT: Record<VpnLeakResult['verdict'], { tone: 'ok' | 'problem' | 'neutral' | 'attention'; text: string }> = {
   tunnel: { tone: 'ok', text: 'Tunnel' },
   leak: { tone: 'problem', text: 'Home address!' },
@@ -103,7 +101,12 @@ export default function Vpn() {
   }
   const leakTest = async () => {
     setBusy('leak')
-    try { const r = await vpnLeakTest(); setLeaks(r); addToast({ type: r.leaks ? 'error' : 'success', message: r.leaks ? `${r.leaks} container${r.leaks === 1 ? '' : 's'} showed the home address` : 'No leak: nothing behind the VPN shows the home address' }); await refresh() }
+    try {
+      const r = await vpnLeakTest(); setLeaks(r)
+      const off = r.results.filter((x) => x.verdict === 'offline').length
+      addToast({ type: r.leaks ? 'error' : 'success', message: r.leaks ? `${r.leaks} container${r.leaks === 1 ? '' : 's'} showed the home address` : `Verified ${r.results.length} container${r.results.length === 1 ? '' : 's'}: no leak${off ? ` (${off} with no internet)` : ''}` })
+      await refresh()
+    }
     catch (e) { addToast({ type: 'error', message: apiErrorMessage(e) }) } finally { setBusy(null) }
   }
 
@@ -118,8 +121,8 @@ export default function Vpn() {
             <RefreshCw size={14} className={fetching ? 'animate-spin' : ''} /><span className="hidden sm:inline">Refresh</span>
           </button>
           {isAdmin && st?.configured && st.attached.length > 0 && (
-            <button type="button" disabled={!!busy} onClick={() => void leakTest()} className={BTN_TOOLBAR_QUIET}>
-              {busy === 'leak' ? <Loader2 size={14} className="animate-spin" /> : <Radar size={14} />} Test for leaks
+            <button type="button" disabled={!!busy} onClick={() => void leakTest()} className={BTN_TOOLBAR_QUIET} title="Asks the outside world which address each container behind the VPN has">
+              {busy === 'leak' ? <Loader2 size={14} className="animate-spin" /> : <Radar size={14} />} Verify
             </button>
           )}
           {isAdmin && st?.configured && (st.paused
@@ -172,16 +175,23 @@ function Overview({ st, isAdmin, leaks, onChanged }: { st: VpnStatus; isAdmin: b
         <StatTile icon={ShieldCheck} label="Tunnel" short="Tunnel" tone={tunnelTone}
           value={st.paused ? 'Paused' : st.connected ? 'Connected' : 'Down'}
           sub={[st.region_name, st.server_name].filter(Boolean).join(' · ') || undefined} />
-        <StatTile icon={Globe} label="Exit address" short="Exit" tone="info" value={<span className="font-mono text-base">{st.public_ip ?? '—'}</span>}
+        <StatTile icon={Globe} label="Exit address" short="Exit" tone="info"
+          value={<span className="inline-flex items-center gap-1.5 max-w-full"><span className="font-mono text-base truncate">{st.public_ip || '—'}</span>{st.public_ip && <CopyButton text={st.public_ip} label="Copy the exit address" />}</span>}
           sub={[st.city, st.country].filter(Boolean).join(', ') || undefined} />
         <StatTile icon={ArrowDownUp} label="Forwarded port" short="Port" tone={st.port_forwarding && !st.forwarded_port && st.connected ? 'attention' : 'neutral'}
           value={st.forwarded_port ?? (st.port_forwarding ? '…' : 'Off')}
           sub={qbit ? (st.qbittorrent_error ? 'qBittorrent: not set' : st.qbittorrent_port && st.qbittorrent_port === st.forwarded_port ? 'qBittorrent listens on it' : 'qBittorrent: on its way') : undefined} />
-        <StatTile icon={Clock} label="Up" short="Up" tone="neutral" value={st.running ? uptime(st.uptime_s) : 'Stopped'} sub="Gluetun" />
+        <StatTile icon={Clock} label="Session" short="Up" tone="neutral" value={!st.running ? 'Stopped' : st.connected ? duration(st.session_s ?? st.uptime_s) : 'Down'}
+          sub={st.running ? `Gluetun up ${duration(st.uptime_s)}` : 'Gluetun'} />
       </div>
       {qbit && st.qbittorrent_error && <Notice tone="attention" title="qBittorrent did not take the forwarded port">{st.qbittorrent_error}</Notice>}
+      <TrafficPanel />
       <BehindPanel st={st} isAdmin={isAdmin} leaks={leaks} onChanged={onChanged} />
-      <WireguardPanel st={st} isAdmin={isAdmin} onChanged={onChanged} />
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6 items-start">
+        <ServerPanel st={st} isAdmin={isAdmin} onChanged={onChanged} />
+        <WireguardPanel st={st} isAdmin={isAdmin} onChanged={onChanged} />
+      </div>
+      <HistoryPanel />
     </div>
   )
 }
@@ -192,13 +202,19 @@ function BehindPanel({ st, isAdmin, leaks, onChanged }: { st: VpnStatus; isAdmin
   const [pick, setPick] = useState('')
   const { data: list } = usePolling(() => fetchContainers(null), 60000, { key: pollKeys.containers(null), enabled: isAdmin })
   const behindNames = useMemo(() => new Set(st.attached.map((a) => a.container)), [st.attached])
-  // any running container of a stack on this server, not already behind it, not Gluetun itself
+  // a running container of a stack on this server, not the core ones, not Gluetun, not already behind it
   const candidates = useMemo(() => (list?.containers ?? [])
-    .filter((c) => !c.member && c.state === 'running' && !!c.stack && c.name !== st.container && !behindNames.has(c.name))
+    .filter((c) => !c.member && c.state === 'running' && !!c.stack && !NEVER_BEHIND.has(c.stack) && c.name !== st.container && !behindNames.has(c.name))
     .map((c) => c.name).sort((a, b) => a.localeCompare(b)), [list, behindNames, st.container])
   const flip = async (name: string, on: boolean) => {
     setBusy(name)
     try { if (await toggle(name, on)) { setPick(''); await onChanged() } } finally { setBusy(null) }
+  }
+  const { addToast } = useToast()
+  const policy = async (name: string, body: { stop_when_down?: boolean; restart_when_up?: boolean }) => {
+    setBusy(name)
+    try { await setVpnContainerPolicy(name, body); await onChanged() }
+    catch (e) { addToast({ type: 'error', message: apiErrorMessage(e) }) } finally { setBusy(null) }
   }
   return (
     <Panel icon={Lock} title="Behind the VPN" sub="Everything these containers send leaves through the tunnel; when it is down they reach nothing">
@@ -225,6 +241,20 @@ function BehindPanel({ st, isAdmin, leaks, onChanged }: { st: VpnStatus; isAdmin
                       <Toggle checked label={`${a.container} through the VPN`} disabled={!!busy} onChange={(v) => void flip(a.container, v)} />
                     </span>
                   )}
+                  {isAdmin ? (
+                    <div className="basis-full flex flex-wrap gap-x-5 gap-y-2 pl-0.5">
+                      <span className="inline-flex items-center gap-2">
+                        <Toggle id={`vpn-stop-${a.container}`} checked={!!a.stop_when_down} label={`Stop ${a.container} when the VPN is down`} disabled={!!busy} onChange={(v) => void policy(a.container, v ? { stop_when_down: true, restart_when_up: true } : { stop_when_down: false })} />
+                        <label htmlFor={`vpn-stop-${a.container}`} className="text-xs text-slate-400 cursor-pointer">Stop it when the VPN is down</label>
+                      </span>
+                      {a.stop_when_down && (
+                        <span className="inline-flex items-center gap-2">
+                          <Toggle id={`vpn-restart-${a.container}`} checked={!!a.restart_when_up} label={`Start ${a.container} again when the VPN is back`} disabled={!!busy} onChange={(v) => void policy(a.container, { restart_when_up: v })} />
+                          <label htmlFor={`vpn-restart-${a.container}`} className="text-xs text-slate-400 cursor-pointer">Start it again when it is back</label>
+                        </span>
+                      )}
+                    </div>
+                  ) : a.stop_when_down ? <p className={`${TEXT_META} basis-full`}>Stopped while the VPN is down{a.restart_when_up ? ', started again when it is back' : ''}</p> : null}
                 </li>
               )
             })}
@@ -232,10 +262,10 @@ function BehindPanel({ st, isAdmin, leaks, onChanged }: { st: VpnStatus; isAdmin
         )}
       {isAdmin && (
         <div className="mt-3 flex flex-wrap items-end gap-2">
-          <div className="min-w-0 flex-1 sm:flex-none sm:w-72">
+          <div className="min-w-0 w-full sm:w-72">
             <label htmlFor="vpn-add" className={LABEL}>Add a container</label>
-            <select id="vpn-add" className={INPUT} value={pick} onChange={(e) => setPick(e.target.value)}>
-              <option value="">Choose a running container…</option>
+            <select id="vpn-add" className={INPUT} value={pick} onChange={(e) => setPick(e.target.value)} disabled={candidates.length === 0}>
+              <option value="">{candidates.length ? 'Choose a running container…' : 'No other running container can go behind it'}</option>
               {candidates.map((n) => <option key={n} value={n}>{n}</option>)}
             </select>
           </div>

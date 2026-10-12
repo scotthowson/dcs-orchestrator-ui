@@ -3,7 +3,7 @@
 // =============================================================================
 
 import { apiClient } from './client'
-import type { TechnitiumStatus, TechnitiumStats, TechnitiumRange, TechnitiumActivity, TechnitiumLists, TechnitiumGroups, TechnitiumGroup, TechnitiumGroupInput, TechnitiumGroupReport, TechnitiumHouse, TechnitiumSyncResult, TechnitiumConnectResult, TechnitiumBootstrapResult, TechnitiumRole, TechnitiumDevices, TechnitiumScan, TechnitiumNetDevice, TechnitiumDeviceChange, TechnitiumDhcp, TechnitiumScopeInput, TechnitiumLocal, TechnitiumBackups, VpnStatus, VpnRegion, VpnLeakResult } from '../../shared/types'
+import type { TechnitiumStatus, TechnitiumStats, TechnitiumRange, TechnitiumActivity, TechnitiumLists, TechnitiumGroups, TechnitiumGroup, TechnitiumGroupInput, TechnitiumGroupReport, TechnitiumHouse, TechnitiumSyncResult, TechnitiumConnectResult, TechnitiumBootstrapResult, TechnitiumRole, TechnitiumDevices, TechnitiumScan, TechnitiumNetDevice, TechnitiumDeviceChange, TechnitiumDhcp, TechnitiumScopeInput, TechnitiumLocal, TechnitiumBackups, VpnStatus, VpnRegion, VpnLeakResult, VpnTraffic, VpnHistory, VpnSpeedTest } from '../../shared/types'
 import type {
   FleetVersions,
   FleetUpdateResponse,
@@ -2218,8 +2218,8 @@ export function fetchVpnStatus(): Promise<VpnStatus> {
   return apiClient.get<VpnStatus>('/vpn/status')
 }
 /** GET /vpn/regions — PIA's regions that forward a port, Canada's first */
-export function fetchVpnRegions(): Promise<{ regions: VpnRegion[] }> {
-  return apiClient.get<{ regions: VpnRegion[] }>('/vpn/regions')
+export function fetchVpnRegions(): Promise<{ regions: VpnRegion[]; measured_at?: number | null }> {
+  return apiClient.get<{ regions: VpnRegion[]; measured_at?: number | null }>('/vpn/regions')
 }
 /** POST /vpn/connect — register a WireGuard key with PIA (the account is kept once PIA took it) and restart Gluetun (admin) */
 export function vpnConnect(body: { region: string; username?: string; password?: string }): Promise<{ success: boolean; region: { id: string; name: string; country: string; server: string }; message: string }> {
@@ -2235,6 +2235,20 @@ export function vpnLeakTest(): Promise<{ success: boolean; exit_ip: string | nul
 /** PUT /containers/{name}/vpn — a container through the VPN, or out of it (admin) */
 export function setContainerVpn(container: string, on: boolean): Promise<{ success: boolean; on: boolean; message: string }> {
   return apiClient.put(`/containers/${encodeURIComponent(container)}/vpn`, { on }, 300000)
+}
+/** GET /vpn/traffic — the tunnel's bytes: the rates now, today, this month, 24 h in 5-minute steps, each container's share (every account) */
+export function fetchVpnTraffic(): Promise<VpnTraffic> { return apiClient.get<VpnTraffic>('/vpn/traffic') }
+/** GET /vpn/history — connects, drops with their reason, server changes, the forwarded port, tests; uptime (every account) */
+export function fetchVpnHistory(): Promise<VpnHistory> { return apiClient.get<VpnHistory>('/vpn/history') }
+/** POST /vpn/speed-test — a test download through the tunnel, one every 5 minutes (admin) */
+export function vpnSpeedTest(): Promise<VpnSpeedTest & { success: boolean; message: string }> { return apiClient.post('/vpn/speed-test', {}, 120000) }
+/** POST /vpn/server — another PIA server with the stored account: a region id, or "fastest" measured now (admin) */
+export function vpnChangeServer(region: string): Promise<{ success: boolean; region: { id: string; name: string; country: string; server: string }; latency_ms: number | null; message: string }> {
+  return apiClient.post('/vpn/server', { region }, 180000)
+}
+/** PUT /vpn/containers/{name} — stop it while the tunnel is down, start it when it is back (admin) */
+export function setVpnContainerPolicy(container: string, body: { stop_when_down?: boolean; restart_when_up?: boolean }): Promise<{ success: boolean; stop_when_down: boolean; restart_when_up: boolean }> {
+  return apiClient.put(`/vpn/containers/${encodeURIComponent(container)}`, body)
 }
 /** PUT /vpn/wireguard-clients — the WireGuard server's clients out through the VPN (admin) */
 export function setVpnWireguardClients(on: boolean, container?: string): Promise<{ success: boolean; message: string }> {

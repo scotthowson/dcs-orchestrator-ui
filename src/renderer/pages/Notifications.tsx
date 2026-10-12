@@ -71,6 +71,8 @@ type TriggerType =
   | 'technitium_device_blocked_expired'
   | 'vpn_down'
   | 'vpn_leak'
+  | 'vpn_reconnected'
+  | 'vpn_weekly_digest'
 
 type Priority = 'urgent' | 'high' | 'default' | 'low'
 
@@ -108,6 +110,8 @@ const TRIGGER_OPTIONS: { value: TriggerType; label: string }[] = [
   // the VPN (its rules are made the first time its clock runs, both on)
   { value: 'vpn_down', label: 'VPN: the tunnel is down (the containers behind it are cut off)' },
   { value: 'vpn_leak', label: 'VPN: a container behind it shows the home address' },
+  { value: 'vpn_reconnected', label: 'VPN: the tunnel came back by itself' },
+  { value: 'vpn_weekly_digest', label: 'VPN: the week in one line (traffic, uptime, speed)' },
 ]
 
 const PRIORITY_OPTIONS: { value: Priority; label: string }[] = [
@@ -1520,6 +1524,8 @@ const WEBHOOK_EVENT_GROUPS: { label: string; events: { value: string; label: str
   { label: 'VPN', events: [
     { value: 'vpn_down', label: 'The tunnel is down (and back)' },
     { value: 'vpn_leak', label: 'A container shows the home address' },
+    { value: 'vpn_reconnected', label: 'The tunnel came back by itself' },
+    { value: 'vpn_weekly_digest', label: 'The week in one line' },
   ] },
 ]
 const WEBHOOK_EVENT_TYPES = WEBHOOK_EVENT_GROUPS.flatMap((g) => g.events)
