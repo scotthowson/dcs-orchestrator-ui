@@ -1400,8 +1400,8 @@ export function checkSystemUpdate(): Promise<SystemUpdateCheckResponse> {
 }
 
 /** POST /system/update/apply — Update to the channel's release; user files are kept, a backup tag allows rollback */
-export function applySystemUpdate(opts: { replaceLocal?: boolean; restart?: boolean; /** a hub: then bring the VMs to the new version */ fleet?: boolean } = {}): Promise<SystemUpdateApplyResponse> {
-  return apiClient.post<SystemUpdateApplyResponse>('/system/update/apply', { confirm: true, replace_local: !!opts.replaceLocal, restart: !!opts.restart, fleet: !!opts.fleet }, 180000)
+export function applySystemUpdate(opts: { replaceLocal?: boolean; restart?: boolean; /** a hub: then bring the VMs to the new version */ fleet?: boolean; /** 4.0.58: an install that cannot fast-forward is moved to the release, its stack files copied aside and put back */ align?: boolean } = {}): Promise<SystemUpdateApplyResponse> {
+  return apiClient.post<SystemUpdateApplyResponse>('/system/update/apply', { confirm: true, replace_local: !!opts.replaceLocal, restart: !!opts.restart, fleet: !!opts.fleet, ...(opts.align ? { align: true } : {}) }, 180000)
 }
 
 /** POST /system/update/rollback — Return to a backup tag; user files are kept */

@@ -76,6 +76,16 @@ PUPPETEER_DIR=/tmp/dcs-ui-sweep MEMBER_API=http://127.0.0.1:41922 EMPTY_API=http
 The viewer is an account of role `user` on the hub and on the member API (create it with `POST /auth/users`); the hub
 also needs `austin` (role `user`) for the chat journey.
 
+`tests/engine-update.mjs` checks the Updates page against the same lab, with the engine answers and the update POSTs served by a fake
+inside the test: on a hub the Docker Engine card lists the VMs at once (before 4.0.50 they came with the next two-minute poll),
+"Update 1 VM" sends `POST /fleet/docker-engine/update` with that VM, shows it updating, follows it and says how it ended (or the
+VM's reason it did not start), a VM whose package index could not be refreshed reads "Index stale" instead of "Current", and an
+install that cannot fast-forward offers Align (`POST /system/update/apply {align: true}`) instead of a `git reset --hard`.
+
+```bash
+PUPPETEER_DIR=/tmp/dcs-ui-sweep node tests/engine-update.mjs
+```
+
 `tests/deploy-sheet.mjs` checks the template deploy sheet for a stack in a fleet VM against the same lab, with the stack list,
 the VM's `/status`, Traefik, the domains, the dry run and the deploy answered inside the test: the VM's one NVIDIA card is
 offered and picked, its slot goes out as `gpu`, and romm-streaming's own route (`route_override`) is one row that follows

@@ -1444,6 +1444,8 @@ export interface SystemUpdateCheckResponse {
   local_changes?: SystemUpdateLocalChanges
   /** true only when edited framework files block the update */
   has_local_changes: boolean
+  /** 4.0.58: diverged or ahead, so it cannot fast-forward: POST /system/update/apply {align: true} moves it to the release */
+  can_align?: boolean
   last_backup_tag?: string
   restart_method?: SystemRestartMethod
   api_pid?: number
@@ -1475,6 +1477,11 @@ export interface SystemUpdateApplyResponse {
   commits_applied?: number
   kept_local?: string[]
   replaced_local?: string[]
+  /** 4.0.58: stack files the update changed, put back from the copy it made first (backup_dir/Stacks) */
+  stack_files_restored?: string[]
+  /** 4.0.58: the install could not fast-forward and was aligned to the release ({align: true}) */
+  aligned?: boolean
+  can_align?: boolean
   backup_dir?: string
   new_settings?: string[]
   service_definition_changed?: boolean
@@ -2132,6 +2139,8 @@ export interface ImageCheckResponse {
   last_update_at?: string
   /** GET /fleet/images: true when members were merged in */
   fleet?: boolean
+  /** 4.0.58: stacks the image update left alone because their stack file does not describe the containers running from it */
+  stack_file_refusals?: { stack: string; path: string; at: string }[]
   /** GET /fleet/images: one entry per DCS (the hub first, id null) */
   members?: FleetImagesMember[]
 }
@@ -4662,6 +4671,10 @@ export interface DockerEngineInfo {
   /** the package source has not been asked yet (it is being asked in the background) */
   checking?: boolean
   candidate_checked_at?: number
+  /** 4.0.58: the package index the candidate was read from could not be refreshed and is over a day older than the check */
+  index_stale?: boolean
+  /** 4.0.58: when that index was last refreshed (epoch seconds; 0 = unknown) */
+  index_refreshed_at?: number
   package_manager: string
   upgradable: boolean
   /** this API may update it unattended (root or passwordless sudo) */

@@ -13,12 +13,20 @@ import { useAuthStore } from '../../stores/authStore'
 import VmCapsule from '../fleet/VmCapsule'
 import { pageLabel } from '../../constants/pageTitles'
 import { BTN_CARD, BTN_CARD_QUIET, TONE_OK } from '../../lib/ui'
-import { Fact, CardIcon, FreshnessLine } from './updateBits'
+import { Fact, CardIcon, FreshnessLine, formatRelativeTime } from './updateBits'
 import { fetchDockerEngine, fetchDockerEngineStatus, updateDockerEngine, updateFleetDockerEngine, terminalAuth } from '../../api/endpoints'
 import type { DockerEngineInfo, DockerEngineFleet, DockerEngineStatus } from '../../../shared/types'
 
 import { Pill } from '../common/Pill'
 import { CopyButton } from '../common/CopyButton'
+/** "index stale, last refreshed 3d ago": a candidate read from a package index that could not be refreshed says nothing */
+const indexAge = (i: { index_refreshed_at?: number }) => `last refreshed ${i.index_refreshed_at ? formatRelativeTime(i.index_refreshed_at * 1000) : 'never'}`
+
+/** an engine update a VM was asked to make, followed until the VM says how it ended */
+interface VmRun { state: 'starting' | 'running' | 'done' | 'failed'; message: string; since: number }
+/** a VM that has not said "done" or "failed" this long after it started is reported as not answering */
+const VM_RUN_LIMIT_MS = 20 * 60 * 1000
+
 const SOURCE_LABEL: Record<string, string> = {
   'docker-ce': "Docker's packages",
   'docker.io': "Debian's packages",
@@ -32,7 +40,12 @@ export default function DockerEngineCard({ enabled, isHub }: { enabled: boolean;
   // anyone reads the engine; updating it is an admin's (the API refuses the POSTs to anyone else)
   const isAdmin = useAuthStore((s) => s.userRole) === 'admin'
   const fetcher = useCallback(() => fetchDockerEngine(isHub), [isHub])
-  const { data, refresh, loading, error } = usePolling<DockerEngineInfo | DockerEngineFleet>(fetcher, 120000, { enabled })
+  /** the VMs' engine updates under way (by member id) */
+  const [vmRuns, setVmRuns] = useState<Record<string, VmRun>>({})
+  const vmFollowing = Object.values(vmRuns).some((r) => r.state === 'starting' || r.state === 'running')
+  // keyed by the scope: a hub learns it is one after the first render, and the VMs' list must come at once, not with the
+  // next two-minute poll (until then the card showed no VM and no Update button). While a VM updates: every 5 s
+  const { data, refresh, loading, error } = usePolling<DockerEngineInfo | DockerEngineFleet>(fetcher, vmFollowing ? 5000 : 120000, { enabled, key: `docker-engine:${isHub ? 'fleet' : 'own'}` })
   const [status, setStatus] = useState<DockerEngineStatus | null>(null)
   const [busy, setBusy] = useState(false)
   const [fleetBusy, setFleetBusy] = useState(false)
@@ -112,18 +125,57 @@ export default function DockerEngineCard({ enabled, isHub }: { enabled: boolean;
     const ids = fleet.members.filter((m) => m.id && m.reachable && m.upgradable).map((m) => m.id as string)
     if (!ids.length) return
     setFleetBusy(true)
+    const since = Date.now()
+    setVmRuns((old) => ({ ...old, ...Object.fromEntries(ids.map((id) => [id, { state: 'starting', message: 'asking the VM…', since } as VmRun])) }))
     try {
       const r = await updateFleetDockerEngine(ids)
+      const results = r.results ?? []
+      setVmRuns((old) => {
+        const next = { ...old }
+        for (const id of ids) {
+          const res = results.find((x) => x.id === id)
+          next[id] = res?.success ? { state: 'running', message: 'updating the engine', since } : { state: 'failed', message: res?.message || 'the VM did not answer', since }
+        }
+        return next
+      })
       addToast({
         type: r.failed ? 'warning' : 'success',
-        message: `${r.started} VM${r.started === 1 ? '' : 's'} updating the engine${r.failed ? `, ${r.failed} did not start` : ''}`,
+        message: `${r.started} VM${r.started === 1 ? '' : 's'} updating the engine${r.failed ? `, ${r.failed} did not start (the reason is beside it)` : ''}`,
         duration: 8000,
       })
-      window.setTimeout(() => refresh(), 25000)
+      void refresh()
     } catch (e) {
-      addToast({ type: 'error', message: e instanceof Error ? e.message : 'The fleet update did not start' })
+      const msg = e instanceof Error ? e.message : 'The fleet update did not start'
+      setVmRuns((old) => ({ ...old, ...Object.fromEntries(ids.map((id) => [id, { state: 'failed', message: msg, since } as VmRun])) }))
+      addToast({ type: 'error', message: msg })
     } finally { setFleetBusy(false) }
   }, [fleet, addToast, refresh])
+
+  // each VM that was asked: its own last update ends the follow ("done" or "failed" after the request), a VM that stays
+  // silent past the limit is reported; a VM that does not answer for a while is its Docker restarting, not news
+  useEffect(() => {
+    if (!fleet) return
+    setVmRuns((old) => {
+      let changed = false
+      const next = { ...old }
+      for (const [id, run] of Object.entries(old)) {
+        if (run.state !== 'running') continue
+        const m = fleet.members.find((x) => x.id === id)
+        const lu = m?.reachable ? m.last_update : undefined
+        const ended = lu && (lu.status === 'done' || lu.status === 'failed') && lu.finished_at && Date.parse(lu.finished_at) >= run.since - 5000
+        if (ended && lu) {
+          next[id] = lu.status === 'done'
+            ? { state: 'done', message: `now ${lu.version || m?.version || 'up to date'}`, since: run.since }
+            : { state: 'failed', message: (lu.output || `exit ${lu.exit_code ?? '?'}`).trim().split('\n').slice(-1)[0] || 'the update failed', since: run.since }
+          changed = true
+        } else if (Date.now() - run.since > VM_RUN_LIMIT_MS) {
+          next[id] = { state: 'failed', message: 'no outcome from the VM after 20 minutes: look at its Updates page', since: run.since }
+          changed = true
+        }
+      }
+      return changed ? next : old
+    })
+  }, [fleet])
 
   const upgradableVms = fleet ? fleet.members.filter((m) => m.id && m.reachable && m.upgradable).length : 0
   const uptodate = !!own && !!own.version && !own.upgradable
@@ -164,6 +216,11 @@ export default function DockerEngineCard({ enabled, isHub }: { enabled: boolean;
           {own.upgradable && (
             <Fact label="Available"><span className="text-xs font-mono text-cyan-300">{own.candidate}</span></Fact>
           )}
+          {!own.upgradable && !own.checking && own.index_stale && (
+            <Fact label="Package index">
+              <span className="text-xs text-amber-300 text-right">stale, {indexAge(own)}</span>
+            </Fact>
+          )}
           {!own.upgradable && own.checking && (
             <Fact label="Available">
               <span className="text-xs text-slate-500 flex items-center gap-1"><Loader2 size={11} className="animate-spin" /> asking the package source…</span>
@@ -177,6 +234,8 @@ export default function DockerEngineCard({ enabled, isHub }: { enabled: boolean;
               <Pill tone="info" icon={<Loader2 size={10} className="animate-spin" />}>Updating</Pill>
             ) : own.upgradable ? (
               <Pill tone="info" icon={<Download size={10} />}>Update available</Pill>
+            ) : own.version && own.index_stale ? (
+              <Pill tone="attention" icon={<AlertTriangle size={10} />} title={`The package index could not be refreshed: ${indexAge(own)}`}>Index stale</Pill>
             ) : own.version ? (
               <Pill tone="ok" icon={<CheckCircle size={10} />}>Current</Pill>
             ) : (
@@ -187,7 +246,8 @@ export default function DockerEngineCard({ enabled, isHub }: { enabled: boolean;
           {/* the one-line status, like the other cards: up to date · checked · last updated */}
           <FreshnessLine
             ok={uptodate}
-            okText={own.checking ? 'Engine running' : 'Engine up to date'}
+            okText={own.checking ? 'Engine running' : own.index_stale ? 'Index stale: not known' : 'Engine up to date'}
+            okTone={own.index_stale ? 'neutral' : 'ok'}
             warnText={own.version ? `${own.candidate || 'A newer engine'} available` : 'Docker is not answering'}
             tone={own.version ? 'info' : 'problem'}
             checkedAt={checkedAt || null}
@@ -259,27 +319,46 @@ export default function DockerEngineCard({ enabled, isHub }: { enabled: boolean;
                 )}
               </div>
               <ul className="space-y-1 max-h-48 overflow-y-auto pr-1">
-                {fleet.members.filter((m) => m.id).map((m) => (
-                  <li key={m.id ?? 'hub'} className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-[11px]">
+                {fleet.members.filter((m) => m.id).map((m) => {
+                  const run = m.id ? vmRuns[m.id] : undefined
+                  return (
+                  <li key={m.id ?? 'hub'} className="text-[11px]">
+                    <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
                     <VmCapsule member={m.id} name={m.name} vmid={m.vmid} size="xs" />
                     <span className="flex flex-wrap items-center gap-2 min-w-0">
-                      {!m.reachable ? (
+                      {run && run.state !== 'done' && run.state !== 'failed' ? (
+                        <Pill tone="info" icon={<Loader2 size={10} className="animate-spin" />}>{run.state === 'starting' ? 'Starting…' : 'Updating'}</Pill>
+                      ) : !m.reachable ? (
                         <span className="text-slate-500 truncate" title={m.error}>no answer</span>
                       ) : (
                         <>
                           <span className="font-mono text-slate-300">{m.version || '—'}</span>
-                          {m.upgradable ? (
+                          {run?.state === 'done' ? (
+                            <Pill tone="ok" icon={<CheckCircle size={10} />}>Updated</Pill>
+                          ) : run?.state === 'failed' ? (
+                            <Pill tone="problem" icon={<AlertTriangle size={10} />}>Update failed</Pill>
+                          ) : m.upgradable ? (
                             <Pill tone="info">{m.candidate} available</Pill>
                           ) : m.source === 'docker.io' ? (
                             <Pill tone="attention" title={m.note}>Debian's docker.io</Pill>
+                          ) : m.index_stale ? (
+                            <Pill tone="attention" title={`The VM could not refresh its package index: ${indexAge(m)}`}>Index stale</Pill>
                           ) : (
                             <Pill tone="ok">Current</Pill>
                           )}
                         </>
                       )}
                     </span>
+                    </div>
+                    {run && (run.state === 'failed' || run.state === 'done') && (
+                      <p role="status" className={`mt-0.5 text-[10px] ${run.state === 'failed' ? 'text-rose-300' : 'text-emerald-300'}`}>{run.message}</p>
+                    )}
+                    {!run && m.reachable && !m.upgradable && m.index_stale && (
+                      <p className="mt-0.5 text-[10px] text-amber-300/90">Index stale, {indexAge(m)}: “Current” is not known</p>
+                    )}
                   </li>
-                ))}
+                  )
+                })}
               </ul>
             </div>
           )}

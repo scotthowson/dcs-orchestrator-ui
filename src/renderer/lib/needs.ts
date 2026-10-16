@@ -170,6 +170,12 @@ export function collectNeeds(input: {
     out.push({ key: 'image-updates', severity: 'attention', title: `${plural(imageUpdates.length, 'image update')} waiting`, detail: names(list), page: 'images', fingerprint: imageUpdates.map((i) => i.new_id || i.image).sort().join(',') })
   }
 
+  // a stack file that no longer names what runs from it (a stub where a stack was): nothing may recreate from it
+  for (const r of images?.stack_file_refusals ?? []) {
+    out.push({ key: `stack-file-${r.stack}`, severity: 'problem', title: `${r.stack}: its stack file does not describe its containers`,
+      detail: 'The image update left it alone. Check the file on the Stacks page, or put it back from .data/update-backups, before anything recreates from it.', page: 'stacks', fingerprint: r.at })
+  }
+
   if (dcsUpdates > 0) {
     out.push({ key: 'dcs-update', severity: 'attention', title: 'A DCS update is ready', detail: `Install it from the ${pageLabel('updates')} page.`, page: 'updates', fingerprint: String(dcsUpdates) })
   }

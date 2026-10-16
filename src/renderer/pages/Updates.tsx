@@ -354,10 +354,20 @@ export default function Updates() {
     }
   }, [sysChecking, isAdmin, addToast, ingestCheck])
 
-  const handleApplySystemUpdate = useCallback(async () => {
-    if (sysApplying || !sysUpdate?.available) return
-    const blocking = sysUpdate.local_changes?.conflicts ?? []
-    if (blocking.length > 0 && !replaceLocal) {
+  /** align: an install that cannot fast-forward is moved to the release (the server copies every stack file aside first and
+   *  puts back any it changed; framework edits are kept under .data/update-backups) — never a "git reset --hard" by hand */
+  const handleApplySystemUpdate = useCallback(async (align = false) => {
+    if (sysApplying || !(align ? sysUpdate?.can_align : sysUpdate?.available)) return
+    if (align) {
+      const sure = await confirm({
+        title: `Align with ${sysUpdate?.latest_name || 'the release'}?`,
+        message: 'This install carries commits the release does not have. Aligning moves the code to the release: every stack file is copied aside first and put back afterwards, framework files edited here are kept in .data/update-backups, and Rollback returns to the commits it had.',
+        confirmLabel: 'Align',
+      })
+      if (!sure) return
+    }
+    const blocking = sysUpdate?.local_changes?.conflicts ?? []
+    if (!align && blocking.length > 0 && !replaceLocal) {
       addToast({ type: 'error', message: 'Tick "Replace them with the release versions" first, or revert those files.' })
       return
     }
@@ -365,7 +375,7 @@ export default function Updates() {
     setApplyReport(null)
     setRestartHint(null)
     try {
-      const result = await applySystemUpdate({ replaceLocal, restart: restartAfter, fleet: isHub && fleetMembers.length > 0 && fleetAfter })
+      const result = await applySystemUpdate({ replaceLocal, restart: restartAfter, fleet: isHub && fleetMembers.length > 0 && fleetAfter, align })
       if (result.updated) {
         if (result.fleet_update_queued) {
           addToast({ type: 'info', message: `The ${fleetMembers.length} VM${fleetMembers.length === 1 ? '' : 's'} follow once the hub is back on the new version`, duration: 8000 })
@@ -401,7 +411,7 @@ export default function Updates() {
     } finally {
       setSysApplying(false)
     }
-  }, [sysApplying, sysUpdate, replaceLocal, restartAfter, addToast, ingestCheck, waitForApi, isHub, fleetMembers.length, fleetAfter, refreshFleetVersions])
+  }, [sysApplying, sysUpdate, replaceLocal, restartAfter, addToast, ingestCheck, waitForApi, isHub, fleetMembers.length, fleetAfter, refreshFleetVersions, confirm])
 
   const handleRollback = useCallback(async () => {
     if (sysRollingBack || !lastBackupTag) return
@@ -848,9 +858,16 @@ export default function Updates() {
                   </div>
                 )}
                 {sysUpdate.state === 'diverged' && (
-                  <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-amber-500/[0.06] border border-amber-500/15">
-                    <AlertTriangle size={12} className="text-amber-400 shrink-0 mt-0.5" />
-                    <p className="text-[10px] text-amber-300">This checkout carries commits the release does not have, so it cannot be fast-forwarded. Align it once by hand (git fetch origin, then git reset --hard {sysUpdate.latest_commit}); your stack and template files are not part of that.</p>
+                  <div className="px-3 py-2 rounded-lg bg-amber-500/[0.06] border border-amber-500/15 space-y-2">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle size={12} className="text-amber-400 shrink-0 mt-0.5" />
+                      <p className="text-[10px] text-amber-300">This checkout carries commits the release does not have, so it cannot be fast-forwarded. Align moves it to {sysUpdate.latest_name || 'the release'}: every stack file is copied aside first and put back afterwards, framework files edited here are kept, and Rollback returns to these commits.</p>
+                    </div>
+                    {isAdmin && sysUpdate.can_align && (
+                      <button type="button" onClick={() => void handleApplySystemUpdate(true)} disabled={sysApplying || !!restartingApi} className={`${BTN_CARD} ${TONE_OK}`}>
+                        {sysApplying ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />} {sysApplying ? 'Aligning…' : `Align with ${sysUpdate.latest_name || 'the release'}`}
+                      </button>
+                    )}
                   </div>
                 )}
 
@@ -918,7 +935,7 @@ export default function Updates() {
                     )}
                     <button
                       type="button"
-                      onClick={handleApplySystemUpdate}
+                      onClick={() => void handleApplySystemUpdate()}
                       disabled={sysApplying || !!restartingApi || (conflicts.length > 0 && !replaceLocal)}
                       className={`${BTN_SHEET_PRIMARY} w-full`}
                     >
@@ -949,6 +966,9 @@ export default function Updates() {
                     </p>
                     {(applyReport.kept_local?.length ?? 0) > 0 && (
                       <p>Kept your edits: <span className="font-mono">{applyReport.kept_local?.join(', ')}</span></p>
+                    )}
+                    {(applyReport.stack_files_restored?.length ?? 0) > 0 && (
+                      <p>Stack files the update changed, put back as they were: <span className="font-mono">{applyReport.stack_files_restored?.join(', ')}</span></p>
                     )}
                     {(applyReport.replaced_local?.length ?? 0) > 0 && (
                       <p>Replaced (copies in <span className="font-mono">{applyReport.backup_dir}</span>): <span className="font-mono">{applyReport.replaced_local?.join(', ')}</span></p>
