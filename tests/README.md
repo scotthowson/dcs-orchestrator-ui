@@ -76,6 +76,15 @@ PUPPETEER_DIR=/tmp/dcs-ui-sweep MEMBER_API=http://127.0.0.1:41922 EMPTY_API=http
 The viewer is an account of role `user` on the hub and on the member API (create it with `POST /auth/users`); the hub
 also needs `austin` (role `user`) for the chat journey.
 
+`tests/deploy-sheet.mjs` checks the template deploy sheet for a stack in a fleet VM against the same lab, with the stack list,
+the VM's `/status`, Traefik, the domains, the dry run and the deploy answered inside the test: the VM's one NVIDIA card is
+offered and picked, its slot goes out as `gpu`, and romm-streaming's own route (`route_override`) is one row that follows
+its subdomain and port variables, behind Authelia unless switched off.
+
+```bash
+PUPPETEER_DIR=/tmp/dcs-ui-sweep node tests/deploy-sheet.mjs
+```
+
 `tests/technitium.mjs` drives the Technitium page with every `/dns/technitium/*` answer served from a fake inside the
 test (no Technitium needed; the lab signs in): the overview, Allow on a blocked name, the pause's countdown and Resume,
 a kids' group added, put in bedtime, paused, edited and deleted, SafeSearch, a device's queries and their filter, the

@@ -71,7 +71,7 @@ import {
   TONE_QUIET, TONE_OK, TONE_DANGER, TONE_GHOST_DANGER,
 } from '../lib/ui'
 import { fetchTemplates, fetchTemplateDetail, deployTemplate, importTemplate, updateTemplate, deleteTemplate, fetchStacks, fetchDeployHistory, undeployTemplate, dryRunTemplate, fetchContainers, importTemplateFromUrl, fetchTemplateUrl, fetchTemplateGallery, fetchTraefikStatus, fetchHomarrStatus, fetchStackActivity, fetchSecrets, setSecret, startStack,
-  validateCompose, fetchDomains,
+  validateCompose, fetchDomains, fetchServerStatus,
 } from '../api/endpoints'
 import type {
   TemplateInfo,
@@ -630,13 +630,23 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
   const targetMemberId = stacks.find((st) => st.name === targetStack)?.member
   const vmDomain = targetInVm ? domainsInfo?.domains.find((d) => d.vms.some((v) => v.id === targetMemberId))?.domain : undefined
   const effDomain = targetInVm ? (vmDomain || traefikDomain) : (routeDomain || traefikDomain)
-  // a graphics card for the services the template names (template.json "gpu"): this server's cards, from /status; a
-  // stack in a VM has none. Compute (AI) defaults to the AMD or NVIDIA card, video (transcoding) to Intel's built-in one
-  // when there is one (AMD's HDR tone mapping is unreliable on Linux), else the first card
+  // a graphics card for the services the template names (template.json "gpu"): the cards of the machine the stack runs on,
+  // from its /status (a VM's through the hub: the VM applies the card from its own list). Compute (AI) defaults to the AMD
+  // or NVIDIA card, video (transcoding) and graphics (a streamed desktop) to Intel's built-in one when there is one (AMD's
+  // HDR tone mapping is unreliable on Linux), else the first card
   const gpuSpec = useMemo(() => detail?.template.gpu ?? template.gpu ?? [], [detail, template.gpu])
   const hostGpus = useSystemStore((st) => st.status?.system.gpus)
-  const gpuCards = useMemo(() => (member || targetInVm || gpuSpec.length === 0 ? [] : (hostGpus ?? []).filter((g) => !!g.slot)), [member, targetInVm, gpuSpec, hostGpus])
-  const gpuUse: 'compute' | 'video' = gpuSpec.some((g) => g.use === 'compute') ? 'compute' : 'video'
+  const gpuMemberId = member?.id ?? (targetInVm ? targetMemberId : undefined)
+  const [memberGpus, setMemberGpus] = useState<NonNullable<typeof hostGpus> | null>(null)
+  useEffect(() => {
+    setMemberGpus(null)
+    if (!gpuMemberId || gpuSpec.length === 0) return
+    let alive = true
+    fetchServerStatus(gpuMemberId).then((st) => { if (alive) setMemberGpus(st.system?.gpus ?? []) }).catch(() => { if (alive) setMemberGpus([]) })
+    return () => { alive = false }
+  }, [gpuMemberId, gpuSpec.length])
+  const gpuCards = useMemo(() => (gpuSpec.length === 0 ? [] : ((gpuMemberId ? memberGpus : hostGpus) ?? []).filter((g) => !!g.slot)), [gpuMemberId, memberGpus, gpuSpec, hostGpus])
+  const gpuUse: 'compute' | 'video' | 'graphics' = gpuSpec.some((g) => g.use === 'compute') ? 'compute' : gpuSpec.some((g) => g.use === 'graphics') ? 'graphics' : 'video'
   const gpuDefault = useMemo(() => {
     const pick = gpuUse === 'compute'
       ? gpuCards.find((g) => g.vendor === 'amd' || g.vendor === 'nvidia')
@@ -661,6 +671,13 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
   const [customRoutes, setCustomRoutes] = useState<Record<string, string>>({})
   // Per-service subdomain + enabled state
   const [routeServices, setRouteServices] = useState<{ name: string; containerName: string; port: string; subdomain: string; enabled: boolean; authelia: boolean | null; onDemand: boolean }[]>([])
+  // a template that makes its own route (route_override): one route under the template's name, its subdomain and port
+  // read from the deploy variables it names; behind Authelia unless switched off here
+  const routeOverride = detail?.template.route_override ?? template.route_override
+  const [overrideAuth, setOverrideAuth] = useState(true)
+  const varOf = (name?: string) => (name ? (variables[name] ?? '').trim() : '')
+  const overrideSub = routeOverride ? varOf(routeOverride.subdomain_var) || routeOverride.subdomain || template.name : ''
+  const overridePort = routeOverride ? varOf(routeOverride.port_var) || String(routeOverride.port ?? '') : ''
 
   // Fetch Traefik status on mount (skip for traefik template itself)
   const isConnected = useConnectionStore((s) => s.status === 'connected')
@@ -997,7 +1014,11 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
     const switches: DeploySwitches | undefined = routing || routable
       ? {
           ...(routing ? {
-            authelia_services: routeServices.filter((s) => s.enabled && authFor(s) && !!autheliaMw).map((s) => s.name),
+            authelia_services: [
+              ...routeServices.filter((s) => s.enabled && authFor(s) && !!autheliaMw).map((s) => s.name),
+              // the template's own route goes by the template's name
+              ...(routeOverride && overrideAuth && autheliaMw ? [template.name] : []),
+            ],
             on_demand_services: routeServices.filter((s) => s.enabled && s.onDemand && sablierPresent).map((s) => s.name),
           } : {}),
           ...(routable ? {
@@ -1017,7 +1038,7 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
     }
     setLocalDeploying(false)
     return !!result
-  }, [onDeploy, targetStack, variables, autoStart, replaceServices, excludedServices, traefikActive, traefikDomain, routeDomain, targetInVm, enableRouting, customRoutes, connectProxy, enableResourceLimits, memLimit, cpuLimit, homarrActive, addToHomarr, storeAsSecret, secretNames, customContainerNames, routeServices, enableAuthelia, autheliaMw, sablierPresent, gpuCards, gpuSlot, addToast])
+  }, [onDeploy, targetStack, variables, autoStart, replaceServices, excludedServices, traefikActive, traefikDomain, routeDomain, targetInVm, enableRouting, customRoutes, connectProxy, enableResourceLimits, memLimit, cpuLimit, homarrActive, addToHomarr, storeAsSecret, secretNames, customContainerNames, routeServices, enableAuthelia, autheliaMw, sablierPresent, gpuCards, gpuSlot, routeOverride, overrideAuth, template.name, addToast])
 
   // F4: Handle "View Stack" navigation
   const handleViewStack = useCallback(() => {
@@ -1640,7 +1661,7 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
               {gpuCards.length > 0 && (
                 <div className="rounded-lg border border-cyan-500/15 bg-cyan-500/[0.03] px-3 py-2.5 space-y-1.5">
                   <label className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                    <span className="flex items-center gap-2 font-medium text-cyan-300"><Cpu size={13} aria-hidden /> Graphics card</span>
+                    <span className="flex items-center gap-2 font-medium text-cyan-300"><Cpu size={13} aria-hidden /> Graphics card{gpuMemberId ? <span className="font-normal text-slate-500">(the VM's)</span> : null}</span>
                     <select value={gpuSlot} onChange={(e) => setGpuChoice(e.target.value)} aria-label="The graphics card its services use"
                       className="bg-white/5 border border-white/10 rounded-md px-2 py-1 text-xs text-slate-200 focus:outline-none focus:border-cyan-500/40 max-w-full">
                       {gpuCards.map((g) => <option key={g.slot} value={g.slot}>{g.name}{g.memory_total_mb ? ` · ${Math.round(g.memory_total_mb / 1024)} GB` : ''}</option>)}
@@ -1649,18 +1670,18 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
                   </label>
                   <p className="text-[11px] text-slate-500 leading-relaxed">
                     {gpuPicked
-                      ? <>{gpuSpec.map((g) => g.service).join(', ')} {gpuSpec.length > 1 ? 'get' : 'gets'} {gpuPicked.vendor === 'nvidia'
-                          ? 'a GPU reservation (the NVIDIA Container Toolkit must be installed)'
+                      ? <>{gpuSpec.map((g) => g.service).join(', ')} {gpuUse === 'graphics' ? (gpuSpec.length > 1 ? 'render and encode' : 'renders and encodes') + ' on this card: ' : ''}{gpuSpec.length > 1 ? 'get' : 'gets'} {gpuPicked.vendor === 'nvidia'
+                          ? `a GPU reservation${gpuUse === 'graphics' ? ' with the graphics and video capabilities' : ''} (the NVIDIA Container Toolkit must be installed${gpuMemberId ? ' in the VM' : ''})`
                           : <><span className="font-mono text-slate-400">/dev/dri/{gpuPicked.render}</span>{gpuUse === 'compute' && gpuPicked.vendor === 'amd' ? <> and <span className="font-mono text-slate-400">/dev/kfd</span></> : null}</>}
                           {(() => { const img = gpuSpec.map((g) => g.images?.[gpuPicked.vendor as 'amd' | 'nvidia' | 'intel']).find(Boolean); return img ? <>, with the image <span className="font-mono text-slate-400">{img}</span></> : null })()}
                           {gpuUse === 'video' && gpuPicked.vendor !== 'nvidia' ? <>: choose that device in the app's transcoding settings</> : null}.</>
-                      : gpuUse === 'compute' ? 'Models run on the processor: slower, but nothing else is needed.' : 'Transcoding runs on the processor.'}
+                      : gpuUse === 'compute' ? 'Models run on the processor: slower, but nothing else is needed.' : gpuUse === 'graphics' ? 'The desktop renders and encodes on the processor: slow, and some emulators need a card.' : 'Transcoding runs on the processor.'}
                   </p>
                 </div>
               )}
 
               {/* Traefik Routing (when Traefik is active and services have ports) */}
-              {traefikActive && traefikDomain && traefikDomain !== 'example.com' && routeServices.length > 0 && (
+              {traefikActive && traefikDomain && traefikDomain !== 'example.com' && (routeServices.length > 0 || !!routeOverride) && (
                 <div className="rounded-lg border border-emerald-500/15 overflow-hidden">
                   {/* Master toggle + header */}
                   <div className="flex items-center justify-between px-3 py-2.5 bg-emerald-500/5">
@@ -1675,7 +1696,7 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
                       HTTPS routing
                     </button>
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] text-slate-500">{enableRouting ? `${routeServices.filter((s) => s.enabled).length} route${routeServices.filter((s) => s.enabled).length !== 1 ? 's' : ''}` : 'Off'}</span>
+                      <span className="text-[10px] text-slate-500">{enableRouting ? (() => { const n = routeServices.filter((s) => s.enabled).length + (routeOverride ? 1 : 0); return `${n} route${n !== 1 ? 's' : ''}` })() : 'Off'}</span>
                       <Switch size="sm" aria-label="HTTPS routing" checked={enableRouting} onChange={() => setEnableRouting(!enableRouting)} className="shrink-0" />
                     </div>
                   </div>
@@ -1683,9 +1704,11 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
                   {/* Expanded route details — directly under the HTTPS Routing header */}
                   {showRoutes && enableRouting && (
                     <div className="px-3 py-3 space-y-2 animate-fade-in border-t border-emerald-500/10">
-                      <p className="text-[11px] text-slate-500 leading-relaxed">
-                        Each service with ports gets an HTTPS route via Traefik. Edit subdomains or disable services you don't want exposed.
-                      </p>
+                      {routeServices.length > 0 && (
+                        <p className="text-[11px] text-slate-500 leading-relaxed">
+                          Each service with ports gets an HTTPS route via Traefik. Edit subdomains or disable services you don't want exposed.
+                        </p>
+                      )}
                       {!targetInVm && domainsInfo && domainsInfo.domains.length > 1 && (
                         <label className="flex items-center gap-2 text-[11px] text-slate-400">
                           Domain
@@ -1698,6 +1721,31 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
                       )}
                       {targetInVm && vmDomain && vmDomain !== traefikDomain && (
                         <p className="text-[11px] text-violet-300/80">This stack's VM answers under {vmDomain}: its routes are written there.</p>
+                      )}
+
+                      {/* The template's own route (route_override): its address follows the variables it names */}
+                      {routeOverride && (
+                        <div data-testid="route-override" className="flex flex-wrap items-center gap-2 rounded-lg border border-white/5 bg-white/[0.03] px-3 py-2">
+                          <span className="text-xs font-mono text-slate-200 break-all">{overrideSub}.{effDomain}</span>
+                          <span className="text-[10px] text-slate-500">→ port {overridePort || '?'}</span>
+                          <span className="text-[10px] text-slate-500">(DCS makes this route; HTTPS)</span>
+                          {autheliaMw && (
+                            <button
+                              type="button"
+                              onClick={() => setOverrideAuth((v) => !v)}
+                              aria-pressed={overrideAuth}
+                              title={overrideAuth ? 'Protected by Authelia (click to serve it without sign-in)' : 'Protect this route with Authelia sign-in'}
+                              className={`ml-auto inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-semibold border transition-all shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 ${overrideAuth ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300' : 'bg-white/5 border-white/10 text-slate-400 hover:text-slate-200'}`}
+                            >
+                              <Shield size={9} /> Auth
+                            </button>
+                          )}
+                          {(routeOverride.subdomain_var || routeOverride.port_var) && (
+                            <p className="basis-full text-[10px] text-slate-500">
+                              Set by {[routeOverride.subdomain_var, routeOverride.port_var].filter(Boolean).map((v, i) => <React.Fragment key={v}>{i > 0 ? ' and ' : ''}<span className="font-mono text-slate-400">{v}</span></React.Fragment>)} above.
+                            </p>
+                          )}
+                        </div>
                       )}
 
                       {/* Per-service subdomain rows */}

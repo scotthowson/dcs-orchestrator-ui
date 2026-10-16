@@ -2296,12 +2296,15 @@ export interface TemplateInfo {
   singleton?: boolean
   /** services that can use one of the server's graphics cards (4.0.30): picked on the deploy sheet */
   gpu?: TemplateGpuUse[]
+  /** the template makes its own route (4.0.56: subdomain_var/port_var name the deploy variables that override the fixed ones) */
+  route_override?: { subdomain?: string; subdomain_var?: string; port?: number | string; port_var?: string; protocol?: string; use_host_ip?: boolean }
 }
 
-/** template.json "gpu": compute = AI (AMD also gets /dev/kfd), video = transcoding; images swaps the image per vendor */
+/** template.json "gpu": compute = AI (AMD also gets /dev/kfd), video = transcoding, graphics = a streamed desktop that
+ *  renders and encodes (4.0.56); images swaps the image per vendor */
 export interface TemplateGpuUse {
   service: string
-  use?: 'compute' | 'video'
+  use?: 'compute' | 'video' | 'graphics'
   images?: Partial<Record<'amd' | 'nvidia' | 'intel', string>>
 }
 

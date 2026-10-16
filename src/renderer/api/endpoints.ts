@@ -179,9 +179,9 @@ import type {
 // Server
 // ---------------------------------------------------------------------------
 
-/** GET /status — Server status overview */
-export function fetchServerStatus(): Promise<ServerStatus> {
-  return apiClient.get<ServerStatus>('/status')
+/** GET /status — Server status overview (a fleet member's through the hub when one is given) */
+export function fetchServerStatus(member?: string | null): Promise<ServerStatus> {
+  return apiClient.get<ServerStatus>(memberPath(member, '/status'))
 }
 
 /** GET /health — Container health report */
