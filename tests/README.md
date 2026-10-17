@@ -86,6 +86,16 @@ install that cannot fast-forward offers Align (`POST /system/update/apply {align
 PUPPETEER_DIR=/tmp/dcs-ui-sweep node tests/engine-update.mjs
 ```
 
+`tests/backup-excludes.mjs` checks the stack page's *Excluded from backups* card against the same lab (server 4.0.59+): the lab hub's
+`development-tools` gets a 3 MiB `App-Data/RomM/library`, *Suggest* offers it with its size and one click adds it, a pattern with a
+`..` is stopped before it is sent, *Save* writes `.dcs-backup-exclude` through `PUT /stacks/{name}/backup-excludes` and the card
+then says what it leaves out (still there after a reload, and on a phone without sideways scroll); the Backups page shows an archive's
+`excluded_bytes` (the list served by a fake inside the test).
+
+```bash
+PUPPETEER_DIR=/tmp/dcs-ui-sweep LAB=/tmp/dcs-ui-lab node tests/backup-excludes.mjs
+```
+
 `tests/deploy-sheet.mjs` checks the template deploy sheet for a stack in a fleet VM against the same lab, with the stack list,
 the VM's `/status`, Traefik, the domains, the dry run and the deploy answered inside the test: the VM's one NVIDIA card is
 offered and picked, its slot goes out as `gpu`, and romm-streaming's own route (`route_override`) is one row that follows

@@ -14,7 +14,7 @@ import { useToast } from '../common/Toast'
 import VmCapsule from '../fleet/VmCapsule'
 import TypedConfirmDialog from './TypedConfirmDialog'
 import { BTN_CARD, TONE_DANGER, TONE_QUIET } from '../../lib/ui'
-import { backupChecksumScoped, backupDownloadLink, openBackupDownload, restoreBackupScoped, verifyBackupScoped } from '../../api/fleetScopedOps'
+import { backupChecksumScoped, backupDownloadLink, formatBytes, openBackupDownload, restoreBackupScoped, verifyBackupScoped } from '../../api/fleetScopedOps'
 import { useAuthStore } from '../../stores/authStore'
 import { formatTimestamp, rowKey } from './format'
 import type { ScopeMember } from '../../hooks/useFleetScope'
@@ -201,10 +201,11 @@ export default function BackupArchiveTable({
                       ) : <span className="inline-flex items-center text-emerald-400/80" title="Read back to the end when it was made; a checksum (.sha256) is beside it"><ShieldCheck size={12} aria-label="checked" /></span>)}
                     </div>
                     {/* on a phone the size and the date ride under the name */}
-                    <p className="sm:hidden mt-1 text-[11px] text-slate-500">{backup.size} · {formatTimestamp(backup.timestamp)}</p>
+                    <p className="sm:hidden mt-1 text-[11px] text-slate-500">{backup.size}{(backup.excluded_bytes ?? 0) > 0 && ` (${formatBytes(backup.excluded_bytes ?? 0)} left out)`} · {formatTimestamp(backup.timestamp)}</p>
                   </td>
                   <td className="px-5 py-3 hidden sm:table-cell whitespace-nowrap">
                     <span className="text-xs text-slate-400">{backup.size}</span>
+                    {(backup.excluded_bytes ?? 0) > 0 && <span className="block text-[11px] text-slate-500" title="Left out by the stacks' backup exclusions (Excluded from backups on a stack's page)" data-excluded-bytes>{formatBytes(backup.excluded_bytes ?? 0)} left out</span>}
                   </td>
                   <td className="px-5 py-3 hidden sm:table-cell">
                     <div className="flex items-center gap-1.5 text-xs text-slate-400 whitespace-nowrap">

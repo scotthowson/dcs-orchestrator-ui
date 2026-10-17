@@ -3,7 +3,7 @@
 // =============================================================================
 
 import { apiClient } from './client'
-import type { TechnitiumStatus, TechnitiumStats, TechnitiumRange, TechnitiumActivity, TechnitiumLists, TechnitiumGroups, TechnitiumGroup, TechnitiumGroupInput, TechnitiumGroupReport, TechnitiumHouse, TechnitiumHouseInput, TechnitiumSyncResult, TechnitiumConnectResult, TechnitiumBootstrapResult, TechnitiumRole, TechnitiumDevices, TechnitiumScan, TechnitiumNetDevice, TechnitiumDeviceChange, TechnitiumDhcp, TechnitiumScopeInput, TechnitiumLocal, TechnitiumBackups, VpnStatus, VpnRegion, VpnLeakResult, VpnTraffic, VpnHistory, VpnSpeedTest } from '../../shared/types'
+import type { TechnitiumStatus, TechnitiumStats, TechnitiumRange, TechnitiumActivity, TechnitiumLists, TechnitiumGroups, TechnitiumGroup, TechnitiumGroupInput, TechnitiumGroupReport, TechnitiumHouse, TechnitiumHouseInput, TechnitiumSyncResult, TechnitiumConnectResult, TechnitiumBootstrapResult, TechnitiumRole, TechnitiumDevices, TechnitiumScan, TechnitiumNetDevice, TechnitiumDeviceChange, TechnitiumDhcp, TechnitiumScopeInput, TechnitiumLocal, TechnitiumBackups, VpnStatus, VpnRegion, VpnLeakResult, VpnTraffic, VpnHistory, VpnSpeedTest, StackBackupExcludes } from '../../shared/types'
 import type {
   FleetVersions,
   FleetUpdateResponse,
@@ -742,6 +742,15 @@ export function pushStackFiles(name: string): Promise<StackPushResponse> {
 /** POST /stacks/:name/pull — Pull a VM stack's files from the VM into the hub's Stacks/<name>/ (admin; the hub's own endpoint) */
 export function pullStackFiles(name: string): Promise<StackPullResponse> {
   return apiClient.post<StackPullResponse>(`/stacks/${encodeURIComponent(name)}/pull`, {}, 120000)
+}
+
+/** GET /stacks/:name/backup-excludes — The folders and files of its App-Data the stack's backups leave out, what each matches now and the largest folders (measured in 25 s at most) */
+export function fetchStackBackupExcludes(name: string): Promise<StackBackupExcludes> {
+  return apiClient.get<StackBackupExcludes>(`/stacks/${encodeURIComponent(name)}/backup-excludes`)
+}
+/** PUT /stacks/:name/backup-excludes — Set them (relative to the App-Data, tar wildcards, at most 100; 400 for an absolute path or a ..) */
+export function saveStackBackupExcludes(name: string, patterns: string[]): Promise<{ success: boolean; stack: string; patterns: string[] }> {
+  return apiClient.put(`/stacks/${encodeURIComponent(name)}/backup-excludes`, { patterns })
 }
 
 /** GET /stacks/:name/appdata — Where a stack's App-Data is; for a VM's stack on a hub, whether the VM's folder is mounted at Stacks/<name>/VM-App-Data (admin; the hub's own endpoint) */

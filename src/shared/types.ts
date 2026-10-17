@@ -1317,6 +1317,21 @@ export interface BackupEntry {
   stack?: string
   /** false: something could not be read when it was made (its warnings say what); null for an old archive */
   complete?: boolean | null
+  /** bytes its stacks' backup exclusions left out (4.0.59; 0 or absent: nothing was left out) */
+  excluded_bytes?: number
+}
+/** GET /stacks/:name/backup-excludes — what the stack's backups leave out (.dcs-backup-exclude), measured now */
+export interface StackBackupExcludes {
+  stack: string
+  appdata: string
+  patterns: string[]
+  /** each pattern's match now: null sizes when it was not measured in time */
+  matched: { pattern: string; size_bytes: number | null; files: number | null }[]
+  excluded_bytes: number
+  /** the largest folders two levels down in its App-Data */
+  suggestions: { path: string; size_bytes: number }[]
+  examples: string[]
+  max: number
 }
 /** POST /backups/verify — the archive read to the end against its .sha256 and manifest */
 export interface BackupVerifyResponse { ok: boolean; error: string | null; sha256: string; checksum_checked: boolean; format: number; kind: string; parts: number; filename: string }

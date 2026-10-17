@@ -33,6 +33,7 @@ import {
 } from 'lucide-react'
 import type { StackDetail as StackDetailType, ContainerInfo, StackInfo, ProxmoxVmAction, StackAppDataStatus } from '../../../shared/types'
 import AppDataLabel from './AppDataLabel'
+import BackupExcludesCard from './BackupExcludesCard'
 import { fetchStack, fetchStackLogs, fetchStackCompose, cloneStack, renameStack, startContainer, stopContainer, restartContainer, proxmoxVmAction, pushStackFiles, pullStackFiles, fetchStackAppData, mountStackAppData, unmountStackAppData } from '../../api/endpoints'
 import { usePolling } from '../../hooks/usePolling'
 import { useSettingsStore } from '../../stores/settingsStore'
@@ -725,6 +726,9 @@ export default function StackDetail({ stackName, onBack, onAction, isActionLoadi
           logEndRef={logEndRef}
         />
       )}
+
+      {/* what its backups leave out of its App-Data (a VM's stack: asked of the VM, through the hub) */}
+      <BackupExcludesCard stack={stackName} isAdmin={isAdmin} />
     </div>
   )
 }
