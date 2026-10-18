@@ -75,6 +75,8 @@ import { fetchTemplates, fetchTemplateDetail, deployTemplate, importTemplate, up
 } from '../api/endpoints'
 import type {
   TemplateInfo,
+  PolicyAllow,
+  PolicyRefusal,
   TemplateDetailResponse,
   TemplateListResponse,
   TemplateDeployResponse,
@@ -290,6 +292,8 @@ import { CountBadge } from '../components/stacks/LintParts'
 import EditorFrame from '../components/editor/EditorFrame'
 import CodeArea, { type CodeAreaHandle } from '../components/editor/CodeArea'
 import SaveBar from '../components/editor/SaveBar'
+import PolicyConsent, { allowPolicy, useConsent, needItems, refusalItems, refusalsOf } from '../components/common/PolicyConsent'
+import { apiErrorData } from '../api/errors'
 import DiffView from '../components/editor/DiffView'
 import EditorTools from '../components/editor/EditorTools'
 import EditorStatus, { LintButton } from '../components/editor/EditorStatus'
@@ -450,7 +454,7 @@ function parseServicesWithPorts(compose: string): { name: string; containerName:
 }
 
 /** the per-route choices of the deploy sheet: who is behind Authelia, who starts on demand, and whether a route is made at all */
-type DeploySwitches = { authelia_services?: string[]; on_demand_services?: string[]; routes?: boolean; route_services?: string[]; domain?: string; gpu?: string }
+type DeploySwitches = { authelia_services?: string[]; on_demand_services?: string[]; routes?: boolean; route_services?: string[]; domain?: string; gpu?: string; allow_policy?: PolicyAllow[] }
 
 interface DeployModalProps {
   template: TemplateInfo
@@ -590,6 +594,12 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
   // F5: Dry-run state
   const [dryRunResult, setDryRunResult] = useState<TemplateDryRunResponse | null>(null)
   const [dryRunLoading, setDryRunLoading] = useState(false)
+  // Consent (4.0.60): what the compose policy refuses unless an admin allows it, ticked here (never by default)
+  const policyNeeds = detail?.template.policy_needs ?? template.policy_needs ?? []
+  const [consent, toggleConsent] = useConsent()
+  const [refusals, setRefusals] = useState<PolicyRefusal[]>([])
+  const refusalsRef = useRef(false)
+  refusalsRef.current = refusals.length > 0
   // F6: Replace conflicting services toggle
   const [replaceServices, setReplaceServices] = useState(false)
   // Lint details panel visibility
@@ -1029,8 +1039,21 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
         }
       : undefined
     const gpuSend = gpuCards.length > 0 && gpuSlot !== 'none' ? gpuSlot : undefined
-    const switchesAll: DeploySwitches | undefined = gpuSend ? { ...(switches ?? {}), gpu: gpuSend } : switches
-    const result = await onDeploy(targetStack, varsToSend, autoStart, replaceServices || undefined, exclude, routes, proxyFlag, resLimits, homarrFlag, names, switchesAll)
+    const allow = allowPolicy(consent)
+    const switchesAll: DeploySwitches | undefined = gpuSend || allow.length
+      ? { ...(switches ?? {}), ...(gpuSend ? { gpu: gpuSend } : {}), ...(allow.length ? { allow_policy: allow } : {}) }
+      : switches
+    let result: TemplateDeployResponse | null
+    try {
+      result = await onDeploy(targetStack, varsToSend, autoStart, replaceServices || undefined, exclude, routes, proxyFlag, resLimits, homarrFlag, names, switchesAll)
+    } catch (err) {
+      // the compose policy refused: its refusals are listed above the bar, each with its box (Allow and deploy)
+      setRefusals(refusalsOf(apiErrorData(err)))
+      refusalsRef.current = true
+      setLocalDeploying(false)
+      return false
+    }
+    setRefusals([])
     if (result) {
       setDeployResult(result)
       setOutcome(result.started ? 'pending' : 'not-started')
@@ -1038,7 +1061,7 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
     }
     setLocalDeploying(false)
     return !!result
-  }, [onDeploy, targetStack, variables, autoStart, replaceServices, excludedServices, traefikActive, traefikDomain, routeDomain, targetInVm, enableRouting, customRoutes, connectProxy, enableResourceLimits, memLimit, cpuLimit, homarrActive, addToHomarr, storeAsSecret, secretNames, customContainerNames, routeServices, enableAuthelia, autheliaMw, sablierPresent, gpuCards, gpuSlot, routeOverride, overrideAuth, template.name, addToast])
+  }, [onDeploy, targetStack, variables, autoStart, replaceServices, excludedServices, traefikActive, traefikDomain, routeDomain, targetInVm, enableRouting, customRoutes, connectProxy, enableResourceLimits, memLimit, cpuLimit, homarrActive, addToHomarr, storeAsSecret, secretNames, customContainerNames, routeServices, enableAuthelia, autheliaMw, sablierPresent, gpuCards, gpuSlot, routeOverride, overrideAuth, template.name, addToast, consent])
 
   // F4: Handle "View Stack" navigation
   const handleViewStack = useCallback(() => {
@@ -1120,7 +1143,10 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
   }, [handleDryRun, replaceServices, targetStack])
   const deploySave = useCallback(async (): Promise<SaveOutcome> => {
     const ok = await runDeploy()
-    return ok ? { ok: true, note: 'Deploying' } : { ok: false, title: 'Not deployed', problems: [{ severity: 'error', message: 'The server did not take the deploy: its message is in the notification' }] }
+    if (ok) return { ok: true, note: 'Deploying' }
+    return { ok: false, title: 'Not deployed', problems: [{ severity: 'error', message: refusalsRef.current
+      ? 'The compose policy refused it: tick what you allow in "The compose policy refused the deploy" above, then Allow and deploy'
+      : 'The server did not take the deploy: its message is in the notification' }] }
   }, [runDeploy])
   const deployRun = useSavePipeline({ check: deployCheck, save: deploySave, version: `${targetStack}|${replaceServices}|${JSON.stringify(variables)}|${[...excludedServices].join()}`, saveWord: 'deployed' })
   const deployBlocked = !canDeploy ? (targetStack ? '' : 'Choose the target stack first')
@@ -2092,6 +2118,28 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
                 </div>
               )}
 
+              {/* Consent (4.0.60): the template's needs before the deploy, the policy's refusals after one */}
+              {isAdmin && refusals.length === 0 && (
+                <PolicyConsent
+                  title="This template needs"
+                  intro={`The compose policy refuses these unless they are allowed. Tick what you allow: it is recorded as ${member ? 'the VM\'s' : 'this server\'s'} exception for the image (listed on the Config page, where it can be removed). Something already allowed there records nothing.`}
+                  items={needItems(policyNeeds)}
+                  checked={consent}
+                  onToggle={toggleConsent}
+                  disabled={deploying || localDeploying}
+                />
+              )}
+              {isAdmin && refusals.length > 0 && (
+                <PolicyConsent
+                  title="The compose policy refused the deploy"
+                  intro="Nothing was written. Tick what you allow for its image, then Allow and deploy: each is recorded as an exception you can remove on the Config page."
+                  items={refusalItems(refusals)}
+                  checked={consent}
+                  onToggle={toggleConsent}
+                  disabled={deploying || localDeploying}
+                />
+              )}
+
               {/* F5: Dry-run preview result */}
               {dryRunResult && (
                 <div className="rounded-lg border border-cyan-500/20 bg-cyan-500/5 p-3 space-y-2.5 animate-fade-in">
@@ -2292,7 +2340,7 @@ function DeployModal({ template, detail, detailLoading, stacks, onClose, onDeplo
               onDismissResult={deployRun.clear}
               onCheck={targetStack ? () => void deployRun.checkOnly() : undefined}
               secondary={{ label: isAdmin ? 'Cancel' : 'Close', onClick: onClose }}
-              primary={isAdmin ? { label: 'Deploy', busyLabel: 'Deploying…', icon: <Rocket size={16} aria-hidden />, onClick: () => void deployRun.submit(), disabled: !!deployBlocked, reason: deployBlocked || undefined } : undefined}
+              primary={isAdmin ? { label: consent.size > 0 ? 'Allow and deploy' : 'Deploy', busyLabel: 'Deploying…', icon: <Rocket size={16} aria-hidden />, onClick: () => void deployRun.submit(), disabled: !!deployBlocked, reason: deployBlocked || undefined } : undefined}
               label="Deploy"
             />
           </>
@@ -3360,8 +3408,7 @@ export default function Templates() {
       if (!deployTarget) return null
       setDeploying(true)
       try {
-        // Auto-approve privileged mode for built-in templates (user sees linter warning before deploying)
-        const needsPrivileged = detail?.compose ? /privileged\s*:\s*true/.test(detail.compose) : false
+        // privileged mode is no longer approved silently: the sheet's consent (allow_policy) says what is allowed
         const res = await deployTemplate(deployTarget.name, {
           target_stack: targetStack,
           variables,
@@ -3373,7 +3420,7 @@ export default function Templates() {
           connect_proxy: connectProxy,
           resource_limits: resourceLimits,
           add_to_homarr: addToHomarr,
-          allow_privileged: needsPrivileged,
+          allow_policy: switches?.allow_policy,
           container_names: containerNames,
           // the sheet's choice travels even when it is "none": the server would otherwise protect by default
           authelia_services: switches?.authelia_services,
@@ -3393,6 +3440,8 @@ export default function Templates() {
           return null
         }
       } catch (err) {
+        // the compose policy's refusals: the sheet lists them with their boxes
+        if (refusalsOf(apiErrorData(err)).length > 0) throw err
         // F3: Conflict-aware error handling with structured toast messages
         const message = err instanceof Error ? err.message : String(err)
         if (message.includes('409') || message.toLowerCase().includes('conflict')) {
@@ -3423,7 +3472,7 @@ export default function Templates() {
         setDeploying(false)
       }
     },
-    [deployTarget, detail, addToast, refresh, refreshHistory, deployMember],
+    [deployTarget, addToast, refresh, refreshHistory, deployMember],
   )
 
   // F4: Undeploy handler

@@ -3,7 +3,7 @@
 // =============================================================================
 
 import { apiClient } from './client'
-import type { TechnitiumStatus, TechnitiumStats, TechnitiumRange, TechnitiumActivity, TechnitiumLists, TechnitiumGroups, TechnitiumGroup, TechnitiumGroupInput, TechnitiumGroupReport, TechnitiumHouse, TechnitiumHouseInput, TechnitiumSyncResult, TechnitiumConnectResult, TechnitiumBootstrapResult, TechnitiumRole, TechnitiumDevices, TechnitiumScan, TechnitiumNetDevice, TechnitiumDeviceChange, TechnitiumDhcp, TechnitiumScopeInput, TechnitiumLocal, TechnitiumBackups, VpnStatus, VpnRegion, VpnLeakResult, VpnTraffic, VpnHistory, VpnSpeedTest, StackBackupExcludes } from '../../shared/types'
+import type { TechnitiumStatus, TechnitiumStats, TechnitiumRange, TechnitiumActivity, TechnitiumLists, TechnitiumGroups, TechnitiumGroup, TechnitiumGroupInput, TechnitiumGroupReport, TechnitiumHouse, TechnitiumHouseInput, TechnitiumSyncResult, TechnitiumConnectResult, TechnitiumBootstrapResult, TechnitiumRole, TechnitiumDevices, TechnitiumScan, TechnitiumNetDevice, TechnitiumDeviceChange, TechnitiumDhcp, TechnitiumScopeInput, TechnitiumLocal, TechnitiumBackups, VpnStatus, VpnRegion, VpnLeakResult, VpnTraffic, VpnHistory, VpnSpeedTest, StackBackupExcludes, PolicyAllow, ComposePolicyResponse } from '../../shared/types'
 import type {
   FleetVersions,
   FleetUpdateResponse,
@@ -617,11 +617,21 @@ export function validateStackCompose(name: string, content: string): Promise<Com
 }
 
 /** POST /stacks/:name/compose — Save compose file */
-export function saveStackCompose(name: string, content: string): Promise<ComposeSaveResponse> {
+export function saveStackCompose(name: string, content: string, allowPolicy?: PolicyAllow[]): Promise<ComposeSaveResponse> {
   return apiClient.post<ComposeSaveResponse>(
     `/stacks/${encodeURIComponent(name)}/compose`,
-    { content },
+    allowPolicy?.length ? { content, allow_policy: allowPolicy } : { content },
   )
+}
+
+/** GET /config/compose-policy — the shipped exceptions and this server's own (admin) */
+export function fetchComposePolicy(): Promise<ComposePolicyResponse> {
+  return apiClient.get<ComposePolicyResponse>('/config/compose-policy')
+}
+
+/** PUT /config/compose-policy — replace this server's own exceptions (the Config page sends the list back with one removed) */
+export function saveComposePolicy(local: ComposePolicyResponse['local']): Promise<{ success: boolean }> {
+  return apiClient.put<{ success: boolean }>('/config/compose-policy', local)
 }
 
 /** GET /stacks/:name/env — Read stack .env */
@@ -1077,6 +1087,8 @@ export function deployTemplate(name: string, opts: {
   resource_limits?: { mem_limit?: string; cpus?: number }
   add_to_homarr?: boolean
   allow_privileged?: boolean
+  /** an admin's consent for what the compose policy refuses: recorded as this server's (or the VM's) exception */
+  allow_policy?: PolicyAllow[]
   /** Container names chosen on the deploy screen, keyed by service */
   container_names?: Record<string, string>
   /** services whose route is protected by Authelia */

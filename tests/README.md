@@ -96,6 +96,17 @@ then says what it leaves out (still there after a reload, and on a phone without
 PUPPETEER_DIR=/tmp/dcs-ui-sweep LAB=/tmp/dcs-ui-lab node tests/backup-excludes.mjs
 ```
 
+`tests/policy-consent.mjs` checks consent for what the compose policy refuses (server 4.0.60+) against the same lab, with the
+stack list, the dry run, the deploys, the stack editor's check and save and the compose policy answered inside the test: the
+pelican deploy sheet shows *This template needs* (its `policy_needs` from the lab's catalogue) with every box unticked, the
+first deploy carries no consent and is answered 422 with `policy_refusals`, which the sheet lists with their boxes; ticked,
+*Allow and deploy* sends `allow_policy`. The stack editor offers the check's refusals the same way (*Allow and save*), and the
+Config page lists this server's exceptions with who added them, Remove sending the list back without one.
+
+```bash
+PUPPETEER_DIR=/tmp/dcs-ui-sweep node tests/policy-consent.mjs
+```
+
 `tests/deploy-sheet.mjs` checks the template deploy sheet for a stack in a fleet VM against the same lab, with the stack list,
 the VM's `/status`, Traefik, the domains, the dry run and the deploy answered inside the test: the VM's one NVIDIA card is
 offered and picked, its slot goes out as `gpu`, and romm-streaming's own route (`route_override`) is one row that follows

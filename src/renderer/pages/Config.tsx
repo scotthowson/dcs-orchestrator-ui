@@ -18,6 +18,7 @@ import {
   AlertTriangle,
   Palette,
   Shield,
+  ShieldCheck,
   Zap,
   Server,
   ChevronDown,
@@ -30,6 +31,7 @@ import {
 } from 'lucide-react'
 import { FloatingSaveBar } from '../components/common/FloatingSaveBar'
 import { ProxmoxTestPanel, TraefikFeedPanel, HomarrPanel } from '../components/settings/IntegrationPanels'
+import ComposePolicyExceptions from '../components/settings/ComposePolicyExceptions'
 import PageHeader from '../components/common/PageHeader'
 import { ErrorState } from '../components/common/PageState'
 import { pageLabel } from '../constants/pageTitles'
@@ -988,6 +990,15 @@ export default function Config() {
             </Row>
             <ToggleRow label="TLS enabled" description="Direct TLS termination on the API server" configKey="API_TLS_ENABLED" value={Boolean(edits.API_TLS_ENABLED)} onChange={handleBoolChange} />
             <ToggleRow label="Behind TLS proxy" description="API is behind a TLS-terminating proxy (enables HSTS)" configKey="API_BEHIND_TLS_PROXY" value={Boolean(edits.API_BEHIND_TLS_PROXY)} onChange={handleBoolChange} />
+          </GroupCard>
+
+          {/* Compose policy: this server's own exceptions (4.0.60) */}
+          <GroupCard
+            icon={<ShieldCheck size={16} className="text-slate-400" />}
+            title="Compose policy exceptions"
+            description="What this server allows beyond the compose policy's defaults: added with a deploy's or a save's consent, removable here"
+          >
+            <ComposePolicyExceptions />
           </GroupCard>
 
           {/* ── Traefik / DNS ── */}

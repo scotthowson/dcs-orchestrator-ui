@@ -1103,6 +1103,8 @@ export interface ComposeValidateResponse {
   valid: boolean
   stack: string
   output: string
+  /** the compose policy's refusals, open to an admin's consent (4.0.60) */
+  policy_refusals?: PolicyRefusal[]
 }
 
 /**
@@ -2322,6 +2324,54 @@ export interface TemplateInfo {
   gpu?: TemplateGpuUse[]
   /** the template makes its own route (4.0.56: subdomain_var/port_var name the deploy variables that override the fixed ones) */
   route_override?: { subdomain?: string; subdomain_var?: string; port?: number | string; port_var?: string; protocol?: string; use_host_ip?: boolean }
+  /** what the compose policy refuses unless an admin allows it, and why the template needs it (4.0.60) */
+  policy_needs?: PolicyNeed[]
+}
+
+/** a template's declared need of the host: a compose-policy rule for one of its services, with the reason */
+export interface PolicyNeed {
+  rule: string
+  service: string
+  reason: string
+}
+
+/** one refusal of the compose policy as a 422 (deploy, compose save) or the editor's check gives it (4.0.60) */
+export interface PolicyRefusal {
+  rule: string
+  service: string | null
+  line?: number | null
+  image?: string | null
+  message: string
+  /** how an exception would be scoped; null: a finding of the file itself, not open to consent */
+  scope_suggestion: { kind: 'image' | 'service' | 'stack'; value: string } | null
+}
+
+/** an admin's consent sent with a deploy or a save: each refusal named is recorded as this server's exception */
+export interface PolicyAllow {
+  rule: string
+  service?: string
+  scope?: 'image' | 'service' | 'stack'
+  reason?: string
+}
+
+/** an entry of this server's own compose-policy exceptions (GET/PUT /config/compose-policy) */
+export interface ComposePolicyAllowEntry {
+  image?: string
+  stack?: string
+  service?: string
+  any?: boolean
+  rules: string[]
+  reason: string
+  added_by?: string
+  added_at?: string
+  source?: string
+}
+
+export interface ComposePolicyResponse {
+  shipped: { allow?: ComposePolicyAllowEntry[] }
+  local: { allow?: ComposePolicyAllowEntry[]; devices?: { warn?: string[]; ignore?: string[] } }
+  engine: string
+  cached_verdicts: number
 }
 
 /** template.json "gpu": compute = AI (AMD also gets /dev/kfd), video = transcoding, graphics = a streamed desktop that

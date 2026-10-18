@@ -37,6 +37,9 @@ import { BTN_CARD, BTN_TOOLBAR, TONE_QUIET } from '../../lib/ui'
 import { INPUT, LABEL, HINT } from '../../lib/fieldStyles'
 import { TONE_TEXT } from '../../lib/tone'
 import { CountBadge } from './LintParts'
+import PolicyConsent, { allowPolicy, useConsent, refusalItems, refusalsOf } from '../common/PolicyConsent'
+import { apiErrorData } from '../../api/errors'
+import type { PolicyRefusal } from '../../../shared/types'
 
 type TabId = 'compose' | 'env' | 'labels' | 'history'
 
@@ -149,18 +152,36 @@ export default function StackFilesEditor({ stackName, stack, isAdmin, initialSer
   }, [annotations, annoLabel, annoPriority, annoNotes, stackName, updateSetting, addToast])
   const discardLabels = () => { setAnnoLabel(annotation.label ?? ''); setAnnoPriority(annotation.priority ?? 'normal'); setAnnoNotes(annotation.notes ?? '') }
 
+  // ---- the compose policy's refusals, open to an admin's consent (4.0.60) --------
+  const [refusals, setRefusals] = useState<PolicyRefusal[]>([])
+  const [consent, toggleConsent, setConsent] = useConsent()
+  useEffect(() => { setRefusals([]); setConsent(new Set()) }, [compose])
+
   // ---- check and save, in one press ------------------------------------------
   const checkCompose = useCallback(async (): Promise<CheckOutcome> => {
     const text = compose
+    // ticked boxes: the check would refuse again; the save with allow_policy records them and is judged afresh
+    if (consent.size > 0) return { ok: true, problems: [], passNote: 'Saving with what you allowed' }
     const res = await validateStackCompose(stackName, text)
+    setRefusals(res.valid ? [] : res.policy_refusals ?? [])
     const lint = lintProblems(composeLint.diagnostics)
     const lintErrors = lint.filter((p) => p.severity === 'error').length
     if (!res.valid) return { ok: false, problems: [...problemsFrom(res.output, text), ...lint.filter((p) => p.severity === 'error')] }
     return { ok: true, problems: lint, ask: lintQuestion(lintErrors, 'docker-compose.yml'), passNote: lint.length ? `Docker reads the file · the linter has ${plural(lint.length, 'note')}` : 'Checked: Docker reads the file without a problem' }
-  }, [compose, stackName, composeLint.diagnostics])
+  }, [compose, stackName, composeLint.diagnostics, consent])
   const saveCompose = useCallback(async (): Promise<SaveOutcome> => {
     const text = compose
-    const res = await saveStackCompose(stackName, text)
+    let res
+    try {
+      res = await saveStackCompose(stackName, text, allowPolicy(consent))
+    } catch (err) {
+      const r = refusalsOf(apiErrorData(err))
+      if (r.length === 0) throw err
+      setRefusals(r)
+      return { ok: false, title: 'The compose policy refused the file — nothing was saved', problems: problemsFrom(err instanceof Error ? err.message : '', text) }
+    }
+    setRefusals([])
+    setConsent(new Set())
     // HTTP 200 with success:false is a compose file Docker refused: nothing was written
     if (!res.success) return { ok: false, title: 'Docker refused the file — nothing was saved', problems: problemsFrom(res.validation_errors || res.message || 'The check failed', text) }
     setComposeSaved(text)
@@ -169,7 +190,7 @@ export default function StackFilesEditor({ stackName, stack, isAdmin, initialSer
     else addToast({ type: 'success', message: `Compose file saved for ${stackName}` })
     onSaved?.()
     return { ok: true, note: 'Saved · checked by Docker' }
-  }, [compose, stackName, addToast, onSaved])
+  }, [compose, stackName, addToast, onSaved, consent])
   const composeRun = useSavePipeline({ check: checkCompose, save: saveCompose, version: compose })
 
   const checkEnv = useCallback(async (): Promise<CheckOutcome> => {
@@ -314,7 +335,16 @@ export default function StackFilesEditor({ stackName, stack, isAdmin, initialSer
       onDismissResult={file.run.clear}
       onCheck={file.run.checkOnly}
       secondary={{ label: 'Discard', onClick: () => void discard() }}
-      primary={{ label: 'Save', busyLabel: 'Saving…', onClick: () => void file.run.submit() }}
+      primary={{ label: tab === 'compose' && consent.size > 0 ? 'Allow and save' : 'Save', busyLabel: 'Saving…', onClick: () => void file.run.submit() }}
+      extra={tab === 'compose' && isAdmin && refusals.length > 0 ? (
+        <PolicyConsent
+          title="The compose policy refuses this file"
+          intro="Tick what you allow for its image, then Allow and save: each is recorded as this server's exception, listed on the Config page where it can be removed."
+          items={refusalItems(refusals)}
+          checked={consent}
+          onToggle={toggleConsent}
+        />
+      ) : undefined}
       onHeight={setBarH}
       label={`Unsaved changes to ${file.name}`}
     />
